@@ -1,0 +1,379 @@
+# Rencana item pembangunan Appsmith — sumber kebenaran untuk PROGRESS.md.
+#
+# Nama di sini = standar penamaan. Query/JS/page di Appsmith dan function/view di
+# Postgres HARUS memakai nama yang sama persis supaya terdeteksi otomatis.
+#   q_*  query baca (SELECT dari view)      a_*  query aksi (SELECT fn_*(...))
+#   v_*  view Postgres                      fn_* function Postgres (validasi + cek role + audit, 1 transaksi)
+#
+# Satu [[group]] = sekumpulan item dengan modul, fase, dan target minggu yang sama.
+# `page` wajib diisi kalau group berisi queries/js/widgets (item itu dicari di page tsb).
+
+[proyek]
+nama = "Sistem Specsheet & CBD — Appsmith"
+mulai = 2026-09-28   # Senin minggu 1 (sama dengan Timeline_Appsmith_12_Minggu.xlsx)
+
+[aturan]
+js_wajib_per_page = ["Auth", "Util"]   # Appsmith CE tidak punya JS global, jadi disalin per page
+page_tanpa_aturan = []                  # page yang dikecualikan dari aturan di atas (mis. halaman print)
+
+[[fase]]
+kode = "MVP"
+nama = "MVP — alur inti Master → Model → Specsheet → CBD"
+target = 9
+
+[[fase]]
+kode = "F2"
+nama = "Fase 2 — pelengkap (worklist, laporan, audit, export, copy, persetujuan)"
+target = 10
+
+# ─────────────────────────────── MVP ───────────────────────────────
+
+[[group]]
+modul = "M0 Fondasi"
+judul = "Skema database (hasil migrasi dari SQLite)"
+fase = "MVP"
+minggu = 2
+tables = [
+  "component_group", "component", "material", "material_attachment", "supplier",
+  "audit_log", "product_model", "specsheet", "specsheet_revision", "article",
+  "revision_article", "bom_line", "bom_cell", "change_log", "specsheet_photo",
+  "cbd_revision", "cbd_line", "material_supplier", "material_price",
+  "app_user", "role_permission",
+]
+functions = ["fn_assert_perm", "fn_audit"]
+
+[[group]]
+modul = "M0 Fondasi"
+judul = "Kerangka aplikasi, login & hak akses per role"
+fase = "MVP"
+minggu = 2
+page = "Beranda"
+pages = ["Beranda"]
+queries = ["q_me", "q_my_perms"]
+js = ["Auth", "Util"]
+views = ["v_my_perms"]
+
+[[group]]
+modul = "M1 Master Data"
+judul = "Supplier"
+fase = "MVP"
+minggu = 3
+page = "Master_Supplier"
+pages = ["Master_Supplier"]
+queries = ["q_suppliers", "a_supplier_create", "a_supplier_update", "a_supplier_set_status"]
+js = ["SupplierCtrl"]
+views = ["v_supplier_list"]
+functions = ["fn_supplier_create", "fn_supplier_update", "fn_supplier_set_status"]
+
+[[group]]
+modul = "M1 Master Data"
+judul = "Komponen"
+fase = "MVP"
+minggu = 3
+page = "Master_Komponen"
+pages = ["Master_Komponen"]
+queries = ["q_component_groups", "q_components", "q_next_component_number",
+           "a_component_create", "a_component_update", "a_component_set_status"]
+js = ["KomponenCtrl"]
+views = ["v_component_list"]
+functions = ["fn_component_create", "fn_component_update", "fn_component_set_status",
+             "fn_next_component_number"]
+
+[[group]]
+modul = "M1 Master Data"
+judul = "Daftar & buat Material"
+fase = "MVP"
+minggu = 3
+page = "Master_Material"
+pages = ["Master_Material"]
+queries = ["q_materials", "q_next_material_code", "a_material_create"]
+js = ["MaterialCtrl"]
+views = ["v_material_list"]
+functions = ["fn_material_create", "fn_next_material_code"]
+
+[[group]]
+modul = "M1 Master Data"
+judul = "Detail Material: info, supplier, harga, metode harga (format sesuai ERP)"
+fase = "MVP"
+minggu = 4
+page = "Material_Detail"
+pages = ["Material_Detail"]
+queries = ["q_material", "q_material_suppliers", "q_material_prices",
+           "a_material_update", "a_material_set_status", "a_material_set_price_method",
+           "a_material_supplier_add", "a_material_supplier_set_code",
+           "a_material_supplier_set_preferred", "a_material_supplier_set_status",
+           "a_price_add", "a_price_end"]
+js = ["MaterialDetailCtrl"]
+views = ["v_material_suppliers", "v_material_prices"]
+functions = ["fn_material_update", "fn_material_set_status", "fn_material_set_price_method",
+             "fn_material_supplier_add", "fn_material_supplier_set_code",
+             "fn_material_supplier_set_preferred", "fn_material_supplier_set_status",
+             "fn_price_add", "fn_price_end"]
+
+[[group]]
+modul = "M2 Model & Article"
+judul = "Daftar Model"
+fase = "MVP"
+minggu = 5
+page = "Model_List"
+pages = ["Model_List"]
+queries = ["q_models", "a_model_create"]
+js = ["ModelCtrl"]
+views = ["v_model_overview"]
+functions = ["fn_model_create"]
+
+[[group]]
+modul = "M2 Model & Article"
+judul = "Detail Model: season & article"
+fase = "MVP"
+minggu = 5
+page = "Model_Detail"
+pages = ["Model_Detail"]
+queries = ["q_model", "q_seasons", "q_articles", "a_model_update", "a_season_create",
+           "a_article_create", "a_article_update", "a_article_delete"]
+js = ["ModelDetailCtrl"]
+views = ["v_articles"]
+functions = ["fn_model_update", "fn_season_create", "fn_article_create",
+             "fn_article_update", "fn_article_delete"]
+
+[[group]]
+modul = "M3 Specsheet"
+judul = "Daftar Specsheet"
+fase = "MVP"
+minggu = 6
+page = "Specsheet_List"
+pages = ["Specsheet_List"]
+queries = ["q_specsheets"]
+views = ["v_specsheet_list"]
+
+[[group]]
+modul = "M3 Specsheet"
+judul = "Revisi & stage: buat kosong, revisi stage sama/berikut, hapus draft"
+fase = "MVP"
+minggu = 6
+page = "Specsheet_Detail"
+pages = ["Specsheet_Detail"]
+queries = ["q_revisions", "q_revision", "q_revision_articles",
+           "a_revision_create_empty", "a_revision_same_stage", "a_revision_next_stage",
+           "a_revision_delete_draft", "a_revision_include_article", "a_article_set_status"]
+js = ["SpecCtrl"]
+functions = ["fn_revision_create_empty", "fn_revision_same_stage", "fn_revision_next_stage",
+             "fn_revision_delete_draft", "fn_revision_include_article", "fn_article_set_status"]
+
+[[group]]
+modul = "M3 Specsheet"
+judul = "Grid BOM (Custom Widget)"
+fase = "MVP"
+minggu = 7
+page = "Specsheet_Detail"
+queries = ["q_bom_lines", "q_component_all", "q_material_all", "q_supplier_all",
+           "a_bom_add_line", "a_bom_replace_material", "a_bom_update_process",
+           "a_bom_update_supplier", "a_bom_update_cell"]
+js = ["BomCtrl"]
+widgets = ["BomGrid"]
+views = ["v_bom_lines"]
+functions = ["fn_bom_add_line", "fn_bom_replace_material", "fn_bom_update_process",
+             "fn_bom_update_supplier", "fn_bom_update_cell"]
+
+[[group]]
+modul = "M3 Specsheet"
+judul = "Checklist & terbitkan specsheet (+ tandai CBD NEEDS_REVISION)"
+fase = "MVP"
+minggu = 7
+page = "Specsheet_Detail"
+queries = ["q_publish_checklist", "a_revision_publish"]
+functions = ["fn_publish_checklist", "fn_revision_publish", "fn_mark_cbd_sync_status"]
+
+[[group]]
+modul = "M4 CBD"
+judul = "Daftar CBD per article"
+fase = "MVP"
+minggu = 8
+page = "CBD_List"
+pages = ["CBD_List"]
+queries = ["q_cbd_list"]
+views = ["v_cbd_list"]
+
+[[group]]
+modul = "M4 CBD"
+judul = "Buat revisi CBD dari specsheet & grid baris (yield, loss, harga master)"
+fase = "MVP"
+minggu = 8
+page = "CBD_Detail"
+pages = ["CBD_Detail"]
+queries = ["q_cbd_revisions", "q_cbd_revision", "q_cbd_lines",
+           "a_cbd_create_no_source", "a_cbd_same_stage", "a_cbd_next_stage", "a_cbd_delete_draft",
+           "a_cbd_update_yield", "a_cbd_update_loss"]
+js = ["CbdCtrl"]
+views = ["v_cbd_lines"]
+functions = ["fn_cbd_create_no_source", "fn_cbd_same_stage", "fn_cbd_next_stage",
+             "fn_cbd_delete_draft", "fn_cbd_update_yield", "fn_cbd_update_loss"]
+
+[[group]]
+modul = "M4 CBD"
+judul = "Quotation, override harga, rekap biaya"
+fase = "MVP"
+minggu = 9
+page = "CBD_Detail"
+queries = ["q_cbd_summary", "a_cbd_set_quotation", "a_cbd_override_price",
+           "a_cbd_clear_override", "a_cbd_update_field"]
+js = ["OverrideCtrl"]
+views = ["v_cbd_summary"]
+functions = ["fn_cbd_set_quotation", "fn_cbd_override_price", "fn_cbd_clear_override",
+             "fn_cbd_update_field"]
+
+[[group]]
+modul = "M4 CBD"
+judul = "Refresh (specsheet usang / harga master berubah), checklist & terbitkan CBD"
+fase = "MVP"
+minggu = 9
+page = "CBD_Detail"
+queries = ["q_cbd_stale", "q_cbd_checklist", "a_cbd_refresh_draft", "a_cbd_refresh_prices",
+           "a_cbd_publish"]
+functions = ["fn_cbd_stale_lines", "fn_cbd_checklist", "fn_cbd_refresh_draft",
+             "fn_cbd_refresh_prices", "fn_cbd_publish"]
+
+# ─────────────────────────────── FASE 2 ───────────────────────────────
+
+[[group]]
+modul = "M0 Fondasi"
+judul = "Kelola user & role (MVP: user diisi lewat SQL)"
+fase = "F2"
+minggu = 10
+page = "Admin_User"
+pages = ["Admin_User"]
+queries = ["q_users", "a_user_upsert", "a_user_set_active"]
+js = ["UserCtrl"]
+functions = ["fn_user_upsert", "fn_user_set_active"]
+
+[[group]]
+modul = "M1 Master Data"
+judul = "Antrian persetujuan (MVP: approve dari Detail Material)"
+fase = "F2"
+minggu = 10
+page = "Persetujuan"
+pages = ["Persetujuan"]
+queries = ["q_approval_queue", "a_approve"]
+js = ["ApprovalCtrl"]
+views = ["v_approval_queue"]
+functions = ["fn_approve"]
+
+[[group]]
+modul = "M1 Master Data"
+judul = "Deteksi duplikat & merge material"
+fase = "F2"
+minggu = 10
+page = "Master_Material"
+queries = ["q_similar_materials", "a_material_merge"]
+functions = ["fn_similar_materials", "fn_material_merge"]
+
+[[group]]
+modul = "M1 Master Data"
+judul = "Tab Dipakai di & Histori Harga di Detail Material"
+fase = "F2"
+minggu = 10
+page = "Material_Detail"
+queries = ["q_where_used", "q_price_history"]
+views = ["v_where_used", "v_price_history"]
+
+[[group]]
+modul = "M1 Master Data"
+judul = "Lampiran material"
+fase = "F2"
+minggu = 10
+page = "Material_Detail"
+queries = ["q_material_attachments", "a_material_attachment_add"]
+functions = ["fn_material_attachment_add"]
+
+[[group]]
+modul = "M2 Model & Article"
+judul = "Copy article dari season lain"
+fase = "F2"
+minggu = 10
+page = "Model_Detail"
+queries = ["a_copy_articles"]
+functions = ["fn_copy_articles"]
+
+[[group]]
+modul = "M3 Specsheet"
+judul = "Carryover season & copy lintas model"
+fase = "F2"
+minggu = 10
+page = "Specsheet_Detail"
+queries = ["q_copy_candidates", "a_revision_carryover", "a_revision_copy_cross_model"]
+functions = ["fn_revision_carryover", "fn_revision_copy_cross_model"]
+
+[[group]]
+modul = "M3 Specsheet"
+judul = "Sub-komponen, foto, change log & diff revisi"
+fase = "F2"
+minggu = 10
+page = "Specsheet_Detail"
+queries = ["a_bom_add_subcomponent", "q_change_log", "q_revision_diff",
+           "q_specsheet_photos", "a_specsheet_photo_add"]
+functions = ["fn_bom_add_subcomponent", "fn_revision_diff", "fn_specsheet_photo_add"]
+
+[[group]]
+modul = "M4 CBD"
+judul = "Copy CBD dari article / season lain & change log"
+fase = "F2"
+minggu = 10
+page = "CBD_Detail"
+queries = ["q_copy_sources", "a_cbd_from_article", "a_cbd_from_season", "q_cbd_change_log"]
+functions = ["fn_cbd_from_article", "fn_cbd_from_season"]
+
+[[group]]
+modul = "M5 Beranda & Laporan"
+judul = "Beranda 'Tugas Saya' per role"
+fase = "F2"
+minggu = 10
+page = "Beranda"
+queries = ["q_spec_worklist", "q_cbd_worklist", "q_price_gaps", "q_recently_published",
+           "q_system_summary"]
+js = ["BerandaCtrl"]
+views = ["v_spec_worklist", "v_cbd_worklist", "v_price_gaps", "v_recently_published"]
+
+[[group]]
+modul = "M5 Beranda & Laporan"
+judul = "Laporan: validasi CBD vs specsheet, penyimpangan loss"
+fase = "F2"
+minggu = 10
+page = "Laporan"
+pages = ["Laporan"]
+queries = ["q_validation_report", "q_loss_deviation"]
+functions = ["fn_validation_report"]
+views = ["v_loss_deviation"]
+
+[[group]]
+modul = "M5 Beranda & Laporan"
+judul = "Audit Log"
+fase = "F2"
+minggu = 10
+page = "Audit_Log"
+pages = ["Audit_Log"]
+queries = ["q_audit_log"]
+views = ["v_audit_log"]
+
+[[group]]
+modul = "M5 Beranda & Laporan"
+judul = "Export Excel specsheet & CBD"
+fase = "F2"
+minggu = 10
+page = "Specsheet_Detail"
+js = ["ExportCtrl"]
+libs = ["xlsx"]
+
+[[group]]
+modul = "M5 Beranda & Laporan"
+judul = "Export Excel CBD"
+fase = "F2"
+minggu = 10
+page = "CBD_Detail"
+js = ["ExportCtrl"]
+
+[[group]]
+modul = "M5 Beranda & Laporan"
+judul = "Halaman cetak"
+fase = "F2"
+minggu = 10
+pages = ["Print_Specsheet", "Print_CBD"]

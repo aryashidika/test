@@ -1,0 +1,11 @@
+# Status manual — satu-satunya hal yang TIDAK bisa dibaca dari JSON Appsmith / dump skema.
+#
+# diuji: item yang sudah dites dan berfungsi (bukan hanya sudah dibuat).
+#   Tulis nama item persis seperti di plan.toml. Untuk query/JS/widget yang namanya
+#   dipakai di beberapa page, tulis "Page/nama", mis. "CBD_Detail/ExportCtrl".
+#   Contoh: diuji = ["fn_supplier_create", "Master_Supplier", "q_suppliers"]
+diuji = []
+
+# catatan: tampil di kolom Catatan pada PROGRESS.md.
+[catatan]
+# fn_price_add = "Validasi periode harga yang tumpang tindih belum dibuat"
