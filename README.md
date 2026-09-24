@@ -22,8 +22,8 @@ lanjutan setelah review terhadap contoh specsheet nyata (PDF referensi):
   (tanpa password) — cocok untuk kebutuhan mockup/presentasi.
 - **Single-user, satu komputer.** Satu file SQLite lokal, tidak ada penanganan
   concurrent-write untuk banyak user berbagi file yang sama.
-- **Menu utama disaring per role:** "Master Data", "Model", "Specsheet", "CBD",
-  "Laporan", dan "Admin" — tiap role hanya melihat menu yang boleh diaksesnya (lihat "Hak
+- **Menu utama disaring per role:** "Beranda", "Master Data", "Model",
+  "Specsheet", "CBD", "Laporan", dan "Admin" — tiap role hanya melihat menu yang boleh diaksesnya (lihat "Hak
   akses per role" di bawah).
 - **Hak akses per role ditegakkan di server**, bukan hanya dengan
   menyembunyikan tombol: setiap route aksi memakai `require_permission(...)` dan
@@ -247,6 +247,27 @@ lanjutan setelah review terhadap contoh specsheet nyata (PDF referensi):
   specsheet dan CBD, test e2e alur utama, dokumentasi setup. Antrian Usulan &
   Merge, Impor CSV, dan upload foto tetap di luar lingkup — lihat "Belum
   dibangun di web" di bawah)
+
+### Beranda "Tugas Saya"
+
+Halaman pertama setelah masuk untuk semua role (`/`), isinya sesuai pekerjaan
+role tsb (`app/domain/worklist_service.py`). Setiap item langsung menuju layar
+yang tepat.
+
+- **Vendor Spec**: draft specsheet terbuka beserta penghambat terbitnya
+  (belum ada article aktif, article aktif belum dipakai di BOM, baris tanpa
+  supplier, BOM kosong), article di halaman Model yang belum masuk specsheet,
+  dan jumlah usulan master data yang menunggu persetujuan.
+- **Vendor CBD**: article aktif di specsheet terbit yang belum punya CBD, draft
+  CBD yang harus di-refresh (specsheet acuan sudah direvisi / harga master
+  berubah), CBD terbit `NEEDS_REVISION`, draft yang sedang berjalan, dan
+  material katalog + supplier di specsheet terbit yang belum punya harga master
+  (dengan jumlah warna yang belum berharga).
+- **Master Admin**: antrian persetujuan material, komponen, dan supplier
+  material berstatus `PROPOSED`.
+- **Brand Viewer**: revisi terbit terakhir tiap specsheet (season) dan tiap
+  CBD article.
+- **System Admin**: ringkasan jumlah data dan audit log, link ke menu Admin.
 
 ### Menu "Master Data"
 
@@ -503,7 +524,7 @@ lalu menyeed ulang data tsb kapan saja.
 
 | Menu / Aksi | Master Admin | Vendor Spec | Vendor CBD | Brand Viewer | System Admin |
 | --- | --- | --- | --- | --- | --- |
-| Halaman pertama setelah masuk | Master Data | Specsheet | CBD | Specsheet | Admin |
+| Halaman pertama setelah masuk | Beranda | Beranda | Beranda | Beranda | Beranda |
 | Master Material, Komponen, Supplier | edit & approve | usul | usul | lihat | – |
 | Master Harga & metode harga | edit | tersembunyi | edit | lihat | – |
 | Model, Season & Article | edit | edit | lihat | lihat | – |
@@ -624,7 +645,14 @@ article antar season; status specsheet/CBD per article (draft disembunyikan
 untuk Brand); edit info model; hak akses halaman Model; hapus draft tidak
 menghapus article; redirect URL lama.
 
-Test hak akses (`tests/test_role_access.py`): halaman pertama per role; Vendor
+Test Beranda (`tests/test_worklist.py`): worklist CBD mengikuti siklus article
+(perlu dibuat → draft berjalan → perlu refresh karena harga master / specsheet
+berubah → NEEDS_REVISION), gap harga master per material+supplier+warna,
+penghambat draft specsheet & article belum masuk specsheet, antrian persetujuan,
+dan feed terbit untuk Brand.
+
+Test hak akses (`tests/test_role_access.py`): semua role mendarat di Beranda
+dengan isi sesuai role; Vendor
 Spec tidak bisa membuka CBD/Histori Harga; aksi dari role yang salah ditolak
 403 (Brand, Vendor CBD, Master Admin di specsheet/CBD); Brand tidak melihat
 revisi DRAFT (daftar, detail, cetak, ekspor); System Admin hanya menu Admin dan
@@ -663,6 +691,7 @@ app/
     seed_data.py             # data dummy Material/Komponen/Supplier
     seed_specsheet_illuzion.py # seed specsheet nyata PRM-097 (digitalisasi PDF referensi), lihat catatan di atas
     reset_service.py         # "Reset Data Prototipe"
+    worklist_service.py       # Beranda "Tugas Saya": daftar pekerjaan per role
     material_price_service.py # master harga: link material–supplier, harga per supplier/warna, lookup untuk CBD
     cbd_calc.py               # kalkulasi turunan CBD (Decimal murni, tanpa DB)
     cbd_service.py             # generate/merge, edit baris, publish, sync-marking CBD
@@ -676,7 +705,7 @@ app/
     auth.py                    # require_session, require_permission, guard_blueprint (hak akses per role)
     formatting.py               # format angka tampilan (filter Jinja `angka`/`rupiah`)
     user_session.py             # dataclass Session (role + operator_name)
-    blueprints/                # main (login), admin (reset data), master, model (model/season/article),
+    blueprints/                # main (login, Beranda), admin (reset data), master, model (model/season/article),
                                # specsheet (revisi & BOM), cbd, laporan (M4)
     templates/                  # halaman Jinja2 + partial htmx (termasuk _print.html: halaman cetak M5)
     static/                      # style.css (+ print stylesheet M5) + vendor/htmx.min.js (lokal, bukan CDN)

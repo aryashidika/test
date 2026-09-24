@@ -1,0 +1,232 @@
+{% extends "base.html" %}
+{% block title %}Tugas Saya{% endblock %}
+
+{% macro stat(value, label, anchor, tone='') %}
+<a class="stat-tile {{ tone if value else '' }}" href="#{{ anchor }}">
+  <span class="stat-value">{{ value }}</span><span class="stat-label">{{ label }}</span>
+</a>
+{% endmacro %}
+
+{% macro empty(text) %}<p class="empty-hint">{{ text }}</p>{% endmacro %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Tugas Saya</h1>
+    <p class="muted" style="margin:2px 0 0;">{{ g.session.operator_name }} &middot; {{ role_label }}</p>
+  </div>
+</div>
+
+{# ================= Vendor Spec ================= #}
+{% if spec %}
+{% set unassigned_total = spec.unassigned_articles|map(attribute='codes')|map('length')|sum %}
+{% set proposal_total = spec.proposed_materials + spec.proposed_components + spec.proposed_links %}
+<div class="stat-row">
+  {{ stat(spec.drafts|length, 'Draft specsheet terbuka', 'drafts', 'tone-info') }}
+  {{ stat(unassigned_total, 'Article belum masuk specsheet', 'unassigned', 'tone-warn') }}
+  {{ stat(proposal_total, 'Usulan menunggu persetujuan', 'proposals') }}
+</div>
+
+<div class="card" id="drafts">
+  <h2 class="section-title">Draft Specsheet</h2>
+  {% for d in spec.drafts %}
+  <div class="task-item">
+    <div>
+      <a class="task-title" href="{{ url_for('specsheet.detail', model_id=d.model_id, specsheet_id=d.specsheet_id, revision_id=d.revision_id) }}">
+        {{ d.model_code }} &middot; {{ d.season }} — {{ d.stage }} r{{ d.revision_no }}</a>
+      <div class="muted task-meta">{{ d.model_name }} &middot; {{ d.line_count }} baris BOM &middot; {{ d.active_articles }} article aktif</div>
+    </div>
+    <div class="task-flags">
+      {% if d.unused_articles %}<span class="badge badge-proposed" title="{{ d.unused_articles|join(', ') }}">{{ d.unused_articles|length }} article belum dipakai di BOM</span>{% endif %}
+      {% if d.no_supplier %}<span class="badge badge-proposed">{{ d.no_supplier }} baris tanpa supplier</span>{% endif %}
+      {% if not d.active_articles %}<span class="badge badge-proposed">Belum ada article aktif</span>{% endif %}
+      {% if not d.line_count %}<span class="badge badge-draft">BOM masih kosong</span>
+      {% elif d.active_articles and not d.unused_articles and not d.no_supplier %}<span class="badge badge-approved">Tidak ada penghambat terdeteksi</span>{% endif %}
+    </div>
+  </div>
+  {% else %}{{ empty("Tidak ada draft specsheet yang terbuka.") }}{% endfor %}
+</div>
+
+<div class="card" id="unassigned">
+  <h2 class="section-title">Article Belum Masuk Specsheet</h2>
+  {% for u in spec.unassigned_articles %}
+  <div class="task-item">
+    <div>
+      <a class="task-title" href="{{ url_for('specsheet.detail', model_id=u.model_id, specsheet_id=u.specsheet_id) }}">{{ u.model_code }} &middot; {{ u.season }}</a>
+      <div class="muted task-meta">{{ u.codes|join(', ') }}</div>
+    </div>
+    <div class="task-flags">
+      <span class="badge badge-draft">{{ "Pilih di revisi specsheet" if u.has_revision else "Specsheet belum dibuat" }}</span>
+    </div>
+  </div>
+  {% else %}{{ empty("Semua article sudah masuk specsheet.") }}{% endfor %}
+</div>
+
+<div class="card" id="proposals">
+  <h2 class="section-title">Usulan Master Data</h2>
+  {% if proposal_total %}
+  <p style="margin:0;">Menunggu persetujuan Master Admin:
+    {{ spec.proposed_materials }} material, {{ spec.proposed_components }} komponen, {{ spec.proposed_links }} supplier material.
+    Usulan sudah bisa dipakai di BOM selagi menunggu.</p>
+  <p style="margin:8px 0 0;"><a href="{{ url_for('master.material_page') }}">Buka Master Data &rarr;</a></p>
+  {% else %}{{ empty("Tidak ada usulan yang menunggu.") }}{% endif %}
+</div>
+{% endif %}
+
+{# ================= Vendor CBD ================= #}
+{% if cbd %}
+<div class="stat-row">
+  {{ stat(cbd.to_create|length, 'CBD perlu dibuat', 'to-create', 'tone-info') }}
+  {{ stat(cbd.to_refresh|length, 'Draft perlu refresh', 'to-refresh', 'tone-warn') }}
+  {{ stat(cbd.to_revise|length, 'CBD terbit perlu revisi', 'to-revise', 'tone-warn') }}
+  {{ stat(cbd.price_gaps|length, 'Harga master belum ada', 'price-gaps', 'tone-warn') }}
+</div>
+
+{% macro cbd_item(i, flag=None, tone='badge-draft') %}
+<div class="task-item">
+  <div>
+    <a class="task-title" href="{{ url_for('cbd.detail', model_id=i.model_id, specsheet_id=i.specsheet_id, article_id=i.article_id, cbd_revision_id=i.cbd_revision_id) if i.cbd_revision_id else url_for('cbd.detail', model_id=i.model_id, specsheet_id=i.specsheet_id, article_id=i.article_id) }}">
+      {{ i.model_code }} &middot; {{ i.season }} — {{ i.article_code }}</a>
+    <div class="muted task-meta">{{ i.colorway }}{% if i.stage %} &middot; {{ i.stage }} r{{ i.revision_no }}{% endif %}</div>
+  </div>
+  {% if flag %}<div class="task-flags"><span class="badge {{ tone }}">{{ flag }}</span></div>{% endif %}
+</div>
+{% endmacro %}
+
+<div class="card" id="to-create">
+  <h2 class="section-title">CBD Perlu Dibuat</h2>
+  {% for i in cbd.to_create %}{{ cbd_item(i, 'Aktif di specsheet terbit') }}
+  {% else %}{{ empty("Semua article aktif sudah punya CBD.") }}{% endfor %}
+</div>
+
+<div class="card" id="to-refresh">
+  <h2 class="section-title">Draft CBD Perlu Refresh</h2>
+  {% for i in cbd.to_refresh %}{{ cbd_item(i, i.reason, 'badge-proposed') }}
+  {% else %}{{ empty("Tidak ada draft yang tertinggal dari specsheet atau master harga.") }}{% endfor %}
+</div>
+
+<div class="card" id="to-revise">
+  <h2 class="section-title">CBD Terbit Perlu Revisi</h2>
+  {% for i in cbd.to_revise %}{{ cbd_item(i, 'NEEDS_REVISION', 'badge-proposed') }}
+  {% else %}{{ empty("Semua CBD terbit masih sesuai specsheet.") }}{% endfor %}
+</div>
+
+{% if cbd.in_progress %}
+<div class="card">
+  <h2 class="section-title">Draft CBD Berjalan</h2>
+  {% for i in cbd.in_progress %}{{ cbd_item(i, 'DRAFT') }}{% endfor %}
+</div>
+{% endif %}
+
+<div class="card" id="price-gaps">
+  <h2 class="section-title">Harga Master Belum Ada</h2>
+  <p class="muted section-note">Material katalog + supplier yang dipakai di specsheet terbit tapi belum punya harga berlaku.</p>
+  {% for p in cbd.price_gaps %}
+  <div class="task-item">
+    <div>
+      <a class="task-title" href="{{ url_for('master.material_detail', material_id=p.material_id) }}">{{ p.material_code }} &middot; {{ p.material_name }}</a>
+      <div class="muted task-meta">Supplier {{ p.supplier_name }} &middot; dipakai di {{ p.models|join(', ') }}</div>
+    </div>
+    <div class="task-flags">
+      {% if p.colors %}<span class="badge badge-proposed" title="{{ p.colors|join(', ') }}">{{ p.colors|length }} warna tanpa harga</span>{% endif %}
+    </div>
+  </div>
+  {% else %}{{ empty("Semua material yang dipakai sudah punya harga master.") }}{% endfor %}
+</div>
+{% endif %}
+
+{# ================= Master Admin ================= #}
+{% if approvals %}
+<div class="stat-row">
+  {{ stat(approvals.materials|length, 'Material usulan', 'appr-materials', 'tone-warn') }}
+  {{ stat(approvals.components|length, 'Komponen usulan', 'appr-components', 'tone-warn') }}
+  {{ stat(approvals.links|length, 'Supplier material usulan', 'appr-links', 'tone-warn') }}
+</div>
+
+<div class="card" id="appr-materials">
+  <h2 class="section-title">Material Menunggu Persetujuan</h2>
+  {% for m in approvals.materials %}
+  <div class="task-item">
+    <div>
+      <a class="task-title" href="{{ url_for('master.material_detail', material_id=m.id) }}">{{ m.material_code }} &middot; {{ m.name }}</a>
+      <div class="muted task-meta">{{ m.category }} &middot; diusulkan {{ m.created_by or '-' }} &middot; {{ m.created_at }}</div>
+    </div>
+  </div>
+  {% else %}{{ empty("Tidak ada material usulan.") }}{% endfor %}
+</div>
+
+<div class="card" id="appr-components">
+  <h2 class="section-title">Komponen Menunggu Persetujuan</h2>
+  {% for c in approvals.components %}
+  <div class="task-item">
+    <div>
+      <a class="task-title" href="{{ url_for('master.component_page') }}">{{ c.number }} &middot; {{ c.name }}</a>
+      <div class="muted task-meta">Kelompok {{ c.group_code }} &middot; {{ c.created_at }}</div>
+    </div>
+  </div>
+  {% else %}{{ empty("Tidak ada komponen usulan.") }}{% endfor %}
+</div>
+
+<div class="card" id="appr-links">
+  <h2 class="section-title">Supplier Material Menunggu Persetujuan</h2>
+  <p class="muted section-note">Terbentuk otomatis saat tim specsheet memilih supplier di BOM.</p>
+  {% for l in approvals.links %}
+  <div class="task-item">
+    <div>
+      <a class="task-title" href="{{ url_for('master.material_detail', material_id=l.material_id) }}">{{ l.material_code }} &middot; {{ l.material_name }}</a>
+      <div class="muted task-meta">Supplier {{ l.supplier_name }} &middot; diusulkan {{ l.created_by or '-' }} &middot; {{ l.created_at }}</div>
+    </div>
+  </div>
+  {% else %}{{ empty("Tidak ada supplier material usulan.") }}{% endfor %}
+</div>
+{% endif %}
+
+{# ================= Brand Viewer ================= #}
+{% if published %}
+<div class="grid-halves">
+  <div class="card">
+    <h2 class="section-title">Specsheet Terbit Terbaru</h2>
+    <p class="muted section-note">Revisi terbit terakhir tiap season.</p>
+    {% for r in published.specsheets %}
+    <div class="task-item">
+      <div>
+        <a class="task-title" href="{{ url_for('specsheet.detail', model_id=r.model_id, specsheet_id=r.specsheet_id, revision_id=r.revision_id) }}">
+          {{ r.model_code }} &middot; {{ r.season }} — {{ r.stage }} r{{ r.revision_no }}</a>
+        <div class="muted task-meta">{{ r.model_name }} &middot; terbit {{ r.published_at }}</div>
+      </div>
+    </div>
+    {% else %}{{ empty("Belum ada specsheet terbit.") }}{% endfor %}
+  </div>
+  <div class="card">
+    <h2 class="section-title">CBD Terbit Terbaru</h2>
+    <p class="muted section-note">Revisi terbit terakhir tiap article.</p>
+    {% for r in published.cbds %}
+    <div class="task-item">
+      <div>
+        <a class="task-title" href="{{ url_for('cbd.detail', model_id=r.model_id, specsheet_id=r.specsheet_id, article_id=r.article_id, cbd_revision_id=r.cbd_revision_id) }}">
+          {{ r.model_code }} &middot; {{ r.article_code }} — {{ r.stage }} r{{ r.revision_no }}</a>
+        <div class="muted task-meta">{{ r.colorway }} &middot; terbit {{ r.published_at }}</div>
+      </div>
+      {% if r.sync_status == 'NEEDS_REVISION' %}<div class="task-flags"><span class="badge badge-proposed">NEEDS_REVISION</span></div>{% endif %}
+    </div>
+    {% else %}{{ empty("Belum ada CBD terbit.") }}{% endfor %}
+  </div>
+</div>
+{% endif %}
+
+{# ================= System Admin ================= #}
+{% if summary %}
+<div class="stat-row">
+  {{ stat(summary.models, 'Model', 'sys') }}
+  {{ stat(summary.specsheets, 'Specsheet (season)', 'sys') }}
+  {{ stat(summary.cbd_revisions, 'Revisi CBD', 'sys') }}
+  {{ stat(summary.audit_entries, 'Entri audit log', 'sys') }}
+</div>
+<div class="card" id="sys">
+  <h2 class="section-title">Ringkasan Sistem</h2>
+  <p style="margin:0;">{{ summary.materials }} material &middot; {{ summary.articles }} article &middot;
+    aktivitas terakhir {{ summary.last_audit or '-' }}.</p>
+  <p style="margin:8px 0 0;"><a href="{{ url_for('admin.index') }}">Buka menu Admin &rarr;</a></p>
+</div>
+{% endif %}
+{% endblock %}

@@ -523,3 +523,25 @@ a.tab-btn:hover { text-decoration: none; color: var(--navy); }
 .inline-add { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin: 0; }
 .inline-add input[type=text] { width: 180px; }
 .check-row { display: flex; gap: 8px; align-items: center; padding: 3px 0; font-size: 13px; cursor: pointer; }
+
+/* ---------- Beranda "Tugas Saya" ---------- */
+.stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 16px; }
+.stat-tile {
+  display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; border-radius: var(--radius);
+  background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--border); color: var(--text);
+}
+.stat-tile:hover { text-decoration: none; background: var(--surface-alt); }
+.stat-tile.tone-info { border-left-color: var(--navy); }
+.stat-tile.tone-warn { border-left-color: #D98E04; }
+.stat-value { font-size: 22px; font-weight: 700; color: var(--navy); line-height: 1.1; }
+.stat-label { font-size: 12.5px; color: var(--muted); }
+.task-item {
+  display: flex; justify-content: space-between; align-items: center; gap: 8px 16px; flex-wrap: wrap;
+  padding: 10px 0; border-bottom: 1px solid var(--border);
+}
+.task-item:last-child { border-bottom: none; }
+.task-title { font-weight: 600; }
+.task-meta { font-size: 12.5px; margin-top: 2px; }
+.task-flags { display: flex; gap: 6px; flex-wrap: wrap; }
+.grid-halves { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; align-items: start; }
+.grid-halves > .card + .card { margin-top: 0; }

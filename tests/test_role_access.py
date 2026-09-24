@@ -42,10 +42,18 @@ def seeded(client):
 
 
 def test_login_lands_on_role_home(client):
-    assert login(client, "VENDOR_CBD").headers["Location"].endswith("/cbd")
-    assert login(client, "VENDOR_SPEC").headers["Location"].endswith("/specsheet")
-    assert login(client, "SYSTEM_ADMIN").headers["Location"].endswith("/admin")
-    assert login(client, "MASTER_ADMIN").headers["Location"].endswith("/master/material")
+    # Semua role mendarat di Beranda "Tugas Saya" yang isinya sesuai role.
+    expected = {
+        "VENDOR_SPEC": "Draft Specsheet", "VENDOR_CBD": "CBD Perlu Dibuat",
+        "MASTER_ADMIN": "Material Menunggu Persetujuan", "BRAND_VIEWER": "Specsheet Terbit Terbaru",
+        "SYSTEM_ADMIN": "Ringkasan Sistem",
+    }
+    for role, section in expected.items():
+        assert login(client, role).headers["Location"].endswith("/")
+        page = client.get("/").get_data(as_text=True)
+        assert "Tugas Saya" in page and section in page
+        others = [s for r, s in expected.items() if r != role]
+        assert not any(s in page for s in others)
 
 
 def test_vendor_spec_cannot_see_prices(client):
