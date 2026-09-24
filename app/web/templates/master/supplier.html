@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}Supplier — Master Data{% endblock %}
+{% block content %}
+{% set active = "supplier" %}
+{% include "master/_subnav.html" with context %}
+
+<div class="page-header"><h1>Master Supplier</h1></div>
+{% if error %}<div class="error-banner">{{ error }}</div>{% endif %}
+
+<div class="grid-2">
+  <div class="card">
+    <form method="get" action="{{ url_for('master.supplier_page') }}" class="card-toolbar">
+      <input type="search" name="q" value="{{ search }}" placeholder="Cari nama supplier...">
+    </form>
+    <div class="table-scroll">
+    <table class="data-table">
+      <thead><tr><th>Nama Supplier</th><th>Currency</th><th>Status</th>{% if can_manage %}<th></th>{% endif %}</tr></thead>
+      <tbody>
+        {% for s in suppliers %}
+        <tr {{ 'class=row-editing' if can_manage and s.id == edit_id else '' }}>
+          <td>
+            {% if can_manage and s.id == edit_id %}
+            <form method="post" action="{{ url_for('master.supplier_edit', supplier_id=s.id) }}" class="inline-actions">
+              <input type="text" name="name" value="{{ edit_name if edit_name is not none else s.name }}" class="input-sm" required aria-label="Nama supplier" autofocus>
+              <button type="submit" class="btn btn-sm">Simpan</button>
+              <a class="btn btn-secondary btn-sm" href="{{ url_for('master.supplier_page', q=search or None) }}">Batal</a>
+            </form>
+            {% else %}{{ s.name }}{% endif %}
+          </td>
+          <td>
+            {% if can_manage %}
+            <form method="post" action="{{ url_for('master.supplier_set_currency', supplier_id=s.id) }}" class="inline-actions">
+              <select name="default_currency" onchange="this.form.requestSubmit()" class="input-sm">
+                {% for cur in ["IDR","USD"] %}
+                <option value="{{ cur }}" {{ "selected" if cur==s.default_currency else "" }}>{{ cur }}</option>
+                {% endfor %}
+              </select>
+            </form>
+            {% else %}{{ s.default_currency }}{% endif %}
+          </td>
+          <td><span class="badge badge-{{ s.status|lower }}">{{ s.status }}</span></td>
+          {% if can_manage %}
+          <td>
+            <form method="post" action="{{ url_for('master.supplier_set_status', supplier_id=s.id) }}" class="inline-actions">
+              <select name="status" class="input-sm">
+                {% for st in ["PROPOSED","APPROVED","INACTIVE"] %}
+                <option value="{{ st }}" {{ "selected" if st==s.status else "" }}>{{ st }}</option>
+                {% endfor %}
+              </select>
+              <button type="submit" class="btn btn-secondary btn-sm">Terapkan</button>
+              {% if s.id != edit_id %}<a class="btn btn-secondary btn-sm" href="{{ url_for('master.supplier_page', q=search or None, edit=s.id) }}">Edit</a>{% endif %}
+            </form>
+          </td>
+          {% endif %}
+        </tr>
+        {% else %}
+        <tr><td colspan="4" class="empty-hint">Belum ada supplier.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <div class="card aside-sticky">
+    <h2 class="section-title">Tambah Supplier</h2>
+    {% if can_manage %}
+    <form method="post" action="{{ url_for('master.supplier_create') }}">
+      <div class="field"><label>Nama Supplier *</label><input type="text" name="name" required></div>
+      <div class="field"><label>Currency Default</label>
+        <select name="default_currency">
+          <option value="IDR">IDR</option>
+          <option value="USD">USD</option>
+        </select>
+      </div>
+      <div class="form-actions"><button type="submit" class="btn">Simpan</button></div>
+    </form>
+    {% else %}
+    <p class="muted">Menambah/mengubah supplier hanya untuk role Master Admin.</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

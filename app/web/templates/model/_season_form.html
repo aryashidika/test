@@ -1,0 +1,17 @@
+<div class="modal-overlay" onclick="if(event.target===this) this.remove()">
+  <div class="modal-box">
+    <button type="button" class="modal-close" onclick="this.closest('.modal-overlay').remove()">&times;</button>
+    <h3>Specsheet — Season Baru</h3>
+    {% if error %}<div class="error-banner">{{ error }}</div>{% endif %}
+    <form hx-post="{{ url_for('model.season_create', model_id=model_id) }}" hx-target="#modal" hx-swap="innerHTML">
+      <div class="field">
+        <label>Season baru (mis. SS26 / FH26)</label>
+        <input type="text" name="season" required autofocus placeholder="SS26">
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn">Buat Specsheet</button>
+        <button type="button" class="btn btn-secondary" onclick="this.closest('.modal-overlay').remove()">Batal</button>
+      </div>
+    </form>
+  </div>
+</div>

@@ -1,0 +1,29 @@
+<div class="modal-overlay" onclick="if(event.target===this) this.remove()">
+  <div class="modal-box wide">
+    <button type="button" class="modal-close" onclick="this.closest('.modal-overlay').remove()">&times;</button>
+    <h3>Copy Specsheet dari Model Lain</h3>
+    <p class="muted" style="margin-top:-8px;">BOM akan disalin apa adanya. Colorway/Article TIDAK ikut disalin.</p>
+    {% if error %}<div class="error-banner">{{ error }}</div>{% endif %}
+    <div class="field-row">
+      <div class="field" style="flex:1;">
+        <label>Cari model (kode / nama / season)</label>
+        <input type="search" name="q" value="{{ q }}" placeholder="mis. ACC-001 atau FH26" autofocus
+               hx-get="{{ url_for('model.copy_cross_model_results', model_id=model_id) }}?specsheet_id={{ specsheet_id }}"
+               hx-trigger="input changed delay:300ms, search" hx-target="#cross-model-results" hx-swap="innerHTML"
+               hx-include="this">
+      </div>
+      <div class="field" style="flex:0 0 120px;">
+        <label>Stage awal</label>
+        <select name="stage">
+          {% for st in stages %}<option value="{{ st }}">{{ st }}</option>{% endfor %}
+        </select>
+      </div>
+    </div>
+    <div id="cross-model-results">
+      {% include "model/_copy_cross_model_results.html" %}
+    </div>
+    <div class="form-actions">
+      <button type="button" class="btn btn-secondary" onclick="this.closest('.modal-overlay').remove()">Batal</button>
+    </div>
+  </div>
+</div>

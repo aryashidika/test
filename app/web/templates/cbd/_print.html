@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CBD — {{ model.code }} {{ article.code }} {{ revision.stage }} r{{ revision.revision_no }}</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<div class="no-print" style="padding:14px;">
+  <button type="button" class="btn" onclick="window.print()">Cetak / Simpan sebagai PDF</button>
+</div>
+
+<div class="print-sheet">
+  <h1>{{ model.code }} — {{ model.name }}</h1>
+  <table class="print-meta">
+    <tr>
+      <td>Season</td><td>{{ season_label }}</td>
+      <td>Article</td><td>{{ article.code }} ({{ article.colorway }})</td>
+    </tr>
+    <tr>
+      <td>Stage / Revisi</td><td>{{ revision.stage }} r{{ revision.revision_no }}</td>
+      <td>Status</td><td>{{ revision.status }}</td>
+    </tr>
+  </table>
+
+  {% for code, label, lines in grouped_lines %}
+  <h3 class="print-group-title">{{ label }}</h3>
+  <table class="print-table print-cbd-table">
+    <thead>
+      <tr>
+        <th>No</th><th>Komponen</th><th>Material</th><th>Thickness</th><th>Color</th><th>Supplier</th><th>UoM</th><th>Remarks</th>
+        <th>Yield</th><th>Usage</th><th>Loss %</th><th>Harga Asli</th><th>Currency</th>
+        <th>USD*</th><th>IDR*</th><th>Cost/pair (Rp)*</th><th>Asal Nilai</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for line in lines %}
+      <tr>
+        <td>{{ line.display_no }}</td><td>{{ line.display_name }}</td><td>{{ line.material_name }}</td><td>{{ line.material_thickness or '-' }}</td>
+        <td>{{ line.color or '-' }}</td><td>{{ line.supplier_name or '-' }}</td><td>{{ line.uom }}</td><td>{{ line.remarks or '-' }}</td>
+        <td>{{ line.yield_fmt or '-' }}</td><td>{{ line.usage_fmt or '-' }}</td><td>{{ line.loss_fmt or '-' }}</td>
+        <td>{{ line.price_fmt or '-' }}</td><td>{{ line.currency or '-' }}</td>
+        <td>{{ line.price_usd_fmt or '-' }}</td><td>{{ line.price_idr_fmt or '-' }}</td>
+        <td>{{ line.cost_per_pair_fmt or '-' }}</td><td>{{ line.value_origin }} &middot; harga {{ line.price_source or '-' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endfor %}
+
+  {% if missing_lines %}
+  <h3 class="print-group-title print-group-missing">Baris Hilang dari Specsheet (MISSING_IN_SPEC)</h3>
+  <table class="print-table print-cbd-table">
+    <thead>
+      <tr>
+        <th>No</th><th>Komponen</th><th>Material</th><th>Thickness</th><th>Color</th><th>Supplier</th><th>UoM</th><th>Remarks</th>
+        <th>Yield</th><th>Usage</th><th>Loss %</th><th>Harga Asli</th><th>Currency</th>
+        <th>USD*</th><th>IDR*</th><th>Cost/pair (Rp)*</th><th>Asal Nilai</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for line in missing_lines %}
+      <tr>
+        <td>{{ line.display_no }}</td><td>{{ line.display_name }}</td><td>{{ line.material_name }}</td><td>{{ line.material_thickness or '-' }}</td>
+        <td>{{ line.color or '-' }}</td><td>{{ line.supplier_name or '-' }}</td><td>{{ line.uom }}</td><td>{{ line.remarks or '-' }}</td>
+        <td>{{ line.yield_fmt or '-' }}</td><td>{{ line.usage_fmt or '-' }}</td><td>{{ line.loss_fmt or '-' }}</td>
+        <td>{{ line.price_fmt or '-' }}</td><td>{{ line.currency or '-' }}</td>
+        <td>{{ line.price_usd_fmt or '-' }}</td><td>{{ line.price_idr_fmt or '-' }}</td>
+        <td>{{ line.cost_per_pair_fmt or '-' }}</td><td>{{ line.value_origin }} &middot; harga {{ line.price_source or '-' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+
+  <div class="print-recap">
+    <div>
+      <h3 class="print-group-title">Rekap Biaya</h3>
+      <table class="print-recap-table">
+        <tr><td>Exchange Rate</td><td>{{ recap_biaya.exchange_rate }}</td></tr>
+        <tr><td>Amortisasi</td><td>{{ recap_biaya.amortization }}</td></tr>
+        <tr><td>Adjustment</td><td>{{ recap_biaya.adjustment }}</td></tr>
+        <tr><td>Target FOB</td><td>{{ recap_biaya.target_fob }}</td></tr>
+        <tr><td>Actual FOB</td><td><strong>{{ recap_biaya.actual_fob }}</strong></td></tr>
+        <tr><td>Selisih</td><td>{{ recap_biaya.variance }}{{ ' (' ~ recap_biaya.variance_label ~ ')' if recap_biaya.variance_label != '-' else '' }}</td></tr>
+      </table>
+    </div>
+    <div>
+      <h3 class="print-group-title">Rekap Margin</h3>
+      <table class="print-recap-table">
+        <tr><td>Selling Price</td><td>{{ recap_margin.selling_price }}</td></tr>
+        <tr><td>Margin %</td><td>{{ recap_margin.margin_pct }}</td></tr>
+      </table>
+    </div>
+  </div>
+
+  {% if change_logs %}
+  <h3 class="print-group-title">Change Log</h3>
+  <table class="print-table">
+    <thead><tr><th>Tanggal</th><th>Kategori</th><th>Oleh</th><th>Alasan</th></tr></thead>
+    <tbody>
+      {% for log in change_logs %}
+      <tr><td>{{ log.created_at }}</td><td>{{ log.category }}</td><td>{{ log.created_by }}</td><td>{{ log.reason }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+</div>
+</body>
+</html>

@@ -1,0 +1,25 @@
+<div class="table-scroll">
+<table class="data-table">
+  <thead>
+    <tr>
+      <th>Kode</th><th>Nama</th><th>Kategori</th><th>Season Aktif</th><th>Specsheet</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for m in models %}
+    <tr class="clickable">
+      <td class="nowrap">
+        <a href="{{ url_for('cbd.detail', model_id=m.id) }}" class="row-link" aria-label="Buka {{ m.code }}"></a>
+        <strong>{{ m.code }}</strong>
+      </td>
+      <td>{{ m.name }}</td>
+      <td class="muted">{{ m.category or '-' }}</td>
+      <td>{{ m.current_season or '-' }}</td>
+      <td class="muted">{{ m.specsheet_summary }} {% if m.article_count %}&middot; {{ m.article_count }} article{% endif %}</td>
+    </tr>
+    {% else %}
+    <tr><td colspan="5" class="empty-hint">Belum ada model. Buat model &amp; specsheet dulu di menu Model.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>

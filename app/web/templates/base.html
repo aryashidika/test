@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}Specsheet & CBD{% endblock %}</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<script src="{{ url_for('static', filename='vendor/htmx.min.js') }}"></script>
+</head>
+<body>
+{% if g.session %}
+<header class="topbar">
+  <div class="topbar-brand">Sistem Specsheet &amp; CBD</div>
+  <nav class="topbar-nav">
+    <a href="{{ url_for('master.material_page') }}" class="{{ 'active' if request.blueprint=='master' else '' }}">Master Data</a>
+    <a href="{{ url_for('model.list_page') }}" class="{{ 'active' if request.blueprint=='model' else '' }}">Model</a>
+    <a href="{{ url_for('cbd.list_page') }}" class="{{ 'active' if request.blueprint=='cbd' else '' }}">CBD</a>
+    <a href="{{ url_for('laporan.index') }}" class="{{ 'active' if request.blueprint=='laporan' else '' }}">Laporan</a>
+  </nav>
+  <div class="topbar-right">
+    {% if can_manage_master_global %}
+    <form action="{{ url_for('main.reset_data') }}" method="post"
+          hx-confirm="Reset semua data prototipe (master + transaksional)? Tindakan ini tidak bisa dibatalkan.">
+      <button type="submit" class="btn btn-danger btn-sm">Reset Data Prototipe</button>
+    </form>
+    {% endif %}
+    <span class="topbar-user">{{ g.session.operator_name }} &middot; {{ g.session.role }}</span>
+    <form action="{{ url_for('main.logout') }}" method="post">
+      <button type="submit" class="btn btn-ghost btn-sm">Ganti Role</button>
+    </form>
+  </div>
+</header>
+{% endif %}
+
+<div id="modal"></div>
+
+<main id="app-main" hx-boost="true">
+  {% block content %}{% endblock %}
+</main>
+
+<script>
+document.addEventListener('click', function (e) {
+  var btn = e.target.closest('.tab-btn');
+  if (!btn) return;
+  var group = btn.dataset.group;
+  document.querySelectorAll('.tab-btn[data-group="' + group + '"]').forEach(function (b) { b.classList.remove('active'); });
+  document.querySelectorAll('.tab-panel[data-group="' + group + '"]').forEach(function (p) { p.classList.remove('active'); });
+  btn.classList.add('active');
+  var panel = document.querySelector('.tab-panel[data-group="' + group + '"][data-tab="' + btn.dataset.tab + '"]');
+  if (panel) panel.classList.add('active');
+});
+
+// Grid BOM: kolom No. hanya aktif (dan wajib) kalau komponen yang diketik tidak
+// cocok dengan komponen master mana pun — label "10 - Vamp", nomornya, atau
+// namanya saja. Server tetap memvalidasi ulang (bom_service.add_line_from_text).
+document.addEventListener('input', function (e) {
+  var input = e.target.closest('.js-component-text');
+  if (!input) return;
+  var row = input.closest('tr');
+  var no = row && row.querySelector('.js-local-no');
+  var list = document.getElementById(input.getAttribute('list'));
+  if (!no || !list) return;
+  var typed = input.value.trim().replace(/\s+/g, ' ').toLowerCase();
+  var isMaster = Array.prototype.some.call(list.options, function (o) {
+    var label = o.value.toLowerCase();
+    var parts = label.split(' - ');
+    return typed === label || typed === parts[0] || typed === parts.slice(1).join(' - ');
+  });
+  var isLocal = typed !== '' && !isMaster;
+  no.disabled = !isLocal;
+  no.required = isLocal;
+  if (!isLocal) no.value = '';
+  row.classList.toggle('is-local-component', isLocal);
+});
+
+// Grid CBD: popup override ([popover]) dibuka tepat di bawah tombolnya,
+// digeser ke atas/kiri kalau tidak muat di layar.
+document.addEventListener('click', function (e) {
+  var btn = e.target.closest('.js-popover-btn');
+  if (!btn) return;
+  var pop = document.getElementById(btn.getAttribute('popovertarget'));
+  if (!pop) return;
+  var r = btn.getBoundingClientRect();
+  var width = 260, height = 170;
+  var left = Math.max(8, Math.min(r.right - width, window.innerWidth - width - 8));
+  var top = r.bottom + 4;
+  if (top + height > window.innerHeight) top = Math.max(8, r.top - height - 4);
+  pop.style.left = left + 'px';
+  pop.style.top = top + 'px';
+});
+document.addEventListener('toggle', function (e) {
+  if (e.target.classList && e.target.classList.contains('price-popover') && e.newState === 'open') {
+    var first = e.target.querySelector('input[name=price_original]');
+    if (first) first.focus();
+  }
+}, true);
+</script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+<td id="supplier-cell-{{ line.id }}">
+  {% if editable %}
+  <input type="text" class="cell-input" name="supplier_text" list="dl-sup-{{ line.material_id }}"
+         value="{{ typed_value if (typed_value is defined and typed_value is not none) else (line.supplier_name or '') }}"
+         placeholder="Ketik supplier..." autocomplete="off" aria-label="Source of Material"
+         hx-post="{{ url_for('model.bom_set_supplier', model_id=model_id, revision_id=line.revision_id, line_id=line.id) }}"
+         hx-trigger="change" hx-target="#supplier-cell-{{ line.id }}" hx-swap="outerHTML"
+         hx-vals='{"specsheet_id": "{{ specsheet_id }}"}'>
+  {% if cell_error %}<div class="cell-error">{{ cell_error }}</div>{% endif %}
+  {% else %}{{ line.supplier_name or '-' }}{% endif %}
+  {% if line.supplier_id and line.supplier_link_status == 'PROPOSED' %}
+  <span class="badge badge-proposed badge-xs" title="Kombinasi material + supplier ini baru — menunggu approval Master Admin, tetap bisa dipakai">usulan</span>
+  {% elif line.supplier_id and line.supplier_link_status == 'INACTIVE' %}
+  <span class="badge badge-inactive badge-xs" title="Supplier ini sudah dinonaktifkan untuk material ini — pilih supplier lain">&#9888; nonaktif</span>
+  {% endif %}
+</td>

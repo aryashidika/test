@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Pilih Role — Specsheet & CBD{% endblock %}
+{% block content %}
+<div style="max-width:380px;margin:60px auto;">
+  <div class="card">
+    <h2 class="section-title" style="margin-bottom:4px;">Sistem Specsheet &amp; CBD</h2>
+    <p class="muted" style="margin-top:0;">Mockup lokal — pilih role untuk masuk.</p>
+    <form method="post" action="{{ url_for('main.role_select') }}">
+      <div class="field">
+        <label>Nama operator</label>
+        <input type="text" name="name" placeholder="Operator" autofocus>
+      </div>
+      <div class="field">
+        <label>Role</label>
+        <select name="role">
+          {% for value, label in roles %}
+          <option value="{{ value }}">{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn" style="width:100%;justify-content:center;">Masuk</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,9 @@
+{# Opsi datalist supplier di grid BOM: supplier yang sudah terdaftar untuk
+   material itu (dari supplier_suggestions) di atas, supplier lain di bawah. #}
+{% macro supplier_datalist(list_id, suggestions) -%}
+<datalist id="{{ list_id }}">
+  {%- for s in suggestions %}
+  <option value="{{ s.name }}">{% if s.linked %}&#10003; terdaftar{{ ' · ★ utama' if s.preferred }}{{ ' · ' ~ s.supplier_material_code if s.supplier_material_code }}{{ ' · usulan' if s.link_status == 'PROPOSED' }}{% else %}supplier lain{% endif %}</option>
+  {%- endfor %}
+</datalist>
+{%- endmacro %}

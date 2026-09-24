@@ -1,0 +1,5 @@
+material_code,name,category,thickness,uom,status
+MTR-0001,PU Foam,Foam,2.5mm,M,APPROVED
+MTR-0002,Kain Mesh,Textile,,M,APPROVED
+MTR-0003,Benang Nylon,Thread,0.3mm,PCS,APPROVED
+MTR-0004,Eyelet Logam,Hardware,8mm,PCS,PROPOSED

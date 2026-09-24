@@ -1,0 +1,79 @@
+{% if bom_error %}<div class="error-banner">{{ bom_error }}</div>{% endif %}
+
+<div class="bom-scroll">
+<table class="bom-table">
+  <thead>
+    <tr>
+      <th class="col-no">No</th><th class="col-wide">Komponen</th><th class="col-text">Material</th><th class="col-tight">Thickness</th><th class="col-text">Color</th><th class="col-text">Supplier</th><th class="col-tight">UoM</th><th class="col-text">Remarks</th>
+      <th class="col-tight">Yield</th><th class="col-tight">Usage*</th><th class="col-tight">Loss %</th><th class="col-tight">Harga asli</th><th class="col-tight">Cur</th>
+      <th class="col-tight">USD*</th><th class="col-tight">IDR*</th><th class="col-tight">Cost/pr (Rp)*</th><th class="col-tight">Asal</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for code, label, group_lines in grouped_lines %}
+    <tr class="group-row"><td colspan="17">{{ label }}</td></tr>
+    {% for line in group_lines %}
+    <tr>
+      <td class="col-no">{{ line.display_no if line.display_no is not none else '-' }}</td>
+      <td>{{ line.display_name }}</td>
+      <td class="muted">{{ line.material_name }}</td>
+      <td class="muted col-tight">{{ line.material_thickness or '-' }}</td>
+      <td class="muted">{{ line.color or '-' }}</td>
+      <td class="muted">{{ line.supplier_name or '-' }}</td>
+      <td class="muted col-tight">{{ line.uom }}</td>
+      <td class="muted">{{ line.remarks or '-' }}</td>
+      <td class="col-num">
+        {% if editable %}
+        <input type="text" class="cell-input num" value="{{ line.yield_value or '' }}"
+               hx-post="{{ url_for('cbd.line_yield', model_id=model.id, cbd_revision_id=revision.id, line_id=line.id) }}"
+               hx-trigger="change" hx-target="#detail-body" hx-swap="innerHTML"
+               hx-vals='{"specsheet_id": "{{ specsheet_id }}", "article_id": "{{ article_id }}"}' name="value">
+        {% else %}{{ line.yield_value or '-' }}{% endif %}
+      </td>
+      <td class="muted col-num">{{ line.usage_fmt }}</td>
+      <td class="col-num">
+        {% if editable %}
+        <input type="text" class="cell-input num" value="{{ line.loss_pct or '' }}"
+               hx-post="{{ url_for('cbd.line_loss', model_id=model.id, cbd_revision_id=revision.id, line_id=line.id) }}"
+               hx-trigger="change" hx-target="#detail-body" hx-swap="innerHTML"
+               hx-vals='{"specsheet_id": "{{ specsheet_id }}", "article_id": "{{ article_id }}"}' name="value">
+        {% else %}{{ line.loss_pct or '-' }}{% endif %}
+      </td>
+      <td class="col-num">
+        {% include "cbd/_price_cell.html" %}
+      </td>
+      <td class="col-tight">{{ line.currency or '-' }}</td>
+      <td class="muted col-num">{{ line.price_usd_fmt }}</td>
+      <td class="muted col-num">{{ line.price_idr_fmt }}</td>
+      <td class="muted col-num">{{ line.cost_per_pair_fmt }}</td>
+      <td class="muted col-tight" style="font-size:11px;">{{ line.value_origin }}{{ ' (' ~ line.status ~ ')' if line.status != 'ACTIVE' else '' }}</td>
+    </tr>
+    {% endfor %}
+    {% endfor %}
+    {% if not grouped_lines %}
+    <tr><td colspan="17" class="empty-hint">Belum ada baris CBD.</td></tr>
+    {% endif %}
+  </tbody>
+</table>
+</div>
+
+{% if missing_lines %}
+<div class="card" style="margin-top:12px;">
+  <h2 class="section-title">Baris Hilang dari Specsheet</h2>
+  <p class="muted" style="margin-top:-6px;">Material ini sudah tidak ada/tidak dipakai lagi di specsheet. Perbarui specsheet-nya untuk menghilangkan baris ini dari CBD.</p>
+  <div class="table-scroll">
+  <table class="data-table">
+    <thead><tr><th>Komponen</th><th>Material</th><th>Status</th></tr></thead>
+    <tbody>
+      {% for line in missing_lines %}
+      <tr>
+        <td>{{ line.display_name }}</td>
+        <td class="muted">{{ line.material_name }}</td>
+        <td><span class="badge badge-inactive">{{ line.status }}</span></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+{% endif %}

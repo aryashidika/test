@@ -1,0 +1,247 @@
+{% extends "base.html" %}
+{% block title %}{{ material.material_code }} — Master Material{% endblock %}
+{% block content %}
+{% set active = "material" %}
+{% include "master/_subnav.html" with context %}
+
+<a class="back-link" href="{{ url_for('master.material_page') }}">&larr; Kembali ke Master Material</a>
+
+<div class="page-header">
+  <h1>{{ material.material_code }} &middot; {{ material.name }}</h1>
+  <span class="badge badge-{{ material.status|lower }}">{{ material.status }}</span>
+</div>
+
+{% if error %}<div class="error-banner">{{ error }}</div>{% endif %}
+{% if notice %}<div class="notice-banner">{{ notice }}</div>{% endif %}
+
+<div class="grid-2">
+  <div class="card">
+    <h2 class="section-title">{{ "Supplier & Harga" if can_view_price else "Supplier" }}</h2>
+    <p class="muted section-note">
+      Satu kode material bisa dipasok beberapa supplier. Supplier ditentukan tim specsheet
+      (otomatis terdaftar saat dipilih di BOM){% if can_view_price %}; harga diisi tim CBD per supplier —
+      harga tanpa warna berlaku untuk semua warna, harga dengan warna hanya untuk warna itu{% endif %}.
+    </p>
+
+    {% for link in links %}
+    {% set lp = grouped_prices.get(link.id, {"current": [], "history": []}) %}
+    <div class="supplier-block {{ 'is-inactive' if link.status == 'INACTIVE' else '' }}">
+      <div class="supplier-head">
+        <div class="supplier-title">
+          <strong>{{ link.supplier_name }}</strong>
+          {% if link.is_preferred %}<span class="badge badge-draft" title="Otomatis terisi di BOM saat material ini dipilih">&#9733; Utama</span>{% endif %}
+          <span class="badge badge-{{ link.status|lower }}">{{ link.status }}</span>
+          {% if link.supplier_status == 'INACTIVE' %}<span class="badge badge-inactive">Supplier nonaktif di master</span>{% endif %}
+        </div>
+        <div class="inline-actions supplier-actions">
+          {% if can_manage_links and link.status != 'INACTIVE' and not link.is_preferred %}
+          <form method="post" action="{{ url_for('master.material_supplier_preferred', material_id=material.id, link_id=link.id) }}">
+            <button type="submit" class="btn btn-secondary btn-sm">Jadikan utama</button>
+          </form>
+          {% endif %}
+          {% if can_approve_links %}
+          <form method="post" action="{{ url_for('master.material_supplier_status', material_id=material.id, link_id=link.id) }}" class="inline-actions">
+            <select name="status" class="input-sm" aria-label="Status supplier {{ link.supplier_name }}">
+              {% for st in ["PROPOSED","APPROVED","INACTIVE"] %}
+              <option value="{{ st }}" {{ "selected" if st==link.status else "" }}>{{ st }}</option>
+              {% endfor %}
+            </select>
+            <button type="submit" class="btn btn-secondary btn-sm">Terapkan</button>
+          </form>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="supplier-meta">
+        <span class="muted">Kode di supplier:</span>
+        {% if can_manage_links %}
+        <form method="post" action="{{ url_for('master.material_supplier_code', material_id=material.id, link_id=link.id) }}" class="inline-actions">
+          <input type="text" name="supplier_material_code" class="input-sm" value="{{ link.supplier_material_code or '' }}" placeholder="mis. ABC-PU12" aria-label="Kode material di {{ link.supplier_name }}">
+          <button type="submit" class="btn btn-secondary btn-sm">Simpan</button>
+        </form>
+        {% else %}
+        <span>{{ link.supplier_material_code or '-' }}</span>
+        {% endif %}
+        <span class="muted">&middot; didaftarkan {{ link.created_by or '-' }}, {{ link.created_at }}</span>
+      </div>
+
+      {% if can_view_price and material.price_method == 'QUOTATION' %}
+      <p class="muted price-quotation-note">Harga diisi per CBD (quotation) — tidak ada harga master untuk material proses.</p>
+      {% elif can_view_price %}
+      <div class="table-scroll">
+      <table class="data-table price-table">
+        <thead><tr><th>Warna</th><th class="num">Harga</th><th>Cur</th><th>Berlaku</th>{% if can_manage_price %}<th></th>{% endif %}</tr></thead>
+        <tbody>
+          {% for p in lp.current %}
+          <tr>
+            <td>{% if p.color %}{{ p.color }}{% else %}<span class="muted">Semua warna</span>{% endif %}</td>
+            <td class="num"><strong>{{ p.price }}</strong></td>
+            <td>{{ p.currency }}</td>
+            <td class="nowrap">
+              {% if p.valid_from > today %}<span class="badge badge-draft">mulai {{ p.valid_from }}</span>
+              {% else %}sejak {{ p.valid_from }}{% endif %}
+              {% if p.valid_to %}<span class="cell-sub muted">s/d {{ p.valid_to }}</span>{% endif %}
+            </td>
+            {% if can_manage_price %}
+            <td class="nowrap">
+              <div class="inline-actions">
+                <a class="btn btn-secondary btn-sm" href="{{ url_for('master.material_detail', material_id=material.id, ubah=p.id) }}#form-harga"
+                   title="Ubah harga ini — disimpan sebagai harga baru, harga lama masuk riwayat">Ubah</a>
+                <a class="btn btn-secondary btn-sm" href="{{ url_for('master.material_detail', material_id=material.id, dup=p.id) }}#form-harga"
+                   title="Buka form harga dengan supplier & currency yang sama — isi warna dan harganya">Duplikat</a>
+                {% if not p.valid_to %}
+                <form method="post" action="{{ url_for('master.material_price_end', material_id=material.id, price_id=p.id) }}"
+                      hx-confirm="Akhiri harga {{ p.color or 'semua warna' }} ({{ p.price }} {{ p.currency }}) per hari ini?">
+                  <button type="submit" class="btn-link">Akhiri</button>
+                </form>
+                {% endif %}
+              </div>
+            </td>
+            {% endif %}
+          </tr>
+          {% else %}
+          <tr><td colspan="5" class="price-missing">
+            <span class="dot dot-warn"></span>Belum ada harga untuk supplier ini.
+            {% if can_manage_price and link.status != 'INACTIVE' %}
+            <a href="{{ url_for('master.material_detail', material_id=material.id, link=link.id) }}#form-harga">+ Isi harga</a>
+            {% endif %}
+          </td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      </div>
+      {% if lp.history %}
+      <details class="price-history">
+        <summary>Riwayat harga ({{ lp.history|length }})</summary>
+        <div class="table-scroll">
+        <table class="data-table price-table">
+          <thead><tr><th>Warna</th><th class="num">Harga</th><th>Cur</th><th>Periode</th><th>Oleh</th></tr></thead>
+          <tbody>
+            {% for p in lp.history %}
+            <tr class="muted">
+              <td>{{ p.color or 'Semua warna' }}</td>
+              <td class="num">{{ p.price }}</td>
+              <td>{{ p.currency }}</td>
+              <td class="nowrap">{% if p.valid_from == p.valid_to %}dikoreksi {{ p.valid_from }}{% else %}{{ p.valid_from }} &ndash; {{ p.valid_to }}{% endif %}</td>
+              <td>{{ p.created_by or '-' }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        </div>
+      </details>
+      {% endif %}
+      {% endif %}
+    </div>
+    {% else %}
+    <p class="empty-hint">Belum ada supplier untuk material ini. Supplier akan terdaftar otomatis saat tim specsheet memilihnya di BOM{{ ", atau tambahkan lewat form di samping" if can_manage_links else "" }}.</p>
+    {% endfor %}
+  </div>
+
+  <div class="stack aside-sticky">
+    <div class="card">
+      <div class="card-head" style="margin-bottom:12px;">
+        <h2 class="section-title">Info Material</h2>
+        {% if can_manage and not editing_material %}
+        <a class="btn btn-secondary btn-sm" href="{{ url_for('master.material_detail', material_id=material.id, edit=1) }}">Edit</a>
+        {% endif %}
+      </div>
+      {% if can_manage and editing_material %}
+      <form method="post" action="{{ url_for('master.material_edit', material_id=material.id) }}" style="margin-bottom:14px;">
+        <div class="field"><label for="mat-code">Material Code *</label><input type="text" name="material_code" id="mat-code" value="{{ material_form.material_code }}" required></div>
+        <div class="field"><label for="mat-name">Material Name *</label><input type="text" name="name" id="mat-name" value="{{ material_form.name }}" required></div>
+        <div class="field"><label for="mat-cat">Material Category *</label><input type="text" name="category" id="mat-cat" value="{{ material_form.category }}" required></div>
+        <div class="field-row">
+          <div class="field"><label for="mat-thick">Thickness</label><input type="text" name="thickness" id="mat-thick" value="{{ material_form.thickness }}"></div>
+          <div class="field"><label for="mat-uom">UoM *</label><input type="text" name="uom" id="mat-uom" value="{{ material_form.uom }}" required></div>
+        </div>
+        <div class="form-actions">
+          <a class="btn btn-secondary" href="{{ url_for('master.material_detail', material_id=material.id) }}">Batal</a>
+          <button type="submit" class="btn">Simpan</button>
+        </div>
+        <p class="muted form-note">BOM dan CBD DRAFT langsung menampilkan data baru; CBD yang sudah terbit tidak berubah.</p>
+      </form>
+      {% endif %}
+      <dl class="info-list">
+        {% if not (can_manage and editing_material) %}
+        <dt>Kategori</dt><dd>{{ material.category }}</dd>
+        <dt>Thickness</dt><dd>{{ material.thickness or '-' }}</dd>
+        <dt>UoM</dt><dd>{{ material.uom }}</dd>
+        {% endif %}
+        {% if can_view_price %}
+        <dt>Metode harga</dt>
+        <dd>
+          {% if can_manage_price %}
+          <form method="post" action="{{ url_for('master.material_price_method', material_id=material.id) }}" class="inline-actions">
+            <select name="price_method" class="input-sm" aria-label="Metode harga">
+              <option value="CATALOG" {{ "selected" if material.price_method == 'CATALOG' else "" }}>Katalog (dari master)</option>
+              <option value="QUOTATION" {{ "selected" if material.price_method == 'QUOTATION' else "" }}>Quotation per CBD</option>
+            </select>
+            <button type="submit" class="btn btn-secondary btn-sm">Terapkan</button>
+          </form>
+          {% else %}
+          {{ "Quotation per CBD" if material.price_method == 'QUOTATION' else "Katalog (dari master)" }}
+          {% endif %}
+          <span class="cell-sub muted">{{ "Material proses: harga beda tiap desain/warna, diisi langsung di CBD." if material.price_method == 'QUOTATION' else "Harga per supplier (dan per warna) diisi di halaman ini." }}</span>
+        </dd>
+        {% endif %}
+        <dt>Dibuat</dt><dd>{{ material.created_by or '-' }}<span class="cell-sub muted">{{ material.created_at }}</span></dd>
+        <dt>Diubah</dt><dd>{{ material.updated_by or '-' }}<span class="cell-sub muted">{{ material.updated_at }}</span></dd>
+      </dl>
+    </div>
+
+    {% if can_manage_price and material.price_method == 'CATALOG' %}
+    <div class="card {{ 'card-focus' if focus_price_form else '' }}" id="form-harga">
+      <h2 class="section-title">{{ "Ubah Harga" if editing_price else "+ Harga" }}</h2>
+      {% if editing_price %}<p class="muted section-note">Harga baru akan menutup harga lama untuk supplier + warna yang sama (harga lama tetap di riwayat). Pakai tanggal yang sama untuk koreksi.</p>{% endif %}
+      {% if priceable_links %}
+      <form method="post" action="{{ url_for('master.material_price_add', material_id=material.id) }}">
+        <div class="field"><label for="price-link">Supplier *</label>
+          <select name="link_id" id="price-link" required>
+            <option value="">— pilih supplier —</option>
+            {% for l in priceable_links %}
+            <option value="{{ l.id }}" {{ "selected" if l.id == price_form.link_id else "" }}>{{ l.supplier_name }}{{ ' (' ~ l.supplier_material_code ~ ')' if l.supplier_material_code else '' }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field"><label for="price-color">Warna</label>
+          <input type="text" name="color" id="price-color" list="dl-price-colors" value="{{ price_form.color }}" placeholder="Kosongkan = semua warna" autocomplete="off" {{ 'autofocus' if focus_price_form else '' }}>
+          <datalist id="dl-price-colors">{% for c in color_suggestions %}<option value="{{ c }}"></option>{% endfor %}</datalist>
+          <span class="field-hint">Isi hanya untuk warna yang harganya berbeda dari harga semua warna.</span>
+        </div>
+        <div class="field-row">
+          <div class="field"><label for="price-value">Harga *</label><input type="text" name="price" id="price-value" value="{{ price_form.price }}" inputmode="decimal" required></div>
+          <div class="field field-narrow"><label for="price-currency">Currency *</label>
+            <select name="currency" id="price-currency">
+              {% for cur in ["IDR","USD"] %}<option value="{{ cur }}" {{ "selected" if cur == price_form.currency else "" }}>{{ cur }}</option>{% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="field"><label for="price-from">Berlaku mulai *</label><input type="date" name="valid_from" id="price-from" value="{{ price_form.valid_from }}" required></div>
+        <div class="form-actions"><button type="submit" class="btn">Simpan Harga</button></div>
+        <p class="muted form-note">Harga lama untuk supplier + warna yang sama otomatis ditutup (tetap tersimpan di riwayat), tidak ditimpa.</p>
+      </form>
+      {% else %}
+      <p class="muted">Belum ada supplier aktif untuk material ini. {{ 'Daftarkan supplier dulu lewat form "+ Supplier".' if can_manage_links else "Supplier didaftarkan oleh tim specsheet." }}</p>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    {% if can_manage_links %}
+    <div class="card">
+      <h2 class="section-title">+ Supplier</h2>
+      <form method="post" action="{{ url_for('master.material_supplier_add', material_id=material.id) }}">
+        <div class="field"><label for="link-supplier">Supplier *</label>
+          <input type="text" name="supplier_text" id="link-supplier" list="dl-addable-suppliers" required placeholder="Ketik nama supplier..." autocomplete="off">
+          <datalist id="dl-addable-suppliers">{% for s in addable_suppliers %}<option value="{{ s.name }}"></option>{% endfor %}</datalist>
+          <span class="field-hint">Harus sudah ada di Master Supplier.</span>
+        </div>
+        <div class="field"><label for="link-code">Kode di supplier</label><input type="text" name="supplier_material_code" id="link-code" placeholder="mis. ABC-PU12"></div>
+        <label class="checkbox-label"><input type="checkbox" name="is_preferred" value="1"> Jadikan supplier utama</label>
+        <div class="form-actions"><button type="submit" class="btn">{{ "Simpan" if can_approve_links else "Usulkan" }}</button></div>
+      </form>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

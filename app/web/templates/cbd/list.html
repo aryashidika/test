@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}CBD{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>CBD (Cost Breakdown)</h1>
+</div>
+
+<div class="card">
+  <form method="get" action="{{ url_for('cbd.list_page') }}" class="toolbar">
+    <input type="search" name="q" value="{{ search }}" placeholder="Cari kode / nama model...">
+    <select name="season" onchange="this.form.submit()">
+      <option value="">Semua Season</option>
+      {% for s in seasons %}
+      <option value="{{ s }}" {{ "selected" if s==season else "" }}>{{ s }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit" class="btn btn-secondary">Cari</button>
+  </form>
+
+  {% include "cbd/_list_table.html" %}
+</div>
+{% endblock %}

@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Specsheet — {{ model.code }} {{ specsheet.season }} {{ revision.stage }} r{{ revision.revision_no }}</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<div class="no-print" style="padding:14px;">
+  <button type="button" class="btn" onclick="window.print()">Cetak / Simpan sebagai PDF</button>
+</div>
+
+<div class="print-sheet">
+  <h1>{{ model.code }} — {{ model.name }}</h1>
+  <table class="print-meta">
+    <tr>
+      <td>Season</td><td>{{ season_label }}</td>
+      <td>Stage / Revisi</td><td>{{ revision.stage }} r{{ revision.revision_no }}</td>
+    </tr>
+    <tr>
+      <td>Factory</td><td>{{ model.factory or '-' }}</td>
+      <td>Status</td><td>{{ revision.status }}</td>
+    </tr>
+    <tr>
+      <td>Outsole Mould</td><td>{{ model.outsole_mold or '-' }}</td>
+      <td>Construction</td><td>{{ model.construction or '-' }}</td>
+    </tr>
+  </table>
+
+  <table class="print-table">
+    <thead>
+      <tr>
+        <th>No</th><th>Komponen</th><th>Deskripsi Material</th><th>Source of Material</th><th>UoM</th><th>Remarks</th>
+        {% for a in articles %}<th>{{ a.code }}<br><span class="muted">{{ a.colorway }}</span></th>{% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for line in bom_lines %}
+      <tr>
+        <td>{{ line.display_no }}</td>
+        <td>{{ line.display_name }}</td>
+        <td>{{ line.material_name }}</td>
+        <td>{{ line.supplier_name or '-' }}</td>
+        <td>{{ line.uom }}</td>
+        <td>{{ line.process or '-' }}</td>
+        {% for a in articles %}
+        {% set cell = line.cells.get(a.id) %}
+        <td>{{ cell.color if cell and cell.is_used else '' }}</td>
+        {% endfor %}
+      </tr>
+      {% else %}
+      <tr><td colspan="{{ 6 + articles|length }}" class="empty-hint">Belum ada baris BOM.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div class="print-signatures">
+    <div><span class="sig-line"></span><label>Dibuat oleh</label></div>
+    <div><span class="sig-line"></span><label>Diperiksa oleh</label></div>
+    <div><span class="sig-line"></span><label>Disetujui oleh</label></div>
+  </div>
+</div>
+</body>
+</html>

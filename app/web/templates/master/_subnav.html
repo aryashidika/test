@@ -1,0 +1,5 @@
+<div class="subnav">
+  <a href="{{ url_for('master.material_page') }}" class="{{ 'active' if active=='material' else '' }}">Material</a>
+  <a href="{{ url_for('master.component_page') }}" class="{{ 'active' if active=='komponen' else '' }}">Komponen</a>
+  <a href="{{ url_for('master.supplier_page') }}" class="{{ 'active' if active=='supplier' else '' }}">Supplier</a>
+</div>

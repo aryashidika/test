@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block title %}Komponen — Master Data{% endblock %}
+{% block content %}
+{% set active = "komponen" %}
+{% include "master/_subnav.html" with context %}
+
+<div class="page-header"><h1>Master Komponen</h1></div>
+{% if error %}<div class="error-banner">{{ error }}</div>{% endif %}
+
+<div class="grid-2">
+  <div class="card">
+    <form method="get" action="{{ url_for('master.component_page') }}" class="card-toolbar">
+      <select name="group_id" onchange="this.form.submit()">
+        <option value="">Semua Kelompok</option>
+        {% for gr in groups %}
+        <option value="{{ gr.id }}" {{ "selected" if gr.id==selected_group else "" }}>{{ gr.code }} - {{ gr.name }} ({{ gr.range_start }}-{{ gr.range_end }})</option>
+        {% endfor %}
+      </select>
+    </form>
+    <div class="table-scroll">
+    <table class="data-table">
+      <thead><tr><th>No.</th><th>Nama</th><th>Kelompok</th><th>Status</th>{% if can_manage %}<th></th>{% endif %}</tr></thead>
+      <tbody>
+        {% for c in components %}
+        {% if can_manage and c.id == edit_id %}
+        {% set f = edit_form or {"number": c.number, "name": c.name, "group_id": c.group_id} %}
+        <tr class="row-editing">
+          <td colspan="3">
+            <form method="post" action="{{ url_for('master.component_edit', component_id=c.id) }}" id="edit-comp" class="inline-actions" style="flex-wrap:wrap;">
+              <input type="number" step="10" name="number" value="{{ f.number }}" class="input-sm" style="width:90px;" required aria-label="Nomor">
+              <input type="text" name="name" value="{{ f.name }}" class="input-sm" style="min-width:160px;" required aria-label="Nama" autofocus>
+              <select name="group_id" class="input-sm" aria-label="Kelompok">
+                {% for gr in groups %}
+                <option value="{{ gr.id }}" {{ "selected" if gr.id == f.group_id else "" }}>{{ gr.code }} - {{ gr.name }} ({{ gr.range_start }}-{{ gr.range_end }})</option>
+                {% endfor %}
+              </select>
+            </form>
+          </td>
+          <td><span class="badge badge-{{ c.status|lower }}">{{ c.status }}</span></td>
+          <td class="nowrap">
+            <div class="inline-actions">
+              <button type="submit" form="edit-comp" class="btn btn-sm">Simpan</button>
+              <a class="btn btn-secondary btn-sm" href="{{ url_for('master.component_page', group_id=selected_group or None) }}">Batal</a>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td class="nowrap"><strong>{{ c.number }}</strong></td>
+          <td>{{ c.name }}</td>
+          <td class="muted">{{ group_name_by_id.get(c.group_id, "") }}</td>
+          <td><span class="badge badge-{{ c.status|lower }}">{{ c.status }}</span></td>
+          {% if can_manage %}
+          <td>
+            <form method="post" action="{{ url_for('master.component_set_status', component_id=c.id) }}" class="inline-actions">
+              <select name="status" class="input-sm">
+                {% for s in ["PROPOSED","APPROVED","INACTIVE"] %}
+                <option value="{{ s }}" {{ "selected" if s==c.status else "" }}>{{ s }}</option>
+                {% endfor %}
+              </select>
+              <button type="submit" class="btn btn-secondary btn-sm">Terapkan</button>
+              <a class="btn btn-secondary btn-sm" href="{{ url_for('master.component_page', group_id=selected_group or None, edit=c.id) }}">Edit</a>
+            </form>
+          </td>
+          {% endif %}
+        </tr>
+        {% endif %}
+        {% else %}
+        <tr><td colspan="5" class="empty-hint">Belum ada komponen.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <div class="card aside-sticky">
+    <h2 class="section-title">{{ "Tambah Komponen" if can_manage else "Usulkan Komponen" }}</h2>
+    {% if read_only %}
+    <p class="muted">Role Anda hanya bisa melihat data (read-only).</p>
+    {% else %}
+    <form method="post" action="{{ url_for('master.component_create') }}">
+      <div class="field">
+        <label>Kelompok *</label>
+        <select name="group_id" required
+                hx-get="{{ url_for('master.component_next_number') }}"
+                hx-trigger="change" hx-target="#number-field" hx-swap="outerHTML"
+                hx-include="this">
+          <option value="">Pilih kelompok...</option>
+          {% for gr in groups %}
+          <option value="{{ gr.id }}">{{ gr.code }} - {{ gr.name }} ({{ gr.range_start }}-{{ gr.range_end }})</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label>Nomor (kelipatan 10) *</label>
+        <input type="number" step="10" id="number-field" name="number" required>
+      </div>
+      <div class="field"><label>Nama *</label><input type="text" name="name" required></div>
+      <div class="form-actions">
+        <button type="submit" class="btn">{{ "Simpan" if can_manage else "Usulkan" }}</button>
+      </div>
+    </form>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

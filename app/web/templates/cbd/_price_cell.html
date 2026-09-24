@@ -1,0 +1,91 @@
+{# Harga baris CBD, tergantung metode harga materialnya:
+   - QUOTATION (material proses): harga + currency diisi langsung di sini,
+     tanpa alasan; boleh dikosongkan kalau sudah diwakili baris proses lain.
+   - CATALOG: harga dari master harga (read-only di sini) atau override khusus
+     baris ini (alasan wajib, form-nya di popup kecil supaya sel tetap ringkas).
+     Harga baru/harga khusus warna diisi di Master Material, tidak ada input
+     harga master dari grid CBD. #}
+{% if line.material_price_method == 'QUOTATION' %}
+  {% if editable and line.status == 'ACTIVE' %}
+  <form class="quotation-form" hx-post="{{ url_for('cbd.line_quotation_price', model_id=model.id, cbd_revision_id=revision.id, line_id=line.id) }}"
+        hx-trigger="change" hx-target="#detail-body" hx-swap="innerHTML">
+    <input type="hidden" name="specsheet_id" value="{{ specsheet_id }}">
+    <input type="hidden" name="article_id" value="{{ article_id }}">
+    <div class="override-row">
+      <input type="text" name="price_original" class="cell-input num" value="{{ line.price_original if line.price_source == 'QUOTATION' else '' }}"
+             placeholder="kosong" inputmode="decimal" aria-label="Harga quotation">
+      <select name="currency" class="cell-select narrow" aria-label="Currency quotation">
+        <option value="IDR" {{ "selected" if line.currency != "USD" else "" }}>IDR</option>
+        <option value="USD" {{ "selected" if line.currency == "USD" else "" }}>USD</option>
+      </select>
+    </div>
+  </form>
+  <span class="price-src">quotation{{ ' · kosong = tidak dihargai terpisah' if not line.price_original else '' }}</span>
+  {% elif line.price_original %}
+  {{ line.price_original }}
+  <span class="price-src">quotation</span>
+  {% else %}
+  <span class="price-gap gap-muted">tidak dihargai terpisah</span>
+  {% endif %}
+{% else %}
+{% if line.price_original %}
+  {{ line.price_original }}
+  {% if line.price_source == 'MASTER' %}
+  <span class="price-src" title="Harga master berlaku sejak {{ line.master_price_valid_from or '-' }}">master &middot; {{ ('warna ' ~ line.master_price_color) if line.master_price_color else 'semua warna' }}</span>
+  {% elif line.price_source == 'OVERRIDE' %}
+  <span class="price-src is-override" title="Alasan: {{ line.price_override_reason or '-' }}">override &#9432;</span>
+  {% elif line.price_source == 'QUOTATION' %}
+  <span class="price-src" title="Material ini sekarang memakai harga katalog — klik 'Refresh Harga dari Master'">quotation lama</span>
+  {% endif %}
+{% elif line.price_gap %}
+  {% set gap = line.price_gap %}
+  {% if gap.code == 'NO_SUPPLIER' %}
+  <span class="price-gap gap-muted"><span class="dot dot-muted"></span>Supplier belum dipilih di specsheet</span>
+  {% else %}
+  <span class="price-gap gap-warn"><span class="dot dot-warn"></span>
+    {% if gap.code == 'NO_COLOR_PRICE' %}Belum ada harga untuk warna ini (ada: {{ gap.colors|join(', ') }})
+    {% else %}Belum ada harga untuk supplier ini{% endif %}
+    {% if can_manage_price %}&middot; <a href="{{ url_for('master.material_detail', material_id=line.material_id) }}" target="_blank" rel="noopener"
+       title="Buka Master Material di tab baru, lalu kembali ke sini dan klik 'Refresh Harga dari Master'">isi di Master Material &#8599;</a>{% endif %}
+  </span>
+  {% endif %}
+{% elif line.status == 'ACTIVE' %}
+  <span class="price-gap gap-warn"><span class="dot dot-ok"></span>Harga master tersedia — klik "Refresh Harga dari Master"</span>
+{% else %}-{% endif %}
+
+{% if editable and line.status == 'ACTIVE' %}
+  {% if line.price_source == 'OVERRIDE' %}
+  <form hx-post="{{ url_for('cbd.line_price_override_clear', model_id=model.id, cbd_revision_id=revision.id, line_id=line.id) }}"
+        hx-target="#detail-body" hx-swap="innerHTML" class="price-action">
+    <input type="hidden" name="specsheet_id" value="{{ specsheet_id }}">
+    <input type="hidden" name="article_id" value="{{ article_id }}">
+    <button type="submit" class="btn-link">Hapus override</button>
+  </form>
+  {% else %}
+  <div class="price-action">
+    <button type="button" class="btn-link js-popover-btn" popovertarget="ovr-{{ line.id }}"
+            title="Harga khusus untuk baris CBD ini saja (mis. nego sekali pakai). Harga yang berlaku untuk semua CBD — termasuk harga khusus warna — diisi di Master Material.">Override&hellip;</button>
+  </div>
+  <div popover id="ovr-{{ line.id }}" class="price-popover">
+    <form hx-post="{{ url_for('cbd.line_price_override', model_id=model.id, cbd_revision_id=revision.id, line_id=line.id) }}"
+          hx-target="#detail-body" hx-swap="innerHTML">
+      <input type="hidden" name="specsheet_id" value="{{ specsheet_id }}">
+      <input type="hidden" name="article_id" value="{{ article_id }}">
+      <div class="price-popover-title">Override harga &middot; {{ line.display_name }}</div>
+      <div class="override-row">
+        <input type="text" name="price_original" class="cell-input num" placeholder="Harga" inputmode="decimal" required aria-label="Harga override">
+        <select name="currency" class="cell-select narrow" aria-label="Currency override">
+          <option value="IDR" {{ "selected" if line.currency != "USD" else "" }}>IDR</option>
+          <option value="USD" {{ "selected" if line.currency == "USD" else "" }}>USD</option>
+        </select>
+      </div>
+      <input type="text" name="reason" class="cell-input" placeholder="Alasan (wajib), mis. harga nego order ini" required aria-label="Alasan override">
+      <div class="price-popover-actions">
+        <button type="button" class="btn btn-secondary btn-sm" popovertarget="ovr-{{ line.id }}" popovertargetaction="hide">Batal</button>
+        <button type="submit" class="btn btn-sm">Simpan</button>
+      </div>
+    </form>
+  </div>
+  {% endif %}
+{% endif %}
+{% endif %}

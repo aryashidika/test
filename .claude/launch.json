@@ -1,0 +1,22 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "specsheet-web",
+      "runtimeExecutable": "python",
+      "runtimeArgs": [
+        "run_web.py"
+      ],
+      "port": 5000
+    },
+    {
+      "name": "specsheet-web-preview",
+      "runtimeExecutable": "python",
+      "runtimeArgs": [
+        "-c",
+        "from app.web import create_app; create_app().run(host='127.0.0.1', port=5055, debug=False, use_reloader=False)"
+      ],
+      "port": 5055
+    }
+  ]
+}
