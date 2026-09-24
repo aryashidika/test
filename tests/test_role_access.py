@@ -105,7 +105,7 @@ def test_brand_sees_published_revisions_only(client):
 
     login(client, "BRAND_VIEWER")
     detail = client.get(f"/specsheet/{model_id}").get_data(as_text=True)
-    assert "DRAFT" not in detail and "Belum ada revisi." in detail
+    assert "DRAFT" not in detail and "Belum ada revisi terbit" in detail
     assert client.get(f"/specsheet/{model_id}/revision/{revision_id}/print").status_code == 403
     assert client.get(f"/specsheet/{model_id}/revision/{revision_id}/export.xlsx").status_code == 403
     assert "DRAFT" not in client.get("/specsheet").get_data(as_text=True)

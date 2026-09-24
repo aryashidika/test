@@ -560,3 +560,44 @@ dialog.form-dialog .modal-close { position: absolute; top: 10px; right: 12px; }
 }
 .audit-diff summary { cursor: pointer; color: var(--navy); font-size: 12.5px; }
 .audit-diff pre { margin: 4px 0 8px; padding: 6px 8px; background: var(--surface-alt); border-radius: 6px; font-size: 11.5px; white-space: pre-wrap; max-width: 520px; }
+
+/* ---------- Specsheet: navigasi revisi, wizard, checklist terbit ---------- */
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.revision-nav { padding-top: 12px; padding-bottom: 12px; }
+.revision-nav-row { display: flex; align-items: center; gap: 14px 20px; flex-wrap: wrap; }
+.season-picker { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 12.5px; }
+.season-picker select { min-width: 150px; }
+.stage-stepper { display: flex; list-style: none; margin: 0; padding: 0; flex: 1; min-width: 0; flex-wrap: wrap; gap: 4px; }
+.stage-step {
+  display: flex; align-items: center; gap: 8px; padding: 5px 10px; border-radius: 6px;
+  background: var(--surface-alt); border: 1px solid var(--border); color: var(--muted);
+}
+.stage-step.has-revs { color: var(--text); }
+.stage-step.current { border-color: var(--navy); background: var(--navy-soft); }
+.stage-name { font-weight: 700; font-size: 12px; letter-spacing: .03em; }
+.stage-revs { display: flex; gap: 3px; flex-wrap: wrap; }
+.rev-chip {
+  display: inline-block; min-width: 26px; padding: 1px 6px; border-radius: 999px; text-align: center;
+  font-size: 11.5px; font-weight: 600; background: #DDF3E4; color: #1E7A42; border: 1px solid transparent;
+}
+.rev-chip:hover { text-decoration: none; border-color: currentColor; }
+.rev-chip.is-draft { background: #fff; color: var(--navy); border: 1px dashed var(--navy); }
+.rev-chip.active { background: var(--navy); color: #fff; border-color: var(--navy); }
+.nav-note { font-size: 12px; }
+dialog.form-dialog.wide { width: 560px; }
+.option-list { display: flex; flex-direction: column; gap: 10px; }
+.option-card {
+  display: flex; justify-content: space-between; align-items: center; gap: 10px 14px; flex-wrap: wrap;
+  padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--radius); margin: 0;
+}
+.option-card p { margin: 2px 0 0; font-size: 12.5px; }
+.option-actions { display: flex; gap: 6px; align-items: center; }
+.checklist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.checklist li { display: flex; gap: 10px; align-items: flex-start; font-size: 13px; }
+.check-icon { flex: 0 0 22px; height: 22px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; }
+.checklist li.ok .check-icon { background: #DDF3E4; color: #1E7A42; }
+.checklist li.fail .check-icon { background: #FDEDEB; color: var(--danger-dark); }
+.checklist li.warn .check-icon { background: #FFF3D6; color: #9A6500; }
+.diff-detail summary { cursor: pointer; font-size: 12.5px; color: var(--navy); margin-top: 6px; }
+.diff-list { margin: 6px 0 0; padding-left: 16px; font-size: 12.5px; }
+.diff-list ul { margin: 2px 0 4px; padding-left: 16px; }

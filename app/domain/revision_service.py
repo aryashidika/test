@@ -251,34 +251,51 @@ def create_next_stage_revision(conn, specsheet_id: str, actor: str) -> str:
     return revision_id
 
 
+def publish_checklist(conn, revision_id: str) -> list:
+    """Pemeriksaan sebelum terbit, dipakai modal "Terbitkan" (ditampilkan sebelum
+    diklik) dan `publish_revision` (item `blocking` yang gagal menolak terbit).
+    Tiap item: label, ok, detail, blocking, error (pesan penolakan)."""
+    active_articles = conn.execute(
+        """SELECT a.id, a.code FROM revision_article ra JOIN article a ON a.id = ra.article_id
+           WHERE ra.revision_id=? AND ra.status='ACTIVE' ORDER BY a.code""",
+        (revision_id,),
+    ).fetchall()
+    unused = [a["code"] for a in active_articles if conn.execute(
+        """SELECT COUNT(*) c FROM bom_cell bc JOIN bom_line bl ON bl.id = bc.bom_line_id
+           WHERE bl.revision_id=? AND bl.is_active=1 AND bc.article_id=? AND bc.is_used=1""",
+        (revision_id, a["id"]),
+    ).fetchone()["c"] == 0]
+    inactive = [r["name"] for r in conn.execute(
+        """SELECT DISTINCT m.name FROM bom_line bl JOIN material m ON m.id = bl.material_id
+           WHERE bl.revision_id=? AND bl.is_active=1 AND m.status='INACTIVE' ORDER BY m.name""",
+        (revision_id,),
+    ).fetchall()]
+    no_supplier = conn.execute(
+        "SELECT COUNT(*) c FROM bom_line WHERE revision_id=? AND is_active=1 AND supplier_id IS NULL",
+        (revision_id,),
+    ).fetchone()["c"]
+    return [
+        {"label": "Minimal satu article aktif", "ok": bool(active_articles), "blocking": True,
+         "detail": f"{len(active_articles)} article aktif",
+         "error": "Specsheet harus punya minimal satu article aktif sebelum diterbitkan."},
+        {"label": "Setiap article aktif dipakai di BOM", "ok": not unused, "blocking": True,
+         "detail": ("Belum dipakai: " + ", ".join(unused)) if unused else "",
+         "error": f"Article '{unused[0]}' belum memakai baris BOM manapun." if unused else ""},
+        {"label": "Tidak ada material INACTIVE", "ok": not inactive, "blocking": True,
+         "detail": ", ".join(inactive),
+         "error": f"Ada baris memakai material berstatus INACTIVE: {', '.join(inactive)}." if inactive else ""},
+        {"label": "Semua baris punya supplier (dibutuhkan harga CBD)", "ok": not no_supplier, "blocking": False,
+         "detail": f"{no_supplier} baris tanpa supplier — boleh terbit, tapi harga CBD-nya tidak bisa diambil"
+                   if no_supplier else "", "error": ""},
+    ]
+
+
 def publish_revision(conn, revision_id: str, category: str, reason: str, actor: str) -> dict:
     revision = ensure_draft(conn, revision_id)
 
-    active_articles = conn.execute(
-        "SELECT article_id FROM revision_article WHERE revision_id=? AND status='ACTIVE'",
-        (revision_id,),
-    ).fetchall()
-    if not active_articles:
-        raise ValueError("Specsheet harus punya minimal satu article aktif sebelum diterbitkan.")
-    for row in active_articles:
-        used = conn.execute(
-            """SELECT COUNT(*) c FROM bom_cell bc
-               JOIN bom_line bl ON bl.id = bc.bom_line_id
-               WHERE bl.revision_id=? AND bl.is_active=1 AND bc.article_id=? AND bc.is_used=1""",
-            (revision_id, row["article_id"]),
-        ).fetchone()
-        if used["c"] == 0:
-            article = conn.execute("SELECT * FROM article WHERE id=?", (row["article_id"],)).fetchone()
-            raise ValueError(f"Article '{article['code']}' belum memakai baris BOM manapun.")
-
-    inactive_materials = conn.execute(
-        """SELECT DISTINCT m.name FROM bom_line bl JOIN material m ON m.id = bl.material_id
-           WHERE bl.revision_id=? AND bl.is_active=1 AND m.status='INACTIVE'""",
-        (revision_id,),
-    ).fetchall()
-    if inactive_materials:
-        names = ", ".join(r["name"] for r in inactive_materials)
-        raise ValueError(f"Ada baris memakai material berstatus INACTIVE: {names}.")
+    for check in publish_checklist(conn, revision_id):
+        if check["blocking"] and not check["ok"]:
+            raise ValueError(check["error"])
 
     requires_reason = revision["source_revision_id"] is not None or revision["revision_no"] != 0
     reason = (reason or "").strip()

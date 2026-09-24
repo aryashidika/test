@@ -1,174 +1,238 @@
+{% set body_url = url_for('specsheet.detail_body', model_id=model.id) %}
+{% set page_url = url_for('specsheet.detail', model_id=model.id) %}
 <a class="back-link" href="{{ url_for('specsheet.list_page') }}">&larr; Kembali ke daftar Specsheet</a>
 
-<div class="model-header">
-  <h1>{{ model.code }} — {{ model.name }}</h1>
-  <div class="meta">
-    <span>Kategori: {{ model.category or '-' }}</span>
-    <span>Factory: {{ model.factory or '-' }}</span>
-    <span>Outsole Mould: {{ model.outsole_mold or '-' }}</span>
-    <span>Last No.: {{ model.last_no or '-' }}</span>
-    <span>Construction: {{ model.construction or '-' }}</span>
-    <span>Size Range: {{ model.size_range or '-' }}</span>
-    <span>Sample Size: {{ model.sample_size or '-' }}</span>
+<div class="model-header header-with-actions">
+  <div>
+    <h1>{{ model.code }} — {{ model.name }}</h1>
+    <div class="meta">
+      <span>Kategori: {{ model.category or '-' }}</span>
+      <span>Factory: {{ model.factory or '-' }}</span>
+      <span>Outsole Mould: {{ model.outsole_mold or '-' }}</span>
+      <span>Last No.: {{ model.last_no or '-' }}</span>
+      <span>Construction: {{ model.construction or '-' }}</span>
+      <span>Size Range: {{ model.size_range or '-' }}</span>
+      <span>Sample Size: {{ model.sample_size or '-' }}</span>
+    </div>
+  </div>
+  <div class="header-actions">
+    <a class="btn btn-light btn-sm" href="{{ url_for('model.detail', model_id=model.id, tab='article', specsheet_id=specsheet_id) }}">Season &amp; Article</a>
+    {% if can_view_cbd %}
+    <a class="btn btn-light btn-sm" href="{{ url_for('cbd.detail', model_id=model.id, specsheet_id=specsheet_id) if specsheet_id else url_for('cbd.detail', model_id=model.id) }}">Buka CBD &rarr;</a>
+    {% endif %}
   </div>
 </div>
 
 {% if form_error %}<div class="error-banner">{{ form_error }}</div>{% endif %}
 
-<div class="grid-detail">
-  <div class="stack">
-    <div class="card">
-      <h2 class="section-title">Season</h2>
-      <ul class="season-list">
+{% if not specsheets %}
+<div class="card"><p class="empty-hint">Model ini belum punya season.
+  {% if can_edit_model %}Tambahkan season &amp; article di <a href="{{ url_for('model.detail', model_id=model.id, tab='article') }}">halaman Model</a>.{% endif %}</p></div>
+{% else %}
+
+{# -------- Navigasi: season + stepper stage/revisi + Buat Revisi -------- #}
+<div class="card revision-nav">
+  <div class="revision-nav-row">
+    <label class="season-picker">
+      <span class="muted">Season</span>
+      <select name="specsheet_id" aria-label="Season"
+              onchange="window.location.href = '{{ page_url }}?specsheet_id=' + this.value">
         {% for sp in specsheets %}
-        <li>
-          <a class="{{ 'active' if sp.id==specsheet_id else '' }}"
-             hx-get="{{ url_for('specsheet.detail_body', model_id=model.id) }}?specsheet_id={{ sp.id }}"
+        <option value="{{ sp.id }}" {{ "selected" if sp.id == specsheet_id else "" }}>{{ sp.season }} ({{ rev_counts.get(sp.id, 0) }} revisi)</option>
+        {% endfor %}
+      </select>
+    </label>
+
+    <ol class="stage-stepper" aria-label="Stage revisi">
+      {% for stage, revs in stage_steps %}
+      <li class="stage-step {{ 'has-revs' if revs else '' }} {{ 'current' if revision and revision.stage == stage else '' }}">
+        <span class="stage-name">{{ stage }}</span>
+        <span class="stage-revs">
+          {% for r in revs %}
+          <a class="rev-chip {{ 'active' if r.id == revision_id else '' }} {{ 'is-draft' if r.status == 'DRAFT' else '' }}"
+             title="{{ r.stage }} r{{ r.revision_no }} · {{ r.status }}"
+             href="{{ page_url }}?specsheet_id={{ specsheet_id }}&revision_id={{ r.id }}"
+             hx-get="{{ body_url }}?specsheet_id={{ specsheet_id }}&revision_id={{ r.id }}"
              hx-target="#detail-body" hx-swap="innerHTML"
-             hx-push-url="{{ url_for('specsheet.detail', model_id=model.id) }}?specsheet_id={{ sp.id }}">
-            <span>{{ sp.season }}</span>
-            <span class="muted">{{ rev_counts.get(sp.id, 0) }} revisi</span>
-          </a>
-        </li>
-        {% else %}
-        <li class="empty-hint">Belum ada season.</li>
-        {% endfor %}
-      </ul>
-      <a class="btn btn-secondary btn-sm" style="margin-top:10px;width:100%;justify-content:center;"
-         href="{{ url_for('model.detail', model_id=model.id, tab='article', specsheet_id=specsheet_id) }}">Kelola Season &amp; Article</a>
-    </div>
+             hx-push-url="{{ page_url }}?specsheet_id={{ specsheet_id }}&revision_id={{ r.id }}">r{{ r.revision_no }}{% if r.status == 'DRAFT' %}<span class="sr-only"> draft</span>{% endif %}</a>
+          {% else %}<span class="muted">–</span>{% endfor %}
+        </span>
+      </li>
+      {% endfor %}
+    </ol>
 
-    <div class="card">
-      <h2 class="section-title">Revisi{{ (' — ' ~ specsheet.season) if specsheet else '' }}</h2>
-      <ul class="revision-list">
-        {% for r in revisions %}
-        <li>
-          <a class="rev-link {{ 'active' if r.id==revision_id else '' }}"
-             hx-get="{{ url_for('specsheet.revision_select', model_id=model.id, revision_id=r.id) }}?specsheet_id={{ specsheet_id }}"
-             hx-target="#detail-body" hx-swap="innerHTML"
-             hx-push-url="{{ url_for('specsheet.detail', model_id=model.id) }}?specsheet_id={{ specsheet_id }}&revision_id={{ r.id }}">
-            <span>{{ r.stage }} r{{ r.revision_no }}</span>
-            <span class="badge badge-{{ r.status|lower }}">{{ r.status }}</span>
-          </a>
-        </li>
-        {% else %}
-        <li class="empty-hint">Belum ada revisi.</li>
-        {% endfor %}
-      </ul>
-
-      {% if creatable %}
-      <div class="action-stack">
-        {% if not revisions %}
-        <form hx-post="{{ url_for('specsheet.revision_empty', model_id=model.id) }}" hx-target="#detail-body" hx-swap="innerHTML" class="form-inline">
-          <input type="hidden" name="specsheet_id" value="{{ specsheet_id }}">
-          <select name="stage" title="Stage awal" style="flex:0 0 84px;">
-            {% for st in stages %}<option value="{{ st }}">{{ st }}</option>{% endfor %}
-          </select>
-          <button type="submit" class="btn btn-secondary" style="flex:1;">Mulai Baru (Kosong)</button>
-        </form>
-        <button type="button" class="btn btn-secondary"
-                hx-get="{{ url_for('specsheet.copy_cross_model_open', model_id=model.id) }}?specsheet_id={{ specsheet_id }}"
-                hx-target="#modal" hx-swap="innerHTML">
-          Copy dari Model Lain
-        </button>
-        {% endif %}
-        {% if carryover_sources %}
-        <form hx-post="{{ url_for('specsheet.revision_carryover', model_id=model.id) }}" hx-target="#detail-body" hx-swap="innerHTML" class="form-inline">
-          <input type="hidden" name="specsheet_id" value="{{ specsheet_id }}">
-          <select name="source_specsheet_id">
-            {% for s in carryover_sources %}<option value="{{ s.id }}">Carryover dari {{ s.season }}</option>{% endfor %}
-          </select>
-          <select name="stage" title="Stage awal" style="flex:0 0 84px;">
-            {% for st in stages %}<option value="{{ st }}">{{ st }}</option>{% endfor %}
-          </select>
-          <button type="submit" class="btn btn-secondary">Buat</button>
-        </form>
-        {% endif %}
-        {% if has_published %}
-        <form hx-post="{{ url_for('specsheet.revision_same_stage', model_id=model.id) }}" hx-target="#detail-body" hx-swap="innerHTML">
-          <input type="hidden" name="specsheet_id" value="{{ specsheet_id }}">
-          <button type="submit" class="btn btn-secondary">Revisi Baru (Stage Sama)</button>
-        </form>
-        <form hx-post="{{ url_for('specsheet.revision_next_stage', model_id=model.id) }}" hx-target="#detail-body" hx-swap="innerHTML">
-          <input type="hidden" name="specsheet_id" value="{{ specsheet_id }}">
-          <button type="submit" class="btn btn-secondary">Lanjut ke Stage Berikutnya</button>
-        </form>
-        {% endif %}
-      </div>
-      {% endif %}
-    </div>
-  </div>
-
-  <div>
-    {% if revision %}
-    <div class="card">
-      <div class="card-head">
-        <strong>{{ revision.stage }} r{{ revision.revision_no }} &middot; <span class="badge badge-{{ revision.status|lower }}">{{ revision.status }}</span>{% if revision.published_by %} <span class="muted">oleh {{ revision.published_by }}</span>{% endif %}</strong>
-        <div class="actions">
-          <a class="btn btn-secondary btn-sm" target="_blank" rel="noopener"
-             href="{{ url_for('specsheet.revision_print', model_id=model.id, revision_id=revision.id) }}">Cetak / PDF</a>
-          <a class="btn btn-secondary btn-sm"
-             href="{{ url_for('specsheet.revision_export_excel', model_id=model.id, revision_id=revision.id) }}">Ekspor Excel</a>
-          {% if editable %}
-          <form hx-post="{{ url_for('specsheet.revision_delete_draft', model_id=model.id, revision_id=revision.id) }}"
-                hx-target="#detail-body" hx-swap="innerHTML"
-                hx-confirm="Hapus draft {{ revision.stage }} r{{ revision.revision_no }}? Semua baris BOM di draft ini ikut terhapus dan tidak bisa dikembalikan.">
-            <input type="hidden" name="specsheet_id" value="{{ specsheet_id }}">
-            <button type="submit" class="btn btn-danger btn-sm">Hapus Draft</button>
-          </form>
-          <button type="button" class="btn btn-sm"
-                  onclick="document.getElementById('publish-panel').classList.toggle('active')">Terbitkan Revisi</button>
-          {% endif %}
-        </div>
-      </div>
-
-      {% if editable %}
-      <div id="publish-panel" class="tab-panel panel-divider">
-        <form hx-post="{{ url_for('specsheet.revision_publish', model_id=model.id, revision_id=revision.id) }}"
-              hx-target="#detail-body" hx-swap="innerHTML">
-          <input type="hidden" name="specsheet_id" value="{{ specsheet_id }}">
-          <div class="field-row">
-            <div class="field"><label>Kategori</label>
-              <select name="category">{% for c in change_categories %}<option value="{{ c }}">{{ c }}</option>{% endfor %}</select>
-            </div>
-          </div>
-          <div class="field">
-            <label>Alasan perubahan {{ '(wajib)' if require_reason else '(opsional untuk revisi awal)' }}</label>
-            <textarea name="reason" rows="2" {{ 'required' if require_reason else '' }}></textarea>
-          </div>
-          <button type="submit" class="btn">Terbitkan</button>
-        </form>
-      </div>
-      {% endif %}
-
-      <div class="tabs" data-group="detail">
-        <button type="button" class="tab-btn active" data-group="detail" data-tab="bom">BOM</button>
-        <button type="button" class="tab-btn" data-group="detail" data-tab="log">Riwayat</button>
-      </div>
-
-      <div class="tab-panel active" data-group="detail" data-tab="bom">
-        {% include "specsheet/_bom_grid.html" %}
-      </div>
-      <div class="tab-panel" data-group="detail" data-tab="log">
-        {% if change_logs %}
-        {% for log in change_logs %}
-        <div class="changelog-entry">
-          <strong>{{ log.category }}</strong> &middot; <span class="muted">{{ log.created_at }} oleh {{ log.created_by }}</span>
-          <div>{{ log.reason }}</div>
-          <div style="margin-top:4px;">
-            {% if log.diff.added %}<div class="diff-added">+ {{ log.diff.added|length }} baris ditambah</div>{% endif %}
-            {% if log.diff.removed %}<div class="diff-removed">- {{ log.diff.removed|length }} baris dihapus</div>{% endif %}
-            {% if log.diff.changed %}<div class="diff-changed">~ {{ log.diff.changed|length }} baris berubah</div>{% endif %}
-          </div>
-        </div>
-        {% endfor %}
-        {% else %}
-        <p class="empty-hint">Belum ada riwayat perubahan untuk revisi ini.</p>
-        {% endif %}
-      </div>
-    </div>
-    {% else %}
-    <div class="card"><p class="empty-hint">Pilih atau buat season/revisi di panel kiri untuk mulai mengisi BOM.</p></div>
+    {% if creatable %}
+    <button type="button" class="btn btn-sm" data-open-dialog="dlg-new-revision">+ Buat Revisi</button>
+    {% elif can_edit and has_draft %}
+    <span class="muted nav-note">Selesaikan draft dulu untuk membuat revisi baru.</span>
     {% endif %}
   </div>
 </div>
+
+{% if creatable %}
+<dialog class="form-dialog wide" id="dlg-new-revision">
+  <button type="button" class="modal-close" onclick="this.closest('dialog').close()" aria-label="Tutup">&times;</button>
+  <h3>Buat Revisi — {{ specsheet.season }}</h3>
+  <div class="option-list">
+    {% if not revisions %}
+    <form class="option-card" hx-post="{{ url_for('specsheet.revision_empty', model_id=model.id) }}" hx-target="#detail-body" hx-swap="innerHTML">
+      <input type="hidden" name="specsheet_id" value="{{ specsheet_id }}">
+      <div><strong>Mulai baru (kosong)</strong><p class="muted">BOM kosong; semua article season ini langsung dimuat.</p></div>
+      <div class="option-actions">
+        <select name="stage" aria-label="Stage awal">{% for st in stages %}<option value="{{ st }}">{{ st }}</option>{% endfor %}</select>
+        <button type="submit" class="btn btn-sm">Buat</button>
+      </div>
+    </form>
+    {% if carryover_sources %}
+    <form class="option-card" hx-post="{{ url_for('specsheet.revision_carryover', model_id=model.id) }}" hx-target="#detail-body" hx-swap="innerHTML">
+      <input type="hidden" name="specsheet_id" value="{{ specsheet_id }}">
+      <div><strong>Carryover dari season lain</strong><p class="muted">Salin BOM revisi terbit terakhir season sumber (model sama).</p></div>
+      <div class="option-actions">
+        <select name="source_specsheet_id" aria-label="Season sumber">{% for s in carryover_sources %}<option value="{{ s.id }}">{{ s.season }}</option>{% endfor %}</select>
+        <select name="stage" aria-label="Stage awal">{% for st in stages %}<option value="{{ st }}">{{ st }}</option>{% endfor %}</select>
+        <button type="submit" class="btn btn-sm">Buat</button>
+      </div>
+    </form>
+    {% endif %}
+    <div class="option-card">
+      <div><strong>Copy dari model lain</strong><p class="muted">Cari specsheet terbit model lain untuk disalin BOM-nya.</p></div>
+      <div class="option-actions">
+        <button type="button" class="btn btn-sm btn-secondary" onclick="this.closest('dialog').close()"
+                hx-get="{{ url_for('specsheet.copy_cross_model_open', model_id=model.id) }}?specsheet_id={{ specsheet_id }}"
+                hx-target="#modal" hx-swap="innerHTML">Cari model&hellip;</button>
+      </div>
+    </div>
+    {% elif has_published %}
+    <form class="option-card" hx-post="{{ url_for('specsheet.revision_same_stage', model_id=model.id) }}" hx-target="#detail-body" hx-swap="innerHTML">
+      <input type="hidden" name="specsheet_id" value="{{ specsheet_id }}">
+      <div><strong>Revisi baru di stage {{ stage_progress.current }}</strong><p class="muted">Salin revisi terbit terakhir, nomor revisi +1.</p></div>
+      <div class="option-actions"><button type="submit" class="btn btn-sm">Buat</button></div>
+    </form>
+    {% if stage_progress.next %}
+    <form class="option-card" hx-post="{{ url_for('specsheet.revision_next_stage', model_id=model.id) }}" hx-target="#detail-body" hx-swap="innerHTML">
+      <input type="hidden" name="specsheet_id" value="{{ specsheet_id }}">
+      <div><strong>Lanjut ke stage {{ stage_progress.next }}</strong><p class="muted">{{ stage_progress.current }} &rarr; {{ stage_progress.next }} r0, salin revisi terbit terakhir.</p></div>
+      <div class="option-actions"><button type="submit" class="btn btn-sm">Buat</button></div>
+    </form>
+    {% endif %}
+    {% else %}
+    <p class="muted">Terbitkan revisi yang ada dulu sebelum membuat revisi baru.</p>
+    {% endif %}
+  </div>
+</dialog>
+{% endif %}
+
+{% if revision %}
+<div class="card">
+  <div class="card-head">
+    <strong>{{ specsheet.season }} &middot; {{ revision.stage }} r{{ revision.revision_no }} &middot;
+      <span class="badge badge-{{ revision.status|lower }}">{{ revision.status }}</span>
+      {% if revision.published_by %}<span class="muted">oleh {{ revision.published_by }}, {{ revision.published_at }}</span>{% endif %}</strong>
+    <div class="actions">
+      <a class="btn btn-secondary btn-sm" target="_blank" rel="noopener"
+         href="{{ url_for('specsheet.revision_print', model_id=model.id, revision_id=revision.id) }}">Cetak / PDF</a>
+      <a class="btn btn-secondary btn-sm"
+         href="{{ url_for('specsheet.revision_export_excel', model_id=model.id, revision_id=revision.id) }}">Ekspor Excel</a>
+      {% if editable %}
+      <form hx-post="{{ url_for('specsheet.revision_delete_draft', model_id=model.id, revision_id=revision.id) }}"
+            hx-target="#detail-body" hx-swap="innerHTML"
+            hx-confirm="Hapus draft {{ revision.stage }} r{{ revision.revision_no }}? Semua baris BOM di draft ini ikut terhapus dan tidak bisa dikembalikan.">
+        <input type="hidden" name="specsheet_id" value="{{ specsheet_id }}">
+        <button type="submit" class="btn btn-danger btn-sm">Hapus Draft</button>
+      </form>
+      <button type="button" class="btn btn-sm" data-open-dialog="dlg-publish">Terbitkan&hellip;</button>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if editable %}
+  {% set checks_failed = checklist|selectattr('blocking')|rejectattr('ok')|list %}
+  <dialog class="form-dialog wide" id="dlg-publish">
+    <button type="button" class="modal-close" onclick="this.closest('dialog').close()" aria-label="Tutup">&times;</button>
+    <h3>Terbitkan {{ revision.stage }} r{{ revision.revision_no }}</h3>
+    <ul class="checklist">
+      {% for c in checklist %}
+      <li class="{{ 'ok' if c.ok else ('fail' if c.blocking else 'warn') }}">
+        <span class="check-icon" aria-hidden="true">{{ '✓' if c.ok else ('✗' if c.blocking else '!') }}</span>
+        <div><strong>{{ c.label }}</strong>{% if c.detail %}<div class="muted">{{ c.detail }}</div>{% endif %}</div>
+      </li>
+      {% endfor %}
+    </ul>
+    {% if diff_preview is not none %}
+    <p class="muted" style="margin:10px 0 0;">Perubahan dari revisi sumber:
+      {{ diff_preview.added|length }} baris ditambah &middot; {{ diff_preview.removed|length }} dihapus &middot;
+      {{ diff_preview.changed|length }} berubah.</p>
+    {% endif %}
+    {% if publish_blocked %}
+    <p class="error-banner" style="margin-top:12px;">Perbaiki {{ checks_failed|length }} hal di atas di grid BOM sebelum terbit.</p>
+    {% else %}
+    <form hx-post="{{ url_for('specsheet.revision_publish', model_id=model.id, revision_id=revision.id) }}"
+          hx-target="#detail-body" hx-swap="innerHTML" style="margin-top:12px;">
+      <input type="hidden" name="specsheet_id" value="{{ specsheet_id }}">
+      <div class="field"><label>Kategori</label>
+        <select name="category">{% for c in change_categories %}<option value="{{ c }}">{{ c }}</option>{% endfor %}</select>
+      </div>
+      <div class="field">
+        <label>Alasan perubahan {{ '(wajib)' if require_reason else '(opsional untuk revisi awal)' }}</label>
+        <textarea name="reason" rows="2" {{ 'required' if require_reason else '' }}></textarea>
+      </div>
+      <p class="muted form-note" style="margin:0 0 10px;">Terbit = final. CBD article yang terdampak akan ditandai NEEDS_REVISION.</p>
+      <div class="form-actions">
+        <button type="submit" class="btn">Terbitkan</button>
+        <button type="button" class="btn btn-secondary" onclick="this.closest('dialog').close()">Batal</button>
+      </div>
+    </form>
+    {% endif %}
+  </dialog>
+  {% endif %}
+
+  <div class="tabs">
+    {% for key, label in [('bom', 'BOM'), ('riwayat', 'Riwayat')] %}
+    <a class="tab-btn {{ 'active' if tab == key else '' }}"
+       href="{{ page_url }}?specsheet_id={{ specsheet_id }}&revision_id={{ revision_id }}&tab={{ key }}"
+       hx-get="{{ body_url }}?specsheet_id={{ specsheet_id }}&revision_id={{ revision_id }}&tab={{ key }}"
+       hx-target="#detail-body" hx-swap="innerHTML"
+       hx-push-url="{{ page_url }}?specsheet_id={{ specsheet_id }}&revision_id={{ revision_id }}&tab={{ key }}">{{ label }}{% if key == 'riwayat' and change_logs %} ({{ change_logs|length }}){% endif %}</a>
+    {% endfor %}
+  </div>
+
+  {% if tab == 'bom' %}
+  {% include "specsheet/_bom_grid.html" %}
+  {% else %}
+  {% for log in change_logs %}
+  <div class="changelog-entry">
+    <strong>{{ log.category }}</strong> &middot; <span class="muted">{{ log.created_at }} oleh {{ log.created_by }}</span>
+    <div>{{ log.reason }}</div>
+    {% set d = log.diff %}
+    {% if d.added or d.removed or d.changed %}
+    <details class="diff-detail" {{ 'open' if (d.added|length + d.removed|length + d.changed|length) <= 10 else '' }}>
+      <summary>{{ d.added|length }} ditambah &middot; {{ d.removed|length }} dihapus &middot; {{ d.changed|length }} berubah</summary>
+      <ul class="diff-list">
+        {% for a in d.added %}<li class="diff-added">+ {{ a.component }} — {{ a.material }}</li>{% endfor %}
+        {% for r in d.removed %}<li class="diff-removed">&minus; {{ r.component }} — {{ r.material }}</li>{% endfor %}
+        {% for key, c in d.changed.items() %}
+        <li class="diff-changed">~ {{ c.component }}
+          <ul>
+            {% for field, v in c.fields.items() %}<li>{{ field }}: <span class="muted">{{ v.before or '-' }}</span> &rarr; {{ v.after or '-' }}</li>{% endfor %}
+            {% for article_id, v in c.cells.items() %}
+            <li>{{ article_codes.get(article_id, 'Article') }}: <span class="muted">{{ v.before.color or ('dipakai' if v.before.isUsed else '-') }}</span>
+              &rarr; {{ v.after.color or ('dipakai' if v.after.isUsed else 'tidak dipakai') }}</li>
+            {% endfor %}
+          </ul>
+        </li>
+        {% endfor %}
+      </ul>
+    </details>
+    {% endif %}
+  </div>
+  {% else %}
+  <p class="empty-hint">Belum ada riwayat — riwayat tercatat saat revisi diterbitkan.</p>
+  {% endfor %}
+  {% endif %}
+</div>
+{% else %}
+<div class="card"><p class="empty-hint">
+  {% if creatable %}Season {{ specsheet.season }} belum punya revisi. Klik "+ Buat Revisi" untuk mulai.
+  {% else %}Belum ada revisi{{ " terbit" if not can_edit }} untuk season ini.{% endif %}</p></div>
+{% endif %}
+{% endif %}

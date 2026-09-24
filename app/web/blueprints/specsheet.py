@@ -6,6 +6,7 @@ from flask import Blueprint, abort, g, render_template, request, send_file, url_
 from ...domain import permissions
 from ...domain.article_service import (
     include_article,
+    list_articles_for_specsheet,
     list_articles_for_revision,
     list_articles_not_in_revision,
     set_article_status,
@@ -23,6 +24,7 @@ from ...domain.bom_service import (
     update_process,
 )
 from ...domain.component_service import list_components
+from ...domain.diff_service import compute_bom_diff
 from ...domain.export_service import build_specsheet_workbook, specsheet_export_context
 from ...domain.material_price_service import default_supplier_for, supplier_suggestions
 from ...domain.material_service import list_materials
@@ -41,6 +43,7 @@ from ...domain.revision_service import (
     delete_draft_revision,
     get_change_log,
     list_revisions,
+    publish_checklist,
     publish_revision,
 )
 from ...domain.specsheet_service import (
@@ -65,7 +68,26 @@ def _role_ctx():
         "can_manage": permissions.can_manage_master(role),
         "read_only": permissions.is_read_only(role),
         "can_edit_model": permissions.can_edit_model(role),
+        "can_view_cbd": permissions.can_view_cbd(role),
     }
+
+
+DETAIL_TABS = ("bom", "riwayat")
+
+
+def _stage_steps(revisions):
+    """Stepper PULL → SMS → GTM → PROD: revisi (yang boleh dilihat) per stage."""
+    return [(stage, sorted((r for r in revisions if r["stage"] == stage), key=lambda r: r["revision_no"]))
+            for stage in STAGES]
+
+
+def _next_stage(revisions):
+    published = [r for r in revisions if r["status"] == "PUBLISHED"]
+    if not published:
+        return None
+    latest = max(published, key=lambda r: (STAGES.index(r["stage"]), r["revision_no"]))
+    idx = STAGES.index(latest["stage"])
+    return {"current": latest["stage"], "next": STAGES[idx + 1] if idx < len(STAGES) - 1 else None}
 
 
 def _visible_revisions(specsheet_id):
@@ -180,8 +202,16 @@ def _load_detail_ctx(model_id, specsheet_id=None, revision_id=None):
         d["diff"] = json.loads(log["diff_json"]) if log["diff_json"] else {"added": [], "removed": [], "changed": {}}
         change_logs.append(d)
     require_reason = bool(revision) and (revision["source_revision_id"] is not None or revision["revision_no"] != 0)
+    article_codes = {a["id"]: a["code"] for a in list_articles_for_specsheet(g.db, specsheet_id)} if specsheet_id else {}
+    checklist = publish_checklist(g.db, revision_id) if editable else []
+    diff_preview = (compute_bom_diff(g.db, revision["source_revision_id"], revision_id)
+                    if editable and revision["source_revision_id"] else None)
+    tab = request.args.get("tab") if request.args.get("tab") in DETAIL_TABS else "bom"
 
     return dict(
+        tab=tab, stage_steps=_stage_steps(revisions), stage_progress=_next_stage(revisions),
+        checklist=checklist, publish_blocked=any(c["blocking"] and not c["ok"] for c in checklist),
+        diff_preview=diff_preview, article_codes=article_codes,
         model=model, model_id=model_id, specsheets=specsheets, rev_counts=rev_counts,
         specsheet=specsheet, specsheet_id=specsheet_id,
         revisions=revisions, revision=revision, revision_id=revision_id,
