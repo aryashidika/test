@@ -77,11 +77,15 @@ def list_models(conn, search: Optional[str] = None):
     return conn.execute(query, params).fetchall()
 
 
-def list_models_overview(conn, season: Optional[str] = None, search: Optional[str] = None):
+def list_models_overview(conn, season: Optional[str] = None, search: Optional[str] = None,
+                         published_only: bool = False):
     """Model + info turunan (jumlah season, dan status specsheet untuk `season` bila diisi).
 
     Bila `season` diisi, hanya model yang punya specsheet pada season itu yang dikembalikan.
+    `published_only` meringkas dari revisi PUBLISHED saja (untuk role yang tidak
+    boleh melihat draft).
     """
+    status_filter = " AND status='PUBLISHED'" if published_only else ""
     models = list_models(conn, search=search)
     result = []
     for model in models:
@@ -104,7 +108,7 @@ def list_models_overview(conn, season: Optional[str] = None, search: Optional[st
         article_count = 0
         if target_sheet:
             latest_revision = conn.execute(
-                """SELECT * FROM specsheet_revision WHERE specsheet_id=?
+                f"""SELECT * FROM specsheet_revision WHERE specsheet_id=?{status_filter}
                    ORDER BY created_at DESC LIMIT 1""",
                 (target_sheet["id"],),
             ).fetchone()

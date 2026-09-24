@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}Akses Ditolak{% endblock %}
+{% block content %}
+<div class="card" style="max-width:480px;margin:40px auto;">
+  <h2 class="section-title">Akses Ditolak</h2>
+  <p>{{ message }}</p>
+  <a class="btn btn-secondary" href="{{ url_for('main.index') }}">Kembali ke halaman utama</a>
+</div>
+{% endblock %}

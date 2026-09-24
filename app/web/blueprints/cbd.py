@@ -2,7 +2,7 @@ import io
 import json
 from decimal import Decimal
 
-from flask import Blueprint, g, render_template, request, send_file
+from flask import Blueprint, abort, g, render_template, request, send_file
 
 from ...domain import permissions
 from ...domain.article_service import list_articles_for_specsheet
@@ -52,9 +52,11 @@ from ...domain.material_price_service import price_gap
 from ...domain.model_service import get_model, list_known_seasons, list_models_overview
 from ...domain.report_service import validation_report
 from ...domain.specsheet_service import list_specsheets, season_label
-from ..auth import require_session
+from ..auth import guard_blueprint, require_permission, require_session
+from ..formatting import fmt_num, fmt_rupiah
 
 cbd_bp = Blueprint("cbd", __name__, url_prefix="/cbd")
+guard_blueprint(cbd_bp, permissions.can_view_cbd, "Menu CBD tidak tersedia untuk role Anda.")
 
 GROUP_LABELS = {"a": "a. Upper", "c": "c. Bottom unit", "d": "d. Packaging", "e": "e. Miscellaneous"}
 
@@ -65,10 +67,27 @@ def _role_ctx():
 
 
 def _fmt(value):
+    """Nilai mentah untuk isi input yang bisa diedit (bukan tampilan)."""
     if value is None:
         return "-"
     s = f"{value:.6f}".rstrip("0").rstrip(".")
     return s if s else "0"
+
+
+def _visible_cbd_revisions(article_id):
+    """Brand hanya melihat revisi CBD PUBLISHED; role lain melihat draft juga."""
+    revisions = list_cbd_revisions(g.db, article_id)
+    if permissions.can_view_drafts(g.session.role):
+        return revisions
+    return [r for r in revisions if r["status"] == "PUBLISHED"]
+
+
+def _require_visible_cbd_revision(cbd_revision_id):
+    row = g.db.execute("SELECT status FROM cbd_revision WHERE id=?", (cbd_revision_id,)).fetchone()
+    if row is None:
+        abort(404)
+    if row["status"] != "PUBLISHED" and not permissions.can_view_drafts(g.session.role):
+        abort(403, description="Revisi CBD ini belum diterbitkan.")
 
 
 # ---------------- List ----------------
@@ -89,7 +108,8 @@ def _list_ctx():
     search = request.args.get("q", "")
     season = request.args.get("season") or None
     seasons = list_known_seasons(g.db)
-    models = list_models_overview(g.db, season=season, search=search or None)
+    models = list_models_overview(g.db, season=season, search=search or None,
+                                  published_only=not permissions.can_view_drafts(g.session.role))
     return {"models": models, "seasons": seasons, "search": search, "season": season or "", **_role_ctx()}
 
 
@@ -113,7 +133,10 @@ def _load_detail_ctx(model_id, specsheet_id=None, article_id=None, cbd_revision_
     for a in (list_articles_for_specsheet(g.db, specsheet_id) if specsheet_id else []):
         d = dict(a)
         d["cbd_status"] = article_cbd_status(g.db, a["id"])
-        d["has_cbd"] = g.db.execute("SELECT 1 FROM cbd_revision WHERE article_id=? LIMIT 1", (a["id"],)).fetchone() is not None
+        published_only = "" if permissions.can_view_drafts(g.session.role) else " AND status='PUBLISHED'"
+        d["has_cbd"] = g.db.execute(
+            f"SELECT 1 FROM cbd_revision WHERE article_id=?{published_only} LIMIT 1", (a["id"],)
+        ).fetchone() is not None
         articles.append(d)
     article = None
     if article_id:
@@ -123,7 +146,7 @@ def _load_detail_ctx(model_id, specsheet_id=None, article_id=None, cbd_revision_
     article_id = article["id"] if article else None
     article_active = bool(article) and article["cbd_status"] == "ACTIVE"
 
-    revisions = list_cbd_revisions(g.db, article_id) if article_id else []
+    revisions = _visible_cbd_revisions(article_id) if article_id else []
     has_draft = any(r["status"] == "DRAFT" for r in revisions)
     has_published = any(r["status"] == "PUBLISHED" for r in revisions)
 
@@ -136,9 +159,9 @@ def _load_detail_ctx(model_id, specsheet_id=None, article_id=None, cbd_revision_
 
     can_edit = permissions.can_edit_cbd(g.session.role) and article_active
     editable = bool(revision) and can_edit and revision["status"] == "DRAFT"
-    # Selling Price & Margin % tetap bisa diedit walau revisi sudah PUBLISHED
-    # (beda dari field Rekap Biaya lain & baris CBD yang terkunci begitu terbit).
-    margin_editable = bool(revision) and can_edit
+    # Selling Price & Margin % ikut terkunci begitu revisi terbit (terbit = final);
+    # perubahan harga jual setelah terbit lewat revisi baru.
+    margin_editable = editable
     creatable = bool(article_id) and can_edit and not has_draft
     # Hapus draft boleh juga untuk article yang sudah di-drop (draft-nya memang
     # tidak bisa diteruskan lagi).
@@ -161,10 +184,10 @@ def _load_detail_ctx(model_id, specsheet_id=None, article_id=None, cbd_revision_
         usd = price_usd(po, d["currency"], exchange_rate)
         idr = price_idr(po, d["currency"], exchange_rate)
         cost = cost_per_pair_idr(uv, po, d["currency"], lp, exchange_rate)
-        d["price_usd_fmt"] = _fmt(usd)
-        d["price_idr_fmt"] = _fmt(idr)
-        d["cost_per_pair_fmt"] = _fmt(cost)
-        d["usage_fmt"] = _fmt(uv)
+        d["price_usd_fmt"] = fmt_num(usd, 2)
+        d["price_idr_fmt"] = fmt_num(idr, 2)
+        d["cost_per_pair_fmt"] = fmt_num(cost, 2)
+        d["usage_fmt"] = fmt_num(uv, 6, trim=True)
         # Kenapa baris ini belum punya harga (supplier kosong / belum ada harga
         # untuk supplier ini / hanya ada harga warna lain) — harganya diisi di
         # Master Material, bukan di sini.
@@ -198,19 +221,20 @@ def _load_detail_ctx(model_id, specsheet_id=None, article_id=None, cbd_revision_
         actual_fob = total_cost(mat_cost, amortization, adjustment)
         var = variance(actual_fob, target_fob)
         recap_biaya = {
-            "exchange_rate": _fmt(exchange_rate),
-            "amortization": _fmt(amortization),
-            "adjustment": _fmt(adjustment),
-            "target_fob": _fmt(target_fob),
-            "actual_fob": _fmt(actual_fob),
-            "variance": _fmt(var if var is None else abs(var)),
+            "exchange_rate": fmt_num(exchange_rate, 2, trim=True),
+            "amortization": fmt_rupiah(amortization),
+            "adjustment": fmt_rupiah(adjustment),
+            "target_fob": fmt_rupiah(target_fob),
+            "actual_fob": fmt_rupiah(actual_fob),
+            "variance": fmt_rupiah(var if var is None else abs(var)),
             "variance_label": variance_label(var) or "-",
         }
         selling_price = to_decimal(revision["selling_price"])
         margin = margin_pct(selling_price, actual_fob)
         recap_margin = {
-            "selling_price": _fmt(selling_price),
-            "margin_pct": _fmt(margin),
+            "selling_price": fmt_rupiah(selling_price),
+            "margin_pct": fmt_num(margin, 2),
+            "margin_pct_input": _fmt(margin) if margin is not None else "",
         }
 
     change_logs = []
@@ -273,6 +297,7 @@ def detail_body(model_id):
 
 @cbd_bp.route("/<model_id>/revision/no-source", methods=["POST"])
 @require_session
+@require_permission(permissions.can_edit_cbd)
 def revision_no_source(model_id):
     specsheet_id = request.form.get("specsheet_id")
     article_id = request.form.get("article_id")
@@ -290,6 +315,7 @@ def revision_no_source(model_id):
 
 @cbd_bp.route("/<model_id>/revision/from-article", methods=["POST"])
 @require_session
+@require_permission(permissions.can_edit_cbd)
 def revision_from_article(model_id):
     specsheet_id = request.form.get("specsheet_id")
     article_id = request.form.get("article_id")
@@ -308,6 +334,7 @@ def revision_from_article(model_id):
 
 @cbd_bp.route("/<model_id>/revision/same-stage", methods=["POST"])
 @require_session
+@require_permission(permissions.can_edit_cbd)
 def revision_same_stage(model_id):
     specsheet_id = request.form.get("specsheet_id")
     article_id = request.form.get("article_id")
@@ -323,6 +350,7 @@ def revision_same_stage(model_id):
 
 @cbd_bp.route("/<model_id>/revision/next-stage", methods=["POST"])
 @require_session
+@require_permission(permissions.can_edit_cbd)
 def revision_next_stage(model_id):
     specsheet_id = request.form.get("specsheet_id")
     article_id = request.form.get("article_id")
@@ -348,12 +376,14 @@ def revision_select(model_id, cbd_revision_id):
 @cbd_bp.route("/<model_id>/revision/<cbd_revision_id>/print")
 @require_session
 def revision_print(model_id, cbd_revision_id):
+    _require_visible_cbd_revision(cbd_revision_id)
     return render_template("cbd/_print.html", model_id=model_id, **cbd_export_context(g.db, cbd_revision_id))
 
 
 @cbd_bp.route("/<model_id>/revision/<cbd_revision_id>/export.xlsx")
 @require_session
 def revision_export_excel(model_id, cbd_revision_id):
+    _require_visible_cbd_revision(cbd_revision_id)
     ctx = cbd_export_context(g.db, cbd_revision_id)
     wb = build_cbd_workbook(g.db, cbd_revision_id)
     buf = io.BytesIO()
@@ -371,6 +401,7 @@ def revision_export_excel(model_id, cbd_revision_id):
 
 @cbd_bp.route("/<model_id>/revision/<cbd_revision_id>/publish", methods=["POST"])
 @require_session
+@require_permission(permissions.can_edit_cbd)
 def revision_publish(model_id, cbd_revision_id):
     specsheet_id = request.form.get("specsheet_id")
     article_id = request.form.get("article_id")
@@ -386,14 +417,13 @@ def revision_publish(model_id, cbd_revision_id):
 
 @cbd_bp.route("/<model_id>/revision/<cbd_revision_id>/delete", methods=["POST"])
 @require_session
+@require_permission(permissions.can_edit_cbd)
 def revision_delete_draft(model_id, cbd_revision_id):
     """Hapus revisi CBD DRAFT seakan belum pernah dibuat (revisi terbit tidak bisa)."""
     specsheet_id = request.form.get("specsheet_id")
     article_id = request.form.get("article_id")
     error = None
     try:
-        if not permissions.can_edit_cbd(g.session.role):
-            raise ValueError("Role Anda tidak bisa menghapus revisi CBD.")
         delete_cbd_draft(g.db, cbd_revision_id, g.session.actor_label)
     except ValueError as exc:
         error = str(exc)
@@ -404,6 +434,7 @@ def revision_delete_draft(model_id, cbd_revision_id):
 
 @cbd_bp.route("/<model_id>/revision/<cbd_revision_id>/refresh", methods=["POST"])
 @require_session
+@require_permission(permissions.can_edit_cbd)
 def revision_refresh(model_id, cbd_revision_id):
     specsheet_id = request.form.get("specsheet_id")
     article_id = request.form.get("article_id")
@@ -427,6 +458,7 @@ def _line_response(model_id, specsheet_id, article_id, cbd_revision_id, error=No
 
 @cbd_bp.route("/<model_id>/revision/<cbd_revision_id>/line/<line_id>/yield", methods=["POST"])
 @require_session
+@require_permission(permissions.can_edit_cbd)
 def line_yield(model_id, cbd_revision_id, line_id):
     error = None
     try:
@@ -439,6 +471,7 @@ def line_yield(model_id, cbd_revision_id, line_id):
 
 @cbd_bp.route("/<model_id>/revision/<cbd_revision_id>/line/<line_id>/loss", methods=["POST"])
 @require_session
+@require_permission(permissions.can_edit_cbd)
 def line_loss(model_id, cbd_revision_id, line_id):
     error = None
     try:
@@ -451,6 +484,7 @@ def line_loss(model_id, cbd_revision_id, line_id):
 
 @cbd_bp.route("/<model_id>/revision/<cbd_revision_id>/line/<line_id>/price-override", methods=["POST"])
 @require_session
+@require_permission(permissions.can_edit_cbd)
 def line_price_override(model_id, cbd_revision_id, line_id):
     """Satu-satunya input harga di grid CBD: harga sekali pakai untuk baris ini
     (alasan wajib). Harga yang berlaku untuk semua CBD diisi di Master Material."""
@@ -466,6 +500,7 @@ def line_price_override(model_id, cbd_revision_id, line_id):
 
 @cbd_bp.route("/<model_id>/revision/<cbd_revision_id>/line/<line_id>/quotation", methods=["POST"])
 @require_session
+@require_permission(permissions.can_edit_cbd)
 def line_quotation_price(model_id, cbd_revision_id, line_id):
     """Harga material proses (metode Quotation) diisi langsung per baris: harga
     + currency saja. Harga kosong = baris tidak dihargai terpisah."""
@@ -481,6 +516,7 @@ def line_quotation_price(model_id, cbd_revision_id, line_id):
 
 @cbd_bp.route("/<model_id>/revision/<cbd_revision_id>/line/<line_id>/price-override/clear", methods=["POST"])
 @require_session
+@require_permission(permissions.can_edit_cbd)
 def line_price_override_clear(model_id, cbd_revision_id, line_id):
     error = None
     try:
@@ -493,6 +529,7 @@ def line_price_override_clear(model_id, cbd_revision_id, line_id):
 
 @cbd_bp.route("/<model_id>/revision/<cbd_revision_id>/refresh-prices", methods=["POST"])
 @require_session
+@require_permission(permissions.can_edit_cbd)
 def revision_refresh_prices(model_id, cbd_revision_id):
     error = None
     try:
@@ -515,6 +552,7 @@ _HEADER_FIELD_UPDATERS = {
 
 @cbd_bp.route("/<model_id>/revision/<cbd_revision_id>/field/<field_name>", methods=["POST"])
 @require_session
+@require_permission(permissions.can_edit_cbd)
 def revision_field(model_id, cbd_revision_id, field_name):
     specsheet_id = request.form.get("specsheet_id")
     article_id = request.form.get("article_id")

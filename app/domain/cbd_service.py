@@ -736,9 +736,8 @@ def refresh_cbd_prices(conn, cbd_revision_id, actor):
     return len(stale)
 
 
-def _update_revision_decimal_field(conn, cbd_revision_id, column, value, actor, allow_none=True,
-                                    require_draft=True):
-    revision = ensure_cbd_draft(conn, cbd_revision_id) if require_draft else _get_cbd_revision(conn, cbd_revision_id)
+def _update_revision_decimal_field(conn, cbd_revision_id, column, value, actor, allow_none=True):
+    revision = ensure_cbd_draft(conn, cbd_revision_id)
     parsed = to_decimal((value or "").strip())
     if parsed is None and not allow_none:
         raise ValueError("Nilai wajib diisi.")
@@ -763,11 +762,10 @@ def update_adjustment(conn, cbd_revision_id, value, actor):
 
 
 def update_selling_price(conn, cbd_revision_id, value, actor):
-    """Selling Price (dan Margin % di `update_margin_pct`) tetap bisa diedit
-    setelah CBD terbit — harga jual bisa terus disesuaikan pasca-publish, beda
-    dari field Rekap Biaya lain & baris CBD yang terkunci begitu PUBLISHED."""
-    _update_revision_decimal_field(conn, cbd_revision_id, "selling_price", value, actor,
-                                    require_draft=False)
+    """Selling Price (dan Margin % di `update_margin_pct`) terkunci begitu CBD
+    terbit, sama seperti field Rekap Biaya lain — terbit = final, perubahan harga
+    jual setelahnya lewat revisi baru."""
+    _update_revision_decimal_field(conn, cbd_revision_id, "selling_price", value, actor)
 
 
 def update_target_fob(conn, cbd_revision_id, value, actor):
@@ -799,9 +797,8 @@ def update_margin_pct(conn, cbd_revision_id, value, actor):
     """Margin % dan Selling Price saling terhubung dua arah (revisi 4): mengedit
     Margin % di sini menyelesaikan ulang Selling Price agar margin-nya sesuai
     (terhadap Actual FOB saat ini), lalu menyimpannya ke kolom `selling_price`
-    yang sama dipakai `update_selling_price`. Sengaja tidak mensyaratkan DRAFT
-    (lihat `update_selling_price`) — tetap bisa diedit setelah CBD terbit."""
-    revision = _get_cbd_revision(conn, cbd_revision_id)
+    yang sama dipakai `update_selling_price`. Hanya untuk revisi DRAFT."""
+    revision = ensure_cbd_draft(conn, cbd_revision_id)
     margin = to_decimal((value or "").strip())
     if margin is None:
         conn.execute("UPDATE cbd_revision SET selling_price=NULL WHERE id=?", (cbd_revision_id,))

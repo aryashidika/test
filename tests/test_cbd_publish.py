@@ -134,19 +134,19 @@ def test_ensure_cbd_draft_blocks_edits_after_publish(conn, cbd_ctx):
         update_exchange_rate(conn, revision_id, "17000", "TEST")
 
 
-def test_selling_price_and_margin_pct_stay_editable_after_publish(conn, cbd_ctx):
+def test_selling_price_and_margin_pct_locked_after_publish(conn, cbd_ctx):
+    # Terbit = final: Selling Price & Margin % ikut terkunci seperti field rekap
+    # lain; perubahan harga jual lewat revisi baru.
     revision_id = create_cbd_no_source(conn, cbd_ctx["article_id"], "16300", "TEST")
     line = list_cbd_lines(conn, revision_id)[0]
     update_yield(conn, line["id"], "10", "TEST")
     override_price(conn, line["id"], "100000", "IDR", "harga test", "TEST")
+    update_selling_price(conn, revision_id, "20000", "TEST")
     publish_cbd_revision(conn, revision_id, "OTHER", "", "TEST")
 
-    # material cost/pair = 0.1 * 100000 = 10000 (Actual FOB, no amortisasi/adjustment)
-    update_selling_price(conn, revision_id, "20000", "TEST")
+    with pytest.raises(ValueError, match="sudah diterbitkan"):
+        update_selling_price(conn, revision_id, "25000", "TEST")
+    with pytest.raises(ValueError, match="sudah diterbitkan"):
+        update_margin_pct(conn, revision_id, "50", "TEST")
     row = conn.execute("SELECT selling_price FROM cbd_revision WHERE id=?", (revision_id,)).fetchone()
     assert row["selling_price"] == "20000"
-
-    update_margin_pct(conn, revision_id, "50", "TEST")
-    row = conn.execute("SELECT * FROM cbd_revision WHERE id=?", (revision_id,)).fetchone()
-    assert row["status"] == "PUBLISHED"
-    assert Decimal(row["selling_price"]) == Decimal("20000")

@@ -100,18 +100,21 @@ def validation_report(conn, cbd_revision_id):
 # ---------------- Where-used ----------------
 
 
-def _latest_revision_per_specsheet(conn):
+def _latest_revision_per_specsheet(conn, published_only=False):
     """Revisi TERBARU (dibuat paling akhir, DRAFT atau PUBLISHED) tiap
     specsheet — merepresentasikan pemakaian material "saat ini", bukan hanya
     yang sudah terbit, karena where-used dipakai juga untuk mengecek dampak
-    sebelum sebuah revisi diterbitkan."""
+    sebelum sebuah revisi diterbitkan. `published_only` untuk role yang tidak
+    boleh melihat draft."""
+    status_filter = " AND status='PUBLISHED'" if published_only else ""
     specsheets = conn.execute("SELECT id FROM specsheet").fetchall()
     result = {}
     for sp in specsheets:
         # `rowid` tiebreaks `created_at` (second-resolution TEXT) so the revision
         # created LAST wins even when two revisions land in the same second.
         rev = conn.execute(
-            "SELECT * FROM specsheet_revision WHERE specsheet_id=? ORDER BY created_at DESC, rowid DESC LIMIT 1",
+            f"SELECT * FROM specsheet_revision WHERE specsheet_id=?{status_filter} "
+            "ORDER BY created_at DESC, rowid DESC LIMIT 1",
             (sp["id"],),
         ).fetchone()
         if rev:
@@ -119,13 +122,13 @@ def _latest_revision_per_specsheet(conn):
     return result
 
 
-def where_used(conn, material_id):
+def where_used(conn, material_id, published_only=False):
     material = conn.execute("SELECT * FROM material WHERE id=?", (material_id,)).fetchone()
     if not material:
         raise ValueError("Material tidak ditemukan.")
 
     results = []
-    for specsheet_id, revision in _latest_revision_per_specsheet(conn).items():
+    for specsheet_id, revision in _latest_revision_per_specsheet(conn, published_only).items():
         lines = list_lines_with_cells(conn, revision["id"])
         matches = [l for l in lines if l["material_id"] == material_id]
         if not matches:

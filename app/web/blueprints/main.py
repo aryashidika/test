@@ -1,25 +1,26 @@
 from flask import Blueprint, g, redirect, render_template, request, session, url_for
 
 from ...domain import permissions
-from ...domain.reset_service import reset_all_data
-from ..auth import require_master
 
 main_bp = Blueprint("main", __name__)
 
-ROLE_LABELS = {
-    "MASTER_ADMIN": "Master Admin",
-    "VENDOR_SPEC": "Vendor - Specsheet",
-    "VENDOR_CBD": "Vendor - CBD",
-    "BRAND_VIEWER": "Brand Viewer (read-only)",
-    "SYSTEM_ADMIN": "System Admin",
-}
+
+def home_url(role):
+    """Halaman pertama setelah masuk, sesuai pekerjaan utama tiap role."""
+    if permissions.is_system_admin(role):
+        return url_for("admin.index")
+    if role == "VENDOR_CBD":
+        return url_for("cbd.list_page")
+    if role in ("VENDOR_SPEC", "BRAND_VIEWER"):
+        return url_for("model.list_page")
+    return url_for("master.material_page")
 
 
 @main_bp.route("/")
 def index():
     if g.session is None:
         return redirect(url_for("main.role_select"))
-    return redirect(url_for("master.material_page"))
+    return redirect(home_url(g.session.role))
 
 
 @main_bp.route("/masuk", methods=["GET", "POST"])
@@ -31,8 +32,8 @@ def role_select():
             return "Role tidak valid.", 400
         session["role"] = role
         session["operator_name"] = name
-        return redirect(url_for("master.material_page"))
-    roles = [(r, ROLE_LABELS[r]) for r in permissions.ROLES]
+        return redirect(home_url(role))
+    roles = [(r, permissions.role_label(r)) for r in permissions.ROLES]
     return render_template("role_select.html", roles=roles)
 
 
@@ -40,10 +41,3 @@ def role_select():
 def logout():
     session.clear()
     return redirect(url_for("main.role_select"))
-
-
-@main_bp.route("/reset-data", methods=["POST"])
-@require_master
-def reset_data():
-    reset_all_data(g.db, g.session.actor_label)
-    return redirect(url_for("master.material_page"))

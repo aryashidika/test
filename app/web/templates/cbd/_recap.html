@@ -8,7 +8,7 @@
              hx-post="{{ url_for('cbd.revision_field', model_id=model.id, cbd_revision_id=revision.id, field_name='exchange_rate') }}"
              hx-trigger="change" hx-target="#detail-body" hx-swap="innerHTML"
              hx-vals='{"specsheet_id": "{{ specsheet_id }}", "article_id": "{{ article_id }}"}' name="value">
-      {% else %}<div class="recap-value">{{ revision.exchange_rate or '-' }}</div>{% endif %}
+      {% else %}<div class="recap-value">{{ recap_biaya.exchange_rate }}</div>{% endif %}
     </div>
     <div class="field">
       <label>Amortisasi</label>
@@ -17,7 +17,7 @@
              hx-post="{{ url_for('cbd.revision_field', model_id=model.id, cbd_revision_id=revision.id, field_name='amortization') }}"
              hx-trigger="change" hx-target="#detail-body" hx-swap="innerHTML"
              hx-vals='{"specsheet_id": "{{ specsheet_id }}", "article_id": "{{ article_id }}"}' name="value">
-      {% else %}<div class="recap-value">{{ revision.amortization }}</div>{% endif %}
+      {% else %}<div class="recap-value">{{ recap_biaya.amortization }}</div>{% endif %}
     </div>
     <div class="field">
       <label>Adjustment</label>
@@ -26,19 +26,19 @@
              hx-post="{{ url_for('cbd.revision_field', model_id=model.id, cbd_revision_id=revision.id, field_name='adjustment') }}"
              hx-trigger="change" hx-target="#detail-body" hx-swap="innerHTML"
              hx-vals='{"specsheet_id": "{{ specsheet_id }}", "article_id": "{{ article_id }}"}' name="value">
-      {% else %}<div class="recap-value">{{ revision.adjustment }}</div>{% endif %}
+      {% else %}<div class="recap-value">{{ recap_biaya.adjustment }}</div>{% endif %}
     </div>
     <div class="field">
-      <label>Target FOB (Rp)</label>
+      <label>Target FOB</label>
       {% if editable %}
       <input type="text" value="{{ revision.target_fob or '' }}" class="cell-input"
              hx-post="{{ url_for('cbd.revision_field', model_id=model.id, cbd_revision_id=revision.id, field_name='target_fob') }}"
              hx-trigger="change" hx-target="#detail-body" hx-swap="innerHTML"
              hx-vals='{"specsheet_id": "{{ specsheet_id }}", "article_id": "{{ article_id }}"}' name="value">
-      {% else %}<div class="recap-value">{{ revision.target_fob or '-' }}</div>{% endif %}
+      {% else %}<div class="recap-value">{{ recap_biaya.target_fob }}</div>{% endif %}
     </div>
     <div class="field">
-      <label>Actual FOB (Rp)</label><div class="recap-value"><strong>{{ recap_biaya.actual_fob if recap_biaya else '-' }}</strong></div>
+      <label>Actual FOB</label><div class="recap-value"><strong>{{ recap_biaya.actual_fob if recap_biaya else '-' }}</strong></div>
     </div>
     <div class="field">
       <label>Selisih</label>
@@ -53,25 +53,29 @@
 
 <div class="card recap-card">
   <h2 class="section-title">Rekap Margin</h2>
+  {% if margin_editable %}
   <p class="muted" style="margin:-4px 0 12px;">Selling Price dan Margin % saling terhubung — ubah salah satu, yang lain ikut menyesuaikan.</p>
+  {% elif can_edit and revision.status == 'PUBLISHED' %}
+  <p class="muted" style="margin:-4px 0 12px;">Selling Price dan Margin % terkunci setelah revisi terbit — ubah lewat revisi baru.</p>
+  {% endif %}
   <div class="recap-grid">
     <div class="field">
-      <label>Selling Price (Rp)</label>
+      <label>Selling Price</label>
       {% if margin_editable %}
       <input type="text" value="{{ revision.selling_price or '' }}" class="cell-input"
              hx-post="{{ url_for('cbd.revision_field', model_id=model.id, cbd_revision_id=revision.id, field_name='selling_price') }}"
              hx-trigger="change" hx-target="#detail-body" hx-swap="innerHTML"
              hx-vals='{"specsheet_id": "{{ specsheet_id }}", "article_id": "{{ article_id }}"}' name="value">
-      {% else %}<div class="recap-value">{{ revision.selling_price or '-' }}</div>{% endif %}
+      {% else %}<div class="recap-value">{{ recap_margin.selling_price }}</div>{% endif %}
     </div>
     <div class="field">
       <label>Margin %</label>
       {% if margin_editable %}
-      <input type="text" value="{{ recap_margin.margin_pct if recap_margin and recap_margin.margin_pct != '-' else '' }}" class="cell-input"
+      <input type="text" value="{{ recap_margin.margin_pct_input }}" class="cell-input"
              hx-post="{{ url_for('cbd.revision_field', model_id=model.id, cbd_revision_id=revision.id, field_name='margin_pct') }}"
              hx-trigger="change" hx-target="#detail-body" hx-swap="innerHTML"
              hx-vals='{"specsheet_id": "{{ specsheet_id }}", "article_id": "{{ article_id }}"}' name="value">
-      {% else %}<div class="recap-value">{{ recap_margin.margin_pct if recap_margin else '-' }}</div>{% endif %}
+      {% else %}<div class="recap-value">{{ recap_margin.margin_pct }}{{ ' %' if recap_margin.margin_pct != '-' else '' }}</div>{% endif %}
     </div>
   </div>
 </div>

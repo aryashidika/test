@@ -85,7 +85,8 @@ def test_full_flow_master_to_export(client):
     comp2_row = row(client, "SELECT id, number, name FROM component WHERE number=20")
     component1, component2 = comp1_row["id"], comp2_row["id"]
 
-    # ---- 2. Buat specsheet dengan 2 article ----
+    # ---- 2. Buat specsheet dengan 2 article (hak Vendor Spec) ----
+    login(client, "VENDOR_SPEC", "Spec Ops")
     assert client.post("/model", data={
         "code": "MDL-E2E", "name": "Model E2E", "factory": "Factory E2E",
     }).status_code == 200

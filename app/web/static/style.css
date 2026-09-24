@@ -491,3 +491,13 @@ form.quotation-form .override-row { display: flex; gap: 4px; }
   table.print-table { break-inside: auto; }
   table.print-table tr { break-inside: avoid; }
 }
+
+.success-banner {
+  background: #DDF3E4;
+  border: 1px solid #A8DDB9;
+  color: #1E7A42;
+  padding: 9px 12px;
+  border-radius: 6px;
+  margin-bottom: 12px;
+  font-size: 13px;
+}

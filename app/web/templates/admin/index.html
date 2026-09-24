@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Admin{% endblock %}
+{% block content %}
+<div class="page-header"><h1>Admin</h1></div>
+
+<div class="card" style="max-width:560px;">
+  <h2 class="section-title">Reset Data Prototipe</h2>
+  <p class="muted" style="margin-top:0;">
+    Mengosongkan semua data master dan transaksional (model, specsheet, CBD, harga, audit log),
+    lalu mengisi ulang data dummy dan contoh specsheet PRM-097. Tidak bisa dibatalkan.
+  </p>
+  {% if done %}<div class="success-banner">Data prototipe sudah direset.</div>{% endif %}
+  {% if error %}<div class="error-banner">{{ error }}</div>{% endif %}
+  <form method="post" action="{{ url_for('admin.reset_data') }}">
+    <div class="field">
+      <label>Ketik <strong>{{ confirm_word }}</strong> untuk mengonfirmasi</label>
+      <input type="text" name="confirm" autocomplete="off" required>
+    </div>
+    <div class="form-actions">
+      <button type="submit" class="btn btn-danger">Reset Data Prototipe</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

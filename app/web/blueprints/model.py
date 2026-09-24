@@ -1,7 +1,7 @@
 import io
 import json
 
-from flask import Blueprint, g, render_template, request, send_file
+from flask import Blueprint, abort, g, render_template, request, send_file
 
 from ...domain import permissions
 from ...domain.article_service import add_article, list_articles_for_revision, set_article_status
@@ -49,9 +49,10 @@ from ...domain.specsheet_service import (
     list_specsheets,
     season_label,
 )
-from ..auth import require_session
+from ..auth import guard_blueprint, require_permission, require_session
 
 model_bp = Blueprint("model", __name__, url_prefix="/model")
+guard_blueprint(model_bp, permissions.can_view_specsheet)
 
 CHANGE_CATEGORIES = [
     "MATERIAL", "COMPONENT", "TREATMENT", "EX_RATE", "LOP", "AMORTIZATION", "YIELD", "OTHER",
@@ -60,7 +61,28 @@ CHANGE_CATEGORIES = [
 
 def _role_ctx():
     role = g.session.role
-    return {"can_manage": permissions.can_manage_master(role), "read_only": permissions.is_read_only(role)}
+    return {
+        "can_manage": permissions.can_manage_master(role),
+        "read_only": permissions.is_read_only(role),
+        "can_edit_model": permissions.can_edit_model(role),
+    }
+
+
+def _visible_revisions(specsheet_id):
+    """Brand hanya melihat revisi PUBLISHED; role lain melihat draft juga."""
+    revisions = list_revisions(g.db, specsheet_id)
+    if permissions.can_view_drafts(g.session.role):
+        return revisions
+    return [r for r in revisions if r["status"] == "PUBLISHED"]
+
+
+def _require_visible_revision(revision_id):
+    """Cetak/ekspor revisi DRAFT ditolak untuk role yang tidak boleh melihat draft."""
+    row = g.db.execute("SELECT status FROM specsheet_revision WHERE id=?", (revision_id,)).fetchone()
+    if row is None:
+        abort(404)
+    if row["status"] != "PUBLISHED" and not permissions.can_view_drafts(g.session.role):
+        abort(403, description="Revisi ini belum diterbitkan.")
 
 
 def _material_options(exclude_id=None):
@@ -105,18 +127,21 @@ def _list_ctx():
     search = request.args.get("q", "")
     season = request.args.get("season") or None
     seasons = list_known_seasons(g.db)
-    models = list_models_overview(g.db, season=season, search=search or None)
+    models = list_models_overview(g.db, season=season, search=search or None,
+                                  published_only=not permissions.can_view_drafts(g.session.role))
     return {"models": models, "seasons": seasons, "search": search, "season": season or "", **_role_ctx()}
 
 
 @model_bp.route("/new")
 @require_session
+@require_permission(permissions.can_edit_model)
 def new_form():
     return render_template("model/_new_form.html", error=None, values={})
 
 
 @model_bp.route("", methods=["POST"])
 @require_session
+@require_permission(permissions.can_edit_model)
 def create():
     values = request.form.to_dict()
     data = ModelInput(**{k: values.get(k, "") for k in
@@ -135,10 +160,11 @@ def create():
 def _load_detail_ctx(model_id, specsheet_id=None, revision_id=None):
     model = get_model(g.db, model_id)
     specsheets = list_specsheets(g.db, model_id=model_id)
+    published_only = "" if permissions.can_view_drafts(g.session.role) else " WHERE status='PUBLISHED'"
     rev_counts = {
         row["specsheet_id"]: row["c"]
         for row in g.db.execute(
-            "SELECT specsheet_id, COUNT(*) c FROM specsheet_revision GROUP BY specsheet_id"
+            f"SELECT specsheet_id, COUNT(*) c FROM specsheet_revision{published_only} GROUP BY specsheet_id"
         ).fetchall()
     }
 
@@ -149,7 +175,7 @@ def _load_detail_ctx(model_id, specsheet_id=None, revision_id=None):
         specsheet = specsheets[-1]
     specsheet_id = specsheet["id"] if specsheet else None
 
-    revisions = list_revisions(g.db, specsheet_id) if specsheet_id else []
+    revisions = _visible_revisions(specsheet_id) if specsheet_id else []
     has_draft = any(r["status"] == "DRAFT" for r in revisions)
     has_published = any(r["status"] == "PUBLISHED" for r in revisions)
 
@@ -232,12 +258,14 @@ def detail_body(model_id):
 
 @model_bp.route("/<model_id>/season/new")
 @require_session
+@require_permission(permissions.can_edit_model)
 def season_new_form(model_id):
     return render_template("model/_season_form.html", model_id=model_id, error=None)
 
 
 @model_bp.route("/<model_id>/season", methods=["POST"])
 @require_session
+@require_permission(permissions.can_edit_model)
 def season_create(model_id):
     season = request.form.get("season", "")
     try:
@@ -252,6 +280,7 @@ def season_create(model_id):
 
 @model_bp.route("/<model_id>/revision/empty", methods=["POST"])
 @require_session
+@require_permission(permissions.can_edit_specsheet)
 def revision_empty(model_id):
     specsheet_id = request.form.get("specsheet_id")
     stage = request.form.get("stage") or "PULL"
@@ -265,6 +294,7 @@ def revision_empty(model_id):
 
 @model_bp.route("/<model_id>/revision/carryover", methods=["POST"])
 @require_session
+@require_permission(permissions.can_edit_specsheet)
 def revision_carryover(model_id):
     specsheet_id = request.form.get("specsheet_id")
     source_specsheet_id = request.form.get("source_specsheet_id")
@@ -291,6 +321,7 @@ def revision_carryover(model_id):
 
 @model_bp.route("/<model_id>/revision/copy-cross-model")
 @require_session
+@require_permission(permissions.can_edit_specsheet)
 def copy_cross_model_open(model_id):
     specsheet_id = request.args.get("specsheet_id")
     q = request.args.get("q", "")
@@ -303,6 +334,7 @@ def copy_cross_model_open(model_id):
 
 @model_bp.route("/<model_id>/revision/copy-cross-model/results")
 @require_session
+@require_permission(permissions.can_edit_specsheet)
 def copy_cross_model_results(model_id):
     specsheet_id = request.args.get("specsheet_id")
     q = request.args.get("q", "")
@@ -314,6 +346,7 @@ def copy_cross_model_results(model_id):
 
 @model_bp.route("/<model_id>/revision/copy-cross-model", methods=["POST"])
 @require_session
+@require_permission(permissions.can_edit_specsheet)
 def copy_cross_model_create(model_id):
     specsheet_id = request.form.get("specsheet_id")
     source_specsheet_id = request.form.get("source_specsheet_id")
@@ -346,6 +379,7 @@ def copy_cross_model_create(model_id):
 
 @model_bp.route("/<model_id>/revision/same-stage", methods=["POST"])
 @require_session
+@require_permission(permissions.can_edit_specsheet)
 def revision_same_stage(model_id):
     specsheet_id = request.form.get("specsheet_id")
     error = None
@@ -360,6 +394,7 @@ def revision_same_stage(model_id):
 
 @model_bp.route("/<model_id>/revision/next-stage", methods=["POST"])
 @require_session
+@require_permission(permissions.can_edit_specsheet)
 def revision_next_stage(model_id):
     specsheet_id = request.form.get("specsheet_id")
     error = None
@@ -382,12 +417,14 @@ def revision_select(model_id, revision_id):
 @model_bp.route("/<model_id>/revision/<revision_id>/print")
 @require_session
 def revision_print(model_id, revision_id):
+    _require_visible_revision(revision_id)
     return render_template("model/_print.html", model_id=model_id, **specsheet_export_context(g.db, revision_id))
 
 
 @model_bp.route("/<model_id>/revision/<revision_id>/export.xlsx")
 @require_session
 def revision_export_excel(model_id, revision_id):
+    _require_visible_revision(revision_id)
     ctx = specsheet_export_context(g.db, revision_id)
     wb = build_specsheet_workbook(g.db, revision_id)
     buf = io.BytesIO()
@@ -405,6 +442,7 @@ def revision_export_excel(model_id, revision_id):
 
 @model_bp.route("/<model_id>/revision/<revision_id>/publish", methods=["POST"])
 @require_session
+@require_permission(permissions.can_edit_specsheet)
 def revision_publish(model_id, revision_id):
     specsheet_id = request.form.get("specsheet_id")
     category = request.form.get("category")
@@ -420,13 +458,12 @@ def revision_publish(model_id, revision_id):
 
 @model_bp.route("/<model_id>/revision/<revision_id>/delete", methods=["POST"])
 @require_session
+@require_permission(permissions.can_edit_specsheet)
 def revision_delete_draft(model_id, revision_id):
     """Hapus revisi DRAFT seakan belum pernah dibuat (revisi terbit tidak bisa)."""
     specsheet_id = request.form.get("specsheet_id")
     error = None
     try:
-        if not permissions.can_edit_specsheet(g.session.role):
-            raise ValueError("Role Anda tidak bisa menghapus revisi specsheet.")
         delete_draft_revision(g.db, revision_id, g.session.actor_label)
     except ValueError as exc:
         error = str(exc)
@@ -438,6 +475,7 @@ def revision_delete_draft(model_id, revision_id):
 
 @model_bp.route("/<model_id>/revision/<revision_id>/bom/line", methods=["POST"])
 @require_session
+@require_permission(permissions.can_edit_specsheet)
 def bom_add_line(model_id, revision_id):
     """Satu baris inline untuk tambah komponen. Semua kolom diketik dengan saran:
     komponen yang cocok dengan master jadi baris komponen master, yang tidak
@@ -459,6 +497,7 @@ def bom_add_line(model_id, revision_id):
 
 @model_bp.route("/<model_id>/revision/<revision_id>/bom/supplier-field")
 @require_session
+@require_permission(permissions.can_edit_specsheet)
 def bom_supplier_field(model_id, revision_id):
     """Input supplier untuk baris baru/subkomponen, di-render ulang setiap kali
     material diketik: saran supplier menyesuaikan material itu, dan kalau
@@ -480,6 +519,7 @@ def bom_supplier_field(model_id, revision_id):
 
 @model_bp.route("/<model_id>/revision/<revision_id>/bom/<line_id>/subcomponent/row")
 @require_session
+@require_permission(permissions.can_edit_specsheet)
 def bom_subcomponent_row(model_id, revision_id, line_id):
     specsheet_id = request.args.get("specsheet_id")
     ctx = _detail_ctx(model_id, specsheet_id, revision_id)
@@ -493,6 +533,7 @@ def bom_subcomponent_row(model_id, revision_id, line_id):
 
 @model_bp.route("/<model_id>/revision/<revision_id>/bom/<line_id>/subcomponent", methods=["POST"])
 @require_session
+@require_permission(permissions.can_edit_specsheet)
 def bom_add_subcomponent(model_id, revision_id, line_id):
     specsheet_id = request.form.get("specsheet_id")
     error = None
@@ -511,6 +552,7 @@ def bom_add_subcomponent(model_id, revision_id, line_id):
 
 @model_bp.route("/<model_id>/revision/<revision_id>/bom/<line_id>/replace-material", methods=["POST"])
 @require_session
+@require_permission(permissions.can_edit_specsheet)
 def bom_replace_material(model_id, revision_id, line_id):
     """Material diketik ulang di sel Deskripsi Material = Ganti Material (PRD 6.2).
     Teks yang tetap menunjuk ke material yang sama tidak mengubah apa pun."""
@@ -529,6 +571,7 @@ def bom_replace_material(model_id, revision_id, line_id):
 
 @model_bp.route("/<model_id>/revision/<revision_id>/bom/<line_id>/supplier", methods=["POST"])
 @require_session
+@require_permission(permissions.can_edit_specsheet)
 def bom_set_supplier(model_id, revision_id, line_id):
     cell_error = None
     typed = request.form.get("supplier_text", "")
@@ -544,6 +587,7 @@ def bom_set_supplier(model_id, revision_id, line_id):
 
 @model_bp.route("/<model_id>/revision/<revision_id>/bom/<line_id>/process", methods=["POST"])
 @require_session
+@require_permission(permissions.can_edit_specsheet)
 def bom_set_process(model_id, revision_id, line_id):
     update_process(g.db, line_id, request.form.get("value", ""), g.session.actor_label)
     line = next(l for l in list_lines_with_cells(g.db, revision_id) if l["id"] == line_id)
@@ -553,6 +597,7 @@ def bom_set_process(model_id, revision_id, line_id):
 
 @model_bp.route("/<model_id>/revision/<revision_id>/bom/<line_id>/cell/<article_id>", methods=["POST"])
 @require_session
+@require_permission(permissions.can_edit_specsheet)
 def bom_set_cell(model_id, revision_id, line_id, article_id):
     update_cell_value(g.db, line_id, article_id, request.form.get("value", ""), g.session.actor_label)
     line = next(l for l in list_lines_with_cells(g.db, revision_id) if l["id"] == line_id)
@@ -564,6 +609,7 @@ def bom_set_cell(model_id, revision_id, line_id, article_id):
 
 @model_bp.route("/<model_id>/revision/<revision_id>/article", methods=["POST"])
 @require_session
+@require_permission(permissions.can_edit_specsheet)
 def article_add(model_id, revision_id):
     specsheet_id = request.form.get("specsheet_id")
     error = None
@@ -578,6 +624,7 @@ def article_add(model_id, revision_id):
 
 @model_bp.route("/<model_id>/revision/<revision_id>/article/<article_id>/status", methods=["POST"])
 @require_session
+@require_permission(permissions.can_edit_specsheet)
 def article_set_status(model_id, revision_id, article_id):
     specsheet_id = request.form.get("specsheet_id")
     status = request.form.get("status")

@@ -22,14 +22,14 @@
   </form>
   <span class="price-src">quotation{{ ' · kosong = tidak dihargai terpisah' if not line.price_original else '' }}</span>
   {% elif line.price_original %}
-  {{ line.price_original }}
+  {{ line.price_original|angka(6, trim=True) }}
   <span class="price-src">quotation</span>
   {% else %}
   <span class="price-gap gap-muted">tidak dihargai terpisah</span>
   {% endif %}
 {% else %}
 {% if line.price_original %}
-  {{ line.price_original }}
+  {{ line.price_original|angka(6, trim=True) }}
   {% if line.price_source == 'MASTER' %}
   <span class="price-src" title="Harga master berlaku sejak {{ line.master_price_valid_from or '-' }}">master &middot; {{ ('warna ' ~ line.master_price_color) if line.master_price_color else 'semua warna' }}</span>
   {% elif line.price_source == 'OVERRIDE' %}

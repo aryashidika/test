@@ -28,7 +28,7 @@
                hx-post="{{ url_for('cbd.line_yield', model_id=model.id, cbd_revision_id=revision.id, line_id=line.id) }}"
                hx-trigger="change" hx-target="#detail-body" hx-swap="innerHTML"
                hx-vals='{"specsheet_id": "{{ specsheet_id }}", "article_id": "{{ article_id }}"}' name="value">
-        {% else %}{{ line.yield_value or '-' }}{% endif %}
+        {% else %}{{ line.yield_value|angka(6, trim=True) }}{% endif %}
       </td>
       <td class="muted col-num">{{ line.usage_fmt }}</td>
       <td class="col-num">
@@ -37,7 +37,7 @@
                hx-post="{{ url_for('cbd.line_loss', model_id=model.id, cbd_revision_id=revision.id, line_id=line.id) }}"
                hx-trigger="change" hx-target="#detail-body" hx-swap="innerHTML"
                hx-vals='{"specsheet_id": "{{ specsheet_id }}", "article_id": "{{ article_id }}"}' name="value">
-        {% else %}{{ line.loss_pct or '-' }}{% endif %}
+        {% else %}{{ line.loss_pct|angka(2) }}{% endif %}
       </td>
       <td class="col-num">
         {% include "cbd/_price_cell.html" %}

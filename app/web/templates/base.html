@@ -12,19 +12,14 @@
 <header class="topbar">
   <div class="topbar-brand">Sistem Specsheet &amp; CBD</div>
   <nav class="topbar-nav">
-    <a href="{{ url_for('master.material_page') }}" class="{{ 'active' if request.blueprint=='master' else '' }}">Master Data</a>
-    <a href="{{ url_for('model.list_page') }}" class="{{ 'active' if request.blueprint=='model' else '' }}">Model</a>
-    <a href="{{ url_for('cbd.list_page') }}" class="{{ 'active' if request.blueprint=='cbd' else '' }}">CBD</a>
-    <a href="{{ url_for('laporan.index') }}" class="{{ 'active' if request.blueprint=='laporan' else '' }}">Laporan</a>
+    {% if nav.master %}<a href="{{ url_for('master.material_page') }}" class="{{ 'active' if request.blueprint=='master' else '' }}">Master Data</a>{% endif %}
+    {% if nav.model %}<a href="{{ url_for('model.list_page') }}" class="{{ 'active' if request.blueprint=='model' else '' }}">Model</a>{% endif %}
+    {% if nav.cbd %}<a href="{{ url_for('cbd.list_page') }}" class="{{ 'active' if request.blueprint=='cbd' else '' }}">CBD</a>{% endif %}
+    {% if nav.laporan %}<a href="{{ url_for('laporan.index') }}" class="{{ 'active' if request.blueprint=='laporan' else '' }}">Laporan</a>{% endif %}
+    {% if nav.admin %}<a href="{{ url_for('admin.index') }}" class="{{ 'active' if request.blueprint=='admin' else '' }}">Admin</a>{% endif %}
   </nav>
   <div class="topbar-right">
-    {% if can_manage_master_global %}
-    <form action="{{ url_for('main.reset_data') }}" method="post"
-          hx-confirm="Reset semua data prototipe (master + transaksional)? Tindakan ini tidak bisa dibatalkan.">
-      <button type="submit" class="btn btn-danger btn-sm">Reset Data Prototipe</button>
-    </form>
-    {% endif %}
-    <span class="topbar-user">{{ g.session.operator_name }} &middot; {{ g.session.role }}</span>
+    <span class="topbar-user">{{ g.session.operator_name }} &middot; {{ role_label }}</span>
     <form action="{{ url_for('main.logout') }}" method="post">
       <button type="submit" class="btn btn-ghost btn-sm">Ganti Role</button>
     </form>

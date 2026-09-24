@@ -22,7 +22,14 @@ lanjutan setelah review terhadap contoh specsheet nyata (PDF referensi):
   (tanpa password) — cocok untuk kebutuhan mockup/presentasi.
 - **Single-user, satu komputer.** Satu file SQLite lokal, tidak ada penanganan
   concurrent-write untuk banyak user berbagi file yang sama.
-- **Tiga menu utama:** "Master Data", "Model", dan "CBD".
+- **Menu utama disaring per role:** "Master Data", "Model", "CBD", "Laporan",
+  dan "Admin" — tiap role hanya melihat menu yang boleh diaksesnya (lihat "Hak
+  akses per role" di bawah).
+- **Hak akses per role ditegakkan di server**, bukan hanya dengan
+  menyembunyikan tombol: setiap route aksi memakai `require_permission(...)` dan
+  setiap menu memakai `guard_blueprint(...)` (`app/web/auth.py`), dengan aturan
+  di `app/domain/permissions.py`. Request dari role yang tidak berhak ditolak
+  403.
 - **Supplier dipilih per baris BOM, link material–supplier terbentuk otomatis.**
   Supplier dipilih langsung per baris BOM di specsheet ("Source of Material").
   Baris CBD SELALU mengikuti `bom_line.supplier_id` (bukan
@@ -136,13 +143,14 @@ lanjutan setelah review terhadap contoh specsheet nyata (PDF referensi):
   Amortisasi, Adjustment, Target FOB, Actual FOB — dihitung dari total cost/pair
   yang sudah dalam Rupiah, dan Selisih dengan label kualitatif OVER/UNDER) dan
   **Rekap Margin** (Selling Price dan Margin %, saling terhubung dua arah:
-  mengubah salah satu menghitung ulang yang lain terhadap Actual FOB saat ini).
+  mengubah salah satu menghitung ulang yang lain terhadap Actual FOB saat ini;
+  terkunci begitu revisi CBD terbit, sama seperti field rekap lain).
   Kedua panel ini tambahan di luar PRD (permintaan lanjutan) — PRD hanya
   menyebut satu panel rekap dengan Selisih/Selisih % antara Selling Price dan
   Target FOB.
 - **Data dummy di-seed otomatis** saat database masih kosong (Material, Komponen,
-  Supplier), dan bisa direset kapan saja lewat tombol "Reset Data Prototipe" di
-  topbar (khusus role Master Admin).
+  Supplier), dan bisa direset kapan saja lewat menu "Admin" › Reset Data
+  Prototipe (khusus role System Admin, dengan konfirmasi ketik `RESET`).
 - **Satu specsheet nyata ikut di-seed sebagai contoh lengkap**: Model
   `PRM-097` — "ACC Illuzion IV Elite FG" (FH26, stage PROD, revisi r0,
   **DRAFT — belum diterbitkan**, 2 article/colorway: White/True Red dan Safety
@@ -389,7 +397,8 @@ Sub-tab: **Material**, **Komponen**, **Supplier**.
   label OVER/UNDER (Actual FOB dibanding Target FOB).
 - **Rekap Margin**: Selling Price dan Margin %, saling terhubung dua arah —
   mengedit salah satu menghitung ulang yang lain terhadap Actual FOB saat ini
-  (`app/domain/cbd_calc.margin_pct` / `selling_price_from_margin`). Kedua
+  (`app/domain/cbd_calc.margin_pct` / `selling_price_from_margin`). Hanya bisa
+  diedit selama revisi DRAFT; setelah terbit, ubah lewat revisi baru. Kedua
   panel rekap ini tambahan di luar PRD, lihat "Penyesuaian dari PRD asli".
 - **Terbitkan revisi** (PRD 6.5): validasi Exchange Rate > 0 (meski boleh
   kosong saat draft) dan baris yang berharga sudah punya yield. **Baris tanpa
@@ -425,9 +434,9 @@ Sub-tab: **Material**, **Komponen**, **Supplier**.
 
 ### Menu "Laporan"
 
-Sub-tab: **Where-Used**, **Histori Harga**. Semua role bisa melihat (sesuai
-PRD Bagian 3: "akses laporan" eksplisit untuk Brand Viewer, dan berguna untuk
-semua role lain juga karena read-only). Dashboard sinkronisasi agregat dan
+Sub-tab: **Where-Used**, **Histori Harga**. Where-Used untuk semua role bisnis;
+Histori Harga tidak tampil untuk Vendor Spec (tidak melihat harga). Untuk Brand
+Viewer, Where-Used hanya menghitung revisi specsheet yang sudah terbit. Dashboard sinkronisasi agregat dan
 laporan penyimpangan Loss % (PRD 7.4) sengaja tidak dibangun — lihat
 "Penyesuaian dari PRD asli".
 
@@ -464,8 +473,27 @@ python run_web.py
 Browser default akan otomatis terbuka ke `http://127.0.0.1:5000`. Database
 SQLite otomatis dibuat di `data/app.db` saat pertama kali dijalankan, lengkap
 dengan seed data kelompok komponen dan data dummy Material/Komponen/Supplier.
-Tombol "Reset Data Prototipe" di topbar (role Master Admin) akan mengosongkan
+Menu "Admin" › Reset Data Prototipe (role System Admin) akan mengosongkan
 lalu menyeed ulang data tsb kapan saja.
+
+## Hak akses per role
+
+| Menu / Aksi | Master Admin | Vendor Spec | Vendor CBD | Brand Viewer | System Admin |
+| --- | --- | --- | --- | --- | --- |
+| Halaman pertama setelah masuk | Master Data | Model | CBD | Model | Admin |
+| Master Material, Komponen, Supplier | edit & approve | usul | usul | lihat | – |
+| Master Harga & metode harga | edit | tersembunyi | edit | lihat | – |
+| Model & Season | edit | edit | lihat | lihat | – |
+| Specsheet (BOM, article, terbit) | lihat | edit & terbit | lihat terbit | lihat terbit | – |
+| CBD (termasuk Selling Price & Margin) | lihat | tersembunyi | edit & terbit | lihat terbit | – |
+| Laporan Where-Used | ✓ | ✓ | ✓ | ✓ (terbit saja) | – |
+| Laporan Histori Harga | ✓ | – | ✓ | ✓ | – |
+| Reset Data | – | – | – | – | ✓ |
+
+Brand Viewer hanya melihat revisi PUBLISHED (specsheet maupun CBD), termasuk
+cetak/ekspor. Angka di tampilan CBD diformat Indonesia (titik ribuan, koma
+desimal, Rupiah tanpa desimal di rekap); input tetap memakai angka biasa
+(mis. `18078` atau `12.6`).
 
 ## Menjalankan test
 
@@ -566,6 +594,12 @@ Test master harga (`tests/test_material_price.py`) & input ketik BOM
   lokal (No. wajib, aturan nomor tetap); material & supplier wajib ada di master;
   saran warna per season.
 
+Test hak akses (`tests/test_role_access.py`): halaman pertama per role; Vendor
+Spec tidak bisa membuka CBD/Histori Harga; aksi dari role yang salah ditolak
+403 (Brand, Vendor CBD, Master Admin di specsheet/CBD); Brand tidak melihat
+revisi DRAFT (daftar, detail, cetak, ekspor); System Admin hanya menu Admin dan
+reset butuh konfirmasi `RESET`.
+
 Test e2e M5 (`tests/test_e2e_web.py`, mengacu ke kriteria penerimaan M5):
 alur penuh lewat HTTP request nyata ke seluruh blueprint Flask + database
 SQLite asli (beda dari test lain yang memanggil `app/domain/` langsung) —
@@ -609,9 +643,10 @@ app/
                               # ada logicnya, belum ada UI web (lihat README di atas)
   web/                      # UI web (Flask + htmx)
     __init__.py               # create_app(): factory, koneksi per-request, seeding
-    auth.py                    # decorator require_session/require_master
+    auth.py                    # require_session, require_permission, guard_blueprint (hak akses per role)
+    formatting.py               # format angka tampilan (filter Jinja `angka`/`rupiah`)
     user_session.py             # dataclass Session (role + operator_name)
-    blueprints/                # main (login/reset), master, model, cbd, laporan (M4)
+    blueprints/                # main (login), admin (reset data), master, model, cbd, laporan (M4)
     templates/                  # halaman Jinja2 + partial htmx (termasuk _print.html: halaman cetak M5)
     static/                      # style.css (+ print stylesheet M5) + vendor/htmx.min.js (lokal, bukan CDN)
 tests/                      # pytest, mengacu ke kriteria penerimaan PRD (termasuk test_e2e_web.py, M5)

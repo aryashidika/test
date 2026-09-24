@@ -3,7 +3,7 @@
 {% block content %}
 <div class="page-header">
   <h1>Model</h1>
-  {% if not read_only %}
+  {% if can_edit_model %}
   <button class="btn" hx-get="{{ url_for('model.new_form') }}" hx-target="#modal" hx-swap="innerHTML">+ Tambah Model</button>
   {% endif %}
 </div>

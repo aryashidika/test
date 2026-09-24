@@ -30,9 +30,10 @@ from ...domain.supplier_service import (
     set_default_currency,
     set_status as set_supplier_status,
 )
-from ..auth import require_session
+from ..auth import guard_blueprint, require_session
 
 master_bp = Blueprint("master", __name__, url_prefix="/master")
+guard_blueprint(master_bp, permissions.can_view_master)
 
 STATUS_VALUES = ["PROPOSED", "APPROVED", "INACTIVE"]
 
@@ -82,6 +83,7 @@ def material_page():
 @require_session
 def material_create():
     role = g.session.role
+    _require(permissions.can_manage_master(role) or permissions.can_propose(role))
     status = "APPROVED" if permissions.can_manage_master(role) else "PROPOSED"
     data = MaterialInput(
         material_code=request.form.get("material_code", ""),
@@ -336,6 +338,7 @@ def component_next_number():
 @require_session
 def component_create():
     role = g.session.role
+    _require(permissions.can_manage_master(role) or permissions.can_propose(role))
     status = "APPROVED" if permissions.can_manage_master(role) else "PROPOSED"
     group_id = request.form.get("group_id")
     error = None
