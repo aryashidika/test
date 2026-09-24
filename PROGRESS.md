@@ -13,15 +13,15 @@
 
 | Fase | Target | Item | Dibuat | Diuji |
 |---|---|---|---|---|
-| MVP — alur inti Master → Model → Specsheet → CBD | W9 | 191 | ░░░░░░░░░░ 0% | ░░░░░░░░░░ 0% |
+| MVP — alur inti Master → Model → Specsheet → CBD | W9 | 193 | ░░░░░░░░░░ 0% | ░░░░░░░░░░ 0% |
 | Fase 2 — pelengkap (worklist, laporan, audit, export, copy, persetujuan) | W10 | 68 | ░░░░░░░░░░ 0% | ░░░░░░░░░░ 0% |
-| **Total** | | **259** | ░░░░░░░░░░ 0% | ░░░░░░░░░░ 0% |
+| **Total** | | **261** | ░░░░░░░░░░ 0% | ░░░░░░░░░░ 0% |
 
 ## Per modul
 
 | Modul | Fase | Target | Dibuat | Diuji | Status |
 |---|---|---|---|---|---|
-| M0 Fondasi | MVP | W2 | 0/29 | 0/29 | ⬜ Belum mulai |
+| M0 Fondasi | MVP | W2 | 0/31 | 0/31 | ⬜ Belum mulai |
 | M1 Master Data | MVP | W4 | 0/56 | 0/56 | ⬜ Belum mulai |
 | M2 Model & Article | MVP | W5 | 0/22 | 0/22 | ⬜ Belum mulai |
 | M3 Specsheet | MVP | W7 | 0/42 | 0/42 | ⬜ Belum mulai |
@@ -41,14 +41,17 @@ _Tidak ada._
 
 ### MVP — alur inti Master → Model → Specsheet → CBD
 
-<details><summary><b>M0 Fondasi</b> — 0/29 dibuat · 0/29 diuji</summary>
+<details><summary><b>M0 Fondasi</b> — 0/31 dibuat · 0/31 diuji</summary>
 
-**Skema database (hasil migrasi dari SQLite)** · target W2 · 0/23
+**Skema database (hasil migrasi dari SQLite)** · target W2 · 0/26
 
 | Jenis | Nama | Page | Status | Catatan |
 |---|---|---|---|---|
 | Function DB | `fn_assert_perm` |  | ⬜ Belum |  |
 | Function DB | `fn_audit` |  | ⬜ Belum |  |
+| Function DB | `fn_normalize` |  | ⬜ Belum |  |
+| Function DB | `fn_new_id` |  | ⬜ Belum |  |
+| Function DB | `fn_role_label` |  | ⬜ Belum |  |
 | Tabel DB | `component_group` |  | ⬜ Belum |  |
 | Tabel DB | `component` |  | ⬜ Belum |  |
 | Tabel DB | `material` |  | ⬜ Belum |  |
@@ -71,13 +74,12 @@ _Tidak ada._
 | Tabel DB | `app_user` |  | ⬜ Belum |  |
 | Tabel DB | `role_permission` |  | ⬜ Belum |  |
 
-**Kerangka aplikasi, login & hak akses per role** · target W2 · 0/6
+**Kerangka aplikasi, login & hak akses per role** · target W2 · 0/5
 
 | Jenis | Nama | Page | Status | Catatan |
 |---|---|---|---|---|
 | Page | `Beranda` |  | ⬜ Belum |  |
 | Query | `q_me` | Beranda | ⬜ Belum |  |
-| Query | `q_my_perms` | Beranda | ⬜ Belum |  |
 | JS Object | `Auth` | Beranda | ⬜ Belum |  |
 | JS Object | `Util` | Beranda | ⬜ Belum |  |
 | View DB | `v_my_perms` |  | ⬜ Belum |  |

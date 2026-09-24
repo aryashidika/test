@@ -40,7 +40,7 @@ tables = [
   "cbd_revision", "cbd_line", "material_supplier", "material_price",
   "app_user", "role_permission",
 ]
-functions = ["fn_assert_perm", "fn_audit"]
+functions = ["fn_assert_perm", "fn_audit", "fn_normalize", "fn_new_id", "fn_role_label"]
 
 [[group]]
 modul = "M0 Fondasi"
@@ -49,7 +49,7 @@ fase = "MVP"
 minggu = 2
 page = "Beranda"
 pages = ["Beranda"]
-queries = ["q_me", "q_my_perms"]
+queries = ["q_me"]   # q_me mengambil profil + daftar izin sekaligus dari v_my_perms
 js = ["Auth", "Util"]
 views = ["v_my_perms"]
 
