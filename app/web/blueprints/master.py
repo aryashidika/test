@@ -30,7 +30,10 @@ from ...domain.supplier_service import (
     set_default_currency,
     set_status as set_supplier_status,
 )
-from ..auth import guard_blueprint, require_session
+from ...domain.report_service import price_history, where_used
+from ...domain.revision_service import STAGES
+from ...domain.worklist_service import approval_queue, proposal_counts
+from ..auth import guard_blueprint, require_permission, require_session
 
 master_bp = Blueprint("master", __name__, url_prefix="/master")
 guard_blueprint(master_bp, permissions.can_view_master)
@@ -40,14 +43,18 @@ STATUS_VALUES = ["PROPOSED", "APPROVED", "INACTIVE"]
 
 def _role_ctx():
     role = g.session.role
+    can_manage = permissions.can_manage_master(role)
     return {
-        "can_manage": permissions.can_manage_master(role),
-        "can_propose": permissions.can_propose(role) or permissions.can_manage_master(role),
+        "can_manage": can_manage,
+        "can_propose": permissions.can_propose(role) or can_manage,
         "read_only": permissions.is_read_only(role),
         "can_view_price": permissions.can_view_price(role),
         "can_manage_price": permissions.can_manage_price(role),
         "can_manage_links": permissions.can_manage_material_supplier(role),
         "can_approve_links": permissions.can_approve_material_supplier(role),
+        "can_view_drafts": permissions.can_view_drafts(role),
+        # Badge jumlah di sub-tab "Persetujuan" (khusus Master Admin).
+        "approval_count": sum(proposal_counts(g.db).values()) if can_manage else 0,
     }
 
 
@@ -61,13 +68,17 @@ def _require(allowed):
 def _material_list_ctx(error=None):
     search = request.args.get("q", "")
     price_filter = request.args.get("harga", "")
-    materials = list_materials(g.db, search=search or None)
+    status_filter = request.args.get("status", "")
+    if status_filter not in STATUS_VALUES:
+        status_filter = ""
+    materials = list_materials(g.db, search=search or None, status=status_filter or None)
     role_ctx = _role_ctx()
     if price_filter == "kosong" and role_ctx["can_view_price"]:
         without_price = prices.materials_without_price(g.db)
         materials = [m for m in materials if m["id"] in without_price]
     return {
-        "materials": materials, "search": search, "price_filter": price_filter, "error": error,
+        "materials": materials, "search": search, "price_filter": price_filter,
+        "status_filter": status_filter, "error": error,
         "summary": prices.supplier_summary_by_material(g.db),
         "next_material_code": suggest_next_material_code(g.db), **role_ctx,
     }
@@ -125,8 +136,8 @@ def material_edit(material_id):
             thickness=form["thickness"] or None, uom=form["uom"],
         ), g.session.actor_label)
     except (DuplicateMaterialError, DuplicateMaterialCodeError, ValueError) as exc:
-        return _render_detail(material_id, error=str(exc), material_form=form)
-    return _render_detail(material_id, notice="Data material disimpan.")
+        return _render_detail(material_id, error=str(exc), material_form=form, tab="info")
+    return _render_detail(material_id, notice="Data material disimpan.", tab="info")
 
 
 # ---------------- Material detail: Supplier & Harga ----------------
@@ -144,11 +155,28 @@ def _group_prices(material_prices, today):
     return grouped
 
 
-def _material_detail_ctx(material_id, error=None, notice=None, form=None, material_form=None):
+MATERIAL_TABS = ("supplier", "info", "dipakai", "histori")
+
+
+def _material_tab(tab, role_ctx, editing_material):
+    tab = tab or request.args.get("tab") or ("info" if editing_material else "supplier")
+    if tab not in MATERIAL_TABS or (tab == "histori" and not role_ctx["can_view_price"]):
+        tab = "supplier"
+    return tab
+
+
+def _material_detail_ctx(material_id, error=None, notice=None, form=None, material_form=None, tab=None):
     material = g.db.execute("SELECT * FROM material WHERE id=?", (material_id,)).fetchone()
     if not material:
         abort(404)
     role_ctx = _role_ctx()
+    editing_material = bool(request.args.get("edit") or material_form)
+    tab = _material_tab(tab, role_ctx, editing_material)
+    # Tab "Dipakai di" & "Histori Harga" (dulu menu Laporan terpisah).
+    usage = where_used(g.db, material_id, published_only=not permissions.can_view_drafts(g.session.role)) \
+        if tab == "dipakai" else []
+    history_stage = request.args.get("stage") if request.args.get("stage") in STAGES else "PROD"
+    history = price_history(g.db, material_id, stage=history_stage) if tab == "histori" else []
     links = prices.list_material_suppliers(g.db, material_id)
     today = prices.today_iso()
     grouped = _group_prices(prices.list_prices(g.db, material_id), today) if role_ctx["can_view_price"] else {}
@@ -192,7 +220,8 @@ def _material_detail_ctx(material_id, error=None, notice=None, form=None, materi
         "editing_price": bool(edit_price and source),
         "material_form": material_form or {k: material[k] or "" for k in
                                            ("material_code", "name", "category", "thickness", "uom")},
-        "editing_material": bool(request.args.get("edit") or material_form),
+        "editing_material": editing_material,
+        "tab": tab, "usage": usage, "history": history, "history_stage": history_stage, "stages": STAGES,
         "error": error, "notice": notice, **role_ctx,
     }
 
@@ -200,8 +229,10 @@ def _material_detail_ctx(material_id, error=None, notice=None, form=None, materi
 def _render_detail(material_id, **kwargs):
     # Form di halaman ini di-boost htmx: tanpa HX-Push-Url, URL POST-nya yang
     # masuk ke history browser dan reload halaman jadi 405.
-    html = render_template("master/material_detail.html", **_material_detail_ctx(material_id, **kwargs))
-    return html, 200, {"HX-Push-Url": url_for("master.material_detail", material_id=material_id)}
+    ctx = _material_detail_ctx(material_id, **kwargs)
+    html = render_template("master/material_detail.html", **ctx)
+    tab = ctx["tab"] if ctx["tab"] != "supplier" else None
+    return html, 200, {"HX-Push-Url": url_for("master.material_detail", material_id=material_id, tab=tab)}
 
 
 @master_bp.route("/material/<material_id>")
@@ -270,9 +301,9 @@ def material_price_method(material_id):
     try:
         prices.set_price_method(g.db, material_id, method, g.session.actor_label)
     except ValueError as exc:
-        return _render_detail(material_id, error=str(exc))
+        return _render_detail(material_id, error=str(exc), tab="info")
     label = "Quotation (harga diisi per CBD)" if method == "QUOTATION" else "Katalog (harga dari master)"
-    return _render_detail(material_id, notice=f"Metode harga diubah ke {label}.")
+    return _render_detail(material_id, notice=f"Metode harga diubah ke {label}.", tab="info")
 
 
 @master_bp.route("/material/<material_id>/price", methods=["POST"])
@@ -304,6 +335,44 @@ def material_price_end(material_id, price_id):
     except ValueError as exc:
         return _render_detail(material_id, error=str(exc))
     return _render_detail(material_id, notice="Harga diakhiri per hari ini.")
+
+
+# ---------------- Persetujuan (Master Admin) ----------------
+
+_APPROVAL_SETTERS = {
+    "material": set_material_status,
+    "komponen": set_component_status,
+    "supplier-material": prices.set_material_supplier_status,
+}
+
+
+def _approval_ctx(error=None, notice=None):
+    return {"queue": approval_queue(g.db), "error": error, "notice": notice, **_role_ctx()}
+
+
+@master_bp.route("/persetujuan")
+@require_session
+@require_permission(permissions.can_manage_master, "Antrian persetujuan hanya untuk Master Admin.")
+def approval_page():
+    return render_template("master/approval.html", **_approval_ctx())
+
+
+@master_bp.route("/persetujuan/<kind>/<item_id>", methods=["POST"])
+@require_session
+@require_permission(permissions.can_manage_master, "Antrian persetujuan hanya untuk Master Admin.")
+def approval_decide(kind, item_id):
+    setter = _APPROVAL_SETTERS.get(kind)
+    status = request.form.get("status")
+    if setter is None or status not in ("APPROVED", "INACTIVE"):
+        abort(400)
+    error = notice = None
+    try:
+        setter(g.db, item_id, status, g.session.actor_label)
+        notice = "Disetujui." if status == "APPROVED" else "Ditolak (dinonaktifkan)."
+    except ValueError as exc:
+        error = str(exc)
+    html = render_template("master/approval.html", **_approval_ctx(error=error, notice=notice))
+    return html, 200, {"HX-Push-Url": url_for("master.approval_page")}
 
 
 # ---------------- Komponen ----------------

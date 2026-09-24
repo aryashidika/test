@@ -46,7 +46,6 @@ def create_app(db_path=None):
             "model": bool(role) and permissions.can_view_model(role),
             "specsheet": bool(role) and permissions.can_view_specsheet(role),
             "cbd": bool(role) and permissions.can_view_cbd(role),
-            "laporan": bool(role) and permissions.can_view_reports(role),
             "admin": bool(role) and permissions.is_system_admin(role),
         }
         return {"nav": nav, "role_label": permissions.role_label(role) if role else ""}

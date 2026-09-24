@@ -6,14 +6,22 @@
 
 <div class="page-header">
   <h1>Master Material</h1>
+  {% if not read_only %}
+  <button type="button" class="btn" data-open-dialog="dlg-add-material">{{ "+ Tambah Material" if can_manage else "+ Usulkan Material" }}</button>
+  {% endif %}
 </div>
 
 {% if error %}<div class="error-banner">{{ error }}</div>{% endif %}
 
-<div class="grid-2">
   <div class="card">
     <form method="get" action="{{ url_for('master.material_page') }}" class="card-toolbar">
-      <input type="search" name="q" value="{{ search }}" placeholder="Cari nama / kategori material...">
+      <input type="search" name="q" value="{{ search }}" placeholder="Cari kode / nama / kategori material...">
+      <select name="status" class="input-sm" onchange="this.form.requestSubmit()" aria-label="Filter status">
+        <option value="">Semua status</option>
+        {% for st in ["PROPOSED","APPROVED","INACTIVE"] %}
+        <option value="{{ st }}" {{ "selected" if st==status_filter else "" }}>{{ st }}</option>
+        {% endfor %}
+      </select>
       {% if can_view_price %}
       <select name="harga" class="input-sm" onchange="this.form.requestSubmit()" aria-label="Filter harga">
         <option value="">Semua material</option>
@@ -66,24 +74,23 @@
                 {% endfor %}
               </select>
               <button type="submit" class="btn btn-secondary btn-sm">Terapkan</button>
-              <a class="btn btn-secondary btn-sm" href="{{ url_for('master.material_detail', material_id=m.id, edit=1) }}">Edit</a>
+              <a class="btn btn-secondary btn-sm" href="{{ url_for('master.material_detail', material_id=m.id, tab='info', edit=1) }}">Edit</a>
             </form>
           </td>
           {% endif %}
         </tr>
         {% else %}
-        <tr><td colspan="12" class="empty-hint">{{ "Tidak ada material yang cocok." if search or price_filter else "Belum ada material." }}</td></tr>
+        <tr><td colspan="12" class="empty-hint">{{ "Tidak ada material yang cocok." if search or price_filter or status_filter else "Belum ada material." }}</td></tr>
         {% endfor %}
       </tbody>
     </table>
     </div>
   </div>
 
-  <div class="card aside-sticky">
-    <h2 class="section-title">{{ "Tambah Material" if can_manage else "Usulkan Material" }}</h2>
-    {% if read_only %}
-    <p class="muted">Role Anda hanya bisa melihat data (read-only).</p>
-    {% else %}
+  {% if not read_only %}
+  <dialog class="form-dialog" id="dlg-add-material">
+    <button type="button" class="modal-close" onclick="this.closest('dialog').close()" aria-label="Tutup">&times;</button>
+    <h3>{{ "Tambah Material" if can_manage else "Usulkan Material" }}</h3>
     <form method="post" action="{{ url_for('master.material_create') }}">
       <div class="field"><label>Material Code *</label><input type="text" name="material_code" value="{{ next_material_code }}" required>
         <span class="field-hint">Terisi otomatis nomor berikutnya — boleh diubah.</span></div>
@@ -93,10 +100,10 @@
       <div class="field"><label>Unit of Measurement *</label><input type="text" name="uom" required placeholder="YD / KG / PCS"></div>
       <div class="form-actions">
         <button type="submit" class="btn">{{ "Simpan" if can_manage else "Usulkan" }}</button>
+        <button type="button" class="btn btn-secondary" onclick="this.closest('dialog').close()">Batal</button>
       </div>
     </form>
     <p class="muted form-note">Supplier dan harga diatur di halaman detail material (klik kode/nama material).</p>
-    {% endif %}
-  </div>
-</div>
+  </dialog>
+  {% endif %}
 {% endblock %}

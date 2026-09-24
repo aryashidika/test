@@ -4,10 +4,14 @@
 {% set active = "komponen" %}
 {% include "master/_subnav.html" with context %}
 
-<div class="page-header"><h1>Master Komponen</h1></div>
+<div class="page-header">
+  <h1>Master Komponen</h1>
+  {% if not read_only %}
+  <button type="button" class="btn" data-open-dialog="dlg-add-component">{{ "+ Tambah Komponen" if can_manage else "+ Usulkan Komponen" }}</button>
+  {% endif %}
+</div>
 {% if error %}<div class="error-banner">{{ error }}</div>{% endif %}
 
-<div class="grid-2">
   <div class="card">
     <form method="get" action="{{ url_for('master.component_page') }}" class="card-toolbar">
       <select name="group_id" onchange="this.form.submit()">
@@ -73,11 +77,10 @@
     </div>
   </div>
 
-  <div class="card aside-sticky">
-    <h2 class="section-title">{{ "Tambah Komponen" if can_manage else "Usulkan Komponen" }}</h2>
-    {% if read_only %}
-    <p class="muted">Role Anda hanya bisa melihat data (read-only).</p>
-    {% else %}
+  {% if not read_only %}
+  <dialog class="form-dialog" id="dlg-add-component">
+    <button type="button" class="modal-close" onclick="this.closest('dialog').close()" aria-label="Tutup">&times;</button>
+    <h3>{{ "Tambah Komponen" if can_manage else "Usulkan Komponen" }}</h3>
     <form method="post" action="{{ url_for('master.component_create') }}">
       <div class="field">
         <label>Kelompok *</label>
@@ -98,9 +101,9 @@
       <div class="field"><label>Nama *</label><input type="text" name="name" required></div>
       <div class="form-actions">
         <button type="submit" class="btn">{{ "Simpan" if can_manage else "Usulkan" }}</button>
+        <button type="button" class="btn btn-secondary" onclick="this.closest('dialog').close()">Batal</button>
       </div>
     </form>
-    {% endif %}
-  </div>
-</div>
+  </dialog>
+  {% endif %}
 {% endblock %}

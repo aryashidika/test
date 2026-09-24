@@ -4,10 +4,14 @@
 {% set active = "supplier" %}
 {% include "master/_subnav.html" with context %}
 
-<div class="page-header"><h1>Master Supplier</h1></div>
+<div class="page-header">
+  <h1>Master Supplier</h1>
+  {% if can_manage %}
+  <button type="button" class="btn" data-open-dialog="dlg-add-supplier">+ Tambah Supplier</button>
+  {% endif %}
+</div>
 {% if error %}<div class="error-banner">{{ error }}</div>{% endif %}
 
-<div class="grid-2">
   <div class="card">
     <form method="get" action="{{ url_for('master.supplier_page') }}" class="card-toolbar">
       <input type="search" name="q" value="{{ search }}" placeholder="Cari nama supplier...">
@@ -61,9 +65,10 @@
     </div>
   </div>
 
-  <div class="card aside-sticky">
-    <h2 class="section-title">Tambah Supplier</h2>
-    {% if can_manage %}
+  {% if can_manage %}
+  <dialog class="form-dialog" id="dlg-add-supplier">
+    <button type="button" class="modal-close" onclick="this.closest('dialog').close()" aria-label="Tutup">&times;</button>
+    <h3>Tambah Supplier</h3>
     <form method="post" action="{{ url_for('master.supplier_create') }}">
       <div class="field"><label>Nama Supplier *</label><input type="text" name="name" required></div>
       <div class="field"><label>Currency Default</label>
@@ -72,11 +77,13 @@
           <option value="USD">USD</option>
         </select>
       </div>
-      <div class="form-actions"><button type="submit" class="btn">Simpan</button></div>
+      <div class="form-actions">
+        <button type="submit" class="btn">Simpan</button>
+        <button type="button" class="btn btn-secondary" onclick="this.closest('dialog').close()">Batal</button>
+      </div>
     </form>
-    {% else %}
-    <p class="muted">Menambah/mengubah supplier hanya untuk role Master Admin.</p>
-    {% endif %}
-  </div>
-</div>
+  </dialog>
+  {% else %}
+  <p class="muted form-note">Menambah/mengubah supplier hanya untuk role Master Admin.</p>
+  {% endif %}
 {% endblock %}

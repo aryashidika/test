@@ -14,7 +14,18 @@
 {% if error %}<div class="error-banner">{{ error }}</div>{% endif %}
 {% if notice %}<div class="notice-banner">{{ notice }}</div>{% endif %}
 
-<div class="grid-2">
+<div class="tabs">
+  <a class="tab-btn {{ 'active' if tab == 'supplier' else '' }}" href="{{ url_for('master.material_detail', material_id=material.id) }}">{{ "Supplier & Harga" if can_view_price else "Supplier" }}</a>
+  <a class="tab-btn {{ 'active' if tab == 'info' else '' }}" href="{{ url_for('master.material_detail', material_id=material.id, tab='info') }}">Info Material</a>
+  <a class="tab-btn {{ 'active' if tab == 'dipakai' else '' }}" href="{{ url_for('master.material_detail', material_id=material.id, tab='dipakai') }}">Dipakai di</a>
+  {% if can_view_price %}
+  <a class="tab-btn {{ 'active' if tab == 'histori' else '' }}" href="{{ url_for('master.material_detail', material_id=material.id, tab='histori') }}">Histori Harga CBD</a>
+  {% endif %}
+</div>
+
+{% if tab == 'supplier' %}
+{% set has_aside = can_manage_links or (can_manage_price and material.price_method == 'CATALOG') %}
+<div class="{{ 'grid-2' if has_aside else '' }}">
   <div class="card">
     <h2 class="section-title">{{ "Supplier & Harga" if can_view_price else "Supplier" }}</h2>
     <p class="muted section-note">
@@ -138,58 +149,8 @@
     {% endfor %}
   </div>
 
+  {% if has_aside %}
   <div class="stack aside-sticky">
-    <div class="card">
-      <div class="card-head" style="margin-bottom:12px;">
-        <h2 class="section-title">Info Material</h2>
-        {% if can_manage and not editing_material %}
-        <a class="btn btn-secondary btn-sm" href="{{ url_for('master.material_detail', material_id=material.id, edit=1) }}">Edit</a>
-        {% endif %}
-      </div>
-      {% if can_manage and editing_material %}
-      <form method="post" action="{{ url_for('master.material_edit', material_id=material.id) }}" style="margin-bottom:14px;">
-        <div class="field"><label for="mat-code">Material Code *</label><input type="text" name="material_code" id="mat-code" value="{{ material_form.material_code }}" required></div>
-        <div class="field"><label for="mat-name">Material Name *</label><input type="text" name="name" id="mat-name" value="{{ material_form.name }}" required></div>
-        <div class="field"><label for="mat-cat">Material Category *</label><input type="text" name="category" id="mat-cat" value="{{ material_form.category }}" required></div>
-        <div class="field-row">
-          <div class="field"><label for="mat-thick">Thickness</label><input type="text" name="thickness" id="mat-thick" value="{{ material_form.thickness }}"></div>
-          <div class="field"><label for="mat-uom">UoM *</label><input type="text" name="uom" id="mat-uom" value="{{ material_form.uom }}" required></div>
-        </div>
-        <div class="form-actions">
-          <a class="btn btn-secondary" href="{{ url_for('master.material_detail', material_id=material.id) }}">Batal</a>
-          <button type="submit" class="btn">Simpan</button>
-        </div>
-        <p class="muted form-note">BOM dan CBD DRAFT langsung menampilkan data baru; CBD yang sudah terbit tidak berubah.</p>
-      </form>
-      {% endif %}
-      <dl class="info-list">
-        {% if not (can_manage and editing_material) %}
-        <dt>Kategori</dt><dd>{{ material.category }}</dd>
-        <dt>Thickness</dt><dd>{{ material.thickness or '-' }}</dd>
-        <dt>UoM</dt><dd>{{ material.uom }}</dd>
-        {% endif %}
-        {% if can_view_price %}
-        <dt>Metode harga</dt>
-        <dd>
-          {% if can_manage_price %}
-          <form method="post" action="{{ url_for('master.material_price_method', material_id=material.id) }}" class="inline-actions">
-            <select name="price_method" class="input-sm" aria-label="Metode harga">
-              <option value="CATALOG" {{ "selected" if material.price_method == 'CATALOG' else "" }}>Katalog (dari master)</option>
-              <option value="QUOTATION" {{ "selected" if material.price_method == 'QUOTATION' else "" }}>Quotation per CBD</option>
-            </select>
-            <button type="submit" class="btn btn-secondary btn-sm">Terapkan</button>
-          </form>
-          {% else %}
-          {{ "Quotation per CBD" if material.price_method == 'QUOTATION' else "Katalog (dari master)" }}
-          {% endif %}
-          <span class="cell-sub muted">{{ "Material proses: harga beda tiap desain/warna, diisi langsung di CBD." if material.price_method == 'QUOTATION' else "Harga per supplier (dan per warna) diisi di halaman ini." }}</span>
-        </dd>
-        {% endif %}
-        <dt>Dibuat</dt><dd>{{ material.created_by or '-' }}<span class="cell-sub muted">{{ material.created_at }}</span></dd>
-        <dt>Diubah</dt><dd>{{ material.updated_by or '-' }}<span class="cell-sub muted">{{ material.updated_at }}</span></dd>
-      </dl>
-    </div>
-
     {% if can_manage_price and material.price_method == 'CATALOG' %}
     <div class="card {{ 'card-focus' if focus_price_form else '' }}" id="form-harga">
       <h2 class="section-title">{{ "Ubah Harga" if editing_price else "+ Harga" }}</h2>
@@ -243,5 +204,123 @@
     </div>
     {% endif %}
   </div>
+  {% endif %}
 </div>
+
+{% elif tab == 'info' %}
+<div style="max-width:640px;">
+    <div class="card">
+      <div class="card-head" style="margin-bottom:12px;">
+        <h2 class="section-title">Info Material</h2>
+        {% if can_manage and not editing_material %}
+        <a class="btn btn-secondary btn-sm" href="{{ url_for('master.material_detail', material_id=material.id, tab='info', edit=1) }}">Edit</a>
+        {% endif %}
+      </div>
+      {% if can_manage and editing_material %}
+      <form method="post" action="{{ url_for('master.material_edit', material_id=material.id) }}" style="margin-bottom:14px;">
+        <div class="field"><label for="mat-code">Material Code *</label><input type="text" name="material_code" id="mat-code" value="{{ material_form.material_code }}" required></div>
+        <div class="field"><label for="mat-name">Material Name *</label><input type="text" name="name" id="mat-name" value="{{ material_form.name }}" required></div>
+        <div class="field"><label for="mat-cat">Material Category *</label><input type="text" name="category" id="mat-cat" value="{{ material_form.category }}" required></div>
+        <div class="field-row">
+          <div class="field"><label for="mat-thick">Thickness</label><input type="text" name="thickness" id="mat-thick" value="{{ material_form.thickness }}"></div>
+          <div class="field"><label for="mat-uom">UoM *</label><input type="text" name="uom" id="mat-uom" value="{{ material_form.uom }}" required></div>
+        </div>
+        <div class="form-actions">
+          <a class="btn btn-secondary" href="{{ url_for('master.material_detail', material_id=material.id, tab='info') }}">Batal</a>
+          <button type="submit" class="btn">Simpan</button>
+        </div>
+        <p class="muted form-note">BOM dan CBD DRAFT langsung menampilkan data baru; CBD yang sudah terbit tidak berubah.</p>
+      </form>
+      {% endif %}
+      <dl class="info-list">
+        {% if not (can_manage and editing_material) %}
+        <dt>Kategori</dt><dd>{{ material.category }}</dd>
+        <dt>Thickness</dt><dd>{{ material.thickness or '-' }}</dd>
+        <dt>UoM</dt><dd>{{ material.uom }}</dd>
+        {% endif %}
+        {% if can_view_price %}
+        <dt>Metode harga</dt>
+        <dd>
+          {% if can_manage_price %}
+          <form method="post" action="{{ url_for('master.material_price_method', material_id=material.id) }}" class="inline-actions">
+            <select name="price_method" class="input-sm" aria-label="Metode harga">
+              <option value="CATALOG" {{ "selected" if material.price_method == 'CATALOG' else "" }}>Katalog (dari master)</option>
+              <option value="QUOTATION" {{ "selected" if material.price_method == 'QUOTATION' else "" }}>Quotation per CBD</option>
+            </select>
+            <button type="submit" class="btn btn-secondary btn-sm">Terapkan</button>
+          </form>
+          {% else %}
+          {{ "Quotation per CBD" if material.price_method == 'QUOTATION' else "Katalog (dari master)" }}
+          {% endif %}
+          <span class="cell-sub muted">{{ "Material proses: harga beda tiap desain/warna, diisi langsung di CBD." if material.price_method == 'QUOTATION' else "Harga per supplier (dan per warna) diisi di halaman ini." }}</span>
+        </dd>
+        {% endif %}
+        <dt>Dibuat</dt><dd>{{ material.created_by or '-' }}<span class="cell-sub muted">{{ material.created_at }}</span></dd>
+        <dt>Diubah</dt><dd>{{ material.updated_by or '-' }}<span class="cell-sub muted">{{ material.updated_at }}</span></dd>
+      </dl>
+    </div>
+</div>
+
+{% elif tab == 'dipakai' %}
+<div class="card">
+  <h2 class="section-title">Dipakai di</h2>
+  <p class="muted section-note">Revisi specsheet terbaru tiap season{{ " yang sudah terbit" if not can_view_drafts else " (DRAFT atau terbit)" }}, hanya article aktif.</p>
+  <div class="table-scroll">
+  <table class="data-table">
+    <thead><tr><th>Model</th><th>Season</th><th>Article</th><th>Komponen</th><th>Stage</th><th>Revisi</th></tr></thead>
+    <tbody>
+      {% for r in usage %}
+      <tr>
+        <td><a href="{{ url_for('specsheet.detail', model_id=r.model_id) }}">{{ r.model_code }} — {{ r.model_name }}</a></td>
+        <td>{{ r.season }}</td>
+        <td>{{ r.article_code }} <span class="muted">({{ r.colorway }})</span></td>
+        <td>{{ r.display_no }} — {{ r.display_name }}</td>
+        <td>{{ r.stage }}</td>
+        <td class="nowrap">r{{ r.revision_no }} <span class="badge badge-{{ r.revision_status|lower }}">{{ r.revision_status }}</span></td>
+      </tr>
+      {% else %}
+      <tr><td colspan="6" class="empty-hint">Material ini belum dipakai di specsheet mana pun.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+
+{% else %}
+<div class="card">
+  <div class="card-head">
+    <h2 class="section-title">Histori Harga CBD</h2>
+    <form method="get" action="{{ url_for('master.material_detail', material_id=material.id) }}" class="inline-actions">
+      <input type="hidden" name="tab" value="histori">
+      <label class="muted" for="hist-stage">Stage</label>
+      <select name="stage" id="hist-stage" onchange="this.form.requestSubmit()" class="input-sm">
+        {% for s in stages %}<option value="{{ s }}" {{ "selected" if s==history_stage else "" }}>{{ s }}</option>{% endfor %}
+      </select>
+    </form>
+  </div>
+  <p class="muted section-note" style="margin-top:8px;">Harga yang dipakai di CBD terbit (baris aktif), dalam mata uang asli.</p>
+  {% for grp in history %}
+  <h3 class="sub-title">Warna {{ grp.color }} &middot; Supplier {{ grp.supplier }} &middot; UoM {{ grp.uom }} &middot; {{ grp.currency }}</h3>
+  <div class="table-scroll">
+  <table class="data-table">
+    <thead><tr><th>Model</th><th>Season</th><th>Article</th><th>Revisi</th><th class="num">Harga</th><th>Diterbitkan</th></tr></thead>
+    <tbody>
+      {% for e in grp.entries %}
+      <tr>
+        <td>{{ e.model_code }} — {{ e.model_name }}</td>
+        <td>{{ e.season }}</td>
+        <td>{{ e.article_code }}</td>
+        <td>r{{ e.revision_no }}</td>
+        <td class="num nowrap">{{ e.price_original|angka(6, trim=True) }} {{ grp.currency }}</td>
+        <td class="muted">{{ e.published_at }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% else %}
+  <p class="empty-hint">Belum ada harga CBD terbit untuk material ini di stage {{ history_stage }}.</p>
+  {% endfor %}
+</div>
+{% endif %}
 {% endblock %}

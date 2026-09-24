@@ -17,7 +17,6 @@
     {% if nav.model %}<a href="{{ url_for('model.list_page') }}" class="{{ 'active' if request.blueprint=='model' else '' }}">Model</a>{% endif %}
     {% if nav.specsheet %}<a href="{{ url_for('specsheet.list_page') }}" class="{{ 'active' if request.blueprint=='specsheet' else '' }}">Specsheet</a>{% endif %}
     {% if nav.cbd %}<a href="{{ url_for('cbd.list_page') }}" class="{{ 'active' if request.blueprint=='cbd' else '' }}">CBD</a>{% endif %}
-    {% if nav.laporan %}<a href="{{ url_for('laporan.index') }}" class="{{ 'active' if request.blueprint=='laporan' else '' }}">Laporan</a>{% endif %}
     {% if nav.admin %}<a href="{{ url_for('admin.index') }}" class="{{ 'active' if request.blueprint=='admin' else '' }}">Admin</a>{% endif %}
   </nav>
   <div class="topbar-right">
@@ -68,6 +67,14 @@ document.addEventListener('input', function (e) {
   no.required = isLocal;
   if (!isLocal) no.value = '';
   row.classList.toggle('is-local-component', isLocal);
+});
+
+// Tombol "+ Tambah ..." membuka <dialog id="..."> sebagai modal.
+document.addEventListener('click', function (e) {
+  var btn = e.target.closest('[data-open-dialog]');
+  if (!btn) return;
+  var dialog = document.getElementById(btn.dataset.openDialog);
+  if (dialog) dialog.showModal();
 });
 
 // Grid CBD: popup override ([popover]) dibuka tepat di bawah tombolnya,

@@ -2,4 +2,7 @@
   <a href="{{ url_for('master.material_page') }}" class="{{ 'active' if active=='material' else '' }}">Material</a>
   <a href="{{ url_for('master.component_page') }}" class="{{ 'active' if active=='komponen' else '' }}">Komponen</a>
   <a href="{{ url_for('master.supplier_page') }}" class="{{ 'active' if active=='supplier' else '' }}">Supplier</a>
+  {% if can_manage %}
+  <a href="{{ url_for('master.approval_page') }}" class="{{ 'active' if active=='persetujuan' else '' }}">Persetujuan{% if approval_count %} <span class="count-badge">{{ approval_count }}</span>{% endif %}</a>
+  {% endif %}
 </div>

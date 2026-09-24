@@ -62,7 +62,13 @@ def test_vendor_spec_cannot_see_prices(client):
     assert client.get("/laporan/histori-harga").status_code == 403
     page = client.get("/specsheet").get_data(as_text=True)
     assert ">CBD<" not in page and ">Specsheet<" in page
-    assert client.get("/laporan/where-used").status_code == 200
+    # Laporan dilebur ke detail Material: "Dipakai di" boleh, histori harga tidak tampil.
+    conn = sqlite3.connect(str(client.db_path))
+    material_id = conn.execute("SELECT id FROM material LIMIT 1").fetchone()[0]
+    conn.close()
+    assert client.get(f"/master/material/{material_id}?tab=dipakai").status_code == 200
+    page = client.get(f"/master/material/{material_id}?tab=histori").get_data(as_text=True)
+    assert "Histori Harga CBD" not in page and "Harga" not in page.split('class="tabs"')[1][:600]
 
 
 def test_mutations_rejected_for_wrong_role(client):

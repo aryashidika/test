@@ -3,6 +3,50 @@
 {% block content %}
 <div class="page-header"><h1>Admin</h1></div>
 
+<div class="tabs">
+  <a class="tab-btn {{ 'active' if tab == 'audit' else '' }}" href="{{ url_for('admin.index') }}">Audit Log</a>
+  <a class="tab-btn {{ 'active' if tab == 'reset' else '' }}" href="{{ url_for('admin.index', tab='reset') }}">Reset Data</a>
+</div>
+
+{% if tab == 'audit' %}
+<div class="card">
+  <form method="get" action="{{ url_for('admin.index') }}" class="card-toolbar">
+    <select name="entity" class="input-sm" onchange="this.form.requestSubmit()" aria-label="Filter entitas">
+      <option value="">Semua entitas</option>
+      {% for e in entities %}<option value="{{ e }}" {{ "selected" if e==entity else "" }}>{{ e }}</option>{% endfor %}
+    </select>
+    <input type="search" name="q" value="{{ search }}" placeholder="Cari role/operator, aksi, ID, isi...">
+  </form>
+  <p class="muted section-note">{{ entries|length }} entri terbaru (maks. {{ limit }}).</p>
+  <div class="table-scroll">
+  <table class="data-table">
+    <thead><tr><th>Waktu</th><th>Oleh</th><th>Entitas</th><th>Aksi</th><th>Perubahan</th></tr></thead>
+    <tbody>
+      {% for e in entries %}
+      <tr>
+        <td class="nowrap muted">{{ e.created_at }}</td>
+        <td>{{ e.user_role }}</td>
+        <td class="nowrap">{{ e.entity }}<span class="cell-sub muted">{{ e.entity_id[:12] }}</span></td>
+        <td class="nowrap"><span class="badge badge-draft">{{ e.action }}</span></td>
+        <td>
+          {% if e.before or e.after %}
+          <details class="audit-diff">
+            <summary>Lihat</summary>
+            {% if e.before %}<div class="muted">Sebelum</div><pre>{{ e.before }}</pre>{% endif %}
+            {% if e.after %}<div class="muted">Sesudah</div><pre>{{ e.after }}</pre>{% endif %}
+          </details>
+          {% else %}<span class="muted">-</span>{% endif %}
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="5" class="empty-hint">Tidak ada entri audit log yang cocok.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+
+{% else %}
 <div class="card" style="max-width:560px;">
   <h2 class="section-title">Reset Data Prototipe</h2>
   <p class="muted" style="margin-top:0;">
@@ -21,4 +65,5 @@
     </div>
   </form>
 </div>
+{% endif %}
 {% endblock %}

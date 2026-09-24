@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}Persetujuan — Master Data{% endblock %}
+
+{% macro decide(kind, item_id, label) %}
+<div class="inline-actions">
+  <form method="post" action="{{ url_for('master.approval_decide', kind=kind, item_id=item_id) }}">
+    <input type="hidden" name="status" value="APPROVED">
+    <button type="submit" class="btn btn-sm">Setujui</button>
+  </form>
+  <form method="post" action="{{ url_for('master.approval_decide', kind=kind, item_id=item_id) }}"
+        hx-confirm="Tolak {{ label }}? Statusnya jadi INACTIVE dan tidak bisa dipilih lagi di BOM.">
+    <input type="hidden" name="status" value="INACTIVE">
+    <button type="submit" class="btn btn-secondary btn-sm">Tolak</button>
+  </form>
+</div>
+{% endmacro %}
+
+{% block content %}
+{% set active = "persetujuan" %}
+{% include "master/_subnav.html" with context %}
+
+<div class="page-header"><h1>Antrian Persetujuan</h1></div>
+<p class="muted section-note" style="margin-top:-8px;">Usulan dari vendor sudah bisa dipakai selagi menunggu; tolak = INACTIVE.</p>
+{% if error %}<div class="error-banner">{{ error }}</div>{% endif %}
+{% if notice %}<div class="success-banner">{{ notice }}</div>{% endif %}
+
+<div class="card">
+  <h2 class="section-title">Material ({{ queue.materials|length }})</h2>
+  <div class="table-scroll">
+  <table class="data-table">
+    <thead><tr><th>Material Code</th><th>Nama</th><th>Kategori</th><th>Diusulkan</th><th></th></tr></thead>
+    <tbody>
+      {% for m in queue.materials %}
+      <tr>
+        <td class="nowrap"><a href="{{ url_for('master.material_detail', material_id=m.id, tab='info') }}"><strong>{{ m.material_code }}</strong></a></td>
+        <td>{{ m.name }}</td>
+        <td class="muted">{{ m.category }}</td>
+        <td class="muted">{{ m.created_by or '-' }}<span class="cell-sub">{{ m.created_at }}</span></td>
+        <td class="nowrap">{{ decide('material', m.id, m.material_code) }}</td>
+      </tr>
+      {% else %}<tr><td colspan="5" class="empty-hint">Tidak ada material usulan.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+
+<div class="card">
+  <h2 class="section-title">Komponen ({{ queue.components|length }})</h2>
+  <div class="table-scroll">
+  <table class="data-table">
+    <thead><tr><th>No.</th><th>Nama</th><th>Kelompok</th><th>Dibuat</th><th></th></tr></thead>
+    <tbody>
+      {% for c in queue.components %}
+      <tr>
+        <td class="nowrap"><strong>{{ c.number }}</strong></td>
+        <td>{{ c.name }}</td>
+        <td class="muted">{{ c.group_code }}</td>
+        <td class="muted">{{ c.created_at }}</td>
+        <td class="nowrap">{{ decide('komponen', c.id, 'komponen ' ~ c.number) }}</td>
+      </tr>
+      {% else %}<tr><td colspan="5" class="empty-hint">Tidak ada komponen usulan.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+
+<div class="card">
+  <h2 class="section-title">Supplier Material ({{ queue.links|length }})</h2>
+  <p class="muted section-note">Terbentuk otomatis saat tim specsheet memilih supplier di BOM.</p>
+  <div class="table-scroll">
+  <table class="data-table">
+    <thead><tr><th>Material</th><th>Supplier</th><th>Diusulkan</th><th></th></tr></thead>
+    <tbody>
+      {% for l in queue.links %}
+      <tr>
+        <td><a href="{{ url_for('master.material_detail', material_id=l.material_id) }}"><strong>{{ l.material_code }}</strong></a> {{ l.material_name }}</td>
+        <td>{{ l.supplier_name }}</td>
+        <td class="muted">{{ l.created_by or '-' }}<span class="cell-sub">{{ l.created_at }}</span></td>
+        <td class="nowrap">{{ decide('supplier-material', l.id, l.material_code ~ ' – ' ~ l.supplier_name) }}</td>
+      </tr>
+      {% else %}<tr><td colspan="4" class="empty-hint">Tidak ada supplier material usulan.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+{% endblock %}

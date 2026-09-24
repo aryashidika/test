@@ -144,7 +144,8 @@
 </div>
 
 <div class="card" id="appr-materials">
-  <h2 class="section-title">Material Menunggu Persetujuan</h2>
+  <div class="card-head"><h2 class="section-title">Material Menunggu Persetujuan</h2>
+    <a class="btn btn-sm" href="{{ url_for('master.approval_page') }}">Buka Antrian Persetujuan &rarr;</a></div>
   {% for m in approvals.materials %}
   <div class="task-item">
     <div>
@@ -160,7 +161,7 @@
   {% for c in approvals.components %}
   <div class="task-item">
     <div>
-      <a class="task-title" href="{{ url_for('master.component_page') }}">{{ c.number }} &middot; {{ c.name }}</a>
+      <a class="task-title" href="{{ url_for('master.approval_page') }}">{{ c.number }} &middot; {{ c.name }}</a>
       <div class="muted task-meta">Kelompok {{ c.group_code }} &middot; {{ c.created_at }}</div>
     </div>
   </div>
