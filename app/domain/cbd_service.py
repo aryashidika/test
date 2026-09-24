@@ -817,42 +817,46 @@ def update_margin_pct(conn, cbd_revision_id, value, actor):
 
 # ---------------- publish (PRD 6.5) ----------------
 
-def publish_cbd_revision(conn, cbd_revision_id, category, reason, actor):
-    revision = ensure_cbd_draft(conn, cbd_revision_id)
-
-    article = get_article(conn, revision["article_id"])
-    latest_specsheet = latest_published_specsheet_revision(conn, article["specsheet_id"])
-    if latest_specsheet and latest_specsheet["id"] != revision["specsheet_revision_id"]:
-        raise ValueError(
-            "Specsheet acuan CBD ini sudah diterbitkan revisi baru. "
-            "Refresh CBD ini dari specsheet terbaru dulu sebelum diterbitkan."
-        )
-
+def cbd_publish_checklist(conn, cbd_revision_id):
+    """Pemeriksaan sebelum CBD terbit, dipakai modal "Terbitkan" dan
+    `publish_cbd_revision` (item `blocking` yang gagal menolak terbit). Baris
+    tanpa harga BOLEH terbit (mis. proses yang harganya sudah termasuk di baris
+    lain) — hanya diingatkan, cost-nya dihitung 0."""
+    revision = _get_cbd_revision(conn, cbd_revision_id)
+    stale_spec = cbd_draft_is_stale(conn, revision)
     rate = to_decimal(revision["exchange_rate"])
-    if rate is None or rate <= 0:
-        raise ValueError("Exchange rate harus lebih besar dari 0.")
-
-    # Harga master adalah snapshot saat CBD dibuat/di-refresh — kalau master
-    # sudah berubah sejak itu, CBD tidak boleh terbit dengan harga usang tanpa
-    # disadari (sama seperti aturan specsheet usang di atas).
     stale_prices = stale_master_price_lines(conn, cbd_revision_id)
-    if stale_prices:
-        raise ValueError(
-            f"Harga master untuk {len(stale_prices)} baris sudah berubah sejak CBD ini dibuat. "
-            "Klik 'Refresh Harga dari Master' dulu sebelum diterbitkan."
-        )
-
-    # Baris tanpa harga BOLEH diterbitkan (mis. proses yang harganya sudah
-    # termasuk di baris lain, atau barang FOC) — cost-nya dihitung 0. Yang wajib
-    # hanya: baris yang berharga harus punya yield, supaya cost/pair-nya terhitung.
     active_lines = conn.execute(
         "SELECT * FROM cbd_line WHERE cbd_revision_id=? AND status='ACTIVE'", (cbd_revision_id,)
     ).fetchall()
     incomplete = [l for l in active_lines if l["price_original"] and not l["yield_value"]]
-    if incomplete:
-        raise ValueError(
-            f"Ada {len(incomplete)} baris berharga yang belum lengkap (yield belum diisi)."
-        )
+    unpriced = [l for l in active_lines if not l["price_original"]]
+    return [
+        {"label": "Specsheet acuan masih revisi terbit terkini", "ok": not stale_spec, "blocking": True,
+         "detail": "Klik 'Refresh dari Specsheet Terbaru'" if stale_spec else "",
+         "error": "Specsheet acuan CBD ini sudah diterbitkan revisi baru. "
+                  "Refresh CBD ini dari specsheet terbaru dulu sebelum diterbitkan."},
+        {"label": "Exchange rate terisi (> 0)", "ok": rate is not None and rate > 0, "blocking": True,
+         "detail": "Isi di Rekap Biaya" if not (rate and rate > 0) else "",
+         "error": "Exchange rate harus lebih besar dari 0."},
+        {"label": "Harga master sama dengan master terkini", "ok": not stale_prices, "blocking": True,
+         "detail": f"{len(stale_prices)} baris berubah — klik 'Refresh Harga dari Master'" if stale_prices else "",
+         "error": f"Harga master untuk {len(stale_prices)} baris sudah berubah sejak CBD ini dibuat. "
+                  "Klik 'Refresh Harga dari Master' dulu sebelum diterbitkan."},
+        {"label": "Baris berharga punya yield", "ok": not incomplete, "blocking": True,
+         "detail": f"{len(incomplete)} baris belum diisi yield" if incomplete else "",
+         "error": f"Ada {len(incomplete)} baris berharga yang belum lengkap (yield belum diisi)."},
+        {"label": "Semua baris berharga", "ok": not unpriced, "blocking": False,
+         "detail": f"{len(unpriced)} baris tanpa harga akan terbit dengan cost 0" if unpriced else "",
+         "error": ""},
+    ]
+
+
+def publish_cbd_revision(conn, cbd_revision_id, category, reason, actor):
+    revision = ensure_cbd_draft(conn, cbd_revision_id)
+    for check in cbd_publish_checklist(conn, cbd_revision_id):
+        if check["blocking"] and not check["ok"]:
+            raise ValueError(check["error"])
 
     requires_reason = revision["source_cbd_revision_id"] is not None or revision["revision_no"] != 0
     reason = (reason or "").strip()

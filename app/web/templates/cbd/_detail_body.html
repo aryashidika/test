@@ -1,165 +1,176 @@
+{% set body_url = url_for('cbd.detail_body', model_id=model.id) %}
+{% set page_url = url_for('cbd.detail', model_id=model.id) %}
+{% macro qs(extra='') %}specsheet_id={{ specsheet_id }}&article_id={{ article_id }}{% if cbd_revision_id %}&cbd_revision_id={{ cbd_revision_id }}{% endif %}{{ extra }}{% endmacro %}
 <a class="back-link" href="{{ url_for('cbd.list_page') }}">&larr; Kembali ke daftar CBD</a>
 
-<div class="model-header">
-  <h1>{{ model.code }} — {{ model.name }}</h1>
-  <div class="meta">
-    <span>Kategori: {{ model.category or '-' }}</span>
-    <span>Factory: {{ model.factory or '-' }}</span>
+<div class="model-header header-with-actions">
+  <div>
+    <h1>{{ model.code }} — {{ model.name }}</h1>
+    <div class="meta">
+      <span>Kategori: {{ model.category or '-' }}</span>
+      <span>Factory: {{ model.factory or '-' }}</span>
+    </div>
+  </div>
+  <div class="header-actions">
+    <a class="btn btn-light btn-sm" href="{{ url_for('model.detail', model_id=model.id, tab='article', specsheet_id=specsheet_id) if specsheet_id else url_for('model.detail', model_id=model.id) }}">Season &amp; Article</a>
+    <a class="btn btn-light btn-sm" href="{{ url_for('specsheet.detail', model_id=model.id, specsheet_id=specsheet_id) if specsheet_id else url_for('specsheet.detail', model_id=model.id) }}">Buka Specsheet &rarr;</a>
   </div>
 </div>
 
 {% if form_error %}<div class="error-banner">{{ form_error }}</div>{% endif %}
 
-<div class="grid-detail">
-  <div class="stack">
-    <div class="card">
-      <h2 class="section-title">Season</h2>
-      <ul class="season-list">
+{% if not specsheets %}
+<div class="card"><p class="empty-hint">Belum ada season. Season &amp; article dibuat di menu Model, lalu specsheet-nya di menu Specsheet.</p></div>
+{% else %}
+
+{# -------- Navigasi: season, chip article berstatus, stepper revisi CBD -------- #}
+<div class="card revision-nav">
+  <div class="revision-nav-row">
+    <label class="season-picker">
+      <span class="muted">Season</span>
+      <select name="specsheet_id" aria-label="Season"
+              onchange="window.location.href = '{{ page_url }}?specsheet_id=' + this.value">
         {% for sp in specsheets %}
-        <li>
-          <a class="{{ 'active' if sp.id==specsheet_id else '' }}"
-             hx-get="{{ url_for('cbd.detail_body', model_id=model.id) }}?specsheet_id={{ sp.id }}"
-             hx-target="#detail-body" hx-swap="innerHTML"
-             hx-push-url="{{ url_for('cbd.detail', model_id=model.id) }}?specsheet_id={{ sp.id }}">
-            <span>{{ sp.season }}</span>
-          </a>
-        </li>
-        {% else %}
-        <li class="empty-hint">Belum ada season. Season &amp; article dibuat di menu Model, lalu specsheet-nya di menu Specsheet.</li>
+        <option value="{{ sp.id }}" {{ "selected" if sp.id == specsheet_id else "" }}>{{ sp.season }}</option>
         {% endfor %}
-      </ul>
-    </div>
-
-    <div class="card">
-      <h2 class="section-title">Article{{ (' — ' ~ specsheet.season) if specsheet else '' }}</h2>
-      {% set active_articles = articles|selectattr("cbd_status", "equalto", "ACTIVE")|list %}
-      {% set inactive_articles = articles|rejectattr("cbd_status", "equalto", "ACTIVE")|list %}
-      <ul class="season-list stacked">
-        {% for a in active_articles %}
-        <li>
-          <a class="{{ 'active' if a.id==article_id else '' }}"
-             hx-get="{{ url_for('cbd.detail_body', model_id=model.id) }}?specsheet_id={{ specsheet_id }}&article_id={{ a.id }}"
-             hx-target="#detail-body" hx-swap="innerHTML"
-             hx-push-url="{{ url_for('cbd.detail', model_id=model.id) }}?specsheet_id={{ specsheet_id }}&article_id={{ a.id }}">
-            <span>{{ a.code }}</span>
-            <span class="muted">{{ a.colorway }}</span>
-          </a>
-        </li>
-        {% else %}
-        <li class="empty-hint">{{ "Belum ada article aktif di specsheet terbit." if articles else "Belum ada article pada season ini." }}</li>
-        {% endfor %}
-      </ul>
-      {% if inactive_articles %}
-      <details class="inactive-articles" {{ 'open' if article and article.cbd_status != 'ACTIVE' else '' }}>
-        <summary>Article tidak aktif ({{ inactive_articles|length }})</summary>
-        <p class="muted section-note">Di-drop atau belum ada di specsheet terbit — CBD-nya tidak bisa dibuat/diubah.</p>
-        <ul class="season-list stacked">
-          {% for a in inactive_articles %}
-          <li>
-            {% if a.has_cbd %}
-            <a class="{{ 'active' if a.id==article_id else '' }}"
-               hx-get="{{ url_for('cbd.detail_body', model_id=model.id) }}?specsheet_id={{ specsheet_id }}&article_id={{ a.id }}"
-               hx-target="#detail-body" hx-swap="innerHTML"
-               hx-push-url="{{ url_for('cbd.detail', model_id=model.id) }}?specsheet_id={{ specsheet_id }}&article_id={{ a.id }}">
-            {% else %}<div class="list-item-static">{% endif %}
-              <span>{{ a.code }} <span class="badge badge-inactive">{{ 'DI-DROP' if a.cbd_status == 'DROPPED' else 'BELUM TERBIT' }}</span></span>
-              <span class="muted">{{ a.colorway }}</span>
-            {% if a.has_cbd %}</a>{% else %}</div>{% endif %}
-          </li>
-          {% endfor %}
-        </ul>
-      </details>
-      {% endif %}
-    </div>
-
-    <div class="card">
-      <h2 class="section-title">Revisi CBD{{ (' — ' ~ article.code) if article else '' }}</h2>
-      <ul class="revision-list">
-        {% for r in revisions %}
-        <li>
-          <a class="rev-link {{ 'active' if r.id==cbd_revision_id else '' }}"
-             hx-get="{{ url_for('cbd.revision_select', model_id=model.id, cbd_revision_id=r.id) }}?specsheet_id={{ specsheet_id }}&article_id={{ article_id }}"
-             hx-target="#detail-body" hx-swap="innerHTML"
-             hx-push-url="{{ url_for('cbd.detail', model_id=model.id) }}?specsheet_id={{ specsheet_id }}&article_id={{ article_id }}&cbd_revision_id={{ r.id }}">
-            <span>{{ r.stage }} r{{ r.revision_no }}</span>
-            <span class="rev-badges">
-              <span class="badge badge-{{ r.status|lower }}">{{ r.status }}</span>
-              {% if r.status == 'PUBLISHED' %}<span class="badge {{ 'badge-approved' if r.sync_status=='IN_SYNC' else 'badge-proposed' }}">{{ r.sync_status }}</span>{% endif %}
-            </span>
-          </a>
-        </li>
-        {% else %}
-        <li class="empty-hint">Belum ada revisi CBD.</li>
-        {% endfor %}
-      </ul>
-
-      {% if creatable %}
-      <div class="action-stack">
-        {% if not revisions %}
-        <form hx-post="{{ url_for('cbd.revision_no_source', model_id=model.id) }}" hx-target="#detail-body" hx-swap="innerHTML">
-          <input type="hidden" name="specsheet_id" value="{{ specsheet_id }}">
-          <input type="hidden" name="article_id" value="{{ article_id }}">
-          <button type="submit" class="btn btn-secondary btn-sm">Buat CBD</button>
-        </form>
-        {% endif %}
-        {% if copy_sources and not revisions %}
-        <form hx-post="{{ url_for('cbd.revision_from_article', model_id=model.id) }}" hx-target="#detail-body" hx-swap="innerHTML"
-              style="display:flex;flex-direction:column;gap:6px;">
-          <input type="hidden" name="specsheet_id" value="{{ specsheet_id }}">
-          <input type="hidden" name="article_id" value="{{ article_id }}">
-          <select name="source_article_id" aria-label="Sumber copy CBD">
-            {% for s in copy_sources %}
-            <option value="{{ s.id }}">Copy dari {{ s.code }} &middot; {{ s.specsheet_season }} &middot; {{ s.source_stage }} r{{ s.source_revision_no }} (terbit terakhir){{ ' · di-drop' if s.dropped }}</option>
-            {% endfor %}
-          </select>
-          <button type="submit" class="btn btn-secondary btn-sm">Copy</button>
-          <span class="muted form-note" style="margin:0;">Baris, warna &amp; supplier tetap dari specsheet article ini; yang di-copy hanya Yield, Loss %, dan harga quotation/override baris yang cocok.</span>
-        </form>
-        {% endif %}
-        {% if has_published %}
-        <form hx-post="{{ url_for('cbd.revision_same_stage', model_id=model.id) }}" hx-target="#detail-body" hx-swap="innerHTML">
-          <input type="hidden" name="specsheet_id" value="{{ specsheet_id }}">
-          <input type="hidden" name="article_id" value="{{ article_id }}">
-          <button type="submit" class="btn btn-secondary">Revisi Baru (Stage Sama)</button>
-        </form>
-        <form hx-post="{{ url_for('cbd.revision_next_stage', model_id=model.id) }}" hx-target="#detail-body" hx-swap="innerHTML">
-          <input type="hidden" name="specsheet_id" value="{{ specsheet_id }}">
-          <input type="hidden" name="article_id" value="{{ article_id }}">
-          <button type="submit" class="btn btn-secondary">Lanjut ke Stage Berikutnya</button>
-        </form>
-        {% endif %}
-      </div>
-      {% endif %}
+      </select>
+    </label>
+    <div class="chip-row" aria-label="Article">
+      {% for a in articles %}
+      {% set clickable = a.cbd_status == 'ACTIVE' or a.has_cbd %}
+      {% if clickable %}
+      <a class="article-chip {{ 'active' if a.id == article_id else '' }} {{ 'is-inactive' if a.cbd_status != 'ACTIVE' else '' }}"
+         href="{{ page_url }}?specsheet_id={{ specsheet_id }}&article_id={{ a.id }}"
+         hx-get="{{ body_url }}?specsheet_id={{ specsheet_id }}&article_id={{ a.id }}"
+         hx-target="#detail-body" hx-swap="innerHTML"
+         hx-push-url="{{ page_url }}?specsheet_id={{ specsheet_id }}&article_id={{ a.id }}"
+         title="{{ a.colorway }}">
+      {% else %}<span class="article-chip is-inactive" title="{{ a.colorway }}">{% endif %}
+        <strong>{{ a.code }}</strong> <span class="badge {{ a.chip_tone }}">{{ a.chip_label }}</span>
+      {% if clickable %}</a>{% else %}</span>{% endif %}
+      {% else %}
+      <span class="muted">Belum ada article pada season ini.</span>
+      {% endfor %}
     </div>
   </div>
 
-  <div>
-    {% if revision %}
-    <div class="card">
-      <div class="card-head">
-        <strong>{{ revision.stage }} r{{ revision.revision_no }} &middot; <span class="badge badge-{{ revision.status|lower }}">{{ revision.status }}</span>
-          {% if revision.status == 'PUBLISHED' %}<span class="badge {{ 'badge-approved' if revision.sync_status=='IN_SYNC' else 'badge-proposed' }}">{{ revision.sync_status }}</span>{% endif %}
-        </strong>
-        <div class="actions">
-          <a class="btn btn-secondary btn-sm" target="_blank" rel="noopener"
-             href="{{ url_for('cbd.revision_print', model_id=model.id, cbd_revision_id=revision.id) }}">Cetak / PDF</a>
-          <a class="btn btn-secondary btn-sm"
-             href="{{ url_for('cbd.revision_export_excel', model_id=model.id, cbd_revision_id=revision.id) }}">Ekspor Excel</a>
-          {% if can_delete_draft %}
-          <form hx-post="{{ url_for('cbd.revision_delete_draft', model_id=model.id, cbd_revision_id=revision.id) }}"
-                hx-target="#detail-body" hx-swap="innerHTML"
-                hx-confirm="Hapus draft CBD {{ article.code }} {{ revision.stage }} r{{ revision.revision_no }}? Semua isian baris & rekap di draft ini ikut terhapus dan tidak bisa dikembalikan.">
-            <input type="hidden" name="specsheet_id" value="{{ specsheet_id }}">
-            <input type="hidden" name="article_id" value="{{ article_id }}">
-            <button type="submit" class="btn btn-danger btn-sm">Hapus Draft</button>
-          </form>
-          {% endif %}
-          {% if editable and not stale and not stale_prices %}
-          <button type="button" class="btn btn-sm"
-                  onclick="document.getElementById('cbd-publish-panel').classList.toggle('active')">Terbitkan Revisi</button>
-          {% endif %}
-        </div>
+  {% if article %}
+  <div class="revision-nav-row" style="margin-top:10px;">
+    <span class="muted nav-label">{{ article.code }} &middot; {{ article.colorway }}</span>
+    <ol class="stage-stepper" aria-label="Stage revisi CBD">
+      {% for stage, revs in stage_steps %}
+      <li class="stage-step {{ 'has-revs' if revs else '' }} {{ 'current' if revision and revision.stage == stage else '' }}">
+        <span class="stage-name">{{ stage }}</span>
+        <span class="stage-revs">
+          {% for r in revs %}
+          {% set needs_rev = r.status == 'PUBLISHED' and r.sync_status == 'NEEDS_REVISION' %}
+          <a class="rev-chip {{ 'active' if r.id == cbd_revision_id else '' }} {{ 'is-draft' if r.status == 'DRAFT' else '' }} {{ 'needs-revision' if needs_rev else '' }}"
+             title="{{ r.stage }} r{{ r.revision_no }} · {{ r.status }}{{ ' · NEEDS_REVISION' if needs_rev else '' }}"
+             href="{{ page_url }}?specsheet_id={{ specsheet_id }}&article_id={{ article_id }}&cbd_revision_id={{ r.id }}"
+             hx-get="{{ body_url }}?specsheet_id={{ specsheet_id }}&article_id={{ article_id }}&cbd_revision_id={{ r.id }}"
+             hx-target="#detail-body" hx-swap="innerHTML"
+             hx-push-url="{{ page_url }}?specsheet_id={{ specsheet_id }}&article_id={{ article_id }}&cbd_revision_id={{ r.id }}">r{{ r.revision_no }}</a>
+          {% else %}<span class="muted">–</span>{% endfor %}
+        </span>
+      </li>
+      {% endfor %}
+    </ol>
+    {% if creatable %}
+    <button type="button" class="btn btn-sm" data-open-dialog="dlg-new-cbd">{{ "+ Buat CBD" if not revisions else "+ Buat Revisi" }}</button>
+    {% elif can_edit and has_draft %}
+    <span class="muted nav-note">Selesaikan draft dulu untuk membuat revisi baru.</span>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+
+{% if creatable %}
+<dialog class="form-dialog wide" id="dlg-new-cbd">
+  <button type="button" class="modal-close" onclick="this.closest('dialog').close()" aria-label="Tutup">&times;</button>
+  <h3>{{ "Buat CBD" if not revisions else "Buat Revisi CBD" }} — {{ article.code }}</h3>
+  <div class="option-list">
+    {% if not revisions %}
+    <form class="option-card" hx-post="{{ url_for('cbd.revision_no_source', model_id=model.id) }}" hx-target="#detail-body" hx-swap="innerHTML">
+      <input type="hidden" name="specsheet_id" value="{{ specsheet_id }}">
+      <input type="hidden" name="article_id" value="{{ article_id }}">
+      <div><strong>CBD baru dari specsheet</strong><p class="muted">Baris dari specsheet terbit terakhir; harga dari master harga.</p></div>
+      <div class="option-actions"><button type="submit" class="btn btn-sm">Buat</button></div>
+    </form>
+    {% if copy_sources %}
+    <form class="option-card" hx-post="{{ url_for('cbd.revision_from_article', model_id=model.id) }}" hx-target="#detail-body" hx-swap="innerHTML">
+      <input type="hidden" name="specsheet_id" value="{{ specsheet_id }}">
+      <input type="hidden" name="article_id" value="{{ article_id }}">
+      <div><strong>Copy dari article lain</strong><p class="muted">Baris, warna &amp; supplier tetap dari specsheet article ini; yang di-copy hanya Yield, Loss %, harga quotation/override, dan rekap.</p></div>
+      <div class="option-actions">
+        <select name="source_article_id" aria-label="Sumber copy CBD">
+          {% for s in copy_sources %}
+          <option value="{{ s.id }}">{{ s.code }} &middot; {{ s.specsheet_season }} &middot; {{ s.source_stage }} r{{ s.source_revision_no }}{{ ' · di-drop' if s.dropped }}</option>
+          {% endfor %}
+        </select>
+        <button type="submit" class="btn btn-sm">Copy</button>
       </div>
+    </form>
+    {% endif %}
+    {% elif has_published %}
+    <form class="option-card" hx-post="{{ url_for('cbd.revision_same_stage', model_id=model.id) }}" hx-target="#detail-body" hx-swap="innerHTML">
+      <input type="hidden" name="specsheet_id" value="{{ specsheet_id }}">
+      <input type="hidden" name="article_id" value="{{ article_id }}">
+      <div><strong>Revisi baru di stage {{ latest_published.stage }}</strong><p class="muted">r{{ latest_published.revision_no }} &rarr; r{{ latest_published.revision_no + 1 }}, baris dari specsheet terbit terakhir.</p></div>
+      <div class="option-actions"><button type="submit" class="btn btn-sm">Buat</button></div>
+    </form>
+    {% if next_stage %}
+    <form class="option-card" hx-post="{{ url_for('cbd.revision_next_stage', model_id=model.id) }}" hx-target="#detail-body" hx-swap="innerHTML">
+      <input type="hidden" name="specsheet_id" value="{{ specsheet_id }}">
+      <input type="hidden" name="article_id" value="{{ article_id }}">
+      <div><strong>Lanjut ke stage {{ next_stage }}</strong><p class="muted">{{ latest_published.stage }} &rarr; {{ next_stage }} r0, salin CBD terbit terakhir.</p></div>
+      <div class="option-actions"><button type="submit" class="btn btn-sm">Buat</button></div>
+    </form>
+    {% endif %}
+    {% else %}
+    <p class="muted">Terbitkan revisi yang ada dulu sebelum membuat revisi baru.</p>
+    {% endif %}
+  </div>
+</dialog>
+{% endif %}
+
+{% if revision %}
+{# -------- Ringkasan biaya: selalu terlihat saat menggulir -------- #}
+<div class="cost-summary" aria-label="Ringkasan biaya">
+  <div><span>Material Cost</span><strong>{{ recap_biaya.material_cost }}</strong></div>
+  <div><span>Actual FOB</span><strong>{{ recap_biaya.actual_fob }}</strong></div>
+  <div><span>Target FOB</span><strong>{{ recap_biaya.target_fob }}</strong></div>
+  <div><span>Selisih</span><strong>{{ recap_biaya.variance }}
+    {% if recap_biaya.variance_label != '-' %}<span class="badge {{ 'badge-proposed' if recap_biaya.variance_label=='OVER' else 'badge-approved' }}">{{ recap_biaya.variance_label }}</span>{% endif %}</strong></div>
+  <div><span>Selling Price</span><strong>{{ recap_margin.selling_price }}</strong></div>
+  <div><span>Margin</span><strong>{{ recap_margin.margin_pct }}{{ ' %' if recap_margin.margin_pct != '-' else '' }}</strong></div>
+</div>
+
+<div class="card">
+  <div class="card-head">
+    <strong>{{ article.code }} &middot; {{ revision.stage }} r{{ revision.revision_no }} &middot;
+      <span class="badge badge-{{ revision.status|lower }}">{{ revision.status }}</span>
+      {% if revision.status == 'PUBLISHED' %}<span class="badge {{ 'badge-approved' if revision.sync_status=='IN_SYNC' else 'badge-proposed' }}">{{ revision.sync_status }}</span>{% endif %}
+      {% if spec_ref %}<a class="spec-ref" href="{{ url_for('specsheet.detail', model_id=model.id, specsheet_id=specsheet_id, revision_id=spec_ref.id) }}">acuan specsheet {{ spec_ref.stage }} r{{ spec_ref.revision_no }} &rarr;</a>{% endif %}
+    </strong>
+    <div class="actions">
+      <a class="btn btn-secondary btn-sm" target="_blank" rel="noopener"
+         href="{{ url_for('cbd.revision_print', model_id=model.id, cbd_revision_id=revision.id) }}">Cetak / PDF</a>
+      <a class="btn btn-secondary btn-sm"
+         href="{{ url_for('cbd.revision_export_excel', model_id=model.id, cbd_revision_id=revision.id) }}">Ekspor Excel</a>
+      {% if can_delete_draft %}
+      <form hx-post="{{ url_for('cbd.revision_delete_draft', model_id=model.id, cbd_revision_id=revision.id) }}"
+            hx-target="#detail-body" hx-swap="innerHTML"
+            hx-confirm="Hapus draft CBD {{ article.code }} {{ revision.stage }} r{{ revision.revision_no }}? Semua isian baris & rekap di draft ini ikut terhapus dan tidak bisa dikembalikan.">
+        <input type="hidden" name="specsheet_id" value="{{ specsheet_id }}">
+        <input type="hidden" name="article_id" value="{{ article_id }}">
+        <button type="submit" class="btn btn-danger btn-sm">Hapus Draft</button>
+      </form>
+      {% endif %}
+      {% if editable %}
+      <button type="button" class="btn btn-sm" data-open-dialog="dlg-cbd-publish">Terbitkan&hellip;</button>
+      {% endif %}
+    </div>
+  </div>
 
       {% if article and article.cbd_status != 'ACTIVE' %}
       <div class="warn-banner">
@@ -205,41 +216,61 @@
       </div>
       {% endif %}
 
-      {% if editable and not stale and not stale_prices %}
-      <div id="cbd-publish-panel" class="tab-panel panel-divider">
-        <form hx-post="{{ url_for('cbd.revision_publish', model_id=model.id, cbd_revision_id=revision.id) }}"
-              hx-target="#detail-body" hx-swap="innerHTML">
-          <input type="hidden" name="specsheet_id" value="{{ specsheet_id }}">
-          <input type="hidden" name="article_id" value="{{ article_id }}">
-          <div class="field-row">
-            <div class="field"><label>Kategori</label>
-              <select name="category">{% for c in change_categories %}<option value="{{ c }}">{{ c }}</option>{% endfor %}</select>
-            </div>
-          </div>
-          <div class="field">
-            <label>Alasan perubahan {{ '(wajib)' if require_reason else '(opsional untuk revisi awal)' }}</label>
-            <textarea name="reason" rows="2" {{ 'required' if require_reason else '' }}></textarea>
-          </div>
-          {% if unpriced_count %}
-          <p class="muted form-note" style="margin:0 0 10px;">{{ unpriced_count }} baris akan terbit tanpa harga (cost dihitung 0).</p>
-          {% endif %}
-          <button type="submit" class="btn">Terbitkan</button>
-        </form>
-      </div>
-      {% endif %}
 
-      {% include "cbd/_recap.html" %}
-
-      <div class="tabs" data-group="cbd-detail">
-        <button type="button" class="tab-btn active" data-group="cbd-detail" data-tab="editor">Editor</button>
-        <button type="button" class="tab-btn" data-group="cbd-detail" data-tab="log">Riwayat</button>
-        <button type="button" class="tab-btn" data-group="cbd-detail" data-tab="validasi">Validasi</button>
+  {% if editable %}
+  <dialog class="form-dialog wide" id="dlg-cbd-publish">
+    <button type="button" class="modal-close" onclick="this.closest('dialog').close()" aria-label="Tutup">&times;</button>
+    <h3>Terbitkan CBD {{ article.code }} {{ revision.stage }} r{{ revision.revision_no }}</h3>
+    <ul class="checklist">
+      {% for c in checklist %}
+      <li class="{{ 'ok' if c.ok else ('fail' if c.blocking else 'warn') }}">
+        <span class="check-icon" aria-hidden="true">{{ '✓' if c.ok else ('✗' if c.blocking else '!') }}</span>
+        <div><strong>{{ c.label }}</strong>{% if c.detail %}<div class="muted">{{ c.detail }}</div>{% endif %}</div>
+      </li>
+      {% endfor %}
+    </ul>
+    <p class="muted" style="margin:10px 0 0;">Actual FOB {{ recap_biaya.actual_fob }} &middot; Target {{ recap_biaya.target_fob }} &middot;
+      Margin {{ recap_margin.margin_pct }}{{ ' %' if recap_margin.margin_pct != '-' else '' }}</p>
+    {% if publish_blocked %}
+    <p class="error-banner" style="margin-top:12px;">Selesaikan hal bertanda ✗ di atas sebelum terbit.</p>
+    {% else %}
+    <form hx-post="{{ url_for('cbd.revision_publish', model_id=model.id, cbd_revision_id=revision.id) }}"
+          hx-target="#detail-body" hx-swap="innerHTML" style="margin-top:12px;">
+      <input type="hidden" name="specsheet_id" value="{{ specsheet_id }}">
+      <input type="hidden" name="article_id" value="{{ article_id }}">
+      <div class="field"><label>Kategori</label>
+        <select name="category">{% for c in change_categories %}<option value="{{ c }}">{{ c }}</option>{% endfor %}</select>
       </div>
-
-      <div class="tab-panel active" data-group="cbd-detail" data-tab="editor">
-        {% include "cbd/_editor.html" %}
+      <div class="field">
+        <label>Alasan perubahan {{ '(wajib)' if require_reason else '(opsional untuk revisi awal)' }}</label>
+        <textarea name="reason" rows="2" {{ 'required' if require_reason else '' }}></textarea>
       </div>
-      <div class="tab-panel" data-group="cbd-detail" data-tab="validasi">
+      <p class="muted form-note" style="margin:0 0 10px;">Terbit = final; Selling Price &amp; Margin ikut terkunci.</p>
+      <div class="form-actions">
+        <button type="submit" class="btn">Terbitkan</button>
+        <button type="button" class="btn btn-secondary" onclick="this.closest('dialog').close()">Batal</button>
+      </div>
+    </form>
+    {% endif %}
+  </dialog>
+  {% endif %}
+
+  <div class="tabs">
+    {% for key, label in [('editor', 'Editor'), ('rekap', 'Rekap'), ('validasi', 'Validasi'), ('riwayat', 'Riwayat')] %}
+    <a class="tab-btn {{ 'active' if tab == key else '' }}"
+       href="{{ page_url }}?{{ qs('&tab=' ~ key) }}"
+       hx-get="{{ body_url }}?{{ qs('&tab=' ~ key) }}"
+       hx-target="#detail-body" hx-swap="innerHTML"
+       hx-push-url="{{ page_url }}?{{ qs('&tab=' ~ key) }}">{{ label }}{% if key == 'validasi' and validation and (validation.missing_in_cbd or validation.extra_in_cbd) %} <span class="count-badge">{{ validation.missing_in_cbd|length + validation.extra_in_cbd|length }}</span>{% endif %}</a>
+    {% endfor %}
+  </div>
+
+  {% if tab == 'editor' %}
+  {% include "cbd/_editor.html" %}
+  {% elif tab == 'rekap' %}
+  {% include "cbd/_recap.html" %}
+  {% elif tab == 'validasi' %}
+
         {% if validation %}
         {% if validation.compared_against_latest_specsheet %}
         <div class="error-banner">
@@ -291,33 +322,41 @@
         {% else %}
         <p class="empty-hint">Pilih revisi CBD untuk melihat laporan validasi.</p>
         {% endif %}
-      </div>
-      <div class="tab-panel" data-group="cbd-detail" data-tab="log">
-        {% if change_logs %}
-        {% for log in change_logs %}
-        <div class="changelog-entry">
-          <strong>{{ log.category }}</strong> &middot; <span class="muted">{{ log.created_at }} oleh {{ log.created_by }}</span>
-          <div>{{ log.reason }}</div>
-          <div style="margin-top:4px;">
-            {% if log.diff.added %}<div class="diff-added">+ {{ log.diff.added|length }} baris ditambah</div>{% endif %}
-            {% if log.diff.removed %}<div class="diff-removed">- {{ log.diff.removed|length }} baris dihapus</div>{% endif %}
-            {% if log.diff.changed %}<div class="diff-changed">~ {{ log.diff.changed|length }} baris berubah</div>{% endif %}
-          </div>
-        </div>
+  {% else %}
+  {% for log in change_logs %}
+  <div class="changelog-entry">
+    <strong>{{ log.category }}</strong> &middot; <span class="muted">{{ log.created_at }} oleh {{ log.created_by }}</span>
+    <div>{{ log.reason }}</div>
+    {% set d = log.diff %}
+    {% if d.added or d.removed or d.changed %}
+    <details class="diff-detail" {{ 'open' if (d.added|length + d.removed|length + d.changed|length) <= 10 else '' }}>
+      <summary>{{ d.added|length }} ditambah &middot; {{ d.removed|length }} dihapus &middot; {{ d.changed|length }} berubah</summary>
+      <ul class="diff-list">
+        {% for a in d.added %}<li class="diff-added">+ {{ a.component }} — {{ a.material }}</li>{% endfor %}
+        {% for r in d.removed %}<li class="diff-removed">&minus; {{ r.component }} — {{ r.material }}</li>{% endfor %}
+        {% for key, c in d.changed.items() %}
+        <li class="diff-changed">~ {{ c.component }}
+          <ul>{% for field, v in c.fields.items() %}<li>{{ field }}: <span class="muted">{{ v.before if v.before is not none else '-' }}</span> &rarr; {{ v.after if v.after is not none else '-' }}</li>{% endfor %}</ul>
+        </li>
         {% endfor %}
-        {% else %}
-        <p class="empty-hint">Belum ada riwayat perubahan untuk revisi ini.</p>
-        {% endif %}
-      </div>
-    </div>
-    {% else %}
-    {% if article and article.cbd_status != 'ACTIVE' %}
-    <div class="card"><p class="empty-hint">Article {{ article.code }}
-      {{ "sudah di-drop di specsheet terbit terakhir" if article.cbd_status == 'DROPPED' else "belum ada di specsheet terbit" }}
-      — CBD tidak bisa dibuat untuk article ini.</p></div>
-    {% else %}
-    <div class="card"><p class="empty-hint">Pilih atau buat season/article/revisi CBD di panel kiri untuk mulai.</p></div>
-    {% endif %}
+      </ul>
+    </details>
     {% endif %}
   </div>
+  {% else %}
+  <p class="empty-hint">Belum ada riwayat — riwayat tercatat saat revisi diterbitkan.</p>
+  {% endfor %}
+  {% endif %}
 </div>
+{% else %}
+{% if article and article.cbd_status != 'ACTIVE' %}
+<div class="card"><p class="empty-hint">Article {{ article.code }}
+  {{ "sudah di-drop di specsheet terbit terakhir" if article.cbd_status == 'DROPPED' else "belum ada di specsheet terbit" }}
+  — CBD tidak bisa dibuat untuk article ini.</p></div>
+{% elif article %}
+<div class="card"><p class="empty-hint">Article {{ article.code }} belum punya CBD{% if creatable %}. Klik "+ Buat CBD" untuk mulai.{% else %}.{% endif %}</p></div>
+{% else %}
+<div class="card"><p class="empty-hint">Belum ada article aktif di specsheet terbit season ini.</p></div>
+{% endif %}
+{% endif %}
+{% endif %}

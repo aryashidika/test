@@ -19,6 +19,7 @@ from ...domain.cbd_calc import (
 )
 from ...domain.cbd_service import (
     CHANGE_CATEGORIES,
+    cbd_publish_checklist,
     article_cbd_status,
     cbd_draft_is_stale,
     compute_display_fields,
@@ -51,6 +52,7 @@ from ...domain.export_service import build_cbd_workbook, cbd_export_context
 from ...domain.material_price_service import price_gap
 from ...domain.model_service import get_model, list_known_seasons, list_models_overview
 from ...domain.report_service import validation_report
+from ...domain.revision_service import STAGES
 from ...domain.specsheet_service import list_specsheets, season_label
 from ..auth import guard_blueprint, require_permission, require_session
 from ..formatting import fmt_num, fmt_rupiah
@@ -63,7 +65,8 @@ GROUP_LABELS = {"a": "a. Upper", "c": "c. Bottom unit", "d": "d. Packaging", "e"
 
 def _role_ctx():
     role = g.session.role
-    return {"read_only": permissions.is_read_only(role), "can_manage_price": permissions.can_manage_price(role)}
+    return {"read_only": permissions.is_read_only(role), "can_manage_price": permissions.can_manage_price(role),
+            "can_view_drafts": permissions.can_view_drafts(role)}
 
 
 def _fmt(value):
@@ -72,6 +75,24 @@ def _fmt(value):
         return "-"
     s = f"{value:.6f}".rstrip("0").rstrip(".")
     return s if s else "0"
+
+
+DETAIL_TABS = ("editor", "rekap", "validasi", "riwayat")
+
+
+def _article_chip(article, revisions):
+    """Status ringkas satu article untuk chip di atas editor."""
+    if article["cbd_status"] != "ACTIVE" and not revisions:
+        return "Di-drop" if article["cbd_status"] == "DROPPED" else "Belum terbit", "badge-inactive"
+    if not revisions:
+        return "Belum ada CBD", "badge-proposed"
+    latest = max(revisions, key=lambda r: (STAGES.index(r["stage"]), r["revision_no"]))
+    label = f"{latest['stage']} r{latest['revision_no']}"
+    if latest["status"] == "DRAFT":
+        return f"{label} · draft", "badge-draft"
+    if latest["sync_status"] == "NEEDS_REVISION":
+        return f"{label} · perlu revisi", "badge-proposed"
+    return f"{label} · terbit", "badge-published"
 
 
 def _visible_cbd_revisions(article_id):
@@ -133,6 +154,7 @@ def _load_detail_ctx(model_id, specsheet_id=None, article_id=None, cbd_revision_
     for a in (list_articles_for_specsheet(g.db, specsheet_id) if specsheet_id else []):
         d = dict(a)
         d["cbd_status"] = article_cbd_status(g.db, a["id"])
+        d["chip_label"], d["chip_tone"] = _article_chip(d, _visible_cbd_revisions(a["id"]))
         published_only = "" if permissions.can_view_drafts(g.session.role) else " AND status='PUBLISHED'"
         d["has_cbd"] = g.db.execute(
             f"SELECT 1 FROM cbd_revision WHERE article_id=?{published_only} LIMIT 1", (a["id"],)
@@ -221,6 +243,7 @@ def _load_detail_ctx(model_id, specsheet_id=None, article_id=None, cbd_revision_
         actual_fob = total_cost(mat_cost, amortization, adjustment)
         var = variance(actual_fob, target_fob)
         recap_biaya = {
+            "material_cost": fmt_rupiah(mat_cost),
             "exchange_rate": fmt_num(exchange_rate, 2, trim=True),
             "amortization": fmt_rupiah(amortization),
             "adjustment": fmt_rupiah(adjustment),
@@ -255,7 +278,21 @@ def _load_detail_ctx(model_id, specsheet_id=None, article_id=None, cbd_revision_
     no_supplier_count = gap_codes.count("NO_SUPPLIER")
     unpriced_count = sum(1 for l in normal_lines if l["price_original"] is None)
 
+    spec_ref = g.db.execute(
+        "SELECT id, stage, revision_no FROM specsheet_revision WHERE id=?", (revision["specsheet_revision_id"],)
+    ).fetchone() if revision else None
+    published = [r for r in revisions if r["status"] == "PUBLISHED"]
+    latest_published = max(published, key=lambda r: (STAGES.index(r["stage"]), r["revision_no"])) if published else None
+    next_stage = None
+    if latest_published and STAGES.index(latest_published["stage"]) < len(STAGES) - 1:
+        next_stage = STAGES[STAGES.index(latest_published["stage"]) + 1]
+    checklist = cbd_publish_checklist(g.db, cbd_revision_id) if editable else []
+
     return dict(
+        tab=request.args.get("tab") if request.args.get("tab") in DETAIL_TABS else "editor",
+        stage_steps=[(st, [r for r in revisions if r["stage"] == st]) for st in STAGES],
+        latest_published=latest_published, next_stage=next_stage, spec_ref=spec_ref,
+        checklist=checklist, publish_blocked=any(c["blocking"] and not c["ok"] for c in checklist),
         model=model, model_id=model_id, specsheets=specsheets, specsheet=specsheet, specsheet_id=specsheet_id,
         articles=articles, article=article, article_id=article_id,
         revisions=revisions, revision=revision, cbd_revision_id=cbd_revision_id,

@@ -69,6 +69,15 @@ document.addEventListener('input', function (e) {
   row.classList.toggle('is-local-component', isLocal);
 });
 
+// Tinggi topbar (bisa 2 baris di layar sempit) dipakai elemen sticky lain,
+// mis. ringkasan biaya CBD.
+function syncTopbarHeight() {
+  var bar = document.querySelector('.topbar');
+  if (bar) document.documentElement.style.setProperty('--topbar-h', bar.offsetHeight + 'px');
+}
+syncTopbarHeight();
+window.addEventListener('resize', syncTopbarHeight);
+
 // Tombol "+ Tambah ..." membuka <dialog id="..."> sebagai modal.
 document.addEventListener('click', function (e) {
   var btn = e.target.closest('[data-open-dialog]');

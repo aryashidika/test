@@ -23,7 +23,7 @@ lanjutan setelah review terhadap contoh specsheet nyata (PDF referensi):
 - **Single-user, satu komputer.** Satu file SQLite lokal, tidak ada penanganan
   concurrent-write untuk banyak user berbagi file yang sama.
 - **Menu utama disaring per role:** "Beranda", "Master Data", "Model",
-  "Specsheet", "CBD", "Laporan", dan "Admin" — tiap role hanya melihat menu yang boleh diaksesnya (lihat "Hak
+  "Specsheet", "CBD", dan "Admin" — tiap role hanya melihat menu yang boleh diaksesnya (lihat "Hak
   akses per role" di bawah).
 - **Hak akses per role ditegakkan di server**, bukan hanya dengan
   menyembunyikan tombol: setiap route aksi memakai `require_permission(...)` dan
@@ -239,8 +239,8 @@ lanjutan setelah review terhadap contoh specsheet nyata (PDF referensi):
 - [x] **M3 — CBD** (generate/merge dari specsheet, editor, rekap, publish,
   penandaan sinkronisasi)
 - [x] **M4 — Sinkronisasi & Laporan** (penandaan sinkronisasi per PRD 6.6 sudah
-  ada sejak M3 — lihat menu "CBD"; menu "Laporan" baru ini menambahkan tab
-  validasi + where-used + histori harga. Dashboard sinkronisasi agregat dan
+  ada sejak M3 — lihat menu "CBD"; laporan validasi ada di tab CBD, where-used
+  + histori harga di tab detail Material. Dashboard sinkronisasi agregat dan
   laporan penyimpangan Loss % sengaja tidak dibangun, lihat "Penyesuaian dari
   PRD asli")
 - [x] **M5 — Ekspor & Penyelesaian** (ekspor Excel + halaman cetak untuk
@@ -271,7 +271,17 @@ yang tepat.
 
 ### Menu "Master Data"
 
-Sub-tab: **Material**, **Komponen**, **Supplier**.
+Sub-tab: **Material**, **Komponen**, **Supplier**, dan **Persetujuan** (khusus
+Master Admin, dengan badge jumlah usulan). Form tambah material/komponen/supplier
+dibuka lewat tombol "+ Tambah …" (modal). Daftar material bisa difilter status.
+
+- **Persetujuan**: satu antrian untuk material, komponen, dan supplier material
+  berstatus `PROPOSED`, dengan tombol Setujui (→ `APPROVED`) / Tolak
+  (→ `INACTIVE`).
+- **Detail Material** punya tab (tersimpan di URL `?tab=`): **Supplier & Harga**
+  (default), **Info Material** (edit data & metode harga), **Dipakai di**
+  (where-used, dulu menu Laporan), dan **Histori Harga CBD** (dulu menu Laporan;
+  tidak tampil untuk Vendor Spec).
 
 - **Material**: Material Code, Material Name, Material Category, Thickness, Unit
   of Measurement, Material Status, Created by/date, Updated by/date — semua isi
@@ -361,11 +371,20 @@ Dikelola Vendor Spec dan Master Admin; role lain hanya melihat.
   tidak dibuat dari sini. Drop lewat tombol "×" di header kolom; article yang
   di-drop bisa diaktifkan lagi lewat panel "Article Di-drop" di toolbar. Drop
   tetap per revisi dan berlaku untuk CBD setelah revisinya terbit.
-- Terbitkan revisi (PRD 6.3): validasi minimal satu article aktif ada di
-  revisi, setiap article terpakai (punya warna/nilai di minimal satu baris
-  BOM), material tidak `INACTIVE`, wajib isi change log (kategori + alasan)
-  untuk revisi selain r0 pertama, hitung & simpan diff. Riwayat perubahan &
-  ringkasan diff bisa dilihat di tab "Riwayat".
+- **Navigasi**: pilih season lewat dropdown; revisi tampil sebagai stepper
+  PULL → SMS → GTM → PROD (chip `rN`, draft bergaris putus). Grid BOM memakai
+  lebar penuh (tanpa sidebar). "+ Buat Revisi" membuka wizard yang hanya
+  menampilkan opsi valid: kosong / carryover / copy dari model lain untuk revisi
+  pertama season, atau revisi baru di stage sama / lanjut ke stage berikutnya.
+  Tab BOM / Riwayat tersimpan di URL (`?tab=riwayat`).
+- Terbitkan revisi (PRD 6.3): tombol "Terbitkan…" membuka modal **checklist**
+  (`revision_service.publish_checklist`, aturan yang sama dipakai
+  `publish_revision`): minimal satu article aktif, setiap article aktif
+  terpakai di BOM, material tidak `INACTIVE` (penghambat), dan peringatan baris
+  tanpa supplier (tidak menghambat). Modal juga menampilkan ringkasan diff dari
+  revisi sumber; wajib isi change log (kategori + alasan) untuk revisi selain r0
+  pertama. Tab "Riwayat" menampilkan detail baris ditambah/dihapus/berubah
+  (termasuk perubahan warna per article).
 - **Harga Referensi** (tambahan di luar PRD): khusus role Brand Viewer
   melihat revisi yang sudah `PUBLISHED`, tiap sel BOM yang terpakai
   menampilkan perkiraan harga material terakhir dari histori CBD `PUBLISHED`
@@ -383,8 +402,13 @@ Dikelola Vendor Spec dan Master Admin; role lain hanya melihat.
 
 ### Menu "CBD"
 
-- Navigasi tiga lapis: **Season** (specsheet) → **Article** (colorway) →
-  **Revisi CBD** (stage + revisi, satu CBD per Article). Article diambil dari
+- Navigasi: dropdown **Season** → **chip Article** berstatus (Belum ada CBD /
+  draft / terbit / perlu revisi / di-drop) → **stepper revisi CBD** per stage
+  (chip kuning = `NEEDS_REVISION`). Tab **Editor · Rekap · Validasi · Riwayat**
+  tersimpan di URL; **ringkasan biaya** (Material Cost, Actual FOB, Target FOB,
+  Selisih, Selling Price, Margin) menempel di atas saat menggulir; kolom No &
+  Komponen di grid editor dibekukan saat digulir ke samping. Header menautkan ke
+  revisi specsheet acuan CBD tsb. Satu CBD per Article. Article diambil dari
   yang sudah dibuat di halaman Model — CBD tidak membuat Article baru. Hanya
   article yang **aktif di revisi specsheet terbit terakhir** yang bisa dipilih
   untuk membuat/mengubah CBD; article yang di-drop (atau baru ditambahkan di
@@ -444,7 +468,9 @@ Dikelola Vendor Spec dan Master Admin; role lain hanya melihat.
   (`app/domain/cbd_calc.margin_pct` / `selling_price_from_margin`). Hanya bisa
   diedit selama revisi DRAFT; setelah terbit, ubah lewat revisi baru. Kedua
   panel rekap ini tambahan di luar PRD, lihat "Penyesuaian dari PRD asli".
-- **Terbitkan revisi** (PRD 6.5): validasi Exchange Rate > 0 (meski boleh
+- **Terbitkan revisi** (PRD 6.5): modal checklist
+  (`cbd_service.cbd_publish_checklist`, dipakai juga oleh `publish_cbd_revision`)
+  menampilkan semua syarat sebelum diklik. Validasi Exchange Rate > 0 (meski boleh
   kosong saat draft) dan baris yang berharga sudah punya yield. **Baris tanpa
   harga boleh ikut terbit** (cost-nya 0) — mis. proses yang harganya sudah
   termasuk di baris lain, tanpa perlu ditandai; panel Terbitkan hanya
@@ -476,31 +502,32 @@ Dikelola Vendor Spec dan Master Admin; role lain hanya melihat.
   Log — persis seperti tab "Editor"/"Riwayat" di layar, hanya dalam format
   siap cetak/unduh. "Ekspor Excel" mengunduh satu file `.xlsx` per revisi CBD.
 
-### Menu "Laporan"
+### Laporan (di detail Material)
 
-Sub-tab: **Where-Used**, **Histori Harga**. Where-Used untuk semua role bisnis;
-Histori Harga tidak tampil untuk Vendor Spec (tidak melihat harga). Untuk Brand
-Viewer, Where-Used hanya menghitung revisi specsheet yang sudah terbit. Dashboard sinkronisasi agregat dan
-laporan penyimpangan Loss % (PRD 7.4) sengaja tidak dibangun — lihat
+Menu "Laporan" terpisah sudah dihapus; laporan per material ada di tab detail
+Material, dan URL lama `/laporan/...` diarahkan ke sana. Dashboard sinkronisasi
+agregat dan laporan penyimpangan Loss % (PRD 7.4) sengaja tidak dibangun — lihat
 "Penyesuaian dari PRD asli".
 
-- **Where-Used** (PRD 7.4): pilih material → daftar Model, Season, Article,
-  Komponen, Stage, Revisi yang memakainya — melihat revisi TERBARU tiap
-  specsheet (DRAFT atau PUBLISHED), lihat "Penyesuaian dari PRD asli".
-- **Histori Harga** (PRD 7.4): pilih material → tabel dikelompokkan
-  `color + supplier + uom + stage + currency`, dalam mata uang asli (currency
-  ditampilkan apa adanya sesuai pengisian CBD, tanpa konversi kurs), hanya
-  baris `ACTIVE` dari revisi CBD `PUBLISHED`, default stage `PROD` (bisa
-  ganti stage lewat dropdown).
-- **Laporan Validasi CBD vs Specsheet** (PRD 7.4): bukan halaman terpisah,
-  melainkan tab "Validasi" di halaman detail CBD (di samping "Editor" dan
-  "Riwayat") — tiga kelompok (sesuai/ada di specsheet tidak di CBD/ada di
-  CBD tidak di specsheet), kelompok "sesuai" tertutup secara default lewat
-  `<details>`. Dibandingkan terhadap revisi specsheet TERBIT TERKINI, lihat
+- **Dipakai di / Where-Used** (PRD 7.4): Model, Season, Article, Komponen,
+  Stage, Revisi yang memakai material — melihat revisi TERBARU tiap specsheet
+  (DRAFT atau PUBLISHED; Brand hanya revisi terbit).
+- **Histori Harga CBD** (PRD 7.4): dikelompokkan
+  `color + supplier + uom + stage + currency`, mata uang asli, hanya baris
+  `ACTIVE` dari revisi CBD `PUBLISHED`, default stage `PROD` (bisa diganti).
+  Tidak tampil untuk Vendor Spec.
+- **Laporan Validasi CBD vs Specsheet** (PRD 7.4): tab "Validasi" di halaman
+  CBD (badge jumlah selisih), dibandingkan terhadap revisi specsheet TERBIT
+  TERKINI.
+- **Harga Referensi**: di grid BOM Specsheet untuk role Brand Viewer, lihat
   "Penyesuaian dari PRD asli".
-- **Harga Referensi** (tambahan di luar PRD, bukan di menu Laporan): muncul
-  langsung di grid BOM menu "Model" untuk role Brand Viewer, lihat
-  "Penyesuaian dari PRD asli".
+
+### Menu "Admin" (System Admin)
+
+- **Audit Log**: 200 entri terbaru, filter per entitas dan pencarian teks,
+  detail sebelum/sesudah per entri.
+- **Reset Data**: kosongkan & seed ulang data prototipe (konfirmasi ketik
+  `RESET`).
 
 **Belum dibangun di web** (business logic-nya ada di `app/domain/` tapi belum
 ada UI web-nya): Antrian Usulan & Merge, Impor CSV, upload foto sepatu.
@@ -530,9 +557,10 @@ lalu menyeed ulang data tsb kapan saja.
 | Model, Season & Article | edit | edit | lihat | lihat | – |
 | Specsheet (BOM, article, terbit) | lihat | edit & terbit | lihat terbit | lihat terbit | – |
 | CBD (termasuk Selling Price & Margin) | lihat | tersembunyi | edit & terbit | lihat terbit | – |
-| Laporan Where-Used | ✓ | ✓ | ✓ | ✓ (terbit saja) | – |
-| Laporan Histori Harga | ✓ | – | ✓ | ✓ | – |
-| Reset Data | – | – | – | – | ✓ |
+| Material › Dipakai di | ✓ | ✓ | ✓ | ✓ (terbit saja) | – |
+| Material › Histori Harga CBD | ✓ | – | ✓ | ✓ | – |
+| Master › Persetujuan | ✓ | – | – | – | – |
+| Admin (Audit Log, Reset Data) | – | – | – | – | ✓ |
 
 Brand Viewer hanya melihat revisi PUBLISHED (specsheet maupun CBD), termasuk
 cetak/ekspor. Angka di tampilan CBD diformat Indonesia (titik ribuan, koma
@@ -645,6 +673,11 @@ article antar season; status specsheet/CBD per article (draft disembunyikan
 untuk Brand); edit info model; hak akses halaman Model; hapus draft tidak
 menghapus article; redirect URL lama.
 
+Test menu & tab (`tests/test_menu_tabs.py`): checklist terbit specsheet & CBD
+sama dengan aturan publish; antrian persetujuan (hanya Master Admin, setujui);
+tab detail Material & redirect URL Laporan lama; tab di URL untuk Specsheet &
+CBD; audit log System Admin.
+
 Test Beranda (`tests/test_worklist.py`): worklist CBD mengikuti siklus article
 (perlu dibuat → draft berjalan → perlu refresh karena harga master / specsheet
 berubah → NEEDS_REVISION), gap harga master per material+supplier+warna,
@@ -705,7 +738,7 @@ app/
     auth.py                    # require_session, require_permission, guard_blueprint (hak akses per role)
     formatting.py               # format angka tampilan (filter Jinja `angka`/`rupiah`)
     user_session.py             # dataclass Session (role + operator_name)
-    blueprints/                # main (login, Beranda), admin (reset data), master, model (model/season/article),
+    blueprints/                # main (login, Beranda), admin (audit log, reset data), master, model (model/season/article),
                                # specsheet (revisi & BOM), cbd, laporan (M4)
     templates/                  # halaman Jinja2 + partial htmx (termasuk _print.html: halaman cetak M5)
     static/                      # style.css (+ print stylesheet M5) + vendor/htmx.min.js (lokal, bukan CDN)

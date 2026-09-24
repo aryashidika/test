@@ -567,7 +567,7 @@ dialog.form-dialog .modal-close { position: absolute; top: 10px; right: 12px; }
 .revision-nav-row { display: flex; align-items: center; gap: 14px 20px; flex-wrap: wrap; }
 .season-picker { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 12.5px; }
 .season-picker select { min-width: 150px; }
-.stage-stepper { display: flex; list-style: none; margin: 0; padding: 0; flex: 1; min-width: 0; flex-wrap: wrap; gap: 4px; }
+.stage-stepper { display: flex; list-style: none; margin: 0; padding: 0; flex: 1 1 340px; min-width: 0; flex-wrap: wrap; gap: 4px; }
 .stage-step {
   display: flex; align-items: center; gap: 8px; padding: 5px 10px; border-radius: 6px;
   background: var(--surface-alt); border: 1px solid var(--border); color: var(--muted);
@@ -601,3 +601,29 @@ dialog.form-dialog.wide { width: 560px; }
 .diff-detail summary { cursor: pointer; font-size: 12.5px; color: var(--navy); margin-top: 6px; }
 .diff-list { margin: 6px 0 0; padding-left: 16px; font-size: 12.5px; }
 .diff-list ul { margin: 2px 0 4px; padding-left: 16px; }
+
+/* ---------- CBD: chip article, ringkasan biaya menempel, kolom beku ---------- */
+.article-chip {
+  display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--surface-alt); color: var(--text); font-size: 12.5px;
+}
+.article-chip:hover { text-decoration: none; border-color: var(--navy); }
+.article-chip.active { border-color: var(--navy); background: var(--navy-soft); box-shadow: inset 0 0 0 1px var(--navy); }
+.article-chip.is-inactive { opacity: .7; }
+.rev-chip.needs-revision { background: #FFF3D6; color: #9A6500; }
+.rev-chip.needs-revision.active { background: var(--navy); color: #fff; }
+.nav-label { font-size: 12.5px; font-weight: 600; }
+.spec-ref { font-weight: 400; font-size: 12.5px; margin-left: 6px; }
+.cost-summary {
+  position: sticky; top: calc(var(--topbar-h, 56px) + 6px); z-index: 5; display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 4px 16px; padding: 10px 16px; margin-bottom: 12px; border-radius: var(--radius);
+  background: var(--navy); color: #fff; box-shadow: 0 6px 16px rgba(10,24,48,.18);
+}
+.cost-summary > div > span { display: block; font-size: 11px; color: var(--navy-soft); text-transform: uppercase; letter-spacing: .03em; }
+.cost-summary strong { font-size: 15px; white-space: nowrap; }
+.cost-summary .badge { vertical-align: middle; margin-left: 4px; }
+.freeze-cols th:nth-child(1), .freeze-cols td:nth-child(1) { position: sticky; left: 0; z-index: 2; min-width: 52px; width: 52px; }
+.freeze-cols th:nth-child(2), .freeze-cols td:nth-child(2) { position: sticky; left: 52px; z-index: 2; box-shadow: 2px 0 0 var(--border); }
+.freeze-cols tbody td:nth-child(1), .freeze-cols tbody td:nth-child(2) { background: var(--surface); }
+.freeze-cols tbody tr.group-row td { position: static; background: var(--navy-soft); }
+.freeze-cols thead th:nth-child(1), .freeze-cols thead th:nth-child(2) { z-index: 3; }
