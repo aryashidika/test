@@ -6,7 +6,8 @@
 | Folder kerja | `appsmith/` — file ini + `exports/export_vN.json` |
 | Target | Appsmith self-hosted + PostgreSQL (datasource `pg_main`, sudah terhubung) |
 | Data lama | Tidak dimigrasi (mulai dari DB kosong) |
-| Status | **Menunggu persetujuan rencana** |
+| Status | Rencana disetujui 24 Sep 2026 (termasuk P1–P3) · sedang: **F0 + F1** |
+| File siap tempel | `sql/F<n>_*.sql` (jalankan lewat `z_run_sql`), `js/*.js` (isi JSObject) |
 
 Legenda status: ⬜ belum · 🟡 dibuat (belum diverifikasi dari export) · ✅ terverifikasi
 
@@ -16,8 +17,8 @@ Legenda status: ⬜ belum · 🟡 dibuat (belum diverifikasi dari export) · ✅
 
 | Fase | Isi | Export | Status |
 |---|---|---|---|
-| F0 | Persiapan: cek versi, app, cara menjalankan SQL | – | ⬜ |
-| F1 | Fondasi DB, login & role, Admin user + audit | `export_v1.json` | ⬜ |
+| F0 | Persiapan: cek versi, app, cara menjalankan SQL | – | 🟡 langkah diberikan |
+| F1 | Fondasi DB, login & role, Admin user + audit | `export_v1.json` | 🟡 langkah diberikan |
 | F2 | Master Supplier & Komponen | `export_v2.json` | ⬜ |
 | F3 | Master Material, supplier material, harga | `export_v3.json` | ⬜ |
 | F4 | Model, Season, Article, lampiran article | `export_v4.json` | ⬜ |
@@ -35,7 +36,7 @@ Legenda status: ⬜ belum · 🟡 dibuat (belum diverifikasi dari export) · ✅
 
 1. **Logika sederhana → SQL langsung di Appsmith.** CRUD master, model, article, edit sel/nilai: query `INSERT/UPDATE` biasa. Aturan data dijaga oleh constraint & trigger di Postgres (tidak bergantung UI).
 2. **Logika banyak-langkah → function Postgres `fn_*`** (satu function = satu transaksi): buat/hapus revisi, tambah/ganti baris BOM, terbit, buat/refresh CBD, harga baru. Appsmith memanggil `SELECT fn_x(...)`.
-3. **Audit otomatis lewat trigger** `trg_audit` di semua tabel bisnis. Setiap query tulis mengisi `updated_by = {{appsmith.user.email}}`; trigger mencatat before/after ke `audit_log`. Tidak ada kode audit di Appsmith.
+3. **Audit otomatis lewat trigger** `trg_audit` (+ `trg_touch` untuk `created_*`/`updated_*`) di semua tabel bisnis, dipasang dengan `SELECT fn_setup_table('<tabel>')`. Setiap query tulis mengisi `updated_by = {{appsmith.user.email}}`; trigger mencatat before/after ke `audit_log`. Tidak ada kode audit di Appsmith.
 4. **Kunci revisi terbit lewat trigger** `trg_lock_published`: baris BOM/sel/article revisi & baris CBD tidak bisa diubah kalau revisinya PUBLISHED. UPDATE langsung dari Appsmith jadi aman.
 5. **Hak akses:** tabel `role_permission` + view `v_my_perms`. UI menyembunyikan menu/tombol dengan `Auth.can()`. Function `fn_*` yang penting memanggil `fn_assert_perm`. (Catatan: email dikirim dari browser, diterima untuk aplikasi internal.)
 6. **Uang/angka = `numeric`** dan dihitung di Postgres (view). JS hanya memformat tampilan.
@@ -61,7 +62,7 @@ Legenda status: ⬜ belum · 🟡 dibuat (belum diverifikasi dari export) · ✅
 | Merge material, import CSV, reset data, halaman cetak, laporan validasi CBD, harga referensi brand | Tidak dibawa (cetak diganti Excel; harga referensi di Opsional) |
 | Foto per specsheet (belum ada UI) | Lampiran per **article** |
 
-### Perbaikan inkonsistensi Python (menunggu konfirmasi, default = diperbaiki)
+### Perbaikan inkonsistensi Python (disetujui: diperbaiki)
 
 | # | Di Python | Di Appsmith |
 |---|---|---|
@@ -591,8 +592,8 @@ Diperbarui setiap fase selesai direview. Kolom **Dibuat** = Anda sudah menjalank
 | `app_user` | tabel | F1 | ⬜ | ⬜ |
 | `role_permission` | tabel | F1 | ⬜ | ⬜ |
 | `audit_log` | tabel | F1 | ⬜ | ⬜ |
-| `fn_audit_trigger` + `trg_audit` | trigger | F1 | ⬜ | ⬜ |
-| `fn_role_label`, `fn_assert_perm`, `v_my_perms` | function/view | F1 | ⬜ | ⬜ |
+| `fn_touch_trigger` + `trg_touch`, `fn_audit_trigger` + `trg_audit`, `fn_setup_table` | trigger/function | F1 | ⬜ | ⬜ |
+| `fn_role_label`, `fn_assert_perm`, `v_my_perms`, `fn_user_save` | function/view | F1 | ⬜ | ⬜ |
 | `supplier` | tabel | F2 | ⬜ | ⬜ |
 | `component_group` | tabel | F2 | ⬜ | ⬜ |
 | `component` + `trg_component_check` | tabel | F2 | ⬜ | ⬜ |
