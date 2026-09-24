@@ -10,7 +10,7 @@
     {% for m in models %}
     <tr class="clickable">
       <td class="nowrap">
-        <a href="{{ url_for('model.detail', model_id=m.id) }}" class="row-link" aria-label="Buka {{ m.code }}"></a>
+        <a href="{{ url_for(detail_endpoint, model_id=m.id) }}" class="row-link" aria-label="Buka {{ m.code }}"></a>
         <strong>{{ m.code }}</strong>
       </td>
       <td>{{ m.name }}</td>
@@ -22,7 +22,7 @@
       <td class="muted">{{ m.specsheet_summary }} {% if m.article_count %}&middot; {{ m.article_count }} article{% endif %}</td>
     </tr>
     {% else %}
-    <tr><td colspan="8" class="empty-hint">Belum ada model. Klik "+ Tambah Model" untuk membuat model baru.</td></tr>
+    <tr><td colspan="8" class="empty-hint">Belum ada model.{% if can_edit_model %} Klik "+ Tambah Model" di menu Model untuk membuat model baru.{% endif %}</td></tr>
     {% endfor %}
   </tbody>
 </table>

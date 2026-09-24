@@ -25,6 +25,10 @@ def can_view_master(role: str) -> bool:
     return role != "SYSTEM_ADMIN"
 
 
+def can_view_model(role: str) -> bool:
+    return role != "SYSTEM_ADMIN"
+
+
 def can_view_specsheet(role: str) -> bool:
     return role != "SYSTEM_ADMIN"
 

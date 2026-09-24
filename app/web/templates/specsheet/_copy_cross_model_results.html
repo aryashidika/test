@@ -3,7 +3,7 @@
   <li class="list-item-row">
     <span>{{ sp.model_code }} — {{ sp.model_name }} <span class="muted">&middot; {{ sp.season }}</span></span>
     <button type="button" class="btn btn-secondary btn-sm"
-            hx-post="{{ url_for('model.copy_cross_model_create', model_id=model_id) }}"
+            hx-post="{{ url_for('specsheet.copy_cross_model_create', model_id=model_id) }}"
             hx-target="#modal" hx-swap="innerHTML" hx-include="[name='q'], [name='stage']"
             hx-vals='{"specsheet_id": "{{ specsheet_id }}", "source_specsheet_id": "{{ sp.id }}"}'
             hx-confirm="Copy BOM dari {{ sp.model_code }} · {{ sp.season }}? Colorway/Article tidak akan ikut.">

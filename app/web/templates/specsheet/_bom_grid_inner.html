@@ -3,17 +3,23 @@
 {% if editable %}
 <div class="toolbar">
   <details class="inline-form">
-    <summary>+ Article</summary>
+    <summary>Pilih Article{{ (' (' ~ available_articles|length ~ ')') if available_articles }}</summary>
     <div class="inline-form-body">
-      <form hx-post="{{ url_for('model.article_add', model_id=model.id, revision_id=revision_id) }}"
+      {% if available_articles %}
+      <form hx-post="{{ url_for('specsheet.article_include', model_id=model.id, revision_id=revision_id) }}"
             hx-target="#bom-grid-wrap" hx-swap="outerHTML">
         <input type="hidden" name="specsheet_id" value="{{ specsheet_id }}">
-        <div class="field-row">
-          <div class="field"><label>Kode Article</label><input type="text" name="code" required></div>
-          <div class="field"><label>Colorway</label><input type="text" name="colorway" required></div>
-        </div>
-        <button type="submit" class="btn btn-secondary">Tambah Kolom</button>
+        {% for a in available_articles %}
+        <label class="check-row"><input type="checkbox" name="article_id" value="{{ a.id }}" checked>
+          <span>{{ a.code }} <span class="muted">— {{ a.colorway }}</span></span></label>
+        {% endfor %}
+        <button type="submit" class="btn btn-secondary" style="margin-top:8px;">Tambahkan ke Revisi</button>
       </form>
+      {% else %}
+      <p class="muted" style="margin:0;">Semua article season ini sudah ada di revisi.</p>
+      {% endif %}
+      <p class="muted form-note">Article baru dibuat di
+        <a href="{{ url_for('model.detail', model_id=model.id, tab='article', specsheet_id=specsheet_id) }}">halaman Model</a>.</p>
     </div>
   </details>
 
@@ -24,7 +30,7 @@
     <div class="inline-form-body">
       {% for a in dropped_articles %}
       <form class="list-item-row" style="padding:4px 0;"
-            hx-post="{{ url_for('model.article_set_status', model_id=model.id, revision_id=revision_id, article_id=a.id) }}"
+            hx-post="{{ url_for('specsheet.article_set_status', model_id=model.id, revision_id=revision_id, article_id=a.id) }}"
             hx-target="#bom-grid-wrap" hx-swap="outerHTML">
         <input type="hidden" name="specsheet_id" value="{{ specsheet_id }}">
         <input type="hidden" name="status" value="ACTIVE">
@@ -50,7 +56,7 @@
         <span>{{ art.code }}<span class="article-colorway">{{ art.colorway }}</span></span>
         {% if editable %}
         <form
-              hx-post="{{ url_for('model.article_set_status', model_id=model.id, revision_id=revision_id, article_id=art.id) }}"
+              hx-post="{{ url_for('specsheet.article_set_status', model_id=model.id, revision_id=revision_id, article_id=art.id) }}"
               hx-target="#bom-grid-wrap" hx-swap="outerHTML" hx-confirm="Drop article {{ art.code }} — {{ art.colorway }}?">
           <input type="hidden" name="specsheet_id" value="{{ specsheet_id }}">
           <input type="hidden" name="status" value="DROPPED">
@@ -71,23 +77,23 @@
         {% if editable %}
         <input type="text" class="cell-input" name="material_text" list="dl-materials" value="{{ line.material_label }}"
                autocomplete="off" aria-label="Material" title="Ketik material lain untuk Ganti Material"
-               hx-post="{{ url_for('model.bom_replace_material', model_id=model.id, revision_id=revision_id, line_id=line.id) }}"
+               hx-post="{{ url_for('specsheet.bom_replace_material', model_id=model.id, revision_id=revision_id, line_id=line.id) }}"
                hx-trigger="change" hx-target="#bom-grid-wrap" hx-swap="outerHTML"
                hx-vals='{"specsheet_id": "{{ specsheet_id }}"}'>
         {% else %}{{ line.material_name }}{% endif %}
       </td>
-      {% include "model/_bom_supplier_cell.html" %}
+      {% include "specsheet/_bom_supplier_cell.html" %}
       <td class="muted col-tight">{{ line.uom or '-' }}</td>
       <td>
         {% if editable %}
-        {% include "model/_bom_process_cell.html" %}
+        {% include "specsheet/_bom_process_cell.html" %}
         {% else %}{{ line.process or '-' }}{% endif %}
       </td>
       {% if editable %}
       <td class="col-tight">
         {% if not line.parent_line_key %}
         <button type="button" class="btn-link"
-                hx-get="{{ url_for('model.bom_subcomponent_row', model_id=model.id, revision_id=revision_id, line_id=line.id) }}?specsheet_id={{ specsheet_id }}"
+                hx-get="{{ url_for('specsheet.bom_subcomponent_row', model_id=model.id, revision_id=revision_id, line_id=line.id) }}?specsheet_id={{ specsheet_id }}"
                 hx-target="#bom-row-{{ line.id }}" hx-swap="afterend">+ Sub</button>
         {% endif %}
       </td>
@@ -95,7 +101,7 @@
       {% for art in active_articles %}
       <td>
         {% if editable %}
-        {% with article_id = art.id %}{% include "model/_bom_value_cell.html" %}{% endwith %}
+        {% with article_id = art.id %}{% include "specsheet/_bom_value_cell.html" %}{% endwith %}
         {% else %}
         {% set cell = line.cells.get(art.id) %}
         {{ (cell.color if cell and cell.is_used else '') or '-' }}
@@ -128,15 +134,15 @@
       <td>
         <input type="text" name="material_text" class="cell-input" list="dl-materials" placeholder="Ketik kode/nama material..."
                autocomplete="off" aria-label="Material"
-               hx-get="{{ url_for('model.bom_supplier_field', model_id=model.id, revision_id=revision_id) }}"
+               hx-get="{{ url_for('specsheet.bom_supplier_field', model_id=model.id, revision_id=revision_id) }}"
                hx-trigger="change" hx-target="next .supplier-field" hx-swap="outerHTML" hx-include="closest tr">
       </td>
-      <td>{% with supplier_text="", suggestions=all_suppliers, list_id="dl-sup-new-all" %}{% include "model/_bom_supplier_field.html" %}{% endwith %}</td>
+      <td>{% with supplier_text="", suggestions=all_suppliers, list_id="dl-sup-new-all" %}{% include "specsheet/_bom_supplier_field.html" %}{% endwith %}</td>
       <td class="muted">-</td>
       <td><input type="text" name="process" class="cell-input" placeholder="Remarks"></td>
       <td class="col-tight">
         <button type="button" class="btn btn-secondary btn-sm"
-                hx-post="{{ url_for('model.bom_add_line', model_id=model.id, revision_id=revision_id) }}"
+                hx-post="{{ url_for('specsheet.bom_add_line', model_id=model.id, revision_id=revision_id) }}"
                 hx-target="#bom-grid-wrap" hx-swap="outerHTML" hx-include="closest tr"
                 hx-vals='{"specsheet_id": "{{ specsheet_id }}"}'>+ Tambah</button>
       </td>
@@ -149,7 +155,7 @@
 
 {% if editable %}
 {# Saran untuk input ketik di grid (dipakai juga oleh baris subkomponen yang disisipkan). #}
-{% from "model/_macros.html" import supplier_datalist %}
+{% from "specsheet/_macros.html" import supplier_datalist %}
 <datalist id="dl-components">{% for c in component_options %}<option value="{{ c.number }} - {{ c.name }}"></option>{% endfor %}</datalist>
 <datalist id="dl-materials">{% for m in material_options %}<option value="{{ m.material_code }} · {{ m.name }}">{{ m.uom }}{{ ' · ' ~ m.thickness if m.thickness }}{{ ' · usulan' if m.status == 'PROPOSED' }}</option>{% endfor %}</datalist>
 <datalist id="dl-colors">{% for c in season_colors %}<option value="{{ c }}"></option>{% endfor %}</datalist>

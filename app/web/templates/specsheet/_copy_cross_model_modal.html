@@ -8,7 +8,7 @@
       <div class="field" style="flex:1;">
         <label>Cari model (kode / nama / season)</label>
         <input type="search" name="q" value="{{ q }}" placeholder="mis. ACC-001 atau FH26" autofocus
-               hx-get="{{ url_for('model.copy_cross_model_results', model_id=model_id) }}?specsheet_id={{ specsheet_id }}"
+               hx-get="{{ url_for('specsheet.copy_cross_model_results', model_id=model_id) }}?specsheet_id={{ specsheet_id }}"
                hx-trigger="input changed delay:300ms, search" hx-target="#cross-model-results" hx-swap="innerHTML"
                hx-include="this">
       </div>
@@ -20,7 +20,7 @@
       </div>
     </div>
     <div id="cross-model-results">
-      {% include "model/_copy_cross_model_results.html" %}
+      {% include "specsheet/_copy_cross_model_results.html" %}
     </div>
     <div class="form-actions">
       <button type="button" class="btn btn-secondary" onclick="this.closest('.modal-overlay').remove()">Batal</button>

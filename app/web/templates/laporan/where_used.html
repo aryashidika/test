@@ -22,7 +22,7 @@
       <tbody>
         {% for r in results %}
         <tr>
-          <td><a href="{{ url_for('model.detail', model_id=r.model_id) }}">{{ r.model_code }} — {{ r.model_name }}</a></td>
+          <td><a href="{{ url_for('specsheet.detail', model_id=r.model_id) }}">{{ r.model_code }} — {{ r.model_name }}</a></td>
           <td>{{ r.season }}</td>
           <td>{{ r.article_code }} <span class="muted">({{ r.colorway }})</span></td>
           <td>{{ r.display_no }} — {{ r.display_name }}</td>

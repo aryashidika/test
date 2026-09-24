@@ -12,7 +12,7 @@ def home_url(role):
     if role == "VENDOR_CBD":
         return url_for("cbd.list_page")
     if role in ("VENDOR_SPEC", "BRAND_VIEWER"):
-        return url_for("model.list_page")
+        return url_for("specsheet.list_page")
     return url_for("master.material_page")
 
 

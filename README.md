@@ -22,8 +22,8 @@ lanjutan setelah review terhadap contoh specsheet nyata (PDF referensi):
   (tanpa password) — cocok untuk kebutuhan mockup/presentasi.
 - **Single-user, satu komputer.** Satu file SQLite lokal, tidak ada penanganan
   concurrent-write untuk banyak user berbagi file yang sama.
-- **Menu utama disaring per role:** "Master Data", "Model", "CBD", "Laporan",
-  dan "Admin" — tiap role hanya melihat menu yang boleh diaksesnya (lihat "Hak
+- **Menu utama disaring per role:** "Master Data", "Model", "Specsheet", "CBD",
+  "Laporan", dan "Admin" — tiap role hanya melihat menu yang boleh diaksesnya (lihat "Hak
   akses per role" di bawah).
 - **Hak akses per role ditegakkan di server**, bukan hanya dengan
   menyembunyikan tombol: setiap route aksi memakai `require_permission(...)` dan
@@ -283,14 +283,33 @@ Sub-tab: **Material**, **Komponen**, **Supplier**.
 
 ### Menu "Model"
 
+Sumber data sebelum specsheet: data Model, Season, dan Article/colorway.
+Dikelola Vendor Spec dan Master Admin; role lain hanya melihat.
+
 - Daftar Model dengan pencarian (kode/nama) dan filter Season.
 - **+ Tambah Model**: nama, kategori, outsole mold, last no., construction, size
   range, sample size, factory (teks bebas).
-- Klik satu Model untuk masuk ke halaman detail: info header, daftar season
-  (tiap season = satu specsheet), dan editor revisi/BOM.
-- **Season baru**: buat specsheet season lain pada Model yang sama; revisi bisa
+- Detail Model punya dua tab (tersimpan di URL, `?tab=`):
+  - **Season & Article**: chip season (+ jumlah article), "+ Season Baru", lalu
+    tabel article season terpilih dengan status specsheet (Aktif/Di-drop di
+    revisi terbit terakhir, Di draft, atau Belum masuk specsheet) dan status CBD
+    terakhir (kolom CBD tidak tampil untuk Vendor Spec). Aksi: "+ Article"
+    (kode + colorway), "Copy Article" dari season lain model yang sama (kode
+    yang sudah ada dilewati), Edit, dan Hapus.
+  - **Info Model**: semua field model, bisa diedit ("Edit Info").
+- Aturan article: kode unik per season. Colorway selalu bisa diubah; kode dan
+  hapus hanya selama article belum pernah dipakai di revisi specsheet, sel BOM,
+  atau CBD — setelah itu pemakaiannya dihentikan dengan drop di specsheet.
+- Tombol "Buka Specsheet" / "Buka CBD" di header langsung ke season yang sama.
+
+### Menu "Specsheet"
+
+- Daftar model yang sama dengan menu Model; klik untuk membuka revisi & BOM
+  (`/specsheet/<model>`). URL lama `/model/<id>?revision_id=...` diarahkan ke
+  sini.
+- Season dibuat di halaman Model (tombol "Kelola Season & Article"); revisi bisa
   dibuat carryover dari specsheet season lain yang sudah punya revisi terbit
-  (colorway/Article tidak ikut disalin, harus diisi ulang).
+  (BOM ikut, colorway/Article season sumber tidak).
 - **Copy dari Model Lain**: untuk specsheet pertama pada Model yang benar-benar
   baru, BOM bisa di-copy dari specsheet Model lain (cari kode/nama/season lewat
   modal pencarian) memakai mekanisme carryover yang sama — colorway/Article
@@ -298,8 +317,10 @@ Sub-tab: **Material**, **Komponen**, **Supplier**.
 - Pembuatan revisi sesuai PRD 6.1: kosong (r0, stage bisa dipilih — default
   `PULL`), carryover, revisi baru di stage sama (lineKey dipertahankan), lanjut
   ke stage berikutnya. Hanya satu revisi `DRAFT` per specsheet pada satu waktu.
+  Revisi pertama sebuah season (kosong, carryover, atau copy dari model lain)
+  langsung memuat semua article season itu dari halaman Model.
   Revisi DRAFT bisa dihapus lewat tombol "Hapus Draft" (dengan konfirmasi):
-  baris BOM, sel, dan article yang hanya ada di draft itu ikut terhapus;
+  baris BOM dan sel ikut terhapus, article-nya tetap ada (milik Model);
   revisi terbit tidak bisa dihapus.
   Hanya role Vendor - Specsheet yang bisa membuat/mengedit revisi.
 - **Grid BOM** (No, Komponen, Deskripsi Material, Source of Material, UoM,
@@ -314,9 +335,11 @@ Sub-tab: **Material**, **Komponen**, **Supplier**.
 - **Ganti Material** (PRD 6.2): pilih material baru langsung dari dropdown di
   sel Deskripsi Material — baris lama dinonaktifkan, baris baru dibuat dengan
   `replacesLineKey`, BomCell disalin.
-- **+ Article**: menambah kolom Article/colorway langsung di grid BOM. Drop
-  lewat tombol "×" di header kolom; article yang di-drop bisa diaktifkan lagi
-  lewat panel "Article Di-drop" di toolbar.
+- **Pilih Article**: memasukkan article season ini (yang dibuat di halaman
+  Model tapi belum ada di revisi) sebagai kolom baru di grid BOM — article baru
+  tidak dibuat dari sini. Drop lewat tombol "×" di header kolom; article yang
+  di-drop bisa diaktifkan lagi lewat panel "Article Di-drop" di toolbar. Drop
+  tetap per revisi dan berlaku untuk CBD setelah revisinya terbit.
 - Terbitkan revisi (PRD 6.3): validasi minimal satu article aktif ada di
   revisi, setiap article terpakai (punya warna/nilai di minimal satu baris
   BOM), material tidak `INACTIVE`, wajib isi change log (kategori + alasan)
@@ -341,7 +364,7 @@ Sub-tab: **Material**, **Komponen**, **Supplier**.
 
 - Navigasi tiga lapis: **Season** (specsheet) → **Article** (colorway) →
   **Revisi CBD** (stage + revisi, satu CBD per Article). Article diambil dari
-  yang sudah dibuat di menu Model — CBD tidak membuat Article baru. Hanya
+  yang sudah dibuat di halaman Model — CBD tidak membuat Article baru. Hanya
   article yang **aktif di revisi specsheet terbit terakhir** yang bisa dipilih
   untuk membuat/mengubah CBD; article yang di-drop (atau baru ditambahkan di
   revisi specsheet yang belum terbit) pindah ke bagian "Article tidak aktif" —
@@ -480,10 +503,10 @@ lalu menyeed ulang data tsb kapan saja.
 
 | Menu / Aksi | Master Admin | Vendor Spec | Vendor CBD | Brand Viewer | System Admin |
 | --- | --- | --- | --- | --- | --- |
-| Halaman pertama setelah masuk | Master Data | Model | CBD | Model | Admin |
+| Halaman pertama setelah masuk | Master Data | Specsheet | CBD | Specsheet | Admin |
 | Master Material, Komponen, Supplier | edit & approve | usul | usul | lihat | – |
 | Master Harga & metode harga | edit | tersembunyi | edit | lihat | – |
-| Model & Season | edit | edit | lihat | lihat | – |
+| Model, Season & Article | edit | edit | lihat | lihat | – |
 | Specsheet (BOM, article, terbit) | lihat | edit & terbit | lihat terbit | lihat terbit | – |
 | CBD (termasuk Selling Price & Margin) | lihat | tersembunyi | edit & terbit | lihat terbit | – |
 | Laporan Where-Used | ✓ | ✓ | ✓ | ✓ (terbit saja) | – |
@@ -594,6 +617,13 @@ Test master harga (`tests/test_material_price.py`) & input ketik BOM
   lokal (No. wajib, aturan nomor tetap); material & supplier wajib ada di master;
   saran warna per season.
 
+Test halaman Model (`tests/test_model_articles.py`): article dibuat tanpa
+revisi (kode unik per season); revisi pertama & carryover memuat article season
+tujuan; "Pilih Article" ke draft lanjutan; aturan edit/hapus article; copy
+article antar season; status specsheet/CBD per article (draft disembunyikan
+untuk Brand); edit info model; hak akses halaman Model; hapus draft tidak
+menghapus article; redirect URL lama.
+
 Test hak akses (`tests/test_role_access.py`): halaman pertama per role; Vendor
 Spec tidak bisa membuka CBD/Histori Harga; aksi dari role yang salah ditolak
 403 (Brand, Vendor CBD, Master Admin di specsheet/CBD); Brand tidak melihat
@@ -646,7 +676,8 @@ app/
     auth.py                    # require_session, require_permission, guard_blueprint (hak akses per role)
     formatting.py               # format angka tampilan (filter Jinja `angka`/`rupiah`)
     user_session.py             # dataclass Session (role + operator_name)
-    blueprints/                # main (login), admin (reset data), master, model, cbd, laporan (M4)
+    blueprints/                # main (login), admin (reset data), master, model (model/season/article),
+                               # specsheet (revisi & BOM), cbd, laporan (M4)
     templates/                  # halaman Jinja2 + partial htmx (termasuk _print.html: halaman cetak M5)
     static/                      # style.css (+ print stylesheet M5) + vendor/htmx.min.js (lokal, bukan CDN)
 tests/                      # pytest, mengacu ke kriteria penerimaan PRD (termasuk test_e2e_web.py, M5)

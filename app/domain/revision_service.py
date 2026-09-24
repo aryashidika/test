@@ -80,6 +80,35 @@ def _copy_revision_articles(conn, revision_id: str, source_revision_id: str):
         )
 
 
+def link_article(conn, revision_id: str, article_id: str, status: str = "ACTIVE") -> None:
+    """Masukkan article ke revisi: baris revision_article + sel kosong di setiap
+    baris BOM aktif (sel yang sudah ada dibiarkan)."""
+    conn.execute(
+        "INSERT INTO revision_article (revision_id, article_id, status) VALUES (?,?,?)",
+        (revision_id, article_id, status),
+    )
+    lines = conn.execute(
+        "SELECT id FROM bom_line WHERE revision_id=? AND is_active=1", (revision_id,)
+    ).fetchall()
+    for line in lines:
+        conn.execute(
+            "INSERT OR IGNORE INTO bom_cell (bom_line_id, article_id, is_used) VALUES (?,?,0)",
+            (line["id"], article_id),
+        )
+
+
+def _include_season_articles(conn, revision_id: str, specsheet_id: str) -> None:
+    """Revisi pertama sebuah season langsung memuat semua article season itu
+    (article dikelola di halaman Model, sebelum specsheet dibuat)."""
+    articles = conn.execute(
+        """SELECT id FROM article WHERE specsheet_id=? AND id NOT IN
+           (SELECT article_id FROM revision_article WHERE revision_id=?) ORDER BY code""",
+        (specsheet_id, revision_id),
+    ).fetchall()
+    for article in articles:
+        link_article(conn, revision_id, article["id"])
+
+
 def create_empty_revision(conn, specsheet_id: str, actor: str, stage: str = "PULL") -> str:
     """Specsheet baru, tanpa sumber -> r0 kosong. Stage bisa dipilih (specsheet
     tidak selalu mulai dari PULL — mis. article yang masuk belakangan)."""
@@ -91,6 +120,7 @@ def create_empty_revision(conn, specsheet_id: str, actor: str, stage: str = "PUL
         "INSERT INTO specsheet_revision (id, specsheet_id, stage, revision_no, status) VALUES (?,?,?,?,?)",
         (revision_id, specsheet_id, stage, 0, "DRAFT"),
     )
+    _include_season_articles(conn, revision_id, specsheet_id)
     write_audit_log(conn, actor, "SpecsheetRevision", revision_id, "CREATE",
                      None, {"stage": stage, "revisionNo": 0, "source": "EMPTY"})
     conn.commit()
@@ -100,7 +130,9 @@ def create_empty_revision(conn, specsheet_id: str, actor: str, stage: str = "PUL
 def create_carryover_revision(conn, specsheet_id: str, source_revision_id: str, actor: str,
                                stage: str = "PULL") -> str:
     """Carryover dari season lalu. lineKey baru, originLineKey = lineKey lama.
-    Article dan BomCell TIDAK disalin. Stage bisa dipilih (lihat create_empty_revision)."""
+    Article dan BomCell season sumber TIDAK disalin; article season tujuan (dari
+    halaman Model) langsung dimuat dengan sel kosong. Stage bisa dipilih (lihat
+    create_empty_revision)."""
     if stage not in STAGES:
         raise ValueError("Stage tidak valid.")
     _guard_single_draft(conn, specsheet_id)
@@ -147,6 +179,7 @@ def create_carryover_revision(conn, specsheet_id: str, source_revision_id: str, 
              line["process"], line["sort_order"]),
         )
 
+    _include_season_articles(conn, revision_id, specsheet_id)
     write_audit_log(conn, actor, "SpecsheetRevision", revision_id, "CREATE",
                      None, {"stage": stage, "revisionNo": 0, "source": "CARRYOVER", "from": source_revision_id})
     conn.commit()
@@ -283,29 +316,17 @@ def publish_revision(conn, revision_id: str, category: str, reason: str, actor: 
 
 def delete_draft_revision(conn, revision_id: str, actor: str) -> None:
     """Hapus revisi specsheet DRAFT beserta isinya (baris BOM, sel, daftar
-    article revisi) seakan belum pernah dibuat. Article yang HANYA ada di draft
-    ini (belum pernah ada di revisi lain dan belum punya CBD) ikut dihapus.
+    article revisi) seakan belum pernah dibuat. Article-nya sendiri TIDAK ikut
+    terhapus — article milik Model/season, dikelola di halaman Model.
     Revisi terbit tidak bisa dihapus. CBD tidak terdampak: CBD selalu mengacu ke
     revisi specsheet terbit, bukan draft."""
     revision = ensure_draft(conn, revision_id)
-    article_ids = [r["article_id"] for r in conn.execute(
-        "SELECT article_id FROM revision_article WHERE revision_id=?", (revision_id,)
-    ).fetchall()]
 
     conn.execute(
         "DELETE FROM bom_cell WHERE bom_line_id IN (SELECT id FROM bom_line WHERE revision_id=?)", (revision_id,)
     )
     conn.execute("DELETE FROM bom_line WHERE revision_id=?", (revision_id,))
     conn.execute("DELETE FROM revision_article WHERE revision_id=?", (revision_id,))
-    for article_id in article_ids:
-        still_used = conn.execute(
-            """SELECT 1 FROM revision_article WHERE article_id=?
-               UNION SELECT 1 FROM cbd_revision WHERE article_id=?
-               UNION SELECT 1 FROM bom_cell WHERE article_id=? LIMIT 1""",
-            (article_id, article_id, article_id),
-        ).fetchone()
-        if not still_used:
-            conn.execute("DELETE FROM article WHERE id=?", (article_id,))
     conn.execute("DELETE FROM specsheet_revision WHERE id=?", (revision_id,))
 
     write_audit_log(conn, actor, "SpecsheetRevision", revision_id, "DELETE_DRAFT",

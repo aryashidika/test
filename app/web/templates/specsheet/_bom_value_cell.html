@@ -1,6 +1,6 @@
 {% set cell = line.cells.get(article_id) %}
 <input type="text" class="cell-input" value="{{ (cell.color if cell else '') or '' }}" name="value" list="dl-colors"
        autocomplete="off"
-       hx-post="{{ url_for('model.bom_set_cell', model_id=model_id, revision_id=line.revision_id, line_id=line.id, article_id=article_id) }}"
+       hx-post="{{ url_for('specsheet.bom_set_cell', model_id=model_id, revision_id=line.revision_id, line_id=line.id, article_id=article_id) }}"
        hx-trigger="change" hx-target="this" hx-swap="outerHTML"
        hx-vals='{"specsheet_id": "{{ specsheet_id }}"}'>

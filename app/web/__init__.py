@@ -43,7 +43,8 @@ def create_app(db_path=None):
         role = session_.role if session_ else None
         nav = {
             "master": bool(role) and permissions.can_view_master(role),
-            "model": bool(role) and permissions.can_view_specsheet(role),
+            "model": bool(role) and permissions.can_view_model(role),
+            "specsheet": bool(role) and permissions.can_view_specsheet(role),
             "cbd": bool(role) and permissions.can_view_cbd(role),
             "laporan": bool(role) and permissions.can_view_reports(role),
             "admin": bool(role) and permissions.is_system_admin(role),
@@ -59,11 +60,13 @@ def create_app(db_path=None):
     from .blueprints.main import main_bp
     from .blueprints.master import master_bp
     from .blueprints.model import model_bp
+    from .blueprints.specsheet import specsheet_bp
 
     app.register_blueprint(main_bp)
     app.register_blueprint(admin_bp)
     app.register_blueprint(master_bp)
     app.register_blueprint(model_bp)
+    app.register_blueprint(specsheet_bp)
     app.register_blueprint(cbd_bp)
     app.register_blueprint(laporan_bp)
 

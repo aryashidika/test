@@ -43,7 +43,7 @@ def seeded(client):
 
 def test_login_lands_on_role_home(client):
     assert login(client, "VENDOR_CBD").headers["Location"].endswith("/cbd")
-    assert login(client, "VENDOR_SPEC").headers["Location"].endswith("/model")
+    assert login(client, "VENDOR_SPEC").headers["Location"].endswith("/specsheet")
     assert login(client, "SYSTEM_ADMIN").headers["Location"].endswith("/admin")
     assert login(client, "MASTER_ADMIN").headers["Location"].endswith("/master/material")
 
@@ -52,8 +52,8 @@ def test_vendor_spec_cannot_see_prices(client):
     login(client, "VENDOR_SPEC")
     assert client.get("/cbd").status_code == 403
     assert client.get("/laporan/histori-harga").status_code == 403
-    page = client.get("/model").get_data(as_text=True)
-    assert ">CBD<" not in page and ">Model<" in page
+    page = client.get("/specsheet").get_data(as_text=True)
+    assert ">CBD<" not in page and ">Specsheet<" in page
     assert client.get("/laporan/where-used").status_code == 200
 
 
@@ -62,7 +62,7 @@ def test_mutations_rejected_for_wrong_role(client):
 
     login(client, "BRAND_VIEWER")
     assert client.post("/model", data={"code": "X-1", "name": "X"}).status_code == 403
-    assert client.post(f"/model/{model_id}/revision/{revision_id}/publish",
+    assert client.post(f"/specsheet/{model_id}/revision/{revision_id}/publish",
                        data={"specsheet_id": specsheet_id, "category": "OTHER"}).status_code == 403
     assert client.post(f"/cbd/{model_id}/revision/any/publish", data={}).status_code == 403
     assert client.post("/master/material", data={"name": "X"}).status_code == 403
@@ -71,13 +71,13 @@ def test_mutations_rejected_for_wrong_role(client):
     login(client, "VENDOR_CBD")
     assert client.post("/model", data={"code": "X-2", "name": "X"}).status_code == 403
     assert "+ Tambah Model" not in client.get("/model").get_data(as_text=True)
-    assert client.post(f"/model/{model_id}/revision/{revision_id}/bom/line",
+    assert client.post(f"/specsheet/{model_id}/revision/{revision_id}/bom/line",
                        data={"specsheet_id": specsheet_id}).status_code == 403
 
     # Master Admin boleh membuat model, tapi specsheet tetap hak Vendor Spec.
     login(client, "MASTER_ADMIN")
     assert "+ Tambah Model" in client.get("/model").get_data(as_text=True)
-    assert client.post(f"/model/{model_id}/revision/{revision_id}/delete",
+    assert client.post(f"/specsheet/{model_id}/revision/{revision_id}/delete",
                        data={"specsheet_id": specsheet_id}).status_code == 403
     assert client.post(f"/cbd/{model_id}/revision/any/field/selling_price", data={}).status_code == 403
 
@@ -86,15 +86,15 @@ def test_brand_sees_published_revisions_only(client):
     model_id, specsheet_id, revision_id = seeded(client)
 
     login(client, "VENDOR_SPEC")
-    assert "DRAFT" in client.get(f"/model/{model_id}").get_data(as_text=True)
-    assert client.get(f"/model/{model_id}/revision/{revision_id}/print").status_code == 200
+    assert "DRAFT" in client.get(f"/specsheet/{model_id}").get_data(as_text=True)
+    assert client.get(f"/specsheet/{model_id}/revision/{revision_id}/print").status_code == 200
 
     login(client, "BRAND_VIEWER")
-    detail = client.get(f"/model/{model_id}").get_data(as_text=True)
+    detail = client.get(f"/specsheet/{model_id}").get_data(as_text=True)
     assert "DRAFT" not in detail and "Belum ada revisi." in detail
-    assert client.get(f"/model/{model_id}/revision/{revision_id}/print").status_code == 403
-    assert client.get(f"/model/{model_id}/revision/{revision_id}/export.xlsx").status_code == 403
-    assert "DRAFT" not in client.get("/model").get_data(as_text=True)
+    assert client.get(f"/specsheet/{model_id}/revision/{revision_id}/print").status_code == 403
+    assert client.get(f"/specsheet/{model_id}/revision/{revision_id}/export.xlsx").status_code == 403
+    assert "DRAFT" not in client.get("/specsheet").get_data(as_text=True)
 
 
 def test_system_admin_is_technical_only(client):

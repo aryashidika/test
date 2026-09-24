@@ -60,6 +60,35 @@ def create_model(conn: sqlite3.Connection, data: ModelInput, actor: str) -> str:
     return model_id
 
 
+_MODEL_FIELDS = ("code", "name", "factory", "category", "outsole_mold", "last_no", "construction",
+                 "size_range", "sample_size")
+
+
+def update_model(conn: sqlite3.Connection, model_id: str, data: ModelInput, actor: str) -> None:
+    before = get_model(conn, model_id)
+    code = (data.code or "").strip()
+    name = (data.name or "").strip()
+    if not code:
+        raise ValueError("Kode model wajib diisi.")
+    if not name:
+        raise ValueError("Nama model wajib diisi.")
+    values = {"code": code, "name": name}
+    for field in _MODEL_FIELDS[2:]:
+        values[field] = _clean(getattr(data, field))
+    try:
+        conn.execute(
+            f"UPDATE product_model SET {', '.join(f'{f}=?' for f in _MODEL_FIELDS)} WHERE id=?",
+            (*(values[f] for f in _MODEL_FIELDS), model_id),
+        )
+    except sqlite3.IntegrityError as exc:
+        if "UNIQUE" in str(exc):
+            raise DuplicateModelError(f"Kode model '{code}' sudah dipakai.") from exc
+        raise
+    write_audit_log(conn, actor, "ProductModel", model_id, "UPDATE",
+                     {f: before[f] for f in _MODEL_FIELDS}, values)
+    conn.commit()
+
+
 def get_model(conn, model_id: str):
     row = conn.execute("SELECT * FROM product_model WHERE id=?", (model_id,)).fetchone()
     if not row:

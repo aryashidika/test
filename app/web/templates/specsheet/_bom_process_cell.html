@@ -1,4 +1,4 @@
 <input type="text" class="cell-input" value="{{ line.process or '' }}" name="value"
-       hx-post="{{ url_for('model.bom_set_process', model_id=model_id, revision_id=line.revision_id, line_id=line.id) }}"
+       hx-post="{{ url_for('specsheet.bom_set_process', model_id=model_id, revision_id=line.revision_id, line_id=line.id) }}"
        hx-trigger="change" hx-target="this" hx-swap="outerHTML"
        hx-vals='{"specsheet_id": "{{ specsheet_id }}"}'>

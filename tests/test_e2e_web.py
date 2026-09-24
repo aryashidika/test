@@ -97,41 +97,41 @@ def test_full_flow_master_to_export(client):
         client, "SELECT id FROM specsheet WHERE model_id=? AND season='FH26'", (model_id,)
     )["id"]
 
+    # Article/colorway dibuat di halaman Model, sebelum specsheet.
+    for code, colorway in (("ART-A", "Red"), ("ART-B", "Blue")):
+        assert client.post(
+            f"/model/{model_id}/season/{specsheet_id}/article", data={"code": code, "colorway": colorway},
+        ).status_code == 200
+
+    # Revisi pertama langsung memuat semua article season ini.
     assert client.post(
-        f"/model/{model_id}/revision/empty", data={"specsheet_id": specsheet_id, "stage": "PULL"}
+        f"/specsheet/{model_id}/revision/empty", data={"specsheet_id": specsheet_id, "stage": "PULL"}
     ).status_code == 200
     revision_id = row(
         client, "SELECT id FROM specsheet_revision WHERE specsheet_id=?", (specsheet_id,)
     )["id"]
+    assert len(rows(client, "SELECT * FROM revision_article WHERE revision_id=?", (revision_id,))) == 2
 
-    assert client.post(
-        f"/model/{model_id}/revision/{revision_id}/article",
-        data={"specsheet_id": specsheet_id, "code": "ART-A", "colorway": "Red"},
-    ).status_code == 200
-    assert client.post(
-        f"/model/{model_id}/revision/{revision_id}/article",
-        data={"specsheet_id": specsheet_id, "code": "ART-B", "colorway": "Blue"},
-    ).status_code == 200
     articles = rows(client, "SELECT * FROM article WHERE specsheet_id=? ORDER BY code", (specsheet_id,))
     article_a, article_b = articles[0]["id"], articles[1]["id"]
 
     # Komponen/material/supplier diketik (dengan saran), bukan dipilih dari dropdown.
-    assert client.post(f"/model/{model_id}/revision/{revision_id}/bom/line", data={
+    assert client.post(f"/specsheet/{model_id}/revision/{revision_id}/bom/line", data={
         "specsheet_id": specsheet_id, "component_text": f"{comp1_row['number']} - {comp1_row['name']}",
         "material_text": "MTR-E2E-1 · Kain E2E", "process": "Cutting", "supplier_text": "Supplier E2E",
     }).status_code == 200
-    assert client.post(f"/model/{model_id}/revision/{revision_id}/bom/line", data={
+    assert client.post(f"/specsheet/{model_id}/revision/{revision_id}/bom/line", data={
         "specsheet_id": specsheet_id, "component_text": comp2_row["name"], "material_text": "MTR-E2E-2",
         "process": "Stitching", "supplier_text": "supplier e2e",
     }).status_code == 200
     # Komponen yang tidak ada di master jadi komponen lokal (No. wajib).
-    resp = client.post(f"/model/{model_id}/revision/{revision_id}/bom/line", data={
+    resp = client.post(f"/specsheet/{model_id}/revision/{revision_id}/bom/line", data={
         "specsheet_id": specsheet_id, "component_text": "Heel Tab E2E", "material_text": "MTR-E2E-1",
         "process": "", "supplier_text": "",
     })
     assert "isi No." in resp.get_data(as_text=True)
     # Supplier yang belum ada di Master Supplier ditolak.
-    resp = client.post(f"/model/{model_id}/revision/{revision_id}/bom/line", data={
+    resp = client.post(f"/specsheet/{model_id}/revision/{revision_id}/bom/line", data={
         "specsheet_id": specsheet_id, "component_text": "Heel Tab E2E", "local_no": "15",
         "material_text": "MTR-E2E-1", "supplier_text": "Supplier Belum Terdaftar",
     })
@@ -149,13 +149,13 @@ def test_full_flow_master_to_export(client):
     for line_id in (line1, line2):
         for art_id, color in ((article_a, "Red"), (article_b, "Blue")):
             assert client.post(
-                f"/model/{model_id}/revision/{revision_id}/bom/{line_id}/cell/{art_id}",
+                f"/specsheet/{model_id}/revision/{revision_id}/bom/{line_id}/cell/{art_id}",
                 data={"specsheet_id": specsheet_id, "value": color},
             ).status_code == 200
 
     # ---- 3. Terbitkan specsheet ----
     assert client.post(
-        f"/model/{model_id}/revision/{revision_id}/publish",
+        f"/specsheet/{model_id}/revision/{revision_id}/publish",
         data={"specsheet_id": specsheet_id, "category": "OTHER", "reason": ""},
     ).status_code == 200
     published = row(client, "SELECT status FROM specsheet_revision WHERE id=?", (revision_id,))
@@ -235,7 +235,7 @@ def test_full_flow_master_to_export(client):
     # ---- 5. Revisi specsheet: hanya lepas pemakaian baris untuk article A ----
     login(client, "VENDOR_SPEC", "Spec Ops")
     assert client.post(
-        f"/model/{model_id}/revision/same-stage", data={"specsheet_id": specsheet_id}
+        f"/specsheet/{model_id}/revision/same-stage", data={"specsheet_id": specsheet_id}
     ).status_code == 200
     rev2 = row(
         client, "SELECT id FROM specsheet_revision WHERE specsheet_id=? AND revision_no=1",
@@ -247,11 +247,11 @@ def test_full_flow_master_to_export(client):
         (rev2, line1),
     )["id"]
     assert client.post(
-        f"/model/{model_id}/revision/{rev2}/bom/{line1_r2}/cell/{article_a}",
+        f"/specsheet/{model_id}/revision/{rev2}/bom/{line1_r2}/cell/{article_a}",
         data={"specsheet_id": specsheet_id, "value": "none"},
     ).status_code == 200
     assert client.post(
-        f"/model/{model_id}/revision/{rev2}/publish",
+        f"/specsheet/{model_id}/revision/{rev2}/publish",
         data={"specsheet_id": specsheet_id, "category": "COMPONENT", "reason": "Drop baris untuk article A"},
     ).status_code == 200
 
@@ -276,11 +276,11 @@ def test_full_flow_master_to_export(client):
     }).status_code == 200
 
     # ---- 8. Ekspor (Excel + halaman cetak) untuk specsheet dan CBD ----
-    print_specsheet = client.get(f"/model/{model_id}/revision/{revision_id}/print")
+    print_specsheet = client.get(f"/specsheet/{model_id}/revision/{revision_id}/print")
     assert print_specsheet.status_code == 200
     assert b"MDL-E2E" in print_specsheet.data
 
-    export_specsheet = client.get(f"/model/{model_id}/revision/{revision_id}/export.xlsx")
+    export_specsheet = client.get(f"/specsheet/{model_id}/revision/{revision_id}/export.xlsx")
     assert export_specsheet.status_code == 200
     assert export_specsheet.headers["Content-Type"] == (
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"

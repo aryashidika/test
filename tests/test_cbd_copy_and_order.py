@@ -3,7 +3,7 @@
 Article Lain" (baris selalu dari specsheet tujuan, subkomponen dicocokkan
 lewat nama, baris sumber yang tak terpakai tidak ikut)."""
 
-from app.domain.article_service import add_article
+from app.domain.article_service import add_article, article_is_used
 from app.domain.bom_service import (
     add_component_line,
     add_subcomponent_line,
@@ -148,7 +148,7 @@ def test_delete_cbd_draft_as_if_never_created(conn, cbd_ctx):
         delete_cbd_draft(conn, again, "CBD")
 
 
-def test_delete_specsheet_draft_removes_lines_and_draft_only_articles(conn, cbd_ctx):
+def test_delete_specsheet_draft_removes_lines_but_keeps_articles(conn, cbd_ctx):
     import pytest
     from app.domain.revision_service import (
         create_next_revision_same_stage, delete_draft_revision, get_draft_revision,
@@ -160,7 +160,10 @@ def test_delete_specsheet_draft_removes_lines_and_draft_only_articles(conn, cbd_
 
     assert get_draft_revision(conn, cbd_ctx["specsheet_id"]) is None
     assert conn.execute("SELECT COUNT(*) FROM bom_line WHERE revision_id=?", (draft,)).fetchone()[0] == 0
-    assert conn.execute("SELECT 1 FROM article WHERE id=?", (new_art,)).fetchone() is None  # hanya ada di draft
+    # Article milik Model/season (halaman Model), bukan milik draft: tetap ada,
+    # dan karena belum dipakai di mana pun jadi bisa dihapus dari halaman Model.
+    assert conn.execute("SELECT 1 FROM article WHERE id=?", (new_art,)).fetchone()
+    assert not article_is_used(conn, new_art)
     assert conn.execute("SELECT 1 FROM article WHERE id=?", (cbd_ctx["article_id"],)).fetchone()  # tetap ada
     assert list_lines_with_cells(conn, cbd_ctx["revision_id"])  # revisi terbit utuh
 

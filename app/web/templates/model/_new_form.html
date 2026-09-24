@@ -1,28 +1,28 @@
 <div class="modal-overlay" onclick="if(event.target===this) this.remove()">
   <div class="modal-box wide">
     <button type="button" class="modal-close" onclick="this.closest('.modal-overlay').remove()">&times;</button>
-    <h3>Tambah Model</h3>
+    <h3>{{ "Edit Info Model" if model else "Tambah Model" }}</h3>
     {% if error %}<div class="error-banner">{{ error }}</div>{% endif %}
-    <form hx-post="{{ url_for('model.create') }}" hx-target="#modal" hx-swap="innerHTML">
+    <form hx-post="{{ url_for('model.update', model_id=model.id) if model else url_for('model.create') }}" hx-target="#modal" hx-swap="innerHTML">
       <div class="field-row">
-        <div class="field"><label>Kode Model *</label><input type="text" name="code" value="{{ values.get('code','') }}" required autofocus></div>
-        <div class="field"><label>Nama Model *</label><input type="text" name="name" value="{{ values.get('name','') }}" required></div>
+        <div class="field"><label>Kode Model *</label><input type="text" name="code" value="{{ values.get('code') or '' }}" required autofocus></div>
+        <div class="field"><label>Nama Model *</label><input type="text" name="name" value="{{ values.get('name') or '' }}" required></div>
       </div>
       <div class="field-row">
-        <div class="field"><label>Kategori</label><input type="text" name="category" value="{{ values.get('category','') }}"></div>
-        <div class="field"><label>Factory</label><input type="text" name="factory" value="{{ values.get('factory','') }}"></div>
+        <div class="field"><label>Kategori</label><input type="text" name="category" value="{{ values.get('category') or '' }}"></div>
+        <div class="field"><label>Factory</label><input type="text" name="factory" value="{{ values.get('factory') or '' }}"></div>
       </div>
       <div class="field-row">
-        <div class="field"><label>Outsole Mould</label><input type="text" name="outsole_mold" value="{{ values.get('outsole_mold','') }}"></div>
-        <div class="field"><label>Last No.</label><input type="text" name="last_no" value="{{ values.get('last_no','') }}"></div>
+        <div class="field"><label>Outsole Mould</label><input type="text" name="outsole_mold" value="{{ values.get('outsole_mold') or '' }}"></div>
+        <div class="field"><label>Last No.</label><input type="text" name="last_no" value="{{ values.get('last_no') or '' }}"></div>
       </div>
       <div class="field-row">
-        <div class="field"><label>Construction</label><input type="text" name="construction" value="{{ values.get('construction','') }}"></div>
-        <div class="field"><label>Size Range</label><input type="text" name="size_range" value="{{ values.get('size_range','') }}" placeholder="37-44"></div>
+        <div class="field"><label>Construction</label><input type="text" name="construction" value="{{ values.get('construction') or '' }}"></div>
+        <div class="field"><label>Size Range</label><input type="text" name="size_range" value="{{ values.get('size_range') or '' }}" placeholder="37-44"></div>
       </div>
-      <div class="field"><label>Sample Size</label><input type="text" name="sample_size" value="{{ values.get('sample_size','') }}"></div>
+      <div class="field"><label>Sample Size</label><input type="text" name="sample_size" value="{{ values.get('sample_size') or '' }}"></div>
       <div class="form-actions">
-        <button type="submit" class="btn">Simpan Model</button>
+        <button type="submit" class="btn">{{ "Simpan Perubahan" if model else "Simpan Model" }}</button>
         <button type="button" class="btn btn-secondary" onclick="this.closest('.modal-overlay').remove()">Batal</button>
       </div>
     </form>

@@ -4,16 +4,16 @@
   <td>
     <input type="text" name="material_text" class="cell-input" list="dl-materials" placeholder="Ketik kode/nama material..."
            autocomplete="off" aria-label="Material subkomponen"
-           hx-get="{{ url_for('model.bom_supplier_field', model_id=model_id, revision_id=revision_id) }}"
+           hx-get="{{ url_for('specsheet.bom_supplier_field', model_id=model_id, revision_id=revision_id) }}"
            hx-trigger="change" hx-target="next .supplier-field" hx-swap="outerHTML" hx-include="closest tr">
   </td>
-  <td>{% with supplier_text="", suggestions=all_suppliers, list_id="dl-sup-new-sub-" ~ line.id %}{% include "model/_bom_supplier_field.html" %}{% endwith %}</td>
+  <td>{% with supplier_text="", suggestions=all_suppliers, list_id="dl-sup-new-sub-" ~ line.id %}{% include "specsheet/_bom_supplier_field.html" %}{% endwith %}</td>
   <td class="muted">-</td>
   <td><input type="text" name="process" class="cell-input" placeholder="Remarks"></td>
   <td class="col-tight">
     <div class="inline-actions">
     <button type="button" class="btn btn-secondary btn-sm"
-            hx-post="{{ url_for('model.bom_add_subcomponent', model_id=model_id, revision_id=revision_id, line_id=line.id) }}"
+            hx-post="{{ url_for('specsheet.bom_add_subcomponent', model_id=model_id, revision_id=revision_id, line_id=line.id) }}"
             hx-target="#bom-grid-wrap" hx-swap="outerHTML" hx-include="closest tr"
             hx-vals='{"specsheet_id": "{{ specsheet_id }}"}'>Tambah</button>
     <button type="button" class="btn-link" onclick="this.closest('tr').remove()">Batal</button>

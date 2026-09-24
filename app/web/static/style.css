@@ -501,3 +501,25 @@ form.quotation-form .override-row { display: flex; gap: 4px; }
   margin-bottom: 12px;
   font-size: 13px;
 }
+
+/* ---------- Halaman Model ---------- */
+.header-with-actions { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+.header-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.btn-light { background: #fff; color: var(--navy); border: 1px solid transparent; }
+.btn-light:hover { background: var(--navy-soft); color: var(--navy); }
+a.tab-btn { display: inline-block; text-decoration: none; }
+a.tab-btn:hover { text-decoration: none; color: var(--navy); }
+.chip-row { display: flex; gap: 6px; flex-wrap: wrap; }
+.chip {
+  display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--surface-alt); color: var(--navy); font-weight: 600; font-size: 12.5px;
+}
+.chip:hover { text-decoration: none; background: var(--navy-soft); }
+.chip.active { background: var(--navy); border-color: var(--navy); color: #fff; }
+.chip-count { font-size: 11px; font-weight: 600; opacity: .75; }
+.info-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px 20px; margin: 14px 0 0; }
+.info-grid dt { font-size: 11.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; }
+.info-grid dd { margin: 2px 0 0; font-weight: 600; }
+.inline-add { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin: 0; }
+.inline-add input[type=text] { width: 180px; }
+.check-row { display: flex; gap: 8px; align-items: center; padding: 3px 0; font-size: 13px; cursor: pointer; }
