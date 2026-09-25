@@ -7,7 +7,7 @@
 | Target | Appsmith **v2.4** self-hosted (HTTPS) + PostgreSQL **16.15** (datasource `pg_main`) |
 | Akses | App **publik** dengan login di dalam app (email + password), bukan akun Appsmith |
 | Data lama | Tidak dimigrasi (mulai dari DB kosong) |
-| Status | Rencana disetujui 24 Sep 2026 (termasuk P1–P3) · login in-app disetujui 25 Sep 2026 · UI campuran + Custom Widget disetujui 25 Sep 2026 · sedang: **F1** |
+| Status | Rencana disetujui 24 Sep 2026 (termasuk P1–P3) · login in-app disetujui 25 Sep 2026 · UI campuran + Custom Widget disetujui 25 Sep 2026 · **F0 + F1 selesai** (export v1, 25 Sep 2026) · berikutnya: user memperbaiki T1–T6, lalu **F2** (dilanjutkan di chat baru) |
 | File siap tempel | `sql/F<n>_*.sql` (jalankan lewat `z_run_sql` di app privat **DB Tools**), `js/*.js` (isi JSObject), `widgets/<cw>/` (Custom Widget: HTML/CSS/JS + README kontrak) |
 
 Legenda status: ⬜ belum · 🟡 dibuat (belum diverifikasi dari export) · ✅ terverifikasi
@@ -18,8 +18,8 @@ Legenda status: ⬜ belum · 🟡 dibuat (belum diverifikasi dari export) · ✅
 
 | Fase | Isi | Export | Status |
 |---|---|---|---|
-| F0 | Persiapan: cek versi, app, cara menjalankan SQL | – | 🟡 sisa: page `Login`, app DB Tools, pgcrypto |
-| F1 | Fondasi DB, login in-app & role, Admin user + audit | `export_v1.json` | 🟡 SQL F1 jalan; F1b + UI diberikan |
+| F0 | Persiapan: cek versi, app, cara menjalankan SQL | – | ✅ |
+| F1 | Fondasi DB, login in-app & role, Admin user + audit | `export_v1.json` | ✅ semua uji lolos · 6 temuan kecil (lihat §9) |
 | F2 | Master Supplier & Komponen | `export_v2.json` | ⬜ |
 | F3 | Master Material, supplier material, harga | `export_v3.json` | ⬜ |
 | F4 | Model, Season, Article, lampiran article | `export_v4.json` | ⬜ |
@@ -52,7 +52,7 @@ Legenda status: ⬜ belum · 🟡 dibuat (belum diverifikasi dari export) · ✅
 9. **ID = `uuid`** (`gen_random_uuid()`, butuh PostgreSQL ≥ 13).
 10. **UI campuran (standar untuk handover):**
     - **Widget bawaan** Appsmith untuk halaman CRUD standar: Beranda, Admin, Master (Supplier, Komponen, Material), Model — bisa dirawat lewat panel properti tanpa coding.
-    - **Custom Widget** hanya untuk bagian yang tidak bisa dibuat baik dengan widget bawaan: `cwLogin` (Login), `cwStepper` (stage + chip article, dipakai Specsheet & CBD), `cwBomGrid` (grid BOM, maks. 5 article per season), `cwCbdGrid` (grid CBD + rekap).
+    - **Custom Widget** hanya untuk bagian yang tidak bisa dibuat baik dengan widget bawaan: `cwLogin` (Login), `cwStepper` (stage + chip article, dipakai Specsheet & CBD), `cwBomGrid` (grid BOM, maks. 5 article per season), `cwCbdGrid` (grid CBD + rekap). Ditambahkan user di F1 (keputusan user, 25 Sep 2026): `cwHeader` (header di setiap page), `cwMenu` (menu Beranda), `cwUserForm` (form user), `cwTempPassword` (password sementara).
     - Aturan Custom Widget: **hanya tampilan** (tanpa logika bisnis/query); data masuk lewat *Default model*, aksi keluar lewat `appsmith.updateModel()` + `appsmith.triggerEvent()` yang ditangani `<Page>Ctrl`; JavaScript biasa tanpa framework (library CDN jsDelivr dengan versi terkunci hanya bila perlu); warna/radius/font mengikuti tema app (`appsmith.theme`).
     - Setiap Custom Widget punya folder `appsmith/widgets/<cw>/` berisi `index.html`, `style.css`, `script.js`, dan `README.md` (kontrak model, nilai keluar, event).
 11. **Export Excel**: library ExcelJS dipasang di Appsmith (Libraries). Cadangan: SheetJS tanpa style.
@@ -112,7 +112,7 @@ Legenda status: ⬜ belum · 🟡 dibuat (belum diverifikasi dari export) · ✅
 
 | Objek | Pola | Contoh |
 |---|---|---|
-| Page | `Kata_Kata` | `Login`, `Master_Material`, `Material_Detail`, `CBD` |
+| Page | nama tampil di sidebar (boleh spasi) — dipakai persis oleh `navigateTo()` | lihat tabel **Nama page di app** di bawah |
 | Query baca | `q_<benda>` | `q_materials`, `q_bom_grid` |
 | Query tulis | `a_<benda>_<aksi>` | `a_material_insert`, `a_cbd_publish` |
 | JSObject | `Auth` (setiap page kecuali Login), `Util` (setiap page), `<Nama>Ctrl` per page | `LoginCtrl`, `MaterialCtrl`, `BomCtrl` |
@@ -120,6 +120,22 @@ Legenda status: ⬜ belum · 🟡 dibuat (belum diverifikasi dari export) · ✅
 | Widget | prefiks jenis + NamaPascal | lihat tabel di bawah |
 | Tabel DB | snake_case tunggal | `material_price` |
 | View / function / trigger | `v_*` / `fn_*` / `trg_*` | `v_cbd_line`, `fn_cbd_create` |
+
+**Nama page di app** (export v1). Di dokumen ini page kadang ditulis dengan nama rencana (kiri); di Appsmith dan di `navigateTo()` selalu pakai nama di app (kanan).
+
+| Nama rencana | Nama di app | Tampil di sidebar |
+|---|---|---|
+| `Login` | `Login` (home page) | tidak |
+| `Beranda` | `Beranda` | ya |
+| `Admin` | `Admin` | ya |
+| `Master_Supplier` | `Master Supplier` | ya |
+| `Master_Komponen` | `Master Komponen` | ya |
+| `Master_Material` | `Master Material` | ya |
+| `Material_Detail` | `Material Detail` | tidak |
+| `Model_List` | `Model List` | ya |
+| `Model_Detail` | `Model Detail` | tidak |
+| `Specsheet` | `Specsheet` | ya |
+| `CBD` | `Cost Breakdown (CBD)` | ya |
 
 Prefiks widget: `tbl` Table · `inp` Input · `sel` Select · `ms` MultiSelect · `btn` Button · `mdl` Modal · `txt` Text · `tab` Tabs · `fp` FilePicker · `dp` DatePicker · `chk` Checkbox · `sw` Switch · `img` Image · `cnt` Container · `lst` List · **`cw` Custom Widget**.
 
@@ -169,24 +185,24 @@ Tabel DB baru di tiap fase ditulis di bagian **7. Perubahan database** dan dicat
 ### F0 — Persiapan
 - [x] Cek versi Appsmith → **v2.4** (self-hosted); Custom Widget **tersedia**
 - [x] Cek versi PostgreSQL → **16.15**
-- [ ] Buat app **Sistem Specsheet & CBD**, navigasi: Sidebar
-- [ ] Tema app: primary `#122A52`, background `#F3F5FA`, radius M, font *System Default*
-- [ ] Buat page kosong: `Login` (home page), `Beranda`, `Admin`, `Master_Supplier`, `Master_Komponen`, `Master_Material`, `Material_Detail`, `Model_List`, `Model_Detail`, `Specsheet`, `CBD`
-- [ ] Buat app privat **DB Tools** berisi `z_run_sql` (prepared statements OFF); hapus `z_run_sql` dari app utama
-- [ ] Pasang extension `pgcrypto`
+- [x] Buat app, navigasi: Sidebar *(nama app di Appsmith: "Test Database", datasource: `Prestasi` — lihat §9)*
+- [x] Tema app: primary `#122A52`, background `#F3F5FA`, radius M, font *System Default*
+- [x] Buat page kosong: `Login` (home page), `Beranda`, `Admin`, `Master_Supplier`, `Master_Komponen`, `Master_Material`, `Material_Detail`, `Model_List`, `Model_Detail`, `Specsheet`, `CBD`
+- [x] Buat app privat **DB Tools** berisi `z_run_sql` (prepared statements OFF); hapus `z_run_sql` dari app utama
+- [x] Pasang extension `pgcrypto`
 - [x] Uji pasang library ExcelJS (Libraries → +) → **berhasil**
 
 **Selesai bila:** versi Appsmith & Postgres diketahui, 11 page ada, library terpasang, `pgcrypto` aktif, `z_run_sql` hanya ada di DB Tools.
 
 ### F1 — Fondasi, login in-app & role
 - [x] Jalankan SQL F1 (`sql/F1_fondasi.sql`: fungsi dasar, `app_user`, `role_permission`, `audit_log`, trigger audit)
-- [ ] Jalankan SQL F1b (`sql/F1b_login.sql`: kolom password, `app_session`, `fn_auth`, `fn_me`, `fn_login`, `fn_logout`, `fn_change_password`, `fn_user_save`, `fn_user_reset_password`)
-- [ ] Set password awal akun System Admin Anda lewat `z_run_sql`
-- [ ] Page `Login` (home page): Custom Widget **`cwLogin`** (masuk + ganti password), logout lewat `?mode=keluar` — `Util`, `LoginCtrl`
-- [ ] `q_me`, `Auth` (cek sesi + izin + `pageQueries`), `Util` — disalin ke setiap page lain
-- [ ] Beranda: sapaan, role, tombol menu sesuai izin, **Ganti Password**, **Keluar**
-- [ ] Page `Admin`: tab **User** (tambah → password sementara, ubah role/nonaktif, reset password) dan **Audit Log**
-- [ ] Navigasi: sembunyikan `Login`, `Material_Detail`, `Model_Detail` dari sidebar; Share → **Make application public** → Deploy
+- [x] Jalankan SQL F1b (`sql/F1b_login.sql`: kolom password, `app_session`, `fn_auth`, `fn_me`, `fn_login`, `fn_logout`, `fn_change_password`, `fn_user_save`, `fn_user_reset_password`)
+- [x] Set password awal akun System Admin Anda lewat `z_run_sql`
+- [x] Page `Login` (home page): Custom Widget **`cwLogin`** (masuk + ganti password), logout lewat `?mode=keluar` — `Util`, `LoginCtrl`
+- [x] `q_me`, `Auth` (cek sesi + izin + `pageQueries`), `Util` — disalin ke setiap page lain
+- [x] Beranda: sapaan, role, tombol menu sesuai izin, **Ganti Password**, **Keluar** *(dibuat dengan Custom Widget `cwHeader` + `cwMenu`)*
+- [x] Page `Admin`: tab **User** (tambah → password sementara, ubah role/nonaktif, reset password) dan **Audit Log** *(form user `cwUserForm`, password sementara `cwTempPassword`, header `cwHeader`)*
+- [x] Navigasi: sembunyikan `Login`, `Material_Detail`, `Model_Detail` dari sidebar; Share → **Make application public** → Deploy
 
 **Selesai bila:** buka URL app tanpa login → halaman Login; login benar masuk Beranda sesuai role; password sementara wajib diganti; 5 kali salah → terkunci 15 menit; logout/sesi habis → kembali ke Login; query tanpa token ditolak DB; login/logout/ganti password tercatat di Audit Log.
 
@@ -641,18 +657,18 @@ Diperbarui setiap fase selesai direview. Kolom **Dibuat** = Anda sudah menjalank
 
 | Objek | Jenis | Fase | Dibuat | Diverifikasi |
 |---|---|---|:-:|:-:|
-| `fn_normalize`, `fn_today` | function | F1 | 🟡 | ⬜ |
-| `app_user` | tabel | F1 | 🟡 | ⬜ |
-| `role_permission` | tabel | F1 | 🟡 | ⬜ |
-| `audit_log` | tabel | F1 | 🟡 | ⬜ |
-| `fn_touch_trigger` + `trg_touch`, `fn_audit_trigger` + `trg_audit`, `fn_setup_table` | trigger/function | F1 | 🟡 | ⬜ |
-| `fn_role_label` | function | F1 | 🟡 | ⬜ |
-| ~~`fn_assert_perm`, `v_my_perms`, `fn_user_save` (versi email)~~ | diganti F1b (di-DROP) | F1 | 🟡 | – |
-| extension `pgcrypto` | extension | F1b | ⬜ | ⬜ |
-| `app_user` + kolom password/lock/login | tabel (ALTER) | F1b | ⬜ | ⬜ |
-| `app_session` | tabel | F1b | ⬜ | ⬜ |
-| `fn_audit`, `fn_token_hash`, `fn_random_password`, `fn_auth`, `fn_me` | function | F1b | ⬜ | ⬜ |
-| `fn_login`, `fn_logout`, `fn_change_password`, `fn_user_save`, `fn_user_reset_password` | function | F1b | ⬜ | ⬜ |
+| `fn_normalize`, `fn_today` | function | F1 | ✅ | ✅ |
+| `app_user` | tabel | F1 | ✅ | ✅ |
+| `role_permission` | tabel | F1 | ✅ | ✅ |
+| `audit_log` | tabel | F1 | ✅ | ✅ |
+| `fn_touch_trigger` + `trg_touch`, `fn_audit_trigger` + `trg_audit`, `fn_setup_table` | trigger/function | F1 | ✅ | ✅ |
+| `fn_role_label` | function | F1 | ✅ | ✅ |
+| ~~`fn_assert_perm`, `v_my_perms`, `fn_user_save` (versi email)~~ | diganti F1b (di-DROP) | F1 | ✅ | – (sudah tidak ada ✅) |
+| extension `pgcrypto` | extension | F1b | ✅ | ✅ |
+| `app_user` + kolom password/lock/login | tabel (ALTER) | F1b | ✅ | ✅ |
+| `app_session` | tabel | F1b | ✅ | ✅ |
+| `fn_audit`, `fn_token_hash`, `fn_random_password`, `fn_auth`, `fn_me` | function | F1b | ✅ | ✅ |
+| `fn_login`, `fn_logout`, `fn_change_password`, `fn_user_save`, `fn_user_reset_password` | function | F1b | ✅ | ✅ |
 | `supplier` | tabel | F2 | ⬜ | ⬜ |
 | `component_group` | tabel | F2 | ⬜ | ⬜ |
 | `component` + `trg_component_check` | tabel | F2 | ⬜ | ⬜ |
@@ -692,7 +708,11 @@ ORDER BY 1, 2;
 
 | Widget | Page | Fase | Dibuat | Diverifikasi |
 |---|---|---|:-:|:-:|
-| `cwLogin` | `Login` | F1 | ⬜ | ⬜ |
+| `cwLogin` | `Login` | F1 | ✅ | ✅ |
+| `cwHeader` *(dibuat user)* | `Beranda`, `Admin` (+ page lain) | F1 | ✅ | ✅ |
+| `cwMenu` *(dibuat user)* | `Beranda` | F1 | ✅ | ⚠️ target page salah (T1) |
+| `cwUserForm` *(dibuat user)* | `Admin` (modal `mdlUser`) | F1 | ✅ | ✅ |
+| `cwTempPassword` *(dibuat user)* | `Admin` (modal `mdlPasswordSementara`) | F1 | ✅ | ✅ |
 | `cwStepper` | `Specsheet`, `CBD` | F5 / F7 | ⬜ | ⬜ |
 | `cwBomGrid` | `Specsheet` | F5 | ⬜ | ⬜ |
 | `cwCbdGrid` | `CBD` | F7 / F8 | ⬜ | ⬜ |
@@ -703,4 +723,20 @@ ORDER BY 1, 2;
 
 | Versi | Tanggal | Fase | Hasil review |
 |---|---|---|---|
-| – | – | – | – |
+| v1 | 25 Sep 2026 | F0 + F1 | ✅ Lolos, semua uji user berhasil. Skema DB sesuai register (F1 + F1b lengkap, objek lama sudah di-DROP). Query & `Auth`/`Util`/`LoginCtrl` identik dengan file repo; `cwLogin` identik (hanya diformat ulang Appsmith). Deviasi atas keputusan user: 4 Custom Widget tambahan (kode disalin ke `widgets/`), `AdminCtrl` ditulis ulang untuk `cwUserForm` (disalin ke `js/AdminCtrl.js`), nama page memakai spasi, filter audit pakai tombol **Cari**, panel detail before/after audit tidak dibuat. Temuan T1–T6 di bawah. |
+
+### Temuan review v1 (diperbaiki sebelum/bersama F2)
+
+| # | Tingkat | Temuan | Perbaikan | Status |
+|---|---|---|---|---|
+| T1 | **Bug** | `cwMenu` memakai `target: 'Master_Material'` dan `'Model_List'`, padahal nama page di app `Master Material` / `Model List` → menu Master & Model tidak bisa dibuka (tidak terlihat oleh System Admin, jadi lolos uji) | Ubah target di Default model `cwMenu` menjadi `'Master Material'` dan `'Model List'` | ⬜ |
+| T2 | **Bug (kemungkinan)** | Kolom tanggal memakai `currentRow["Login terakhir"]` (`tblUsers.last_login_at`) dan `currentRow["Created At"]` (`tblAudit.created_at`) — `currentRow` memakai nama kolom data, bukan label → semua baris menampilkan waktu sekarang / "Invalid date" | Computed value: `{{Util.fmtDateTime(currentRow.last_login_at)}}` dan `{{Util.fmtDateTime(currentRow.created_at)}}` | ⬜ |
+| T3 | Kecil | Run behaviour `q_me`, `q_users`, `q_audit_entities` = *Automatic* → jalan sebelum `Auth` mengecek sesi (dobel, dan memunculkan error saat sesi habis) | Set ke **Manual** (sudah dijalankan oleh `Auth.onPageLoad` / `pageQueries`) | ⬜ |
+| T4 | Kecil | `selAuditEntitas` punya Default value sisa template `GREEN` | Kosongkan Default selected value | ⬜ |
+| T5 | Kecil | `a_user_reset_password`: *Request confirmation before running* OFF → reset langsung jalan tanpa konfirmasi | Nyalakan (atau konfirmasi di widget) | ⬜ |
+| T6 | Kecil | `mdlPasswordSementara` bisa tertutup dengan klik di luar modal (password sementara hanya tampil sekali) | *Quick dismiss* / close on outside click **OFF** | ⬜ |
+
+Catatan lain:
+- Nama app di Appsmith "Test Database" dan datasource `Prestasi` (rencana: "Sistem Specsheet & CBD" / `pg_main`) — tidak memengaruhi fungsi. **User akan merapikan nama app sebelum handover** (dicek lagi di F11).
+- Database **dipakai bersama aplikasi lain** (dikonfirmasi user; tabel `master_store`, `master_store_mapping` bukan milik proyek ini). Aturan: semua objek proyek ini memakai nama sendiri (`app_*`, `fn_*`, `v_*`, tabel bisnis proyek) dan **jangan pernah** menyentuh tabel lain; cek bentrok nama sebelum membuat tabel baru. Untuk produksi disarankan database/schema terpisah (dicatat untuk F11).
+- Export v1 mencatat `isPublic: false`; karena uji incognito berhasil, kemungkinan hanya tidak ikut ter-export.

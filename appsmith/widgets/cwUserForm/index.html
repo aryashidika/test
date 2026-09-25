@@ -1,0 +1,32 @@
+<div class="wrap">
+  <div class="head">
+    <h2 id="title">Tambah User</h2>
+    <button type="button" class="x" id="btnX" aria-label="Tutup">✕</button>
+  </div>
+
+  <div id="msg" class="msg" role="alert" hidden></div>
+
+  <label for="email">Email <span class="req">*</span></label>
+  <input id="email" type="email" autocomplete="off" placeholder="nama@perusahaan.com">
+  <div class="field-note" id="emailNote" hidden>Email tidak bisa diubah.</div>
+
+  <label for="fullName">Nama lengkap <span class="req">*</span></label>
+  <input id="fullName" type="text" maxlength="100" autocomplete="off">
+
+  <label for="role">Role <span class="req">*</span></label>
+  <select id="role"></select>
+
+  <label class="switch-row">
+    <input id="active" type="checkbox">
+    <span class="switch"></span>
+    <span>Aktif</span>
+  </label>
+
+  <div class="field-note" id="selfNote" hidden>Role dan status akun sendiri tidak bisa diubah.</div>
+  <div class="info" id="addInfo" hidden>Password sementara dibuat otomatis dan ditampilkan setelah disimpan.</div>
+
+  <div class="actions">
+    <button type="button" class="btn-secondary" id="btnCancel">Batal</button>
+    <button type="button" class="btn-primary" id="btnSave">Simpan</button>
+  </div>
+</div>
