@@ -7,7 +7,7 @@
 | Target | Appsmith **v2.4** self-hosted (HTTPS) + PostgreSQL **16.15** (datasource `pg_main`) |
 | Akses | App **publik** dengan login di dalam app (email + password), bukan akun Appsmith |
 | Data lama | Tidak dimigrasi (mulai dari DB kosong) |
-| Status | Rencana disetujui 24 Sep 2026 (termasuk P1–P3) · login in-app disetujui 25 Sep 2026 · UI campuran + Custom Widget disetujui 25 Sep 2026 · **F0 + F1 selesai** (export v1, 25 Sep 2026) · berikutnya: user memperbaiki T1–T6, lalu **F2** (dilanjutkan di chat baru) |
+| Status | Rencana disetujui 24 Sep 2026 (termasuk P1–P3) · login in-app disetujui 25 Sep 2026 · UI campuran + Custom Widget disetujui 25 Sep 2026 · **F0 + F1 selesai** (export v1, 25 Sep 2026) · berikutnya: user memperbaiki T1–T8, lalu **F2** (dilanjutkan di chat baru) |
 | File siap tempel | `sql/F<n>_*.sql` (jalankan lewat `z_run_sql` di app privat **DB Tools**), `js/*.js` (isi JSObject), `widgets/<cw>/` (Custom Widget: HTML/CSS/JS + README kontrak) |
 
 Legenda status: ⬜ belum · 🟡 dibuat (belum diverifikasi dari export) · ✅ terverifikasi
@@ -19,7 +19,7 @@ Legenda status: ⬜ belum · 🟡 dibuat (belum diverifikasi dari export) · ✅
 | Fase | Isi | Export | Status |
 |---|---|---|---|
 | F0 | Persiapan: cek versi, app, cara menjalankan SQL | – | ✅ |
-| F1 | Fondasi DB, login in-app & role, Admin user + audit | `export_v1.json` | ✅ semua uji lolos · 6 temuan kecil (lihat §9) |
+| F1 | Fondasi DB, login in-app & role, Admin user + audit | `export_v1.json` | ✅ semua uji lolos · temuan T1–T8 (lihat §9) |
 | F2 | Master Supplier & Komponen | `export_v2.json` | ⬜ |
 | F3 | Master Material, supplier material, harga | `export_v3.json` | ⬜ |
 | F4 | Model, Season, Article, lampiran article | `export_v4.json` | ⬜ |
@@ -198,7 +198,7 @@ Tabel DB baru di tiap fase ditulis di bagian **7. Perubahan database** dan dicat
 - [x] Jalankan SQL F1 (`sql/F1_fondasi.sql`: fungsi dasar, `app_user`, `role_permission`, `audit_log`, trigger audit)
 - [x] Jalankan SQL F1b (`sql/F1b_login.sql`: kolom password, `app_session`, `fn_auth`, `fn_me`, `fn_login`, `fn_logout`, `fn_change_password`, `fn_user_save`, `fn_user_reset_password`)
 - [x] Set password awal akun System Admin Anda lewat `z_run_sql`
-- [x] Page `Login` (home page): Custom Widget **`cwLogin`** (masuk + ganti password), logout lewat `?mode=keluar` — `Util`, `LoginCtrl`
+- [x] Page `Login` (home page): Custom Widget **`cwLogin`** (masuk + ganti password), logout lewat flag `appsmith.store.doLogout` (T7) — `Util`, `LoginCtrl`
 - [x] `q_me`, `Auth` (cek sesi + izin + `pageQueries`), `Util` — disalin ke setiap page lain
 - [x] Beranda: sapaan, role, tombol menu sesuai izin, **Ganti Password**, **Keluar** *(dibuat dengan Custom Widget `cwHeader` + `cwMenu`)*
 - [x] Page `Admin`: tab **User** (tambah → password sementara, ubah role/nonaktif, reset password) dan **Audit Log** *(form user `cwUserForm`, password sementara `cwTempPassword`, header `cwHeader`)*
@@ -735,6 +735,8 @@ ORDER BY 1, 2;
 | T4 | Kecil | `selAuditEntitas` punya Default value sisa template `GREEN` | Kosongkan Default selected value | ⬜ |
 | T5 | Kecil | `a_user_reset_password`: *Request confirmation before running* OFF → reset langsung jalan tanpa konfirmasi | Nyalakan (atau konfirmasi di widget) | ⬜ |
 | T6 | Kecil | `mdlPasswordSementara` bisa tertutup dengan klik di luar modal (password sementara hanya tampil sekali) | *Quick dismiss* / close on outside click **OFF** | ⬜ |
+| T7 | **Bug** | Keluar lewat URL `Login?mode=keluar` tersimpan di riwayat browser: setelah login ulang, tombol **Back** kembali ke URL itu dan user ikut ter-logout | `LoginCtrl` baru (flag `appsmith.store.doLogout`, tidak lagi membaca `?mode=keluar`) + event `onLogout` di `cwHeader` (Beranda & Admin): `{{storeValue('doLogout', true).then(() => navigateTo('Login'))}}` | ⬜ |
+| T8 | Kecil | `txtIzin` (teks uji sementara berisi daftar izin) masih ada di Beranda | Hapus widget, Deploy | ⬜ |
 
 Catatan lain:
 - Nama app di Appsmith "Test Database" dan datasource `Prestasi` (rencana: "Sistem Specsheet & CBD" / `pg_main`) — tidak memengaruhi fungsi. **User akan merapikan nama app sebelum handover** (dicek lagi di F11).

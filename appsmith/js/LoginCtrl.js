@@ -1,7 +1,10 @@
 // JSObject "LoginCtrl" — page Login (home page). Page ini TIDAK memakai Auth.
 // Tampilan: Custom Widget cwLogin (lihat widgets/cwLogin/README.md).
 // Setelan: fungsi onPageLoad -> Run on page load = ON.
-// URL: ?mode=keluar -> logout, ?mode=ganti -> tampilan ganti password.
+// Keluar: tombol Keluar mengisi appsmith.store.doLogout = true lalu membuka page Login
+//   (bukan lewat URL ?mode=keluar — URL itu tersimpan di riwayat browser sehingga tombol
+//   Back setelah login ulang akan ikut logout).
+// URL: ?mode=ganti -> tampilan ganti password.
 export default {
 	// State yang dikirim ke cwLogin lewat Default model
 	view: 'login',      // 'login' | 'change'
@@ -26,7 +29,8 @@ export default {
 		this.busy = false;
 		this.forced = false;
 		this.setMessage(null);
-		if (mode === 'keluar') {
+		if (appsmith.store.doLogout) {
+			await removeValue('doLogout');
 			await this.logout();
 			return;
 		}

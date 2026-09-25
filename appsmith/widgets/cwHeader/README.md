@@ -27,4 +27,4 @@ Header aplikasi di atas setiap page (kecuali Login): nama app, judul page, nama 
 |---|---|
 | `onHome` | `{{navigateTo('Beranda')}}` |
 | `onChangePassword` | `{{navigateTo('Login', { mode: 'ganti' })}}` |
-| `onLogout` | `{{navigateTo('Login', { mode: 'keluar' })}}` |
+| `onLogout` | `{{storeValue('doLogout', true).then(() => navigateTo('Login'))}}` |
