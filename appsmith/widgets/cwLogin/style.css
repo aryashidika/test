@@ -1,0 +1,90 @@
+/* cwLogin — palet sama dengan mockup Flask; --primary/--radius/--font ditimpa tema app */
+:root {
+  --primary: #122A52;
+  --accent: #3B6FE0;
+  --bg: #F3F5FA;
+  --surface: #FFFFFF;
+  --text: #1B2333;
+  --muted: #6B7280;
+  --border: #D6DCE8;
+  --danger: #C0392B;
+  --danger-bg: #FDEDEB;
+  --info-bg: #DCE4F3;
+  --success: #1E7A42;
+  --success-bg: #DDF3E4;
+  --radius: 8px;
+  --font: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body { background: var(--bg); color: var(--text); font-family: var(--font); font-size: 14px; }
+[hidden] { display: none !important; }
+
+.page {
+  min-height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: linear-gradient(160deg, var(--primary) 0%, var(--primary) 38%, var(--bg) 38%);
+}
+
+.card {
+  width: 100%;
+  max-width: 400px;
+  background: var(--surface);
+  border-radius: calc(var(--radius) * 1.5);
+  box-shadow: 0 12px 32px rgba(10, 24, 48, .18);
+  padding: 32px;
+}
+
+.brand { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
+.logo {
+  width: 40px; height: 40px;
+  border-radius: var(--radius);
+  background: var(--primary); color: #fff;
+  font-weight: 700; letter-spacing: .5px;
+  display: flex; align-items: center; justify-content: center;
+}
+.app-name { font-weight: 700; font-size: 15px; }
+.app-sub { color: var(--muted); font-size: 12px; }
+
+h1 { font-size: 20px; margin: 0 0 8px; }
+label { display: block; font-weight: 600; font-size: 12.5px; margin: 14px 0 6px; }
+
+input {
+  width: 100%; height: 40px; padding: 0 12px;
+  border: 1px solid var(--border); border-radius: var(--radius);
+  font: inherit; color: inherit; background: #fff;
+}
+input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(59, 111, 224, .18); }
+
+.pw { position: relative; }
+.pw input { padding-right: 64px; }
+.pw-toggle {
+  position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+  border: none; background: none; cursor: pointer; padding: 4px 6px;
+  color: var(--accent); font: inherit; font-size: 12.5px; font-weight: 600;
+}
+
+.btn-primary, .btn-secondary {
+  height: 40px; padding: 0 18px;
+  border-radius: var(--radius); border: 1px solid transparent;
+  font: inherit; font-weight: 600; cursor: pointer;
+}
+.btn-primary { background: var(--primary); color: #fff; }
+.btn-primary:hover:not(:disabled) { filter: brightness(1.2); }
+.btn-secondary { background: #fff; color: var(--text); border-color: var(--border); }
+.btn-secondary:hover:not(:disabled) { background: var(--bg); }
+button:disabled { opacity: .6; cursor: default; }
+.btn-block { width: 100%; margin-top: 22px; }
+
+.actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 22px; }
+.hint { color: var(--muted); font-size: 12.5px; margin: 14px 0 0; }
+.hint-top { margin: 0 0 4px; }
+
+.msg { border-radius: var(--radius); padding: 10px 12px; font-size: 13px; margin-bottom: 16px; line-height: 1.4; }
+.msg.error { background: var(--danger-bg); color: var(--danger); }
+.msg.info { background: var(--info-bg); color: var(--primary); }
+.msg.success { background: var(--success-bg); color: var(--success); }

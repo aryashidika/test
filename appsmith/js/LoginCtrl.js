@@ -1,9 +1,31 @@
 // JSObject "LoginCtrl" — page Login (home page). Page ini TIDAK memakai Auth.
+// Tampilan: Custom Widget cwLogin (lihat widgets/cwLogin/README.md).
 // Setelan: fungsi onPageLoad -> Run on page load = ON.
-// URL: ?mode=keluar -> logout, ?mode=ganti -> buka modal ganti password.
+// URL: ?mode=keluar -> logout, ?mode=ganti -> tampilan ganti password.
 export default {
+	// State yang dikirim ke cwLogin lewat Default model
+	view: 'login',      // 'login' | 'change'
+	busy: false,
+	forced: false,      // wajib ganti password (password sementara)
+	message: null,      // { type, text }
+	lastEmail: '',
+
+	setMessage(type, text) {
+		this.message = text ? { type, text } : null;
+	},
+
+	openChange(forced) {
+		this.forced = !!forced;
+		this.view = 'change';
+		this.setMessage(null);
+	},
+
 	async onPageLoad() {
 		const mode = appsmith.URL.queryParams.mode;
+		this.view = 'login';
+		this.busy = false;
+		this.forced = false;
+		this.setMessage(null);
 		if (mode === 'keluar') {
 			await this.logout();
 			return;
@@ -15,7 +37,7 @@ export default {
 			return;
 		}
 		if (me.must_change_password || mode === 'ganti') {
-			await this.openChangePassword();
+			this.openChange(me.must_change_password);
 			return;
 		}
 		navigateTo('Beranda');
@@ -31,67 +53,74 @@ export default {
 	},
 
 	async login() {
-		if (!inpLoginEmail.text || !inpLoginPassword.text) {
-			showAlert('Isi email dan password.', 'warning');
+		// Baca dulu dari model sebelum state berubah (model di-reset saat Default model berubah)
+		const email = (cwLogin.model.email || '').trim().toLowerCase();
+		const password = cwLogin.model.password || '';
+		if (!email || !password) {
+			this.setMessage('error', 'Isi email dan password.');
 			return;
 		}
+		this.lastEmail = email;
+		this.setMessage(null);
+		this.busy = true;
 		try {
-			await a_login.run({ email: inpLoginEmail.text, password: inpLoginPassword.text });
+			await a_login.run({ email, password });
 		} catch (e) {
-			showAlert(Util.cleanError(e && e.message), 'error');
+			this.setMessage('error', Util.cleanError(e && e.message));
 			return;
+		} finally {
+			this.busy = false;
 		}
 		const r = a_login.data && a_login.data[0];
 		if (!r || !r.ok) {
-			showAlert((r && r.message) || 'Login gagal.', 'error');
+			this.setMessage('error', (r && r.message) || 'Login gagal.');
 			return;
 		}
 		await storeValue('token', r.token, true);
-		resetWidget('inpLoginPassword');
 		if (r.must_change_password) {
-			showAlert('Silakan ganti password sementara Anda.', 'info');
 			await this.loadMe();
-			await this.openChangePassword();
+			this.openChange(true);
 			return;
 		}
 		navigateTo('Beranda');
-	},
-
-	async openChangePassword() {
-		await resetWidget('mdlGantiPassword', true);
-		showModal('mdlGantiPassword');
 	},
 
 	async changePassword() {
-		const lama = inpPassLama.text;
-		const baru = inpPassBaru.text;
-		if (!lama || !baru) {
-			showAlert('Isi password lama dan password baru.', 'warning');
+		const oldPass = cwLogin.model.oldPass || '';
+		const newPass = cwLogin.model.newPass || '';
+		if (!oldPass || !newPass) {
+			this.setMessage('error', 'Isi password lama dan password baru.');
 			return;
 		}
-		if (baru.length < 8) {
-			showAlert('Password baru minimal 8 karakter.', 'warning');
+		this.setMessage(null);
+		this.busy = true;
+		try {
+			await a_change_password.run({ oldPass, newPass });
+		} catch (e) {
+			const msg = e && e.message;
+			if (Util.isSessionError(msg)) {
+				await removeValue('token');
+				this.view = 'login';
+				this.forced = false;
+				this.setMessage('error', 'Sesi login habis. Silakan login lagi.');
+			} else {
+				this.setMessage('error', Util.cleanError(msg));
+			}
 			return;
+		} finally {
+			this.busy = false;
 		}
-		if (baru !== inpPassUlang.text) {
-			showAlert('Konfirmasi password tidak sama.', 'warning');
-			return;
-		}
-		const ok = await Util.run(a_change_password, { oldPass: lama, newPass: baru }, 'Password berhasil diganti.');
-		if (!ok) return;
-		closeModal('mdlGantiPassword');
+		showAlert('Password berhasil diganti.', 'success');
 		navigateTo('Beranda');
 	},
 
-	// Batal ganti password: kalau memang wajib ganti, keluar dari aplikasi.
-	async cancelChangePassword() {
-		closeModal('mdlGantiPassword');
-		const me = q_me.data && q_me.data[0];
-		if (!me || me.must_change_password) {
+	// Batal: kalau wajib ganti password -> keluar; kalau tidak -> kembali ke Beranda
+	async cancelChange() {
+		if (this.forced) {
 			await this.logout();
-		} else {
-			navigateTo('Beranda');
+			return;
 		}
+		navigateTo('Beranda');
 	},
 
 	async logout() {
@@ -99,6 +128,8 @@ export default {
 			try { await a_logout.run(); } catch (e) { /* sesi mungkin sudah habis */ }
 		}
 		await removeValue('token');
-		showAlert('Anda sudah keluar.', 'info');
+		this.view = 'login';
+		this.forced = false;
+		this.setMessage('info', 'Anda sudah keluar.');
 	},
 }

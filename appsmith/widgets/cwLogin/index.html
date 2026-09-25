@@ -1,0 +1,52 @@
+<div class="page">
+  <div class="card">
+    <div class="brand">
+      <div class="logo">SC</div>
+      <div>
+        <div class="app-name" id="appName">Sistem Specsheet &amp; CBD</div>
+        <div class="app-sub">Master Data · Specsheet · CBD</div>
+      </div>
+    </div>
+
+    <div id="msg" class="msg" role="alert" hidden></div>
+
+    <!-- Tampilan: Masuk -->
+    <div id="viewLogin" hidden>
+      <h1>Masuk</h1>
+      <label for="email">Email</label>
+      <input id="email" type="email" autocomplete="username" placeholder="nama@perusahaan.com">
+      <label for="password">Password</label>
+      <div class="pw">
+        <input id="password" type="password" autocomplete="current-password">
+        <button type="button" class="pw-toggle" data-for="password">Lihat</button>
+      </div>
+      <button type="button" class="btn-primary btn-block" id="btnLogin">Masuk</button>
+      <p class="hint">Lupa password? Hubungi System Admin.</p>
+    </div>
+
+    <!-- Tampilan: Ganti password -->
+    <div id="viewChange" hidden>
+      <h1>Ganti Password</h1>
+      <p class="hint hint-top" id="changeHint">Minimal 8 karakter.</p>
+      <label for="oldPass">Password lama / sementara</label>
+      <div class="pw">
+        <input id="oldPass" type="password" autocomplete="current-password">
+        <button type="button" class="pw-toggle" data-for="oldPass">Lihat</button>
+      </div>
+      <label for="newPass">Password baru</label>
+      <div class="pw">
+        <input id="newPass" type="password" autocomplete="new-password">
+        <button type="button" class="pw-toggle" data-for="newPass">Lihat</button>
+      </div>
+      <label for="newPass2">Ulangi password baru</label>
+      <div class="pw">
+        <input id="newPass2" type="password" autocomplete="new-password">
+        <button type="button" class="pw-toggle" data-for="newPass2">Lihat</button>
+      </div>
+      <div class="actions">
+        <button type="button" class="btn-secondary" id="btnCancel">Batal</button>
+        <button type="button" class="btn-primary" id="btnChange">Simpan</button>
+      </div>
+    </div>
+  </div>
+</div>

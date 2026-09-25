@@ -7,8 +7,8 @@
 | Target | Appsmith **v2.4** self-hosted (HTTPS) + PostgreSQL **16.15** (datasource `pg_main`) |
 | Akses | App **publik** dengan login di dalam app (email + password), bukan akun Appsmith |
 | Data lama | Tidak dimigrasi (mulai dari DB kosong) |
-| Status | Rencana disetujui 24 Sep 2026 (termasuk P1–P3) · login in-app disetujui 25 Sep 2026 · sedang: **F1** |
-| File siap tempel | `sql/F<n>_*.sql` (jalankan lewat `z_run_sql` di app privat **DB Tools**), `js/*.js` (isi JSObject) |
+| Status | Rencana disetujui 24 Sep 2026 (termasuk P1–P3) · login in-app disetujui 25 Sep 2026 · UI campuran + Custom Widget disetujui 25 Sep 2026 · sedang: **F1** |
+| File siap tempel | `sql/F<n>_*.sql` (jalankan lewat `z_run_sql` di app privat **DB Tools**), `js/*.js` (isi JSObject), `widgets/<cw>/` (Custom Widget: HTML/CSS/JS + README kontrak) |
 
 Legenda status: ⬜ belum · 🟡 dibuat (belum diverifikasi dari export) · ✅ terverifikasi
 
@@ -29,6 +29,7 @@ Legenda status: ⬜ belum · 🟡 dibuat (belum diverifikasi dari export) · ✅
 | F8 | CBD: harga, rekap, refresh, terbit, sinkron specsheet | `export_v8.json` | ⬜ |
 | F9 | Export Excel specsheet & CBD | `export_v9.json` | ⬜ |
 | F10 | Beranda "Tugas Saya" | `export_v10.json` | ⬜ |
+| F11 | Dokumentasi & handover (`appsmith/README.md`) | – | ⬜ |
 | Opsional | Where-used, histori harga, diff revisi, harga referensi brand | – | ⬜ |
 
 ---
@@ -49,9 +50,14 @@ Legenda status: ⬜ belum · 🟡 dibuat (belum diverifikasi dari export) · ✅
 7. **Tanggal "hari ini" = WIB** lewat `fn_today()` = `(now() AT TIME ZONE 'Asia/Jakarta')::date`.
 8. **Tanpa penguncian multi-user** — yang terakhir menyimpan yang berlaku.
 9. **ID = `uuid`** (`gen_random_uuid()`, butuh PostgreSQL ≥ 13).
-10. **Grid BOM**: maksimal 5 article per season → Table widget dengan 5 kolom article tetap (`art1`–`art5`) yang disembunyikan kalau tidak dipakai. Custom Widget hanya jadi cadangan bila judul kolom tidak bisa dibuat dinamis (diuji di F5).
+10. **UI campuran (standar untuk handover):**
+    - **Widget bawaan** Appsmith untuk halaman CRUD standar: Beranda, Admin, Master (Supplier, Komponen, Material), Model — bisa dirawat lewat panel properti tanpa coding.
+    - **Custom Widget** hanya untuk bagian yang tidak bisa dibuat baik dengan widget bawaan: `cwLogin` (Login), `cwStepper` (stage + chip article, dipakai Specsheet & CBD), `cwBomGrid` (grid BOM, maks. 5 article per season), `cwCbdGrid` (grid CBD + rekap).
+    - Aturan Custom Widget: **hanya tampilan** (tanpa logika bisnis/query); data masuk lewat *Default model*, aksi keluar lewat `appsmith.updateModel()` + `appsmith.triggerEvent()` yang ditangani `<Page>Ctrl`; JavaScript biasa tanpa framework (library CDN jsDelivr dengan versi terkunci hanya bila perlu); warna/radius/font mengikuti tema app (`appsmith.theme`).
+    - Setiap Custom Widget punya folder `appsmith/widgets/<cw>/` berisi `index.html`, `style.css`, `script.js`, dan `README.md` (kontrak model, nilai keluar, event).
 11. **Export Excel**: library ExcelJS dipasang di Appsmith (Libraries). Cadangan: SheetJS tanpa style.
 12. **Lampiran article**: FilePicker (Base64) → disimpan `bytea` di tabel `article_attachment`. Jenis jpg/png/pdf, maks 5 MB per file.
+13. **Desain**: palet mockup Flask — primary navy `#122A52`, aksen `#3B6FE0`, latar `#F3F5FA`, radius 8px, font sistem (Segoe UI); chip status hijau/kuning/merah/abu. Hanya untuk laptop/PC (lebar ≥ 1280px).
 
 ### Penyederhanaan dari sistem Python
 
@@ -115,7 +121,9 @@ Legenda status: ⬜ belum · 🟡 dibuat (belum diverifikasi dari export) · ✅
 | Tabel DB | snake_case tunggal | `material_price` |
 | View / function / trigger | `v_*` / `fn_*` / `trg_*` | `v_cbd_line`, `fn_cbd_create` |
 
-Prefiks widget: `tbl` Table · `inp` Input · `sel` Select · `ms` MultiSelect · `btn` Button · `mdl` Modal · `txt` Text · `tab` Tabs · `fp` FilePicker · `dp` DatePicker · `chk` Checkbox · `sw` Switch · `img` Image · `cnt` Container · `lst` List.
+Prefiks widget: `tbl` Table · `inp` Input · `sel` Select · `ms` MultiSelect · `btn` Button · `mdl` Modal · `txt` Text · `tab` Tabs · `fp` FilePicker · `dp` DatePicker · `chk` Checkbox · `sw` Switch · `img` Image · `cnt` Container · `lst` List · **`cw` Custom Widget**.
+
+Custom Widget: nama `cw<Nama>` sama dengan nama folder di `appsmith/widgets/`; event diberi nama `on<Aksi>` (mis. `onLogin`, `onSaveCell`); nilai keluar dibaca JSObject dari `cw<Nama>.model.<field>` **sebelum** state JSObject diubah (model di-reset saat Default model berubah).
 
 Aturan query:
 - Semua parameter pakai `{{this.params.x}}`, dipanggil dari JSObject (`a_x.run({ x: ... })`), kecuali query baca sederhana yang langsung membaca widget.
@@ -162,6 +170,7 @@ Tabel DB baru di tiap fase ditulis di bagian **7. Perubahan database** dan dicat
 - [x] Cek versi Appsmith → **v2.4** (self-hosted); Custom Widget **tersedia**
 - [x] Cek versi PostgreSQL → **16.15**
 - [ ] Buat app **Sistem Specsheet & CBD**, navigasi: Sidebar
+- [ ] Tema app: primary `#122A52`, background `#F3F5FA`, radius M, font *System Default*
 - [ ] Buat page kosong: `Login` (home page), `Beranda`, `Admin`, `Master_Supplier`, `Master_Komponen`, `Master_Material`, `Material_Detail`, `Model_List`, `Model_Detail`, `Specsheet`, `CBD`
 - [ ] Buat app privat **DB Tools** berisi `z_run_sql` (prepared statements OFF); hapus `z_run_sql` dari app utama
 - [ ] Pasang extension `pgcrypto`
@@ -173,7 +182,7 @@ Tabel DB baru di tiap fase ditulis di bagian **7. Perubahan database** dan dicat
 - [x] Jalankan SQL F1 (`sql/F1_fondasi.sql`: fungsi dasar, `app_user`, `role_permission`, `audit_log`, trigger audit)
 - [ ] Jalankan SQL F1b (`sql/F1b_login.sql`: kolom password, `app_session`, `fn_auth`, `fn_me`, `fn_login`, `fn_logout`, `fn_change_password`, `fn_user_save`, `fn_user_reset_password`)
 - [ ] Set password awal akun System Admin Anda lewat `z_run_sql`
-- [ ] Page `Login` (home page): form login, modal ganti password, logout lewat `?mode=keluar` — `Util`, `LoginCtrl`
+- [ ] Page `Login` (home page): Custom Widget **`cwLogin`** (masuk + ganti password), logout lewat `?mode=keluar` — `Util`, `LoginCtrl`
 - [ ] `q_me`, `Auth` (cek sesi + izin + `pageQueries`), `Util` — disalin ke setiap page lain
 - [ ] Beranda: sapaan, role, tombol menu sesuai izin, **Ganti Password**, **Keluar**
 - [ ] Page `Admin`: tab **User** (tambah → password sementara, ubah role/nonaktif, reset password) dan **Audit Log**
@@ -207,10 +216,10 @@ Tabel DB baru di tiap fase ditulis di bagian **7. Perubahan database** dan dicat
 
 ### F5 — Specsheet: revisi & grid BOM
 - [ ] SQL F5 (`specsheet_revision`, `revision_article`, `bom_line`, `bom_cell`, `trg_lock_published`, `fn_revision_create`, `fn_revision_delete_draft`, `fn_bom_add_line`, `fn_bom_add_sub`, `fn_bom_replace_material`, `fn_bom_set_supplier`, `fn_rev_article_set`, `v_bom_grid`)
-- [ ] **Spike (awal fase):** apakah judul kolom Table bisa di-binding (`{{BomCtrl.artLabel(0)}}`)? Kalau tidak → pakai Custom Widget
-- [ ] Page `Specsheet` (`?model_id=`): pilih season, stepper stage PULL→SMS→GTM→PROD berisi revisi (brand: hanya PUBLISHED)
+- [ ] Custom Widget **`cwStepper`**: stepper stage PULL→SMS→GTM→PROD berisi revisi (brand: hanya PUBLISHED)
+- [ ] Page `Specsheet` (`?model_id=`): pilih season (widget bawaan) + `cwStepper`
 - [ ] Wizard **Buat Revisi**: Kosong (pilih stage) / Copy dari specsheet lain (P1) / Revisi berikutnya / Stage berikutnya; hapus draft
-- [ ] Grid BOM: No, Komponen, Material, Supplier, UoM, Remarks, `art1`–`art5` (edit warna inline); tambah baris (komponen master atau lokal), tambah subkomponen, ganti material, ubah supplier/remarks
+- [ ] Custom Widget **`cwBomGrid`**: No, Komponen, Material, Supplier, UoM, Remarks + satu kolom per article (edit warna langsung di sel, saran warna se-season); tambah baris (komponen master atau lokal), tambah subkomponen, ganti material, ubah supplier/remarks
 - [ ] Article di revisi: pilih article season, drop/aktifkan
 
 **Selesai bila:** hanya satu draft per specsheet; revisi terbit tidak bisa diedit (ditolak DB); ganti material menonaktifkan baris lama; supplier baru di BOM membuat link PROPOSED; link INACTIVE ditolak.
@@ -224,16 +233,16 @@ Tabel DB baru di tiap fase ditulis di bagian **7. Perubahan database** dan dicat
 
 ### F7 — CBD: buat revisi & grid baris
 - [ ] SQL F7 (`cbd_revision`, `cbd_line`, `fn_cbd_expected_lines`, `fn_cbd_create`, `fn_cbd_delete_draft`, `v_cbd_line`, `v_cbd_article`)
-- [ ] Page `CBD` (`?model_id=`): pilih season, chip article + status (belum ada CBD / draft / terbit / perlu revisi / di-drop), stepper revisi
+- [ ] Page `CBD` (`?model_id=`): pilih season, `cwStepper` (chip article + status: belum ada CBD / draft / terbit / perlu revisi / di-drop, dan stepper revisi)
 - [ ] **Buat CBD**: baru / lanjut dari CBD terbit article ini / copy dari article lain (model sama)
-- [ ] Grid per grup a/c/d/e + bagian MISSING_IN_SPEC: edit Yield & Loss % inline; Usage, harga IDR/USD, cost/pair dari view
+- [ ] Custom Widget **`cwCbdGrid`**: grid per grup a/c/d/e + bagian MISSING_IN_SPEC; edit Yield & Loss % di sel; Usage, harga IDR/USD, cost/pair dari view
 
 **Selesai bila:** baris CBD = baris BOM terbit yang dipakai article (termasuk subkomponen); yield/loss tersalin dari sumber (lineKey → originLineKey → identitas); baris sumber yang hilang jadi MISSING_IN_SPEC.
 
 ### F8 — CBD: harga, rekap, refresh, terbit, sinkron
 - [ ] SQL F8 (`fn_cbd_set_quotation`, `fn_cbd_override_price`, `fn_cbd_clear_override`, `fn_cbd_refresh_prices`, `fn_cbd_refresh_from_spec`, `fn_cbd_set_margin`, `v_cbd_recap`, `v_cbd_checklist`, `fn_cbd_publish`, perbarui `fn_revision_publish` dengan penandaan sinkron)
 - [ ] Harga: quotation (material QUOTATION), override + alasan (material CATALOG), hapus override; info kenapa harga kosong
-- [ ] Rekap: exchange rate, amortisasi, adjustment, target FOB, actual FOB, selisih (OVER/UNDER/SESUAI), selling price ⇄ margin %
+- [ ] Rekap di `cwCbdGrid` (panel ringkasan menempel): exchange rate, amortisasi, adjustment, target FOB, actual FOB, selisih (OVER/UNDER/SESUAI), selling price ⇄ margin %
 - [ ] Banner + tombol **Refresh dari Specsheet** / **Refresh Harga dari Master**
 - [ ] Modal **Terbitkan** CBD + tab Riwayat
 - [ ] Terbit specsheet → CBD terbit article terkait jadi NEEDS_REVISION bila baris/supplier/warna berubah
@@ -253,6 +262,14 @@ Tabel DB baru di tiap fase ditulis di bagian **7. Perubahan database** dan dicat
 - [ ] Per role: Vendor Spec (draft berjalan, article belum masuk revisi) · Vendor CBD (belum ada CBD, perlu refresh, perlu revisi, harga master kosong) · Master Admin (antrian PROPOSED) · Brand (terbit terbaru) · System Admin (ringkasan)
 
 **Selesai bila:** setiap role melihat daftar yang benar, klik membuka page tujuan.
+
+### F11 — Dokumentasi & handover
+- [ ] `appsmith/README.md` (panduan operasional): arsitektur (diagram DB ↔ query ↔ JSObject ↔ widget), daftar page & hak akses, cara menambah user / reset password, cara menjalankan SQL di DB Tools, cara export & deploy, cara mengubah matriks hak akses, cara mengubah Custom Widget, troubleshooting (sesi habis, akun terkunci, error constraint)
+- [ ] Semua `widgets/<cw>/README.md` sesuai kondisi akhir
+- [ ] `PLAN.md` final: semua checklist & register terverifikasi, log review lengkap
+- [ ] Skrip SQL gabungan untuk instalasi baru (`sql/install_all.sql` = F1 … F10 berurutan)
+
+**Selesai bila:** orang baru bisa memasang ulang sistem dari DB kosong dan menjalankan tugas admin rutin hanya dengan membaca `README.md`.
 
 ### Opsional (setelah F10, bila diminta)
 - [ ] Tab Material: **Dipakai di** (where-used) & **Histori Harga**
@@ -670,6 +687,15 @@ UNION ALL SELECT 'function', routine_name FROM information_schema.routines WHERE
 UNION SELECT 'trigger', trigger_name FROM information_schema.triggers WHERE trigger_schema = 'public'
 ORDER BY 1, 2;
 ```
+
+### Register Custom Widget
+
+| Widget | Page | Fase | Dibuat | Diverifikasi |
+|---|---|---|:-:|:-:|
+| `cwLogin` | `Login` | F1 | ⬜ | ⬜ |
+| `cwStepper` | `Specsheet`, `CBD` | F5 / F7 | ⬜ | ⬜ |
+| `cwBomGrid` | `Specsheet` | F5 | ⬜ | ⬜ |
+| `cwCbdGrid` | `CBD` | F7 / F8 | ⬜ | ⬜ |
 
 ---
 
