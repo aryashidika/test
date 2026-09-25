@@ -4,10 +4,11 @@
 |---|---|
 | Sumber (hanya dibaca) | `app/` (Flask + htmx + SQLite), `run_web.py`, `tests/` |
 | Folder kerja | `appsmith/` — file ini + `exports/export_vN.json` |
-| Target | Appsmith self-hosted + PostgreSQL (datasource `pg_main`, sudah terhubung) |
+| Target | Appsmith **v2.4** self-hosted (HTTPS) + PostgreSQL **16.15** (datasource `pg_main`) |
+| Akses | App **publik** dengan login di dalam app (email + password), bukan akun Appsmith |
 | Data lama | Tidak dimigrasi (mulai dari DB kosong) |
-| Status | Rencana disetujui 24 Sep 2026 (termasuk P1–P3) · sedang: **F0 + F1** |
-| File siap tempel | `sql/F<n>_*.sql` (jalankan lewat `z_run_sql`), `js/*.js` (isi JSObject) |
+| Status | Rencana disetujui 24 Sep 2026 (termasuk P1–P3) · login in-app disetujui 25 Sep 2026 · sedang: **F1** |
+| File siap tempel | `sql/F<n>_*.sql` (jalankan lewat `z_run_sql` di app privat **DB Tools**), `js/*.js` (isi JSObject) |
 
 Legenda status: ⬜ belum · 🟡 dibuat (belum diverifikasi dari export) · ✅ terverifikasi
 
@@ -17,8 +18,8 @@ Legenda status: ⬜ belum · 🟡 dibuat (belum diverifikasi dari export) · ✅
 
 | Fase | Isi | Export | Status |
 |---|---|---|---|
-| F0 | Persiapan: cek versi, app, cara menjalankan SQL | – | 🟡 langkah diberikan |
-| F1 | Fondasi DB, login & role, Admin user + audit | `export_v1.json` | 🟡 langkah diberikan |
+| F0 | Persiapan: cek versi, app, cara menjalankan SQL | – | 🟡 sisa: page `Login`, app DB Tools, pgcrypto |
+| F1 | Fondasi DB, login in-app & role, Admin user + audit | `export_v1.json` | 🟡 SQL F1 jalan; F1b + UI diberikan |
 | F2 | Master Supplier & Komponen | `export_v2.json` | ⬜ |
 | F3 | Master Material, supplier material, harga | `export_v3.json` | ⬜ |
 | F4 | Model, Season, Article, lampiran article | `export_v4.json` | ⬜ |
@@ -36,9 +37,14 @@ Legenda status: ⬜ belum · 🟡 dibuat (belum diverifikasi dari export) · ✅
 
 1. **Logika sederhana → SQL langsung di Appsmith.** CRUD master, model, article, edit sel/nilai: query `INSERT/UPDATE` biasa. Aturan data dijaga oleh constraint & trigger di Postgres (tidak bergantung UI).
 2. **Logika banyak-langkah → function Postgres `fn_*`** (satu function = satu transaksi): buat/hapus revisi, tambah/ganti baris BOM, terbit, buat/refresh CBD, harga baru. Appsmith memanggil `SELECT fn_x(...)`.
-3. **Audit otomatis lewat trigger** `trg_audit` (+ `trg_touch` untuk `created_*`/`updated_*`) di semua tabel bisnis, dipasang dengan `SELECT fn_setup_table('<tabel>')`. Setiap query tulis mengisi `updated_by = {{appsmith.user.email}}`; trigger mencatat before/after ke `audit_log`. Tidak ada kode audit di Appsmith.
+3. **Audit otomatis lewat trigger** `trg_audit` (+ `trg_touch` untuk `created_*`/`updated_*`) di semua tabel bisnis, dipasang dengan `SELECT fn_setup_table('<tabel>')`. Setiap query tulis mengisi `updated_by = fn_auth(token, izin)`; trigger mencatat before/after ke `audit_log` (password tidak pernah dicatat). Tidak ada kode audit di Appsmith.
 4. **Kunci revisi terbit lewat trigger** `trg_lock_published`: baris BOM/sel/article revisi & baris CBD tidak bisa diubah kalau revisinya PUBLISHED. UPDATE langsung dari Appsmith jadi aman.
-5. **Hak akses:** tabel `role_permission` + view `v_my_perms`. UI menyembunyikan menu/tombol dengan `Auth.can()`. Function `fn_*` yang penting memanggil `fn_assert_perm`. (Catatan: email dikirim dari browser, diterima untuk aplikasi internal.)
+5. **Login & hak akses di database.** App dipublikasikan, jadi siapa pun bisa memanggil query-nya langsung — semua pengecekan ada di Postgres:
+   - Login email + password (bcrypt via `pgcrypto`), token acak disimpan di browser (`appsmith.store.token`), di DB hanya hash-nya (`app_session`). Sesi 12 jam. Terkunci 15 menit setelah 5 kali salah.
+   - Password min. 8 karakter; wajib ganti saat login pertama & setelah reset; reset hanya oleh System Admin (password sementara). Satu akun = satu role.
+   - **Setiap query** (baca & tulis) memanggil `fn_auth(token, izin)`; token tidak valid → error `SESI_HABIS` → Util mengarahkan ke page `Login`.
+   - UI tetap menyembunyikan menu/tombol dengan `Auth.can()` (kenyamanan saja).
+   - `z_run_sql` (prepared statements OFF) hanya ada di app terpisah yang **privat**: **DB Tools**.
 6. **Uang/angka = `numeric`** dan dihitung di Postgres (view). JS hanya memformat tampilan.
 7. **Tanggal "hari ini" = WIB** lewat `fn_today()` = `(now() AT TIME ZONE 'Asia/Jakarta')::date`.
 8. **Tanpa penguncian multi-user** — yang terakhir menyimpan yang berlaku.
@@ -51,7 +57,7 @@ Legenda status: ⬜ belum · 🟡 dibuat (belum diverifikasi dari export) · ✅
 
 | Di Python | Di Appsmith |
 |---|---|
-| Login pilih role bebas | Login akun Appsmith; role dari tabel `app_user` |
+| Login pilih role bebas | Login email + password di dalam app; role dari tabel `app_user` |
 | 4 cara buat revisi specsheet (kosong, carryover, lintas model, stage sama/berikut) | Satu function `fn_revision_create(mode)`; "carryover" & "lintas model" digabung jadi **Copy dari specsheet lain** |
 | 5 cara buat CBD | Satu function `fn_cbd_create(article, source)`. Stage CBD **selalu mengikuti stage specsheet terbit terakhir**; nomor revisi = terakhir di stage itu + 1 |
 | `is_used` sel BOM dihitung di Python | Kolom generated di DB |
@@ -76,8 +82,8 @@ Legenda status: ⬜ belum · 🟡 dibuat (belum diverifikasi dari export) · ✅
 
 | Python | Page | Query / JSObject | DB |
 |---|---|---|---|
-| `web/auth.py`, `permissions.py`, `user_session.py`, `main.py` (masuk/keluar) | semua page | `q_me`, `Auth`, `Util` | `app_user`, `role_permission`, `v_my_perms`, `fn_assert_perm` |
-| `admin.py` (audit log) + user (baru) | `Admin` | `q_users`, `a_user_save`, `q_audit` · `AdminCtrl` | `app_user`, `audit_log` |
+| `web/auth.py`, `permissions.py`, `user_session.py`, `main.py` (masuk/keluar) | `Login` + semua page | `q_me`, `a_login`, `a_logout`, `a_change_password` · `Auth`, `Util`, `LoginCtrl` | `app_user`, `app_session`, `role_permission`, `fn_login`, `fn_me`, `fn_auth` |
+| `admin.py` (audit log) + user (baru) | `Admin` | `q_users`, `a_user_save`, `a_user_reset_password`, `q_audit` · `AdminCtrl` | `app_user`, `audit_log`, `fn_user_save`, `fn_user_reset_password` |
 | `audit.py` | – | – | `trg_audit` |
 | `normalize.py`, `ids.py` | – | – | `fn_normalize`, `gen_random_uuid()` |
 | `supplier_service.py` | `Master_Supplier` | `q_suppliers`, `a_supplier_insert/update/set_status` · `SupplierCtrl` | `supplier` |
@@ -100,10 +106,10 @@ Legenda status: ⬜ belum · 🟡 dibuat (belum diverifikasi dari export) · ✅
 
 | Objek | Pola | Contoh |
 |---|---|---|
-| Page | `Kata_Kata` | `Master_Material`, `Material_Detail`, `CBD` |
+| Page | `Kata_Kata` | `Login`, `Master_Material`, `Material_Detail`, `CBD` |
 | Query baca | `q_<benda>` | `q_materials`, `q_bom_grid` |
 | Query tulis | `a_<benda>_<aksi>` | `a_material_insert`, `a_cbd_publish` |
-| JSObject | `Auth`, `Util` (di setiap page), `<Nama>Ctrl` per page | `MaterialCtrl`, `BomCtrl` |
+| JSObject | `Auth` (setiap page kecuali Login), `Util` (setiap page), `<Nama>Ctrl` per page | `LoginCtrl`, `MaterialCtrl`, `BomCtrl` |
 | Fungsi JSObject | kata kerja camelCase | `save()`, `openAdd()`, `publish()` |
 | Widget | prefiks jenis + NamaPascal | lihat tabel di bawah |
 | Tabel DB | snake_case tunggal | `material_price` |
@@ -114,9 +120,18 @@ Prefiks widget: `tbl` Table · `inp` Input · `sel` Select · `ms` MultiSelect �
 Aturan query:
 - Semua parameter pakai `{{this.params.x}}`, dipanggil dari JSObject (`a_x.run({ x: ... })`), kecuali query baca sederhana yang langsung membaca widget.
 - Selalu cast tipe: `{{this.params.id}}::uuid`, `{{...}}::numeric`, `{{...}}::date`.
-- Query tulis selalu mengisi `updated_by = {{appsmith.user.email}}` (atau mengirim email ke `fn_*`).
-- *Use prepared statements* = ON (default). OFF hanya untuk query sementara yang menjalankan skrip SQL.
-- Query baca yang dipakai widget saat buka page: *Run on page load* ON. Query tulis: OFF.
+- **Token di setiap query** (lihat pola di bawah). Jangan memakai `appsmith.user.email`.
+- *Use prepared statements* = ON di semua query app. OFF hanya untuk `z_run_sql` di app **DB Tools**.
+- *Run on page load* = OFF untuk semua query; query baca page didaftarkan di `Auth.pageQueries()` supaya baru jalan setelah login valid.
+
+Pola query:
+
+| Jenis | Pola |
+|---|---|
+| Baca | `SELECT … FROM x WHERE (SELECT fn_auth({{appsmith.store.token}}, 'view_…')) IS NOT NULL` |
+| Tambah | `INSERT INTO x (kolom…, updated_by) SELECT {{…}}, fn_auth({{appsmith.store.token}}, 'manage_…')` |
+| Ubah | `UPDATE x SET …, updated_by = fn_auth({{appsmith.store.token}}, 'manage_…') WHERE id = {{…}}::uuid` |
+| Function | `SELECT fn_x({{appsmith.store.token}}, …)` — function memanggil `fn_auth` sendiri |
 
 ---
 
@@ -144,23 +159,27 @@ Setiap fase: saya beri langkah konkret → Anda kerjakan di Appsmith → export 
 Tabel DB baru di tiap fase ditulis di bagian **7. Perubahan database** dan dicatat di **8. Register objek DB**.
 
 ### F0 — Persiapan
-- [ ] Cek versi Appsmith (Admin Settings → bagian bawah/“About”, atau `https://<host>/api/v1/health` / halaman *Settings → General*)
-- [ ] Cek versi PostgreSQL: query `SELECT version();` (harus ≥ 13)
+- [x] Cek versi Appsmith → **v2.4** (self-hosted); Custom Widget **tersedia**
+- [x] Cek versi PostgreSQL → **16.15**
 - [ ] Buat app **Sistem Specsheet & CBD**, navigasi: Sidebar
-- [ ] Buat page kosong: `Beranda`, `Admin`, `Master_Supplier`, `Master_Komponen`, `Master_Material`, `Material_Detail`, `Model_List`, `Model_Detail`, `Specsheet`, `CBD`
-- [ ] Buat query sementara `z_run_sql` (prepared statements OFF) untuk menjalankan skrip SQL
-- [ ] Uji pasang library ExcelJS (Libraries → +) — hanya cek bisa terpasang
+- [ ] Buat page kosong: `Login` (home page), `Beranda`, `Admin`, `Master_Supplier`, `Master_Komponen`, `Master_Material`, `Material_Detail`, `Model_List`, `Model_Detail`, `Specsheet`, `CBD`
+- [ ] Buat app privat **DB Tools** berisi `z_run_sql` (prepared statements OFF); hapus `z_run_sql` dari app utama
+- [ ] Pasang extension `pgcrypto`
+- [x] Uji pasang library ExcelJS (Libraries → +) → **berhasil**
 
-**Selesai bila:** versi Appsmith & Postgres diketahui, 10 page ada, library terpasang (atau dicatat tidak bisa).
+**Selesai bila:** versi Appsmith & Postgres diketahui, 11 page ada, library terpasang, `pgcrypto` aktif, `z_run_sql` hanya ada di DB Tools.
 
-### F1 — Fondasi, login & role
-- [ ] Jalankan SQL F1 (fungsi dasar, `app_user`, `role_permission`, `audit_log`, trigger audit, `v_my_perms`, `fn_assert_perm`)
-- [ ] Daftarkan email Anda sebagai `SYSTEM_ADMIN` lalu `MASTER_ADMIN` (untuk uji)
-- [ ] `q_me`, JSObject `Auth` (cek izin page + redirect), `Util` (format angka/tanggal, `run()` + pesan error) — disalin ke setiap page
-- [ ] Beranda: sapaan, role, kartu menu sesuai izin, pesan "belum terdaftar"
-- [ ] Page `Admin`: tab **User** (tabel + tambah/ubah role/nonaktif) dan **Audit Log** (filter entitas, cari)
+### F1 — Fondasi, login in-app & role
+- [x] Jalankan SQL F1 (`sql/F1_fondasi.sql`: fungsi dasar, `app_user`, `role_permission`, `audit_log`, trigger audit)
+- [ ] Jalankan SQL F1b (`sql/F1b_login.sql`: kolom password, `app_session`, `fn_auth`, `fn_me`, `fn_login`, `fn_logout`, `fn_change_password`, `fn_user_save`, `fn_user_reset_password`)
+- [ ] Set password awal akun System Admin Anda lewat `z_run_sql`
+- [ ] Page `Login` (home page): form login, modal ganti password, logout lewat `?mode=keluar` — `Util`, `LoginCtrl`
+- [ ] `q_me`, `Auth` (cek sesi + izin + `pageQueries`), `Util` — disalin ke setiap page lain
+- [ ] Beranda: sapaan, role, tombol menu sesuai izin, **Ganti Password**, **Keluar**
+- [ ] Page `Admin`: tab **User** (tambah → password sementara, ubah role/nonaktif, reset password) dan **Audit Log**
+- [ ] Navigasi: sembunyikan `Login`, `Material_Detail`, `Model_Detail` dari sidebar; Share → **Make application public** → Deploy
 
-**Selesai bila:** ganti role di tab User → menu Beranda berubah sesuai matriks; user nonaktif/tidak terdaftar tidak bisa masuk page lain; perubahan user tercatat di Audit Log.
+**Selesai bila:** buka URL app tanpa login → halaman Login; login benar masuk Beranda sesuai role; password sementara wajib diganti; 5 kali salah → terkunci 15 menit; logout/sesi habis → kembali ke Login; query tanpa token ditolak DB; login/logout/ganti password tercatat di Audit Log.
 
 ### F2 — Master Supplier & Komponen
 - [ ] SQL F2 (`supplier`, `component_group` + seed a/c/d/e, `component`, `trg_component_check`)
@@ -291,6 +310,23 @@ CREATE TABLE audit_log (
 );
 CREATE INDEX idx_audit_entity  ON audit_log (entity, entity_id);
 CREATE INDEX idx_audit_created ON audit_log (created_at DESC);
+```
+
+F1b (login in-app, butuh extension `pgcrypto`):
+```sql
+ALTER TABLE app_user
+  ADD COLUMN password_hash        text,                          -- bcrypt
+  ADD COLUMN must_change_password boolean NOT NULL DEFAULT true,
+  ADD COLUMN failed_attempts      integer NOT NULL DEFAULT 0,
+  ADD COLUMN locked_until         timestamptz,
+  ADD COLUMN last_login_at        timestamptz;
+
+CREATE TABLE app_session (
+  token_hash text PRIMARY KEY,                                    -- SHA-256 dari token
+  email      text NOT NULL REFERENCES app_user(email) ON UPDATE CASCADE ON DELETE CASCADE,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  expires_at timestamptz NOT NULL                                 -- login + 12 jam
+);
 ```
 
 ### F2
@@ -588,12 +624,18 @@ Diperbarui setiap fase selesai direview. Kolom **Dibuat** = Anda sudah menjalank
 
 | Objek | Jenis | Fase | Dibuat | Diverifikasi |
 |---|---|---|:-:|:-:|
-| `fn_normalize`, `fn_today` | function | F1 | ⬜ | ⬜ |
-| `app_user` | tabel | F1 | ⬜ | ⬜ |
-| `role_permission` | tabel | F1 | ⬜ | ⬜ |
-| `audit_log` | tabel | F1 | ⬜ | ⬜ |
-| `fn_touch_trigger` + `trg_touch`, `fn_audit_trigger` + `trg_audit`, `fn_setup_table` | trigger/function | F1 | ⬜ | ⬜ |
-| `fn_role_label`, `fn_assert_perm`, `v_my_perms`, `fn_user_save` | function/view | F1 | ⬜ | ⬜ |
+| `fn_normalize`, `fn_today` | function | F1 | 🟡 | ⬜ |
+| `app_user` | tabel | F1 | 🟡 | ⬜ |
+| `role_permission` | tabel | F1 | 🟡 | ⬜ |
+| `audit_log` | tabel | F1 | 🟡 | ⬜ |
+| `fn_touch_trigger` + `trg_touch`, `fn_audit_trigger` + `trg_audit`, `fn_setup_table` | trigger/function | F1 | 🟡 | ⬜ |
+| `fn_role_label` | function | F1 | 🟡 | ⬜ |
+| ~~`fn_assert_perm`, `v_my_perms`, `fn_user_save` (versi email)~~ | diganti F1b (di-DROP) | F1 | 🟡 | – |
+| extension `pgcrypto` | extension | F1b | ⬜ | ⬜ |
+| `app_user` + kolom password/lock/login | tabel (ALTER) | F1b | ⬜ | ⬜ |
+| `app_session` | tabel | F1b | ⬜ | ⬜ |
+| `fn_audit`, `fn_token_hash`, `fn_random_password`, `fn_auth`, `fn_me` | function | F1b | ⬜ | ⬜ |
+| `fn_login`, `fn_logout`, `fn_change_password`, `fn_user_save`, `fn_user_reset_password` | function | F1b | ⬜ | ⬜ |
 | `supplier` | tabel | F2 | ⬜ | ⬜ |
 | `component_group` | tabel | F2 | ⬜ | ⬜ |
 | `component` + `trg_component_check` | tabel | F2 | ⬜ | ⬜ |

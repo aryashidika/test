@@ -1,4 +1,4 @@
-// JSObject "Util" — salin ke SETIAP page, isinya sama persis di semua page.
+// JSObject "Util" — salin ke SETIAP page (termasuk Login), isinya sama persis.
 // Kalau diubah (mis. errorMessages bertambah), tempel ulang di semua page.
 export default {
 	// Pesan ramah untuk constraint DB. Ditambah setiap fase.
@@ -43,8 +43,13 @@ export default {
 		if (m && this.errorMessages[m[1]]) return this.errorMessages[m[1]];
 		return text
 			.replace(/^[\s\S]*?ERROR:\s*/, '')
+			.replace(/^SESI_HABIS:\s*/, '')
 			.replace(/\s*(Where|Detail|Hint|CONTEXT|Position):[\s\S]*$/, '')
 			.trim();
+	},
+
+	isSessionError(msg) {
+		return /SESI_HABIS/.test(String(msg || ''));
 	},
 
 	// Jalankan query aksi, tampilkan pesan, refresh query baca.
@@ -54,7 +59,14 @@ export default {
 		try {
 			await query.run(params);
 		} catch (e) {
-			showAlert(this.cleanError(e && e.message), 'error');
+			const msg = e && e.message;
+			if (this.isSessionError(msg)) {
+				await removeValue('token');
+				showAlert('Sesi login habis. Silakan login lagi.', 'warning');
+				navigateTo('Login');
+				return false;
+			}
+			showAlert(this.cleanError(msg), 'error');
 			return false;
 		}
 		if (successMsg) showAlert(successMsg, 'success');
