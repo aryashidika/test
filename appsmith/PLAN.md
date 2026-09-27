@@ -7,8 +7,8 @@
 | Target | Appsmith **v2.4** self-hosted (HTTPS) + PostgreSQL **16.15** (datasource `pg_main`) |
 | Akses | App **publik** dengan login di dalam app (email + password), bukan akun Appsmith |
 | Data lama | Tidak dimigrasi (mulai dari DB kosong) |
-| Status | Rencana disetujui 24 Sep 2026 (termasuk P1–P3) · login in-app disetujui 25 Sep 2026 · UI campuran + Custom Widget disetujui 25 Sep 2026 · **F0 + F1 selesai** (export v1, 25 Sep 2026) · berikutnya: user memperbaiki T1–T8, lalu **F2** (dilanjutkan di chat baru) |
-| File siap tempel | `sql/F<n>_*.sql` (jalankan lewat `z_run_sql` di app privat **DB Tools**), `js/*.js` (isi JSObject), `widgets/<cw>/` (Custom Widget: HTML/CSS/JS + README kontrak) |
+| Status | Rencana disetujui 24 Sep 2026 (termasuk P1–P3) · login in-app disetujui 25 Sep 2026 · UI campuran + Custom Widget disetujui 25 Sep 2026 · **F0 + F1 selesai** (export v1, 25 Sep 2026) · **F2 disiapkan** 27 Sep 2026 (`steps/F2_langkah.md`) · berikutnya: user memperbaiki T1–T8, menjalankan F2, export v2 |
+| File siap tempel | `steps/F<n>_langkah.md` (langkah per fase: query, widget, uji), `sql/F<n>_*.sql` (jalankan lewat `z_run_sql` di app privat **DB Tools**), `js/*.js` (isi JSObject), `widgets/<cw>/` (Custom Widget: HTML/CSS/JS + README kontrak) |
 
 Legenda status: ⬜ belum · 🟡 dibuat (belum diverifikasi dari export) · ✅ terverifikasi
 
@@ -20,7 +20,7 @@ Legenda status: ⬜ belum · 🟡 dibuat (belum diverifikasi dari export) · ✅
 |---|---|---|---|
 | F0 | Persiapan: cek versi, app, cara menjalankan SQL | – | ✅ |
 | F1 | Fondasi DB, login in-app & role, Admin user + audit | `export_v1.json` | ✅ semua uji lolos · temuan T1–T8 (lihat §9) |
-| F2 | Master Supplier & Komponen | `export_v2.json` | ⬜ |
+| F2 | Master Supplier & Komponen | `export_v2.json` | 🟡 file siap, menunggu export |
 | F3 | Master Material, supplier material, harga | `export_v3.json` | ⬜ |
 | F4 | Model, Season, Article, lampiran article | `export_v4.json` | ⬜ |
 | F5 | Specsheet: revisi & grid BOM | `export_v5.json` | ⬜ |
@@ -52,7 +52,7 @@ Legenda status: ⬜ belum · 🟡 dibuat (belum diverifikasi dari export) · ✅
 9. **ID = `uuid`** (`gen_random_uuid()`, butuh PostgreSQL ≥ 13).
 10. **UI campuran (standar untuk handover):**
     - **Widget bawaan** Appsmith untuk halaman CRUD standar: Beranda, Admin, Master (Supplier, Komponen, Material), Model — bisa dirawat lewat panel properti tanpa coding.
-    - **Custom Widget** hanya untuk bagian yang tidak bisa dibuat baik dengan widget bawaan: `cwLogin` (Login), `cwStepper` (stage + chip article, dipakai Specsheet & CBD), `cwBomGrid` (grid BOM, maks. 5 article per season), `cwCbdGrid` (grid CBD + rekap). Ditambahkan user di F1 (keputusan user, 25 Sep 2026): `cwHeader` (header di setiap page), `cwMenu` (menu Beranda), `cwUserForm` (form user), `cwTempPassword` (password sementara).
+    - **Custom Widget** hanya untuk bagian yang tidak bisa dibuat baik dengan widget bawaan: `cwLogin` (Login), `cwStepper` (stage + chip article, dipakai Specsheet & CBD), `cwBomGrid` (grid BOM, maks. 5 article per season), `cwCbdGrid` (grid CBD + rekap). Ditambahkan user di F1 (keputusan user, 25 Sep 2026): `cwHeader` (header di setiap page), `cwMenu` (menu Beranda), `cwUserForm` (form user), `cwTempPassword` (password sementara). Ditambahkan di F2 (keputusan user, 27 Sep 2026): `cwSupplierForm`, `cwKomponenForm` (isi modal tambah/ubah, pola sama dengan `cwUserForm`).
     - Aturan Custom Widget: **hanya tampilan** (tanpa logika bisnis/query); data masuk lewat *Default model*, aksi keluar lewat `appsmith.updateModel()` + `appsmith.triggerEvent()` yang ditangani `<Page>Ctrl`; JavaScript biasa tanpa framework (library CDN jsDelivr dengan versi terkunci hanya bila perlu); warna/radius/font mengikuti tema app (`appsmith.theme`).
     - Setiap Custom Widget punya folder `appsmith/widgets/<cw>/` berisi `index.html`, `style.css`, `script.js`, dan `README.md` (kontrak model, nilai keluar, event).
 11. **Export Excel**: library ExcelJS dipasang di Appsmith (Libraries). Cadangan: SheetJS tanpa style.
@@ -92,8 +92,8 @@ Legenda status: ⬜ belum · 🟡 dibuat (belum diverifikasi dari export) · ✅
 | `admin.py` (audit log) + user (baru) | `Admin` | `q_users`, `a_user_save`, `a_user_reset_password`, `q_audit` · `AdminCtrl` | `app_user`, `audit_log`, `fn_user_save`, `fn_user_reset_password` |
 | `audit.py` | – | – | `trg_audit` |
 | `normalize.py`, `ids.py` | – | – | `fn_normalize`, `gen_random_uuid()` |
-| `supplier_service.py` | `Master_Supplier` | `q_suppliers`, `a_supplier_insert/update/set_status` · `SupplierCtrl` | `supplier` |
-| `component_service.py` | `Master_Komponen` | `q_components`, `q_component_groups`, `q_next_component_no`, `a_component_*` · `KomponenCtrl` | `component_group`, `component`, `trg_component_check` |
+| `supplier_service.py` | `Master_Supplier` | `q_suppliers`, `a_supplier_insert`, `a_supplier_update` (nama, currency, status) · `SupplierCtrl` | `supplier`, `trg_supplier_check` |
+| `component_service.py` | `Master_Komponen` | `q_components`, `q_component_groups` (+ saran nomor `next_no`), `a_component_add`, `a_component_update`, `a_component_set_status` · `KomponenCtrl` | `component_group`, `component`, `trg_component_check`, `fn_component_add` |
 | `material_service.py` | `Master_Material`, `Material_Detail` | `q_materials`, `q_next_material_code`, `a_material_*` · `MaterialCtrl` | `material`, `v_material_list` |
 | `material_price_service.py` | `Material_Detail` | `q_material_suppliers`, `q_material_prices`, `a_link_*`, `a_price_add`, `a_price_end` · `MaterialCtrl` | `material_supplier`, `material_price`, `fn_price_add`, `fn_price_lookup`, `fn_ensure_link` |
 | `model_service.py`, `specsheet_service.py` (season) | `Model_List`, `Model_Detail` | `q_models`, `q_model`, `q_seasons`, `a_model_*`, `a_season_insert` · `ModelCtrl` | `product_model`, `specsheet`, `v_model_list` |
@@ -207,9 +207,9 @@ Tabel DB baru di tiap fase ditulis di bagian **7. Perubahan database** dan dicat
 **Selesai bila:** buka URL app tanpa login → halaman Login; login benar masuk Beranda sesuai role; password sementara wajib diganti; 5 kali salah → terkunci 15 menit; logout/sesi habis → kembali ke Login; query tanpa token ditolak DB; login/logout/ganti password tercatat di Audit Log.
 
 ### F2 — Master Supplier & Komponen
-- [ ] SQL F2 (`supplier`, `component_group` + seed a/c/d/e, `component`, `trg_component_check`)
-- [ ] `Master_Supplier`: tabel + cari + filter status, tambah (modal), ubah nama, currency default, status
-- [ ] `Master_Komponen`: tabel per grup, saran nomor berikutnya (max+10), tambah, ubah, status; vendor → otomatis PROPOSED; admin → Approve
+- [ ] SQL F2 (`sql/F2_master.sql`: `fn_has_perm`, `fn_auth_any`, `supplier` + `trg_supplier_check`, `component_group` + seed a/b/c/d, `component` + `trg_component_check`, `fn_component_add`)
+- [ ] `Master_Supplier`: tabel + cari + filter status, tambah (modal), ubah nama, status (tanpa currency default — keputusan user 27 Sep 2026: currency dipilih saat harga dimasukkan) — form modal: Custom Widget `cwSupplierForm`
+- [ ] `Master_Komponen`: tabel per grup, saran nomor berikutnya (max+10), tambah, ubah, status; vendor → otomatis PROPOSED; admin → Approve — form modal: Custom Widget `cwKomponenForm`
 
 **Selesai bila:** nomor bukan kelipatan 10 / di luar rentang / sudah dipakai ditolak dengan pesan jelas; nama supplier beda kapital ditolak; semua perubahan masuk audit log.
 
@@ -217,7 +217,7 @@ Tabel DB baru di tiap fase ditulis di bagian **7. Perubahan database** dan dicat
 - [ ] SQL F3 (`material`, `material_supplier`, `material_price`, `fn_today`, `fn_price_add`, `fn_price_end`, `fn_price_lookup`, `fn_ensure_link`, `v_material_list`)
 - [ ] `Master_Material`: tabel (kode, nama, kategori, thickness, UoM, metode harga, status, ringkasan supplier/harga), cari & filter (status, kategori, "belum ada harga"), tambah dengan saran `MTR-NNNN` dan pilihan metode harga (P3)
 - [ ] `Material_Detail` tab **Info**: edit identitas (admin), status, metode harga (`manage_price`)
-- [ ] Tab **Supplier & Harga**: daftar supplier material (kode di supplier, utama, status, approve), tambah supplier; per supplier harga berlaku + riwayat, tambah harga (warna opsional, tanggal berlaku), akhiri harga. Harga disembunyikan untuk VENDOR_SPEC
+- [ ] Tab **Supplier & Harga**: daftar supplier material (kode di supplier, utama, status, approve), tambah supplier; per supplier harga berlaku + riwayat, tambah harga (warna opsional, tanggal berlaku, **currency IDR/USD wajib dipilih — tanpa nilai awal**), akhiri harga. Tambah/akhiri harga: Master Admin & Vendor – CBD (`manage_price`, keputusan user 27 Sep 2026). Harga disembunyikan untuk VENDOR_SPEC
 
 **Selesai bila:** duplikat material (nama+thickness+UoM setelah normalisasi) ditolak; harga baru menutup harga lama; tanggal mundur ditolak; material QUOTATION tidak bisa diberi harga; `fn_price_lookup` mengembalikan harga warna dulu lalu semua warna.
 
@@ -251,13 +251,13 @@ Tabel DB baru di tiap fase ditulis di bagian **7. Perubahan database** dan dicat
 - [ ] SQL F7 (`cbd_revision`, `cbd_line`, `fn_cbd_expected_lines`, `fn_cbd_create`, `fn_cbd_delete_draft`, `v_cbd_line`, `v_cbd_article`)
 - [ ] Page `CBD` (`?model_id=`): pilih season, `cwStepper` (chip article + status: belum ada CBD / draft / terbit / perlu revisi / di-drop, dan stepper revisi)
 - [ ] **Buat CBD**: baru / lanjut dari CBD terbit article ini / copy dari article lain (model sama)
-- [ ] Custom Widget **`cwCbdGrid`**: grid per grup a/c/d/e + bagian MISSING_IN_SPEC; edit Yield & Loss % di sel; Usage, harga IDR/USD, cost/pair dari view
+- [ ] Custom Widget **`cwCbdGrid`**: grid per grup a/b/c/d + bagian MISSING_IN_SPEC; edit Yield & Loss % di sel; Usage, harga IDR/USD, cost/pair dari view
 
 **Selesai bila:** baris CBD = baris BOM terbit yang dipakai article (termasuk subkomponen); yield/loss tersalin dari sumber (lineKey → originLineKey → identitas); baris sumber yang hilang jadi MISSING_IN_SPEC.
 
 ### F8 — CBD: harga, rekap, refresh, terbit, sinkron
 - [ ] SQL F8 (`fn_cbd_set_quotation`, `fn_cbd_override_price`, `fn_cbd_clear_override`, `fn_cbd_refresh_prices`, `fn_cbd_refresh_from_spec`, `fn_cbd_set_margin`, `v_cbd_recap`, `v_cbd_checklist`, `fn_cbd_publish`, perbarui `fn_revision_publish` dengan penandaan sinkron)
-- [ ] Harga: quotation (material QUOTATION), override + alasan (material CATALOG), hapus override; info kenapa harga kosong
+- [ ] Harga: quotation (material QUOTATION), override + alasan (material CATALOG), hapus override; info kenapa harga kosong — currency wajib dipilih setiap input (tanpa nilai awal)
 - [ ] Rekap di `cwCbdGrid` (panel ringkasan menempel): exchange rate, amortisasi, adjustment, target FOB, actual FOB, selisih (OVER/UNDER/SESUAI), selling price ⇄ margin %
 - [ ] Banner + tombol **Refresh dari Specsheet** / **Refresh Harga dari Master**
 - [ ] Modal **Terbitkan** CBD + tab Riwayat
@@ -368,7 +368,6 @@ CREATE TABLE supplier (
   id               uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   name             text NOT NULL CHECK (btrim(name) <> ''),
   name_key         text GENERATED ALWAYS AS (fn_normalize(name)) STORED,
-  default_currency text NOT NULL DEFAULT 'IDR' CHECK (default_currency IN ('IDR','USD')),
   status           text NOT NULL DEFAULT 'APPROVED' CHECK (status IN ('PROPOSED','APPROVED','INACTIVE')),
   created_at timestamptz NOT NULL DEFAULT now(), created_by text,
   updated_at timestamptz NOT NULL DEFAULT now(), updated_by text,
@@ -383,14 +382,15 @@ CREATE TABLE component_group (
   sort_order  integer NOT NULL
 );
 INSERT INTO component_group VALUES
-  ('a','Upper',0,3990,1), ('c','Bottom unit',4000,5990,2),
-  ('d','Packaging',6000,7990,3), ('e','Miscellaneous',8000,9990,4);
+  ('a','Upper',0,3990,1), ('b','Bottom unit',4000,5990,2),
+  ('c','Packaging',6000,7990,3), ('d','Miscellaneous',8000,9990,4);
+-- kode a/b/c/d berurutan (keputusan user 27 Sep 2026; Python memakai a/c/d/e)
 
 CREATE TABLE component (
   id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   number     integer NOT NULL CHECK (number % 10 = 0),
   name       text NOT NULL CHECK (btrim(name) <> ''),
-  group_code text NOT NULL REFERENCES component_group(code),
+  group_code text NOT NULL REFERENCES component_group(code) ON UPDATE CASCADE,
   status     text NOT NULL DEFAULT 'PROPOSED' CHECK (status IN ('PROPOSED','APPROVED','INACTIVE')),
   created_at timestamptz NOT NULL DEFAULT now(), created_by text,
   updated_at timestamptz NOT NULL DEFAULT now(), updated_by text,
@@ -669,9 +669,11 @@ Diperbarui setiap fase selesai direview. Kolom **Dibuat** = Anda sudah menjalank
 | `app_session` | tabel | F1b | ✅ | ✅ |
 | `fn_audit`, `fn_token_hash`, `fn_random_password`, `fn_auth`, `fn_me` | function | F1b | ✅ | ✅ |
 | `fn_login`, `fn_logout`, `fn_change_password`, `fn_user_save`, `fn_user_reset_password` | function | F1b | ✅ | ✅ |
-| `supplier` | tabel | F2 | ⬜ | ⬜ |
+| `fn_has_perm`, `fn_auth_any` | function | F2 | ⬜ | ⬜ |
+| `supplier` + `fn_supplier_check`/`trg_supplier_check` | tabel/trigger | F2 | ⬜ | ⬜ |
 | `component_group` | tabel | F2 | ⬜ | ⬜ |
-| `component` + `trg_component_check` | tabel | F2 | ⬜ | ⬜ |
+| `component` + `fn_component_check`/`trg_component_check`, `idx_component_group` | tabel/trigger | F2 | ⬜ | ⬜ |
+| `fn_component_add` | function | F2 | ⬜ | ⬜ |
 | `material` | tabel | F3 | ⬜ | ⬜ |
 | `material_supplier` | tabel | F3 | ⬜ | ⬜ |
 | `material_price` | tabel | F3 | ⬜ | ⬜ |
@@ -713,6 +715,8 @@ ORDER BY 1, 2;
 | `cwMenu` *(dibuat user)* | `Beranda` | F1 | ✅ | ⚠️ target page salah (T1) |
 | `cwUserForm` *(dibuat user)* | `Admin` (modal `mdlUser`) | F1 | ✅ | ✅ |
 | `cwTempPassword` *(dibuat user)* | `Admin` (modal `mdlPasswordSementara`) | F1 | ✅ | ✅ |
+| `cwSupplierForm` | `Master Supplier` (modal `mdlSupplier`) | F2 | ⬜ | ⬜ |
+| `cwKomponenForm` | `Master Komponen` (modal `mdlKomponen`) | F2 | ⬜ | ⬜ |
 | `cwStepper` | `Specsheet`, `CBD` | F5 / F7 | ⬜ | ⬜ |
 | `cwBomGrid` | `Specsheet` | F5 | ⬜ | ⬜ |
 | `cwCbdGrid` | `CBD` | F7 / F8 | ⬜ | ⬜ |
