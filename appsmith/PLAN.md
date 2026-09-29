@@ -7,7 +7,7 @@
 | Target | Appsmith **v2.4** self-hosted (HTTPS) + PostgreSQL **16.15** (datasource `pg_main`) |
 | Akses | App **publik** dengan login di dalam app (email + password), bukan akun Appsmith |
 | Data lama | Tidak dimigrasi (mulai dari DB kosong) |
-| Status | Rencana disetujui 24 Sep 2026 (termasuk P1–P3) · login in-app disetujui 25 Sep 2026 · UI campuran + Custom Widget disetujui 25 Sep 2026 · **F0 + F1 selesai** (export v1, 25 Sep 2026) · **F2 selesai** (export v2, 29 Sep 2026) · berikutnya: **F3** (T9 masih terbuka) |
+| Status | Rencana disetujui 24 Sep 2026 (termasuk P1–P3) · login in-app disetujui 25 Sep 2026 · UI campuran + Custom Widget disetujui 25 Sep 2026 · **F0 + F1 selesai** (export v1, 25 Sep 2026) · **F2 selesai** (export v2, 29 Sep 2026) · **F3 disiapkan** 29 Sep 2026 (`steps/F3_langkah.md`) · berikutnya: user memperbaiki T9, menjalankan F3, export v3 |
 | File siap tempel | `steps/F<n>_langkah.md` (langkah per fase: query, widget, uji), `sql/F<n>_*.sql` (jalankan lewat `z_run_sql` di app privat **DB Tools**), `js/*.js` (isi JSObject), `widgets/<cw>/` (Custom Widget: HTML/CSS/JS + README kontrak) |
 
 Legenda status: ⬜ belum · 🟡 dibuat (belum diverifikasi dari export) · ✅ terverifikasi
@@ -21,7 +21,7 @@ Legenda status: ⬜ belum · 🟡 dibuat (belum diverifikasi dari export) · ✅
 | F0 | Persiapan: cek versi, app, cara menjalankan SQL | – | ✅ |
 | F1 | Fondasi DB, login in-app & role, Admin user + audit | `export_v1.json` | ✅ semua uji lolos · temuan T1–T8 (lihat §9) |
 | F2 | Master Supplier & Komponen | `export_v2.json` | ✅ semua uji lolos · temuan T9–T12 (lihat §9) |
-| F3 | Master Material, supplier material, harga | `export_v3.json` | ⬜ |
+| F3 | Master Material, supplier material, harga | `export_v3.json` | 🟡 file siap, menunggu export |
 | F4 | Model, Season, Article, lampiran article | `export_v4.json` | ⬜ |
 | F5 | Specsheet: revisi & grid BOM | `export_v5.json` | ⬜ |
 | F6 | Specsheet: checklist & terbit | `export_v6.json` | ⬜ |
@@ -94,8 +94,8 @@ Legenda status: ⬜ belum · 🟡 dibuat (belum diverifikasi dari export) · ✅
 | `normalize.py`, `ids.py` | – | – | `fn_normalize`, `gen_random_uuid()` |
 | `supplier_service.py` | `Master_Supplier` | `q_suppliers`, `a_supplier_insert`, `a_supplier_update` (nama, currency, status) · `SupplierCtrl` | `supplier`, `trg_supplier_check` |
 | `component_service.py` | `Master_Komponen` | `q_components`, `q_component_groups` (+ saran nomor `next_no`), `a_component_add`, `a_component_update`, `a_component_set_status` · `KomponenCtrl` | `component_group`, `component`, `trg_component_check`, `fn_component_add` |
-| `material_service.py` | `Master_Material`, `Material_Detail` | `q_materials`, `q_next_material_code`, `a_material_*` · `MaterialCtrl` | `material`, `v_material_list` |
-| `material_price_service.py` | `Material_Detail` | `q_material_suppliers`, `q_material_prices`, `a_link_*`, `a_price_add`, `a_price_end` · `MaterialCtrl` | `material_supplier`, `material_price`, `fn_price_add`, `fn_price_lookup`, `fn_ensure_link` |
+| `material_service.py` | `Master_Material`, `Material_Detail` | `q_materials`, `q_material_meta` (saran kode + kategori/UoM), `a_material_add`, `a_material_set_status`, `q_material`, `a_material_update` · `MaterialCtrl`, `MaterialDetailCtrl` | `material`, `trg_material_check`, `fn_material_add`, `fn_material_update`, `v_material_list` |
+| `material_price_service.py` | `Material_Detail` | `q_links`, `q_link_supplier_options`, `q_prices`, `a_link_save`, `a_link_set_status`, `a_price_add`, `a_price_end` · `MaterialDetailCtrl` | `material_supplier`, `material_price`, `trg_material_supplier_check`, `fn_link_save`, `fn_price_add`, `fn_price_end`, `fn_price_lookup`, `fn_ensure_link` |
 | `model_service.py`, `specsheet_service.py` (season) | `Model_List`, `Model_Detail` | `q_models`, `q_model`, `q_seasons`, `a_model_*`, `a_season_insert` · `ModelCtrl` | `product_model`, `specsheet`, `v_model_list` |
 | `article_service.py` (Model) + lampiran (baru) | `Model_Detail` | `q_articles`, `a_article_*`, `q_attachments`, `q_attachment_file`, `a_attachment_*` · `ModelCtrl` | `article`, `article_attachment`, `v_article_status` |
 | `revision_service.py` | `Specsheet` | `q_revisions`, `a_revision_create`, `a_revision_delete`, `a_revision_publish`, `q_publish_checklist` · `SpecCtrl` | `specsheet_revision`, `revision_article`, `change_log`, `fn_revision_*`, `v_revision_checklist` |
@@ -214,7 +214,8 @@ Tabel DB baru di tiap fase ditulis di bagian **7. Perubahan database** dan dicat
 **Selesai bila:** nomor bukan kelipatan 10 / di luar rentang / sudah dipakai ditolak dengan pesan jelas; nama supplier beda kapital ditolak; semua perubahan masuk audit log.
 
 ### F3 — Master Material, supplier material, harga
-- [ ] SQL F3 (`material`, `material_supplier`, `material_price`, `fn_today`, `fn_price_add`, `fn_price_end`, `fn_price_lookup`, `fn_ensure_link`, `v_material_list`)
+- [ ] SQL F3 (`sql/F3_material.sql`: `material` + `trg_material_check`, `material_supplier` + `trg_material_supplier_check`, `material_price`, `fn_material_add`, `fn_material_update`, `fn_link_save`, `fn_ensure_link`, `fn_price_add`, `fn_price_end`, `fn_price_lookup`, `v_material_list`; `fn_today` sudah ada dari F1)
+- [ ] Form modal Custom Widget (keputusan user): `cwMaterialForm` (tambah & ubah material), `cwLinkForm` (supplier material), `cwPriceForm` (harga; currency tanpa nilai awal, angka ambigu `47.500` ditolak)
 - [ ] `Master_Material`: tabel (kode, nama, kategori, thickness, UoM, metode harga, status, ringkasan supplier/harga), cari & filter (status, kategori, "belum ada harga"), tambah dengan saran `MTR-NNNN` dan pilihan metode harga (P3)
 - [ ] `Material_Detail` tab **Info**: edit identitas (admin), status, metode harga (`manage_price`)
 - [ ] Tab **Supplier & Harga**: daftar supplier material (kode di supplier, utama, status, approve), tambah supplier; per supplier harga berlaku + riwayat, tambah harga (warna opsional, tanggal berlaku, **currency IDR/USD wajib dipilih — tanpa nilai awal**), akhiri harga. Tambah/akhiri harga: Master Admin & Vendor – CBD (`manage_price`, keputusan user 27 Sep 2026). Harga disembunyikan untuk VENDOR_SPEC
@@ -677,6 +678,8 @@ Diperbarui setiap fase selesai direview. Kolom **Dibuat** = Anda sudah menjalank
 | `material` | tabel | F3 | ⬜ | ⬜ |
 | `material_supplier` | tabel | F3 | ⬜ | ⬜ |
 | `material_price` | tabel | F3 | ⬜ | ⬜ |
+| `fn_material_check`/`trg_material_check`, `fn_material_supplier_check`/`trg_material_supplier_check` | trigger | F3 | ⬜ | ⬜ |
+| `fn_material_add`, `fn_material_update`, `fn_link_save` | function | F3 | ⬜ | ⬜ |
 | `fn_price_add`, `fn_price_end`, `fn_price_lookup`, `fn_ensure_link`, `v_material_list` | function/view | F3 | ⬜ | ⬜ |
 | `product_model` | tabel | F4 | ⬜ | ⬜ |
 | `specsheet` | tabel | F4 | ⬜ | ⬜ |
@@ -717,6 +720,9 @@ ORDER BY 1, 2;
 | `cwTempPassword` *(dibuat user)* | `Admin` (modal `mdlPasswordSementara`) | F1 | ✅ | ✅ |
 | `cwSupplierForm` | `Master Supplier` (modal `mdlSupplier`) | F2 | ✅ | ✅ |
 | `cwKomponenForm` | `Master Komponen` (modal `mdlKomponen`) | F2 | ✅ | ✅ |
+| `cwMaterialForm` | `Master Material` + `Material Detail` (modal `mdlMaterial`) | F3 | ⬜ | ⬜ |
+| `cwLinkForm` | `Material Detail` (modal `mdlLink`) | F3 | ⬜ | ⬜ |
+| `cwPriceForm` | `Material Detail` (modal `mdlHarga`) | F3 | ⬜ | ⬜ |
 | `cwStepper` | `Specsheet`, `CBD` | F5 / F7 | ⬜ | ⬜ |
 | `cwBomGrid` | `Specsheet` | F5 | ⬜ | ⬜ |
 | `cwCbdGrid` | `CBD` | F7 / F8 | ⬜ | ⬜ |

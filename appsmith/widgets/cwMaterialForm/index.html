@@ -1,0 +1,57 @@
+<div class="wrap">
+  <div class="head">
+    <h2 id="title">Tambah Material</h2>
+    <button type="button" class="x" id="btnX" aria-label="Tutup">✕</button>
+  </div>
+
+  <div id="msg" class="msg" role="alert" hidden></div>
+
+  <div class="row">
+    <div>
+      <label for="code">Material Code <span class="req">*</span></label>
+      <input id="code" type="text" maxlength="30" autocomplete="off">
+      <button type="button" class="link" id="btnSuggest" hidden>Pakai saran</button>
+    </div>
+    <div>
+      <label for="category">Kategori <span class="req">*</span></label>
+      <input id="category" type="text" maxlength="60" autocomplete="off" list="dlCategory" placeholder="mis. Leather">
+      <datalist id="dlCategory"></datalist>
+    </div>
+  </div>
+
+  <label for="name">Nama material <span class="req">*</span></label>
+  <input id="name" type="text" maxlength="200" autocomplete="off">
+
+  <div class="row">
+    <div>
+      <label for="thickness">Thickness</label>
+      <input id="thickness" type="text" maxlength="30" autocomplete="off" placeholder="mis. 1.2mm">
+    </div>
+    <div>
+      <label for="uom">UoM <span class="req">*</span></label>
+      <input id="uom" type="text" maxlength="20" autocomplete="off" list="dlUom" placeholder="YD / KG / PCS">
+      <datalist id="dlUom"></datalist>
+    </div>
+  </div>
+  <div class="hint">Nama + thickness + UoM yang sama (tidak peka huruf besar/kecil) dianggap material yang sama.</div>
+
+  <label>Metode harga <span class="req">*</span></label>
+  <div class="seg" id="method">
+    <button type="button" data-v="CATALOG">Catalog</button>
+    <button type="button" data-v="QUOTATION">Quotation</button>
+  </div>
+  <div class="hint" id="methodHint"></div>
+
+  <div id="statusBox">
+    <label for="status">Status <span class="req">*</span></label>
+    <select id="status"></select>
+  </div>
+
+  <div class="field-note" id="lockNote" hidden></div>
+  <div class="info" id="proposeInfo" hidden>Usulan tersimpan sebagai PROPOSED dan menunggu persetujuan Master Admin.</div>
+
+  <div class="actions">
+    <button type="button" class="btn-secondary" id="btnCancel">Batal</button>
+    <button type="button" class="btn-primary" id="btnSave">Simpan</button>
+  </div>
+</div>
