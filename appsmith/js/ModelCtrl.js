@@ -33,6 +33,15 @@ export default {
 		return `${row.season} · ${row.article_count} article${more}`;
 	},
 
+	// Kolom "Specsheet": revisi terakhir season itu (P2). Role tanpa view_drafts (Brand) hanya revisi terbit.
+	specSummary(row) {
+		const drafts = Auth.can('view_drafts');
+		const label = drafts ? row.spec_label : row.spec_label_pub;
+		const n = drafts ? row.spec_active_articles : row.spec_active_articles_pub;
+		if (!row.season) return '-';
+		return label ? `${label} · ${n} article aktif` : 'Belum ada specsheet';
+	},
+
 	openAdd() {
 		this.form = {
 			code: '', name: '', category: '', factory: '', outsole_mold: '', last_no: '',

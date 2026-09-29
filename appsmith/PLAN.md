@@ -7,7 +7,7 @@
 | Target | Appsmith **v2.4** self-hosted (HTTPS) + PostgreSQL **16.15** (datasource `pg_main`) |
 | Akses | App **publik** dengan login di dalam app (email + password), bukan akun Appsmith |
 | Data lama | Tidak dimigrasi (mulai dari DB kosong) |
-| Status | Rencana disetujui 24 Sep 2026 (termasuk P1–P3) · login in-app disetujui 25 Sep 2026 · UI campuran + Custom Widget disetujui 25 Sep 2026 · **F0 + F1 selesai** (export v1, 25 Sep 2026) · **F2 selesai** (export v2, 29 Sep 2026) · **F3 dikerjakan** (export v3, 29 Sep 2026; T13–T17 diperbaiki user) · **F3 + F3b selesai** (export v3b, 30 Sep 2026) · **F4 selesai** (export v4 = file user v4.7, 30 Sep 2026; Copy Article akan dihapus — keputusan user) |
+| Status | Rencana disetujui 24 Sep 2026 (termasuk P1–P3) · login in-app disetujui 25 Sep 2026 · UI campuran + Custom Widget disetujui 25 Sep 2026 · **F0 + F1 selesai** (export v1, 25 Sep 2026) · **F2 selesai** (export v2, 29 Sep 2026) · **F3 dikerjakan** (export v3, 29 Sep 2026; T13–T17 diperbaiki user) · **F3 + F3b selesai** (export v3b, 30 Sep 2026) · **F4 selesai** (export v4 = file user v4.7, 30 Sep 2026; Copy Article dihapus — keputusan user) · **F5 disiapkan** (file langkah 30 Sep 2026, menunggu export v5) |
 | File siap tempel | `steps/F<n>_langkah.md` (langkah per fase: query, widget, uji), `sql/F<n>_*.sql` (jalankan lewat `z_run_sql` di app privat **DB Tools**), `js/*.js` (isi JSObject), `widgets/<cw>/` (Custom Widget: HTML/CSS/JS + README kontrak) |
 
 Legenda status: ⬜ belum · 🟡 dibuat (belum diverifikasi dari export) · ✅ terverifikasi
@@ -24,7 +24,7 @@ Legenda status: ⬜ belum · 🟡 dibuat (belum diverifikasi dari export) · ✅
 | F3 | Master Material, supplier material, harga | `export_v3.json` | ✅ (T13–T17 diperbaiki di export v3b) |
 | F3b | Approval harga oleh Master Admin (tambahan, keputusan user 29 Sep 2026) | `export_v3b.json` | ✅ semua uji lolos · T18–T19 diperbaiki |
 | F4 | Model, Season, Article, lampiran article | `export_v4.json` | ✅ semua uji lolos · T21–T27 diperbaiki (v4.7) · Copy Article dihapus (keputusan user, lihat §6 F4) |
-| F5 | Specsheet: revisi & grid BOM | `export_v5.json` | ⬜ |
+| F5 | Specsheet: revisi & grid BOM | `export_v5.json` | 🟡 file siap (`steps/F5_langkah.md`), menunggu export |
 | F6 | Specsheet: checklist & terbit | `export_v6.json` | ⬜ |
 | F7 | CBD: buat revisi & grid baris | `export_v7.json` | ⬜ |
 | F8 | CBD: harga, rekap, refresh, terbit, sinkron specsheet | `export_v8.json` | ⬜ |
@@ -84,6 +84,7 @@ Legenda status: ⬜ belum · 🟡 dibuat (belum diverifikasi dari export) · ✅
 | P1 | Copy (carryover / lintas model) memilih revisi sumber "terakhir" hanya dari nomor revisi (PULL r2 dianggap lebih baru dari PROD r0) | Urut stage dulu, lalu nomor revisi |
 | P2 | Ringkasan status di daftar model memakai revisi yang **dibuat** terakhir | Pakai urutan stage + nomor revisi, sama seperti bagian lain |
 | P3 | Form tambah material tidak punya pilihan metode harga (selalu CATALOG) | Ada pilihan CATALOG / QUOTATION |
+| P4 | Ganti material pada baris induk: subkomponen tetap menunjuk `line_key` baris lama yang sudah nonaktif → hilang dari grid | Subkomponen ikut dipindah ke baris baru (`fn_bom_replace_material`) — ditemukan saat menyiapkan F5, 30 Sep 2026 |
 
 ---
 
@@ -101,8 +102,8 @@ Legenda status: ⬜ belum · 🟡 dibuat (belum diverifikasi dari export) · ✅
 | `material_price_service.py` | `Material_Detail` | `q_links`, `q_link_supplier_options`, `q_prices`, `a_link_save`, `a_link_set_status`, `a_price_add`, `a_price_end` · `MaterialDetailCtrl` | `material_supplier`, `material_price`, `trg_material_supplier_check`, `fn_link_save`, `fn_price_add`, `fn_price_end`, `fn_price_lookup`, `fn_ensure_link` |
 | `model_service.py`, `specsheet_service.py` (season) | `Model_List`, `Model_Detail` | `q_known_seasons`, `q_models`, `a_model_add` · `ModelCtrl` (Model List) · `q_model`, `q_seasons`, `a_model_update`, `a_season_add` · `ModelDetailCtrl` (Model Detail) | `product_model`, `specsheet`, `trg_model_check`, `trg_specsheet_check`, `v_model_list` |
 | `article_service.py` (Model) + lampiran (baru) | `Model_Detail` | `q_articles`, `a_article_add`, `a_article_update`, `a_article_delete`, `q_attachments`, `q_attachment_file`, `a_attachment_add`, `a_attachment_delete` · `ModelDetailCtrl` | `article`, `article_attachment`, `trg_article_check`, `trg_article_delete_check`, `fn_article_is_used`, `fn_attachment_add`, `v_article_status` |
-| `revision_service.py` | `Specsheet` | `q_revisions`, `a_revision_create`, `a_revision_delete`, `a_revision_publish`, `q_publish_checklist` · `SpecCtrl` | `specsheet_revision`, `revision_article`, `change_log`, `fn_revision_*`, `v_revision_checklist` |
-| `bom_service.py`, `article_service.py` (revisi) | `Specsheet` | `q_bom_grid`, `q_rev_articles`, `a_bom_add_line`, `a_bom_add_sub`, `a_bom_replace_material`, `a_bom_update`, `a_cell_save`, `a_rev_article_*` · `BomCtrl` | `bom_line`, `bom_cell`, `fn_bom_*`, `v_bom_grid` |
+| `revision_service.py` | `Specsheet` | `q_spec_models`, `q_spec_model`, `q_spec_seasons`, `q_revisions`, `a_revision_create`, `a_revision_delete` (F5) · `a_revision_publish`, `q_publish_checklist` (F6) · `SpecCtrl` | `specsheet_revision`, `revision_article`, `trg_lock_published`, `trg_revision_lock`, `fn_revision_create`, `fn_revision_delete_draft` · `change_log`, `v_revision_checklist`, `fn_revision_publish` (F6) |
+| `bom_service.py`, `article_service.py` (revisi) | `Specsheet` | `q_bom_grid`, `q_rev_articles`, `q_bom_options`, `q_season_colors`, `a_bom_add_line`, `a_bom_add_sub`, `a_bom_replace_material`, `a_bom_set_supplier`, `a_bom_set_process`, `a_cell_save`, `a_rev_article_set` · `BomCtrl` (grid = Custom Widget `cwBomGrid`, satu event `onAction`) | `bom_line`, `bom_cell`, `fn_bom_add_line`, `fn_bom_add_sub`, `fn_bom_replace_material`, `fn_bom_set_supplier`, `fn_bom_cell_set`, `fn_rev_article_set`, `v_bom_grid` |
 | `cbd_service.py`, `cbd_calc.py` | `CBD` | `q_cbd_articles`, `q_cbd_revisions`, `q_cbd_lines`, `q_cbd_recap`, `a_cbd_create`, `a_cbd_line_update`, `a_cbd_header_update`, `a_cbd_set_margin`, `a_cbd_price_*`, `a_cbd_refresh*`, `a_cbd_publish`, `a_cbd_delete` · `CbdCtrl` | `cbd_revision`, `cbd_line`, `fn_cbd_*`, `v_cbd_line`, `v_cbd_recap`, `v_cbd_checklist` |
 | `export_service.py` | `Specsheet`, `CBD` | `ExportCtrl` (ExcelJS) | pakai view yang sama |
 | `worklist_service.py` | `Beranda` | `q_worklist_*` · `BerandaCtrl` | `v_worklist_*` |
@@ -137,8 +138,8 @@ Legenda status: ⬜ belum · 🟡 dibuat (belum diverifikasi dari export) · ✅
 | `Material_Detail` | `Material Detail` | tidak |
 | `Model_List` | `Model List` | ya |
 | `Model_Detail` | `Model Detail` | tidak |
-| `Specsheet` | `Specsheet` | ya |
-| `CBD` | `Cost Breakdown (CBD)` | ya |
+| `Specsheet` | `Specsheet` | ya — pilih model & season di page; dari Model List / Model Detail langsung terpilih (keputusan user 30 Sep 2026) |
+| `CBD` | `Cost Breakdown (CBD)` | ya — sama seperti Specsheet (F7) |
 
 Prefiks widget: `tbl` Table · `inp` Input · `sel` Select · `ms` MultiSelect · `btn` Button · `mdl` Modal · `txt` Text · `tab` Tabs · `fp` FilePicker · `dp` DatePicker · `chk` Checkbox · `sw` Switch · `img` Image · `cnt` Container · `lst` List · **`cw` Custom Widget**.
 
@@ -246,8 +247,11 @@ File siap (30 Sep 2026): `sql/F4_model.sql`, `js/ModelCtrl.js`, `js/ModelDetailC
 **Selesai bila:** article ke-6 di satu season ditolak; kode article duplikat (beda huruf besar/kecil) ditolak; lampiran bisa diunggah, dilihat, dan diunduh; file bukan jpg/png/pdf ditolak DB. *Kode article terpakai tidak bisa diubah/dihapus* diuji di F5.
 
 ### F5 — Specsheet: revisi & grid BOM
-- [ ] SQL F5 (`specsheet_revision`, `revision_article`, `bom_line`, `bom_cell`, `trg_lock_published`, `fn_revision_create`, `fn_revision_delete_draft`, `fn_bom_add_line`, `fn_bom_add_sub`, `fn_bom_replace_material`, `fn_bom_set_supplier`, `fn_rev_article_set`, `v_bom_grid`)
+File siap (30 Sep 2026): `sql/F5_specsheet.sql`, `js/SpecCtrl.js`, `js/BomCtrl.js`, `js/ModelCtrl.js` + `js/ModelDetailCtrl.js` (kolom status specsheet), `widgets/cwStepper/`, `widgets/cwRevisionForm/`, `widgets/cwBomGrid/`, `steps/F5_langkah.md`.
+- [ ] SQL F5 (`sql/F5_specsheet.sql`: `specsheet_revision`, `revision_article`, `bom_line`, `bom_cell`, `trg_lock_published`, `trg_revision_lock`, `fn_revision_draft`, `fn_revision_create`, `fn_revision_delete_draft`, `fn_bom_check_material`, `fn_bom_create_cells`, `fn_bom_add_line`, `fn_bom_add_sub`, `fn_bom_replace_material` (P4), `fn_bom_set_supplier`, `fn_bom_cell_set`, `fn_rev_article_set`, `v_bom_grid`; `v_model_list` & `v_article_status` ditambah kolom status specsheet)
+- [ ] Model List kolom **Specsheet** (revisi terakhir, P2; Brand hanya terbit) · Model Detail kolom **Specsheet** per article (pindahan dari F4)
 - [ ] Custom Widget **`cwStepper`**: stepper stage PULL→SMS→GTM→PROD berisi revisi (brand: hanya PUBLISHED)
+- [ ] Custom Widget **`cwRevisionForm`** (modal Buat Revisi, pola form modal)
 - [ ] Page `Specsheet` (`?model_id=`): pilih season (widget bawaan) + `cwStepper`
 - [ ] Wizard **Buat Revisi**: Kosong (pilih stage) / Copy dari season lain model yang sama (hanya revisi terbit, default terbit terakhir — P1; baris BOM di-copy, semua article season tujuan masuk revisi, warna kosong) / Revisi berikutnya / Stage berikutnya; hapus draft
 - [ ] Custom Widget **`cwBomGrid`**: No, Komponen, Material, Supplier, UoM, Remarks + satu kolom per article (edit warna langsung di sel, saran warna se-season); tambah baris (komponen master atau lokal), tambah subkomponen, ganti material, ubah supplier/remarks
@@ -552,6 +556,7 @@ CREATE TABLE revision_article (
   updated_at timestamptz NOT NULL DEFAULT now(), updated_by text,
   PRIMARY KEY (revision_id, article_id)
 );
+CREATE INDEX idx_revision_article_article ON revision_article (article_id);
 
 CREATE TABLE bom_line (
   id                   uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -590,7 +595,9 @@ CREATE TABLE bom_cell (
   updated_at timestamptz NOT NULL DEFAULT now(), updated_by text,
   PRIMARY KEY (bom_line_id, article_id)
 );
+CREATE INDEX idx_bom_cell_article ON bom_cell (article_id);
 -- trg_lock_published: tolak perubahan revision_article / bom_line / bom_cell bila revisinya PUBLISHED
+-- trg_revision_lock: revisi PUBLISHED tidak bisa diubah/dihapus (DRAFT -> PUBLISHED tetap boleh)
 ```
 
 ### F6
@@ -714,11 +721,14 @@ Diperbarui setiap fase selesai direview. Kolom **Dibuat** = Anda sudah menjalank
 | `fn_article_is_used`, `fn_attachment_add` | function | F4 | ✅ | ✅ |
 | ~~`fn_article_copy`~~ | di-DROP (Copy Article dihapus, keputusan user 30 Sep 2026) | F4 | ⬜ DROP | – |
 | `v_model_list`, `v_article_status` (kolom status specsheet/CBD ditambah di F5/F7) | view | F4 | ✅ | ✅ |
-| `specsheet_revision` | tabel | F5 | ⬜ | ⬜ |
-| `revision_article` | tabel | F5 | ⬜ | ⬜ |
-| `bom_line` | tabel | F5 | ⬜ | ⬜ |
-| `bom_cell` | tabel | F5 | ⬜ | ⬜ |
-| `trg_lock_published`, `fn_revision_*`, `fn_bom_*`, `v_bom_grid` | trigger/function/view | F5 | ⬜ | ⬜ |
+| `specsheet_revision` + `uq_one_draft_per_specsheet`, `fn_revision_lock`/`trg_revision_lock` | tabel/trigger | F5 | ⬜ | ⬜ |
+| `revision_article` + `idx_revision_article_article` | tabel | F5 | ⬜ | ⬜ |
+| `bom_line` + `uq_bom_local_no` | tabel | F5 | ⬜ | ⬜ |
+| `bom_cell` + `idx_bom_cell_article` | tabel | F5 | ⬜ | ⬜ |
+| `fn_lock_published`/`trg_lock_published` (revision_article, bom_line, bom_cell) | trigger | F5 | ⬜ | ⬜ |
+| `fn_revision_draft`, `fn_revision_create`, `fn_revision_delete_draft` | function | F5 | ⬜ | ⬜ |
+| `fn_bom_check_material`, `fn_bom_create_cells`, `fn_bom_add_line`, `fn_bom_add_sub`, `fn_bom_replace_material`, `fn_bom_set_supplier`, `fn_bom_cell_set`, `fn_rev_article_set` | function | F5 | ⬜ | ⬜ |
+| `v_bom_grid`; `v_model_list`, `v_article_status` diperluas (kolom status specsheet) | view | F5 | ⬜ | ⬜ |
 | `change_log` | tabel | F6 | ⬜ | ⬜ |
 | `v_revision_checklist`, `fn_revision_publish` | view/function | F6 | ⬜ | ⬜ |
 | `cbd_revision` | tabel | F7 | ⬜ | ⬜ |
@@ -756,6 +766,7 @@ ORDER BY 1, 2;
 | `cwSeasonForm` | `Model Detail` (modal `mdlSeason`) | F4 | ✅ | ✅ |
 | `cwArticleForm` | `Model Detail` (modal `mdlArticle`) | F4 | ✅ | ✅ |
 | `cwStepper` | `Specsheet`, `CBD` | F5 / F7 | ⬜ | ⬜ |
+| `cwRevisionForm` | `Specsheet` (modal `mdlRevisi`) | F5 | ⬜ | ⬜ |
 | `cwBomGrid` | `Specsheet` | F5 | ⬜ | ⬜ |
 | `cwCbdGrid` | `CBD` | F7 / F8 | ⬜ | ⬜ |
 

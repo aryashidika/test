@@ -1,0 +1,32 @@
+<div class="wrap">
+  <div class="head">
+    <h2 id="title">Buat Revisi</h2>
+    <button type="button" class="x" id="btnX" aria-label="Tutup">✕</button>
+  </div>
+
+  <div id="msg" class="msg" role="alert" hidden></div>
+
+  <div class="opts" id="opts" role="radiogroup" aria-label="Cara membuat revisi"></div>
+
+  <div id="firstBox" hidden>
+    <div id="sourceBox" hidden>
+      <label for="source">Season sumber <span class="req">*</span></label>
+      <select id="source"></select>
+      <div class="hint">Baris BOM revisi terbit terakhir season sumber di-copy. Article season ini dimuat dengan warna kosong.</div>
+    </div>
+    <label for="stage">Stage awal <span class="req">*</span></label>
+    <select id="stage">
+      <option value="PULL">PULL</option>
+      <option value="SMS">SMS</option>
+      <option value="GTM">GTM</option>
+      <option value="PROD">PROD</option>
+    </select>
+  </div>
+
+  <div class="info" id="note" hidden></div>
+
+  <div class="actions">
+    <button type="button" class="btn-secondary" id="btnCancel">Batal</button>
+    <button type="button" class="btn-primary" id="btnSave">Buat</button>
+  </div>
+</div>

@@ -1,0 +1,151 @@
+:root {
+  --primary: #122A52;
+  --accent: #3B6FE0;
+  --surface: #FFFFFF;
+  --surface-alt: #EEF1F7;
+  --text: #1B2333;
+  --muted: #6B7280;
+  --border: #D6DCE8;
+  --draft: #B45309;
+  --draft-bg: #FEF3C7;
+  --radius: 8px;
+  --font: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--surface);
+}
+
+body {
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 13px;
+  overflow: hidden;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+.wrap {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+}
+
+.steps {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+}
+
+.step {
+  flex: 1;
+  min-width: 0;
+  position: relative;
+  padding: 8px 12px 8px 20px;
+  border: 1px solid var(--border);
+  border-left: none;
+  background: var(--surface-alt);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.step:first-child {
+  border-left: 1px solid var(--border);
+  border-radius: var(--radius) 0 0 var(--radius);
+  padding-left: 12px;
+}
+
+.step:last-child {
+  border-radius: 0 var(--radius) var(--radius) 0;
+}
+
+.step.has-revs {
+  background: var(--surface);
+}
+
+.step.current {
+  box-shadow: inset 0 -3px 0 var(--primary);
+}
+
+.stage {
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+.step.has-revs .stage {
+  color: var(--primary);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-height: 26px;
+  align-items: center;
+}
+
+.none {
+  color: var(--muted);
+}
+
+.chip {
+  height: 26px;
+  min-width: 36px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid var(--primary);
+  background: var(--surface);
+  color: var(--primary);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.chip:hover {
+  background: var(--surface-alt);
+}
+
+.chip.draft {
+  border-color: var(--draft);
+  color: var(--draft);
+  background: var(--draft-bg);
+  border-style: dashed;
+}
+
+.chip.active {
+  background: var(--primary);
+  color: #fff;
+  border-style: solid;
+  border-color: var(--primary);
+}
+
+.chip.draft.active {
+  background: var(--draft);
+  border-color: var(--draft);
+}
+
+.chip:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(59, 111, 224, 0.3);
+}
+
+.empty {
+  color: var(--muted);
+  padding: 0 4px;
+}

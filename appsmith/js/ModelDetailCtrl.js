@@ -94,6 +94,20 @@ export default {
 		return t;
 	},
 
+	// Kolom "Specsheet" di tblArticles: status article di revisi terbit terakhir, atau di draft.
+	// Role tanpa view_drafts (Brand) hanya melihat revisi terbit.
+	specText(row) {
+		if (row.pub_status) return `${row.pub_status === 'ACTIVE' ? 'AKTIF' : 'DI-DROP'} · ${row.pub_label} terbit`;
+		if (Auth.can('view_drafts') && row.draft_status) return `DI DRAFT · ${row.draft_label}`;
+		return 'BELUM MASUK SPECSHEET';
+	},
+
+	specColor(row) {
+		if (row.pub_status) return row.pub_status === 'ACTIVE' ? '#16a34a' : '#6b7280';
+		if (Auth.can('view_drafts') && row.draft_status) return '#d97706';
+		return '#6b7280';
+	},
+
 	attachmentTitle() {
 		const a = this.article;
 		return a ? `Lampiran — ${this.esc(a.code)} · ${this.esc(a.colorway)}` : 'Lampiran';
