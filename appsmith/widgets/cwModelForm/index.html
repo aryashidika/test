@@ -1,0 +1,56 @@
+<div class="wrap">
+  <div class="head">
+    <h2 id="title">Tambah Model</h2>
+    <button type="button" class="x" id="btnX" aria-label="Tutup">✕</button>
+  </div>
+
+  <div id="msg" class="msg" role="alert" hidden></div>
+
+  <div class="row">
+    <div>
+      <label for="code">Kode Model <span class="req">*</span></label>
+      <input id="code" type="text" maxlength="40" autocomplete="off">
+    </div>
+    <div>
+      <label for="category">Kategori</label>
+      <input id="category" type="text" maxlength="60" autocomplete="off" placeholder="mis. Football">
+    </div>
+  </div>
+
+  <label for="name">Nama Model <span class="req">*</span></label>
+  <input id="name" type="text" maxlength="200" autocomplete="off">
+
+  <label for="factory">Factory</label>
+  <input id="factory" type="text" maxlength="120" autocomplete="off">
+
+  <div class="row">
+    <div>
+      <label for="outsole_mold">Outsole Mould</label>
+      <input id="outsole_mold" type="text" maxlength="60" autocomplete="off">
+    </div>
+    <div>
+      <label for="last_no">Last No.</label>
+      <input id="last_no" type="text" maxlength="60" autocomplete="off">
+    </div>
+  </div>
+
+  <label for="construction">Construction</label>
+  <input id="construction" type="text" maxlength="120" autocomplete="off">
+
+  <div class="row">
+    <div>
+      <label for="size_range">Size Range</label>
+      <input id="size_range" type="text" maxlength="40" autocomplete="off" placeholder="mis. 37 - 44">
+    </div>
+    <div>
+      <label for="sample_size">Sample Size</label>
+      <input id="sample_size" type="text" maxlength="20" autocomplete="off" placeholder="mis. 41">
+    </div>
+  </div>
+  <div class="hint">Kode model harus unik (tidak peka huruf besar/kecil).</div>
+
+  <div class="actions">
+    <button type="button" class="btn-secondary" id="btnCancel">Batal</button>
+    <button type="button" class="btn-primary" id="btnSave">Simpan</button>
+  </div>
+</div>

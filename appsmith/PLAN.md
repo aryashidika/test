@@ -7,7 +7,7 @@
 | Target | Appsmith **v2.4** self-hosted (HTTPS) + PostgreSQL **16.15** (datasource `pg_main`) |
 | Akses | App **publik** dengan login di dalam app (email + password), bukan akun Appsmith |
 | Data lama | Tidak dimigrasi (mulai dari DB kosong) |
-| Status | Rencana disetujui 24 Sep 2026 (termasuk P1–P3) · login in-app disetujui 25 Sep 2026 · UI campuran + Custom Widget disetujui 25 Sep 2026 · **F0 + F1 selesai** (export v1, 25 Sep 2026) · **F2 selesai** (export v2, 29 Sep 2026) · **F3 dikerjakan** (export v3, 29 Sep 2026; T13–T17 diperbaiki user) · **F3 + F3b selesai** (export v3b, 30 Sep 2026) · berikutnya: **F4** (dilanjutkan di chat baru) |
+| Status | Rencana disetujui 24 Sep 2026 (termasuk P1–P3) · login in-app disetujui 25 Sep 2026 · UI campuran + Custom Widget disetujui 25 Sep 2026 · **F0 + F1 selesai** (export v1, 25 Sep 2026) · **F2 selesai** (export v2, 29 Sep 2026) · **F3 dikerjakan** (export v3, 29 Sep 2026; T13–T17 diperbaiki user) · **F3 + F3b selesai** (export v3b, 30 Sep 2026) · **F4 selesai** (export v4 = file user v4.7, 30 Sep 2026; Copy Article akan dihapus — keputusan user) |
 | File siap tempel | `steps/F<n>_langkah.md` (langkah per fase: query, widget, uji), `sql/F<n>_*.sql` (jalankan lewat `z_run_sql` di app privat **DB Tools**), `js/*.js` (isi JSObject), `widgets/<cw>/` (Custom Widget: HTML/CSS/JS + README kontrak) |
 
 Legenda status: ⬜ belum · 🟡 dibuat (belum diverifikasi dari export) · ✅ terverifikasi
@@ -23,7 +23,7 @@ Legenda status: ⬜ belum · 🟡 dibuat (belum diverifikasi dari export) · ✅
 | F2 | Master Supplier & Komponen | `export_v2.json` | ✅ semua uji lolos · temuan T9–T12 (lihat §9) |
 | F3 | Master Material, supplier material, harga | `export_v3.json` | ✅ (T13–T17 diperbaiki di export v3b) |
 | F3b | Approval harga oleh Master Admin (tambahan, keputusan user 29 Sep 2026) | `export_v3b.json` | ✅ semua uji lolos · T18–T19 diperbaiki |
-| F4 | Model, Season, Article, lampiran article | `export_v4.json` | ⬜ |
+| F4 | Model, Season, Article, lampiran article | `export_v4.json` | ✅ semua uji lolos · T21–T27 diperbaiki (v4.7) · Copy Article dihapus (keputusan user, lihat §6 F4) |
 | F5 | Specsheet: revisi & grid BOM | `export_v5.json` | ⬜ |
 | F6 | Specsheet: checklist & terbit | `export_v6.json` | ⬜ |
 | F7 | CBD: buat revisi & grid baris | `export_v7.json` | ⬜ |
@@ -53,7 +53,7 @@ Legenda status: ⬜ belum · 🟡 dibuat (belum diverifikasi dari export) · ✅
 9. **ID = `uuid`** (`gen_random_uuid()`, butuh PostgreSQL ≥ 13).
 10. **UI campuran (standar untuk handover):**
     - **Widget bawaan** Appsmith untuk halaman CRUD standar: Beranda, Admin, Master (Supplier, Komponen, Material), Model — bisa dirawat lewat panel properti tanpa coding.
-    - **Custom Widget** hanya untuk bagian yang tidak bisa dibuat baik dengan widget bawaan: `cwLogin` (Login), `cwStepper` (stage + chip article, dipakai Specsheet & CBD), `cwBomGrid` (grid BOM, maks. 5 article per season), `cwCbdGrid` (grid CBD + rekap). Ditambahkan user di F1 (keputusan user, 25 Sep 2026): `cwHeader` (header di setiap page), `cwMenu` (menu Beranda), `cwUserForm` (form user), `cwTempPassword` (password sementara). Ditambahkan di F2 (keputusan user, 27 Sep 2026): `cwSupplierForm`, `cwKomponenForm` (isi modal tambah/ubah, pola sama dengan `cwUserForm`).
+    - **Custom Widget** hanya untuk bagian yang tidak bisa dibuat baik dengan widget bawaan: `cwLogin` (Login), `cwStepper` (stage + chip article, dipakai Specsheet & CBD), `cwBomGrid` (grid BOM, maks. 5 article per season), `cwCbdGrid` (grid CBD + rekap). Ditambahkan user di F1 (keputusan user, 25 Sep 2026): `cwHeader` (header di setiap page), `cwMenu` (menu Beranda), `cwUserForm` (form user), `cwTempPassword` (password sementara). Ditambahkan di F2 (keputusan user, 27 Sep 2026): `cwSupplierForm`, `cwKomponenForm` (isi modal tambah/ubah, pola sama dengan `cwUserForm`). Pola yang sama di F3 (`cwMaterialForm`, `cwLinkForm`, `cwPriceForm`, `cwReasonForm`) dan F4 (`cwModelForm`, `cwSeasonForm`, `cwArticleForm`).
     - Aturan Custom Widget: **hanya tampilan** (tanpa logika bisnis/query); data masuk lewat *Default model*, aksi keluar lewat `appsmith.updateModel()` + `appsmith.triggerEvent()` yang ditangani `<Page>Ctrl`; JavaScript biasa tanpa framework (library CDN jsDelivr dengan versi terkunci hanya bila perlu); warna/radius/font mengikuti tema app (`appsmith.theme`).
     - Setiap Custom Widget punya folder `appsmith/widgets/<cw>/` berisi `index.html`, `style.css`, `script.js`, dan `README.md` (kontrak model, nilai keluar, event).
 11. **Export Excel**: library ExcelJS dipasang di Appsmith (Libraries). Cadangan: SheetJS tanpa style.
@@ -66,11 +66,12 @@ Legenda status: ⬜ belum · 🟡 dibuat (belum diverifikasi dari export) · ✅
 | Di Python | Di Appsmith |
 |---|---|
 | Login pilih role bebas | Login email + password di dalam app; role dari tabel `app_user` |
-| 4 cara buat revisi specsheet (kosong, carryover, lintas model, stage sama/berikut) | Satu function `fn_revision_create(mode)`; "carryover" & "lintas model" digabung jadi **Copy dari specsheet lain** |
+| 4 cara buat revisi specsheet (kosong, carryover, lintas model, stage sama/berikut) | Satu function `fn_revision_create(mode)`; **Copy dari season lain** = carryover dari **model yang sama** saja (development NC / New Color), sumber hanya revisi **terbit**, baris BOM di-copy, article = article season tujuan, warna per article kosong. Copy **lintas model tidak dibawa** (keputusan user 30 Sep 2026) |
 | 5 cara buat CBD | Satu function `fn_cbd_create(article, source)`. Stage CBD **selalu mengikuti stage specsheet terbit terakhir**; nomor revisi = terakhir di stage itu + 1 |
 | `is_used` sel BOM dihitung di Python | Kolom generated di DB |
 | Usage = 1/Yield dihitung di Python | Kolom generated di DB |
 | Diff BOM/CBD saat terbit (JSON) | MVP: change log kategori + alasan saja; diff masuk fase Opsional (kolom `diff` sudah disiapkan) |
+| Copy Article antar season (halaman Model) | Tidak dibawa — article diisi per season (keputusan user 30 Sep 2026) |
 | Menu Specsheet & CBD dengan daftar sendiri | Satu `Model_List`; dari sana buka Model / Specsheet / CBD |
 | Persetujuan di halaman terpisah | Filter "PROPOSED" + tombol Approve di tiap halaman master; ringkasan di Beranda admin |
 | Merge material, import CSV, reset data, halaman cetak, laporan validasi CBD, harga referensi brand | Tidak dibawa (cetak diganti Excel; harga referensi di Opsional) |
@@ -80,7 +81,7 @@ Legenda status: ⬜ belum · 🟡 dibuat (belum diverifikasi dari export) · ✅
 
 | # | Di Python | Di Appsmith |
 |---|---|---|
-| P1 | Copy lintas model memilih revisi sumber "terakhir" hanya dari nomor revisi (PULL r2 dianggap lebih baru dari PROD r0) | Urut stage dulu, lalu nomor revisi |
+| P1 | Copy (carryover / lintas model) memilih revisi sumber "terakhir" hanya dari nomor revisi (PULL r2 dianggap lebih baru dari PROD r0) | Urut stage dulu, lalu nomor revisi |
 | P2 | Ringkasan status di daftar model memakai revisi yang **dibuat** terakhir | Pakai urutan stage + nomor revisi, sama seperti bagian lain |
 | P3 | Form tambah material tidak punya pilihan metode harga (selalu CATALOG) | Ada pilihan CATALOG / QUOTATION |
 
@@ -98,8 +99,8 @@ Legenda status: ⬜ belum · 🟡 dibuat (belum diverifikasi dari export) · ✅
 | `component_service.py` | `Master_Komponen` | `q_components`, `q_component_groups` (+ saran nomor `next_no`), `a_component_add`, `a_component_update`, `a_component_set_status` · `KomponenCtrl` | `component_group`, `component`, `trg_component_check`, `fn_component_add` |
 | `material_service.py` | `Master_Material`, `Material_Detail` | `q_materials`, `q_material_meta` (saran kode + kategori/UoM), `a_material_add`, `a_material_set_status`, `q_material`, `a_material_update` · `MaterialCtrl`, `MaterialDetailCtrl` | `material`, `trg_material_check`, `fn_material_add`, `fn_material_update`, `v_material_list` |
 | `material_price_service.py` | `Material_Detail` | `q_links`, `q_link_supplier_options`, `q_prices`, `a_link_save`, `a_link_set_status`, `a_price_add`, `a_price_end` · `MaterialDetailCtrl` | `material_supplier`, `material_price`, `trg_material_supplier_check`, `fn_link_save`, `fn_price_add`, `fn_price_end`, `fn_price_lookup`, `fn_ensure_link` |
-| `model_service.py`, `specsheet_service.py` (season) | `Model_List`, `Model_Detail` | `q_models`, `q_model`, `q_seasons`, `a_model_*`, `a_season_insert` · `ModelCtrl` | `product_model`, `specsheet`, `v_model_list` |
-| `article_service.py` (Model) + lampiran (baru) | `Model_Detail` | `q_articles`, `a_article_*`, `q_attachments`, `q_attachment_file`, `a_attachment_*` · `ModelCtrl` | `article`, `article_attachment`, `v_article_status` |
+| `model_service.py`, `specsheet_service.py` (season) | `Model_List`, `Model_Detail` | `q_known_seasons`, `q_models`, `a_model_add` · `ModelCtrl` (Model List) · `q_model`, `q_seasons`, `a_model_update`, `a_season_add` · `ModelDetailCtrl` (Model Detail) | `product_model`, `specsheet`, `trg_model_check`, `trg_specsheet_check`, `v_model_list` |
+| `article_service.py` (Model) + lampiran (baru) | `Model_Detail` | `q_articles`, `a_article_add`, `a_article_update`, `a_article_delete`, `q_attachments`, `q_attachment_file`, `a_attachment_add`, `a_attachment_delete` · `ModelDetailCtrl` | `article`, `article_attachment`, `trg_article_check`, `trg_article_delete_check`, `fn_article_is_used`, `fn_attachment_add`, `v_article_status` |
 | `revision_service.py` | `Specsheet` | `q_revisions`, `a_revision_create`, `a_revision_delete`, `a_revision_publish`, `q_publish_checklist` · `SpecCtrl` | `specsheet_revision`, `revision_article`, `change_log`, `fn_revision_*`, `v_revision_checklist` |
 | `bom_service.py`, `article_service.py` (revisi) | `Specsheet` | `q_bom_grid`, `q_rev_articles`, `a_bom_add_line`, `a_bom_add_sub`, `a_bom_replace_material`, `a_bom_update`, `a_cell_save`, `a_rev_article_*` · `BomCtrl` | `bom_line`, `bom_cell`, `fn_bom_*`, `v_bom_grid` |
 | `cbd_service.py`, `cbd_calc.py` | `CBD` | `q_cbd_articles`, `q_cbd_revisions`, `q_cbd_lines`, `q_cbd_recap`, `a_cbd_create`, `a_cbd_line_update`, `a_cbd_header_update`, `a_cbd_set_margin`, `a_cbd_price_*`, `a_cbd_refresh*`, `a_cbd_publish`, `a_cbd_delete` · `CbdCtrl` | `cbd_revision`, `cbd_line`, `fn_cbd_*`, `v_cbd_line`, `v_cbd_recap`, `v_cbd_checklist` |
@@ -233,19 +234,22 @@ Tabel DB baru di tiap fase ditulis di bagian **7. Perubahan database** dan dicat
 **Selesai bila (F3):** duplikat material (nama+thickness+UoM setelah normalisasi) ditolak; harga baru menutup harga lama; tanggal mundur ditolak; material QUOTATION tidak bisa diberi harga; `fn_price_lookup` mengembalikan harga warna dulu lalu semua warna.
 
 ### F4 — Model, Season, Article, lampiran
-- [ ] SQL F4 (`product_model`, `specsheet`, `article`, `article_attachment`, `trg_article_limit`, `v_model_list`, `v_article_status`)
-- [ ] `Model_List`: tabel model + filter season + cari; ringkasan specsheet terakhir (P2); tombol Buka Model / Specsheet / CBD (CBD hanya bila `view_cbd`); tambah model (modal)
-- [ ] `Model_Detail` tab **Info**: edit data model
-- [ ] Tab **Season & Article**: pilih/tambah season (format SS26/FH26), tabel article (kode, colorway, status specsheet & CBD), tambah/ubah/hapus article (hapus hanya bila belum dipakai), copy article dari season lain
-- [ ] Lampiran per article: upload (jpg/png/pdf, ≤ 5 MB), lihat gambar, unduh, hapus
+File siap (30 Sep 2026): `sql/F4_model.sql`, `js/ModelCtrl.js`, `js/ModelDetailCtrl.js`, `widgets/cwModelForm/`, `widgets/cwSeasonForm/`, `widgets/cwArticleForm/`, `steps/F4_langkah.md`.
+- [x] SQL F4 (`sql/F4_model.sql`: `product_model` + `trg_model_check`, `specsheet` + `trg_specsheet_check`, `article` + `trg_article_check` (batas 5 article, kode unik per season, kode terpakai terkunci) + `trg_article_delete_check`, `article_attachment`, `fn_article_is_used`, `fn_attachment_add` (jenis file dicek dari isi), `v_model_list`, `v_article_status`)
+- [x] `Model List`: tabel model + filter season + cari; tombol Buka / Specsheet / CBD (CBD hanya bila `view_cbd`); tambah model (modal `cwModelForm`)
+- [x] `Model Detail` tab **Info Model**: edit data model (`cwModelForm`)
+- [x] Tab **Season & Article**: pilih/tambah season (`cwSeasonForm`, format SS26/FH26), tabel article (kode, colorway, jumlah lampiran), tambah/ubah (`cwArticleForm`)/hapus article (hapus hanya bila belum dipakai)
+- [x] Lampiran per article (modal `mdlLampiran`): upload (jpg/png/pdf, ≤ 5 MB), lihat gambar, unduh, hapus
+- [ ] **Hapus Copy Article** (keputusan user 30 Sep 2026: article tidak di-copy antar season, hanya struktur specsheet di F5): `DROP FUNCTION fn_article_copy`, hapus `selArticleSumber`, `btnArticleCopy`, `a_article_copy`, tempel ulang `ModelDetailCtrl` (`steps/F4_langkah.md` §5)
+- ➡️ Dipindah ke F5: ringkasan specsheet terakhir di Model List (P2) & status article di specsheet · ke F7: status article di CBD (tabelnya belum ada di F4; view ditambah kolom di akhir)
 
-**Selesai bila:** article ke-6 di satu season ditolak; kode article yang sudah dipakai tidak bisa diubah; lampiran bisa diunggah, dilihat, dan diunduh.
+**Selesai bila:** article ke-6 di satu season ditolak; kode article duplikat (beda huruf besar/kecil) ditolak; lampiran bisa diunggah, dilihat, dan diunduh; file bukan jpg/png/pdf ditolak DB. *Kode article terpakai tidak bisa diubah/dihapus* diuji di F5.
 
 ### F5 — Specsheet: revisi & grid BOM
 - [ ] SQL F5 (`specsheet_revision`, `revision_article`, `bom_line`, `bom_cell`, `trg_lock_published`, `fn_revision_create`, `fn_revision_delete_draft`, `fn_bom_add_line`, `fn_bom_add_sub`, `fn_bom_replace_material`, `fn_bom_set_supplier`, `fn_rev_article_set`, `v_bom_grid`)
 - [ ] Custom Widget **`cwStepper`**: stepper stage PULL→SMS→GTM→PROD berisi revisi (brand: hanya PUBLISHED)
 - [ ] Page `Specsheet` (`?model_id=`): pilih season (widget bawaan) + `cwStepper`
-- [ ] Wizard **Buat Revisi**: Kosong (pilih stage) / Copy dari specsheet lain (P1) / Revisi berikutnya / Stage berikutnya; hapus draft
+- [ ] Wizard **Buat Revisi**: Kosong (pilih stage) / Copy dari season lain model yang sama (hanya revisi terbit, default terbit terakhir — P1; baris BOM di-copy, semua article season tujuan masuk revisi, warna kosong) / Revisi berikutnya / Stage berikutnya; hapus draft
 - [ ] Custom Widget **`cwBomGrid`**: No, Komponen, Material, Supplier, UoM, Remarks + satu kolom per article (edit warna langsung di sel, saran warna se-season); tambah baris (komponen master atau lokal), tambah subkomponen, ganti material, ubah supplier/remarks
 - [ ] Article di revisi: pilih article season, drop/aktifkan
 
@@ -503,7 +507,9 @@ CREATE TABLE article (
   updated_at timestamptz NOT NULL DEFAULT now(), updated_by text,
   CONSTRAINT uq_article_code UNIQUE (specsheet_id, code)
 );
--- trg_article_limit: maksimal 5 article per season
+CREATE INDEX idx_article_specsheet ON article (specsheet_id);
+-- trg_article_check: maksimal 5 article per season, kode unik per season (tidak peka huruf besar/kecil),
+-- kode tidak bisa diubah bila article sudah dipakai (fn_article_is_used); trg_article_delete_check: tolak hapus bila dipakai
 
 CREATE TABLE article_attachment (
   id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -693,19 +699,21 @@ Diperbarui setiap fase selesai direview. Kolom **Dibuat** = Anda sudah menjalank
 | `component_group` | tabel | F2 | ✅ | ✅ |
 | `component` + `fn_component_check`/`trg_component_check`, `idx_component_group` | tabel/trigger | F2 | ✅ | ✅ |
 | `fn_component_add` | function | F2 | ✅ | ✅ |
-| `material` | tabel | F3 | ✅ | ⬜ (kirim hasil cek skema) |
-| `material_supplier` | tabel | F3 | ✅ | ⬜ (kirim hasil cek skema) |
-| `material_price` | tabel | F3 | ✅ | ⬜ (kirim hasil cek skema) |
-| `fn_material_check`/`trg_material_check`, `fn_material_supplier_check`/`trg_material_supplier_check` | trigger | F3 | ✅ | ⬜ (kirim hasil cek skema) |
-| `fn_material_add`, `fn_material_update`, `fn_link_save` | function | F3 | ✅ | ⬜ (kirim hasil cek skema) |
-| `fn_price_add`, `fn_price_end`, `fn_price_lookup`, `fn_ensure_link`, `v_material_list` | function/view | F3 | ✅ | ⬜ (kirim hasil cek skema) |
-| `material_price` + kolom approval, `uq_price_one_proposed` | tabel (ALTER) | F3b | ✅ | ⬜ (kirim hasil cek skema) |
-| `fn_price_activate`, `fn_price_approve`, `fn_price_reject`, `fn_price_cancel` (+ `fn_price_add`, `fn_price_end`, `fn_price_lookup`, `v_material_list` diperbarui) | function/view | F3b | ✅ | ⬜ (kirim hasil cek skema) |
-| `product_model` | tabel | F4 | ⬜ | ⬜ |
-| `specsheet` | tabel | F4 | ⬜ | ⬜ |
-| `article` + `trg_article_limit` | tabel | F4 | ⬜ | ⬜ |
-| `article_attachment` | tabel | F4 | ⬜ | ⬜ |
-| `v_model_list`, `v_article_status` | view | F4 | ⬜ | ⬜ |
+| `material` | tabel | F3 | ✅ | ✅ |
+| `material_supplier` | tabel | F3 | ✅ | ✅ |
+| `material_price` | tabel | F3 | ✅ | ✅ |
+| `fn_material_check`/`trg_material_check`, `fn_material_supplier_check`/`trg_material_supplier_check` | trigger | F3 | ✅ | ✅ |
+| `fn_material_add`, `fn_material_update`, `fn_link_save` | function | F3 | ✅ | ✅ |
+| `fn_price_add`, `fn_price_end`, `fn_price_lookup`, `fn_ensure_link`, `v_material_list` | function/view | F3 | ✅ | ✅ |
+| `material_price` + kolom approval, `uq_price_one_proposed` | tabel (ALTER) | F3b | ✅ | ✅ |
+| `fn_price_activate`, `fn_price_approve`, `fn_price_reject`, `fn_price_cancel` (+ `fn_price_add`, `fn_price_end`, `fn_price_lookup`, `v_material_list` diperbarui) | function/view | F3b | ✅ | ✅ |
+| `product_model` + `fn_model_check`/`trg_model_check` | tabel/trigger | F4 | ✅ | ✅ |
+| `specsheet` + `fn_specsheet_check`/`trg_specsheet_check` | tabel/trigger | F4 | ✅ | ✅ |
+| `article` + `fn_article_check`/`trg_article_check`, `fn_article_delete_check`/`trg_article_delete_check`, `idx_article_specsheet` | tabel/trigger | F4 | ✅ | ✅ |
+| `article_attachment` | tabel | F4 | ✅ | ✅ |
+| `fn_article_is_used`, `fn_attachment_add` | function | F4 | ✅ | ✅ |
+| ~~`fn_article_copy`~~ | di-DROP (Copy Article dihapus, keputusan user 30 Sep 2026) | F4 | ⬜ DROP | – |
+| `v_model_list`, `v_article_status` (kolom status specsheet/CBD ditambah di F5/F7) | view | F4 | ✅ | ✅ |
 | `specsheet_revision` | tabel | F5 | ⬜ | ⬜ |
 | `revision_article` | tabel | F5 | ⬜ | ⬜ |
 | `bom_line` | tabel | F5 | ⬜ | ⬜ |
@@ -744,6 +752,9 @@ ORDER BY 1, 2;
 | `cwLinkForm` | `Material Detail` (modal `mdlLink`) | F3 | ✅ | ✅ |
 | `cwPriceForm` | `Material Detail` (modal `mdlHarga`) | F3 | ✅ | ✅ |
 | `cwReasonForm` (umum, dipakai ulang) | `Material Detail` (modal `mdlTolakHarga`) | F3b | ✅ | ✅ |
+| `cwModelForm` | `Model List` + `Model Detail` (modal `mdlModel`) | F4 | ✅ | ✅ |
+| `cwSeasonForm` | `Model Detail` (modal `mdlSeason`) | F4 | ✅ | ✅ |
+| `cwArticleForm` | `Model Detail` (modal `mdlArticle`) | F4 | ✅ | ✅ |
 | `cwStepper` | `Specsheet`, `CBD` | F5 / F7 | ⬜ | ⬜ |
 | `cwBomGrid` | `Specsheet` | F5 | ⬜ | ⬜ |
 | `cwCbdGrid` | `CBD` | F7 / F8 | ⬜ | ⬜ |
@@ -758,6 +769,7 @@ ORDER BY 1, 2;
 | v2 | 29 Sep 2026 | F2 | ✅ Lolos, semua uji user berhasil. Skema DB: semua objek F2 ada (`supplier`, `component_group`, `component`, `fn_has_perm`, `fn_auth_any`, `fn_supplier_check`, `fn_component_check`, `fn_component_add`, trigger). Query, `SupplierCtrl`, `KomponenCtrl`, `Auth` (`requiredPerm`, `pageQueries`) identik dengan repo; `cwSupplierForm`/`cwKomponenForm` identik (teks info supplier dipersingkat user → disalin ke repo). Deviasi: filter & cari pakai tombol **Cari** (sama seperti Audit Log), bukan otomatis. T1, T3–T8 sudah diperbaiki; T2 belum. Temuan baru T9–T12. |
 | v3 | 29 Sep 2026 | F3 | 🟡 Uji user lolos. Semua 14 query F3 identik dengan panduan; `MaterialCtrl`, `MaterialDetailCtrl`, `Auth` (izin + `pageQueries`) identik dengan repo; `cwMaterialForm`/`cwLinkForm`/`cwPriceForm` identik; event & Default model sesuai. T9 & T10 sudah diperbaiki. **Terlewat:** kolom tombol **Ganti harga** & **Akhiri** di `tblPrices` (T13). Temuan T13–T17. Hasil cek skema F3 belum dikirim. |
 | v3b | 30 Sep 2026 | F3b (+ perbaikan T13–T17) | ✅ File dari user `export_v4.json`, lalu `export_v4.5.json` (setelah perbaikan T18–T20) — versi terakhir disimpan sebagai `export_v3b.json`. Semua 17 query Master Material & Material Detail identik dengan panduan; `a_price_end` & `a_price_cancel` konfirmasi ON; query baca Manual. `MaterialCtrl`, `MaterialDetailCtrl` identik; kode `cwMaterialForm`, `cwLinkForm`, `cwPriceForm`, `cwReasonForm` identik, event & Default model sesuai. T13–T16 ✅. Deviasi (diterima): tombol **Batalkan** tidak tampil untuk Master Admin (admin memakai Tolak). Temuan T18–T20; di export v4.5: T18 ✅, T19 ✅, T20 sebagian (kosmetik tersisa). |
+| v4 | 30 Sep 2026 | F4 | 🟡 File dari user `export_v4.6.json` → `export_v4.json`. Cek skema: semua objek F3, F3b, F4 ada (register ✅). Semua 14 query F4 identik dengan panduan (prepared statements ON, konfirmasi `a_article_delete`/`a_attachment_delete` ON, timeout `a_attachment_add` 30 s). `ModelCtrl`, `ModelDetailCtrl`, `Util` identik; `Auth` (izin + `pageQueries`) sesuai. `cwModelForm`/`cwSeasonForm`/`cwArticleForm` identik (hanya format), event & Default model sesuai; `fpLampiran` sesuai (Base64, 1 file, 5 MB, jpg/png/pdf). Deviasi (diterima): beberapa tombol dinonaktifkan (Disabled) alih-alih disembunyikan; kolom tombol memakai *Cell visible*; modal lebar ±780–1090 px & *close on outside click* ON (sama dengan keputusan T11/T12). Temuan T21–T27. **Update v4.7** (disimpan menimpa `export_v4.json`): T21–T27 ✅ terverifikasi, user: semua uji lolos. Keputusan user 30 Sep 2026: article **tidak** di-copy antar season (hanya struktur specsheet yang di-copy, F5) → Copy Article dihapus. |
 
 ### Temuan review v1 (diperbaiki sebelum/bersama F2)
 
@@ -798,6 +810,18 @@ ORDER BY 1, 2;
 | T18 | **Bug** | Kolom `state` (Keterangan) di `tblPrices` belum diganti: Computed value masih `currentRow["state"]` dan Text color mapping lama → **alasan penolakan tidak terlihat** oleh tim CBD (`reject_reason` disembunyikan), MENUNGGU APPROVAL & DITOLAK berwarna abu-abu | Computed value `{{MaterialDetailCtrl.stateText(currentRow)}}`, Text color `{{MaterialDetailCtrl.stateColor(currentRow.state)}}` (`steps/F3b_langkah.md` §3c) | ✅ v3b (export v4.5) |
 | T19 | Sedang | Cell visible tombol **Ganti Harga** & **Akhiri** masih `!currentRow.valid_to` → tombol juga muncul di baris usulan (MENUNGGU APPROVAL) dan DITOLAK; Akhiri di baris itu ditolak DB, Ganti Harga membuka form yang langsung terblokir | Tambah `&& currentRow.status === 'APPROVED'` di Cell visible kedua tombol | ✅ v3b (export v4.5) |
 | T20 | Kecil | Sisa T17: kolom **Metode Harga** masih disembunyikan lewat *Cell visible* (judul kolom tetap tampil untuk Vendor Spec); `q_me` di Login masih *Automatic*; label switch `swMaterialHargaPending` = `Approval` | Kolom: Visible `{{MaterialCtrl.canViewPrice()}}` (kalau tidak bisa di-binding, biarkan); `q_me` Login → Manual; label `Harga menunggu approval` | 🟡 `q_me` Login ✅; judul kolom Metode Harga & label switch `Approval` belum (kosmetik) |
+
+### Temuan review v4
+
+| # | Tingkat | Temuan | Perbaikan | Status |
+|---|---|---|---|---|
+| T21 | **Keamanan** | Query `Query1` di page `Model Detail` (query cek skema) dan `Admin` (`fn_price_lookup` MTR-0001 / PT Maju Jaya) ada di app **publik** tanpa `fn_auth` → siapa pun bisa menjalankannya lewat API app (daftar objek DB / harga material) | Hapus kedua `Query1`; query uji hanya di app **DB Tools** | ✅ v4.7 |
+| T22 | **Bug** | `q_articles` & `q_attachments` = *Automatic* → ikut jalan saat page dibuka tanpa params (hasil kosong) dan bisa selesai **setelah** `ModelDetailCtrl.init()` → tabel article tampil kosong padahal ada data | Set **Manual** | ✅ v4.7 |
+| T23 | Sedang | `tblArticles` kolom **Hapus**: Cell visible hanya `{{ModelDetailCtrl.canEdit()}}` — kurang `!currentRow.is_used` → tombol muncul di article yang sudah dipakai (DB tetap menolak, tapi membingungkan) | Cell visible: `{{ModelDetailCtrl.canEdit() && !currentRow.is_used}}` | ✅ v4.7 |
+| T24 | Sedang | `btnSeasonTambah` Visible diawali karakter **Tab** (`	{{…}}`) → dibaca sebagai teks, bukan boolean → tombol bisa tampil untuk semua role (Brand/Vendor CBD; simpan ditolak DB) | Hapus Tab di depan `{{` (juga di `txtModelJudul`, kosmetik) | ✅ v4.7 |
+| T25 | Kecil | `tblLampiran`: label tertukar (`created_at` = "Oleh", `created_by` = "Diunggah") dan `created_at` tanpa format | `created_by` → label `Oleh`; `created_at` → label `Diunggah`, Computed value `{{Util.fmtDateTime(currentRow.created_at)}}` | ✅ v4.7 |
+| T26 | Kecil | Kolom `attachment_count` (`tblArticles`) & `size_bytes` (`tblLampiran`) bertipe **Number** padahal Computed value berupa teks (`1 file`, `12 KB`) — sama dengan T16 | Column type **Text** | ✅ v4.7 |
+| T27 | Kosmetik | `cwHeader` di `Model Detail`: `pageTitle: 'Model List'` | `pageTitle: 'Model Detail'` | ✅ v4.7 |
 
 Catatan lain:
 - Nama app di Appsmith "Test Database" dan datasource `Prestasi` (rencana: "Sistem Specsheet & CBD" / `pg_main`) — tidak memengaruhi fungsi. **User akan merapikan nama app sebelum handover** (dicek lagi di F11).
