@@ -1,5 +1,7 @@
 // JSObject "MaterialDetailCtrl" — page Material Detail (?id=<material id>).
-// Form: cwMaterialForm (mdlMaterial), cwLinkForm (mdlLink), cwPriceForm (mdlHarga).
+// Form: cwMaterialForm (mdlMaterial), cwLinkForm (mdlLink), cwPriceForm (mdlHarga), cwReasonForm (mdlTolakHarga).
+// Approval harga (F3b): harga Vendor CBD = usulan PROPOSED -> Master Admin Approve / Tolak (alasan);
+// Vendor CBD bisa Batalkan usulannya. Harga Master Admin langsung APPROVED.
 // Izin: ubah data/status material = manage_master · metode harga & harga = manage_price ·
 // supplier material (tambah, kode, utama) = manage_material_supplier · status supplier material = manage_master.
 // Semua dicek lagi di DB.
@@ -8,6 +10,7 @@ export default {
 	matKey: 0, matBusy: false, matMsg: null,
 	linkKey: 0, linkBusy: false, linkMsg: null, linkIsNew: true, linkForm: {},
 	priceKey: 0, priceBusy: false, priceMsg: null, priceForm: {},
+	rejectKey: 0, rejectBusy: false, rejectMsg: null, rejectRow: null,
 
 	statusOptions: [
 		{ label: 'APPROVED', value: 'APPROVED' },
@@ -44,12 +47,28 @@ export default {
 		return this.canViewPrice() ? (q_prices.data || []) : [];
 	},
 
-	// Tabel harga: supplier yang dipilih di tblLinks; riwayat hanya kalau switch swHargaRiwayat ON
+	// Tabel harga: supplier yang dipilih di tblLinks. Tanpa "Tampilkan riwayat": sembunyikan RIWAYAT
+	// dan usulan DITOLAK yang lebih lama dari 30 hari.
 	pricesForSelected() {
 		const link = this.selectedLink();
 		if (!link) return [];
 		const history = swHargaRiwayat.isSwitchedOn === true;
-		return this.prices().filter(p => p.link_id === link.id && (history || p.state !== 'RIWAYAT'));
+		const recent = p => p.decided_at && moment().diff(moment(p.decided_at), 'days') <= 30;
+		return this.prices().filter(p => p.link_id === link.id && (history || p.state === 'BERLAKU'
+			|| p.state === 'AKAN BERLAKU' || p.state === 'MENUNGGU APPROVAL' || (p.state === 'DITOLAK' && recent(p))));
+	},
+
+	// Warna kolom Keterangan di tblPrices
+	stateColor(state) {
+		return {
+			BERLAKU: '#16a34a', 'AKAN BERLAKU': '#d97706', 'MENUNGGU APPROVAL': '#d97706', DITOLAK: '#dc2626',
+		}[state] || '#6b7280';
+	},
+
+	stateText(row) {
+		if (row.state === 'DITOLAK') return `DITOLAK: ${row.reject_reason || '-'}`;
+		if (row.state === 'MENUNGGU APPROVAL') return 'MENUNGGU APPROVAL';
+		return row.state;
 	},
 
 	// ---- izin (tampilan saja) ----
@@ -86,7 +105,9 @@ export default {
 		if (m.price_method === 'QUOTATION') return 'Material Quotation: tidak ada harga master — harga diisi per CBD.';
 		const link = this.selectedLink();
 		if (!link) return 'Pilih supplier di tabel atas untuk melihat harganya.';
-		return `Harga untuk ${link.supplier_name}. Harga tanpa warna berlaku untuk semua warna; harga dengan warna hanya untuk warna itu.`;
+		const pending = this.prices().filter(p => p.status === 'PROPOSED').length;
+		return `Harga untuk ${link.supplier_name}. Harga tanpa warna berlaku untuk semua warna; harga dengan warna hanya untuk warna itu.`
+			+ (pending ? ` · ${pending} usulan harga material ini menunggu approval Master Admin.` : '');
 	},
 
 	fmtPrice(v) {
@@ -252,9 +273,13 @@ export default {
 			})),
 			form: this.priceForm,
 			colorSuggestions: Object.values(colors).sort((a, b) => a.localeCompare(b)),
-			openPrices: prices.filter(p => !p.valid_to).map(p => ({
+			openPrices: prices.filter(p => p.status === 'APPROVED' && !p.valid_to).map(p => ({
 				link_id: p.link_id, color: p.color, price: p.price, currency: p.currency, valid_from: p.valid_from,
 			})),
+			pendingPrices: prices.filter(p => p.status === 'PROPOSED').map(p => ({
+				link_id: p.link_id, color: p.color, price: p.price, currency: p.currency,
+			})),
+			needsApproval: !this.canManageMaster(),
 			today: moment().utcOffset(7).format('YYYY-MM-DD'),
 			busy: this.priceBusy,
 			message: this.priceMsg,
@@ -275,12 +300,63 @@ export default {
 			v => { this.priceMsg = v; }, v => { this.priceBusy = v; }, 'mdlHarga');
 		if (!ok) return;
 		closeModal('mdlHarga');
-		showAlert('Harga disimpan.', 'success');
+		showAlert(this.canManageMaster() ? 'Harga disimpan dan langsung berlaku.'
+			: 'Usulan harga terkirim, menunggu approval Master Admin.', 'success');
 		await this.refresh([q_prices, q_material]);
 	},
 
 	// Query a_price_end memakai "Request confirmation before running" = ON
 	endPrice(row) {
 		return Util.run(a_price_end, { id: row.id }, 'Harga diakhiri per hari ini.', [q_prices, q_material]);
+	},
+
+	// ---- approval harga (F3b) ----
+	approvePrice(row) {
+		return Util.run(a_price_approve, { id: row.id },
+			'Harga di-approve dan berlaku sesuai tanggalnya.', [q_prices, q_material]);
+	},
+
+	// Query a_price_cancel memakai "Request confirmation before running" = ON
+	cancelPrice(row) {
+		return Util.run(a_price_cancel, { id: row.id }, 'Usulan harga dibatalkan.', [q_prices, q_material]);
+	},
+
+	openReject(row) {
+		this.rejectRow = row;
+		this.rejectBusy = false;
+		this.rejectMsg = null;
+		this.rejectKey = this.rejectKey + 1;
+		showModal('mdlTolakHarga');
+	},
+
+	rejectFormModel() {
+		const r = this.rejectRow || {};
+		return {
+			key: this.rejectKey,
+			title: 'Tolak Usulan Harga',
+			summary: `${this.materialLabel()}\nSupplier: ${r.supplier_name || '-'} · Warna: ${r.color || 'Semua warna'}\n`
+				+ `Harga: ${this.fmtPrice(r.price)} ${r.currency || ''} · Berlaku mulai ${Util.fmtDate(r.valid_from)} · Diusulkan ${r.created_by || '-'}`,
+			label: 'Alasan penolakan',
+			placeholder: 'mis. Harga tidak sesuai quotation terbaru',
+			hint: 'Alasan terlihat oleh tim CBD di tabel harga.',
+			confirmLabel: 'Tolak',
+			danger: true,
+			busy: this.rejectBusy,
+			message: this.rejectMsg,
+		};
+	},
+
+	async saveReject() {
+		const reason = String((cwReasonForm.model || {}).reason || '').trim();
+		if (!this.rejectRow || !reason) {
+			this.rejectMsg = { type: 'error', text: 'Alasan penolakan wajib diisi.' };
+			return;
+		}
+		const ok = await this.runForm(a_price_reject, { id: this.rejectRow.id, reason },
+			v => { this.rejectMsg = v; }, v => { this.rejectBusy = v; }, 'mdlTolakHarga');
+		if (!ok) return;
+		closeModal('mdlTolakHarga');
+		showAlert('Usulan harga ditolak.', 'success');
+		await this.refresh([q_prices, q_material]);
 	},
 }

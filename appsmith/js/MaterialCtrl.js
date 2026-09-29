@@ -44,6 +44,7 @@ export default {
 		if (row.proposed_links) parts.push(`${row.proposed_links} usulan`);
 		if (this.canViewPrice()) {
 			parts.push(row.price_method === 'QUOTATION' ? 'harga per CBD' : `${row.priced_links}/${row.supplier_count} berharga`);
+			if (row.pending_prices) parts.push(`${row.pending_prices} harga menunggu approval`);
 		}
 		return parts.join(' · ');
 	},

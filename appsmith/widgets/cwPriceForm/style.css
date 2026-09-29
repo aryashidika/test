@@ -324,3 +324,7 @@ input[type=number]::-webkit-inner-spin-button {
   height: 16px;
   accent-color: var(--primary);
 }
+
+#pendingWarn {
+  margin-top: 16px;
+}

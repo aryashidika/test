@@ -1,11 +1,15 @@
 // cwPriceForm — form Tambah Harga di mdlHarga (page Material Detail). Hanya tampilan; simpan lewat
 // MaterialDetailCtrl.savePrice() -> fn_price_add. Currency tidak punya nilai awal (wajib dipilih).
 // Harga baru menutup harga yang masih berlaku untuk supplier + warna yang sama (dicek final di DB).
+// needsApproval (Vendor CBD): harga jadi usulan PROPOSED; harga lama baru ditutup saat di-approve Master Admin.
+// Maks. satu usulan per supplier + warna: kalau sudah ada (pendingPrices), simpan diblokir.
 const $ = id => document.getElementById(id);
 let lastKey = null;
 let busy = false;
 let currency = '';
 let openPrices = [];
+let pendingPrices = [];
+let needsApproval = false;
 
 function applyTheme(t) {
   t = t || {};
@@ -70,9 +74,17 @@ function setCurrency(v) {
   if (currency) $('currency').classList.remove('invalid');
 }
 
-function currentOpen() {
+function findFor(list) {
   const key = normalize($('color').value);
-  return openPrices.find(p => p.link_id === $('link').value && normalize(p.color) === key) || null;
+  return list.find(p => p.link_id === $('link').value && normalize(p.color) === key) || null;
+}
+
+function currentOpen() {
+  return findFor(openPrices);
+}
+
+function currentPending() {
+  return findFor(pendingPrices);
 }
 
 function updateInfo() {
@@ -82,22 +94,35 @@ function updateInfo() {
     ? 'Ambigu: jangan pakai titik ribuan.'
     : p ? `Terbaca: ${fmt(p)}${currency ? ' ' + currency : ''}`
       : 'Tanpa titik ribuan; desimal pakai koma atau titik.';
-  const open = currentOpen();
-  const box = $('closeInfo');
-  if (!open) {
-    box.hidden = true;
-    return;
+  const pending = currentPending();
+  const warn = $('pendingWarn');
+  warn.hidden = !pending;
+  if (pending) {
+    const what = pending.color ? `warna ${pending.color}` : 'semua warna';
+    warn.textContent = `Sudah ada usulan ${fmt(pending.price)} ${pending.currency} untuk ${what} yang menunggu approval. `
+      + 'Batalkan usulan itu dulu (tombol Batalkan di tabel harga) atau tunggu Master Admin memprosesnya.';
   }
-  const what = open.color ? `warna ${open.color}` : 'semua warna';
-  box.textContent = `Harga berlaku untuk ${what}: ${fmt(open.price)} ${open.currency} sejak ${fmtDate(open.valid_from)}. `
-    + 'Harga itu akan ditutup per tanggal berlaku harga baru dan masuk riwayat.';
-  box.hidden = false;
+  const open = currentOpen();
+  const parts = [];
+  if (needsApproval) parts.push('Harga ini tersimpan sebagai usulan (PROPOSED) dan baru dipakai setelah di-approve Master Admin.');
+  if (open) {
+    const what = open.color ? `warna ${open.color}` : 'semua warna';
+    parts.push(`Harga berlaku untuk ${what}: ${fmt(open.price)} ${open.currency} sejak ${fmtDate(open.valid_from)}. `
+      + (needsApproval ? 'Harga itu tetap berlaku sampai usulan di-approve, lalu ditutup per tanggal berlaku harga baru.'
+        : 'Harga itu akan ditutup per tanggal berlaku harga baru dan masuk riwayat.'));
+  }
+  $('closeInfo').textContent = parts.join(' ');
+  $('closeInfo').hidden = parts.length === 0;
 }
 
 // Isi ulang field hanya saat modal dibuka (key berubah) — busy/message tidak menghapus ketikan user
 function fillForm(m) {
   const f = m.form || {};
   openPrices = m.openPrices || [];
+  pendingPrices = m.pendingPrices || [];
+  needsApproval = !!m.needsApproval;
+  $('title').textContent = needsApproval ? 'Usulkan Harga' : 'Tambah Harga';
+  $('btnSave').dataset.label = needsApproval ? 'Usulkan' : 'Simpan';
   $('materialLabel').textContent = m.materialLabel || '';
   fillSelect($('link'), m.links, f.link_id, '— Pilih supplier —');
   const dl = $('dlColor');
@@ -123,7 +148,7 @@ function setBusy(v) {
   $('btnSave').disabled = v;
   $('btnCancel').disabled = v;
   $('btnX').disabled = v;
-  $('btnSave').textContent = v ? 'Menyimpan…' : 'Simpan';
+  $('btnSave').textContent = v ? 'Menyimpan…' : ($('btnSave').dataset.label || 'Simpan');
 }
 
 function render(model) {
@@ -162,6 +187,9 @@ function submit() {
   if (!price || Number(price) <= 0) return fail('price', 'Harga wajib diisi dengan angka lebih dari 0 (maks. 4 desimal).');
   if (!currency) return fail('currency', 'Pilih currency: IDR atau USD.');
   if (!validFrom) return fail('validFrom', 'Tanggal berlaku mulai wajib diisi.');
+  if (currentPending()) {
+    return fail('color', 'Masih ada usulan harga untuk supplier + warna ini yang menunggu approval.');
+  }
   const open = currentOpen();
   if (open && validFrom < String(open.valid_from).slice(0, 10)) {
     return fail('validFrom', `Tanggal berlaku tidak boleh lebih awal dari harga yang berlaku sekarang (${fmtDate(open.valid_from)}).`);

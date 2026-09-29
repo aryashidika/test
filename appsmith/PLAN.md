@@ -7,7 +7,7 @@
 | Target | Appsmith **v2.4** self-hosted (HTTPS) + PostgreSQL **16.15** (datasource `pg_main`) |
 | Akses | App **publik** dengan login di dalam app (email + password), bukan akun Appsmith |
 | Data lama | Tidak dimigrasi (mulai dari DB kosong) |
-| Status | Rencana disetujui 24 Sep 2026 (termasuk P1–P3) · login in-app disetujui 25 Sep 2026 · UI campuran + Custom Widget disetujui 25 Sep 2026 · **F0 + F1 selesai** (export v1, 25 Sep 2026) · **F2 selesai** (export v2, 29 Sep 2026) · **F3 disiapkan** 29 Sep 2026 (`steps/F3_langkah.md`) · berikutnya: user memperbaiki T9, menjalankan F3, export v3 |
+| Status | Rencana disetujui 24 Sep 2026 (termasuk P1–P3) · login in-app disetujui 25 Sep 2026 · UI campuran + Custom Widget disetujui 25 Sep 2026 · **F0 + F1 selesai** (export v1, 25 Sep 2026) · **F2 selesai** (export v2, 29 Sep 2026) · **F3 dikerjakan** (export v3, 29 Sep 2026; T13–T17 diperbaiki user) · **F3 + F3b selesai** (export v3b, 30 Sep 2026) · berikutnya: **F4** (dilanjutkan di chat baru) |
 | File siap tempel | `steps/F<n>_langkah.md` (langkah per fase: query, widget, uji), `sql/F<n>_*.sql` (jalankan lewat `z_run_sql` di app privat **DB Tools**), `js/*.js` (isi JSObject), `widgets/<cw>/` (Custom Widget: HTML/CSS/JS + README kontrak) |
 
 Legenda status: ⬜ belum · 🟡 dibuat (belum diverifikasi dari export) · ✅ terverifikasi
@@ -21,7 +21,8 @@ Legenda status: ⬜ belum · 🟡 dibuat (belum diverifikasi dari export) · ✅
 | F0 | Persiapan: cek versi, app, cara menjalankan SQL | – | ✅ |
 | F1 | Fondasi DB, login in-app & role, Admin user + audit | `export_v1.json` | ✅ semua uji lolos · temuan T1–T8 (lihat §9) |
 | F2 | Master Supplier & Komponen | `export_v2.json` | ✅ semua uji lolos · temuan T9–T12 (lihat §9) |
-| F3 | Master Material, supplier material, harga | `export_v3.json` | 🟡 file siap, menunggu export |
+| F3 | Master Material, supplier material, harga | `export_v3.json` | ✅ (T13–T17 diperbaiki di export v3b) |
+| F3b | Approval harga oleh Master Admin (tambahan, keputusan user 29 Sep 2026) | `export_v3b.json` | ✅ semua uji lolos · T18–T19 diperbaiki |
 | F4 | Model, Season, Article, lampiran article | `export_v4.json` | ⬜ |
 | F5 | Specsheet: revisi & grid BOM | `export_v5.json` | ⬜ |
 | F6 | Specsheet: checklist & terbit | `export_v6.json` | ⬜ |
@@ -58,6 +59,7 @@ Legenda status: ⬜ belum · 🟡 dibuat (belum diverifikasi dari export) · ✅
 11. **Export Excel**: library ExcelJS dipasang di Appsmith (Libraries). Cadangan: SheetJS tanpa style.
 12. **Lampiran article**: FilePicker (Base64) → disimpan `bytea` di tabel `article_attachment`. Jenis jpg/png/pdf, maks 5 MB per file.
 13. **Desain**: palet mockup Flask — primary navy `#122A52`, aksen `#3B6FE0`, latar `#F3F5FA`, radius 8px, font sistem (Segoe UI); chip status hijau/kuning/merah/abu. Hanya untuk laptop/PC (lebar ≥ 1280px).
+14. **Approval harga material (F3b, keputusan user 29 Sep 2026)**: harga dari Vendor CBD = usulan PROPOSED, Master Admin approve/tolak (alasan wajib, tetap tersimpan); harga dari Master Admin langsung APPROVED. Harga lama tetap berlaku sampai usulan di-approve. Maks. satu usulan per supplier + warna (bisa dibatalkan tim CBD). Akhiri harga tanpa approval. Hanya harga APPROVED yang dipakai (lookup CBD, ringkasan material).
 
 ### Penyederhanaan dari sistem Python
 
@@ -169,7 +171,8 @@ Pola query:
 | `manage_master` (CRUD + approve) | ✓ | | | | |
 | `propose_master` (usul material/komponen, status PROPOSED) | | ✓ | ✓ | | |
 | `manage_material_supplier` | ✓ | ✓ | | | |
-| `manage_price` (harga & metode harga) | ✓ | | ✓ | | |
+| `manage_price` (harga & metode harga; harga Vendor CBD = usulan) | ✓ | | ✓ | | |
+| approve / tolak usulan harga (pakai `manage_master`, F3b) | ✓ | | | | |
 | `edit_model` (model, season, article, lampiran) | ✓ | ✓ | | | |
 | `edit_specsheet` | | ✓ | | | |
 | `edit_cbd` | | | ✓ | | |
@@ -214,13 +217,20 @@ Tabel DB baru di tiap fase ditulis di bagian **7. Perubahan database** dan dicat
 **Selesai bila:** nomor bukan kelipatan 10 / di luar rentang / sudah dipakai ditolak dengan pesan jelas; nama supplier beda kapital ditolak; semua perubahan masuk audit log.
 
 ### F3 — Master Material, supplier material, harga
-- [ ] SQL F3 (`sql/F3_material.sql`: `material` + `trg_material_check`, `material_supplier` + `trg_material_supplier_check`, `material_price`, `fn_material_add`, `fn_material_update`, `fn_link_save`, `fn_ensure_link`, `fn_price_add`, `fn_price_end`, `fn_price_lookup`, `v_material_list`; `fn_today` sudah ada dari F1)
-- [ ] Form modal Custom Widget (keputusan user): `cwMaterialForm` (tambah & ubah material), `cwLinkForm` (supplier material), `cwPriceForm` (harga; currency tanpa nilai awal, angka ambigu `47.500` ditolak)
-- [ ] `Master_Material`: tabel (kode, nama, kategori, thickness, UoM, metode harga, status, ringkasan supplier/harga), cari & filter (status, kategori, "belum ada harga"), tambah dengan saran `MTR-NNNN` dan pilihan metode harga (P3)
-- [ ] `Material_Detail` tab **Info**: edit identitas (admin), status, metode harga (`manage_price`)
-- [ ] Tab **Supplier & Harga**: daftar supplier material (kode di supplier, utama, status, approve), tambah supplier; per supplier harga berlaku + riwayat, tambah harga (warna opsional, tanggal berlaku, **currency IDR/USD wajib dipilih — tanpa nilai awal**), akhiri harga. Tambah/akhiri harga: Master Admin & Vendor – CBD (`manage_price`, keputusan user 27 Sep 2026). Harga disembunyikan untuk VENDOR_SPEC
+- [x] SQL F3 (`sql/F3_material.sql`: `material` + `trg_material_check`, `material_supplier` + `trg_material_supplier_check`, `material_price`, `fn_material_add`, `fn_material_update`, `fn_link_save`, `fn_ensure_link`, `fn_price_add`, `fn_price_end`, `fn_price_lookup`, `v_material_list`; `fn_today` sudah ada dari F1)
+- [x] Form modal Custom Widget (keputusan user): `cwMaterialForm` (tambah & ubah material), `cwLinkForm` (supplier material), `cwPriceForm` (harga; currency tanpa nilai awal, angka ambigu `47.500` ditolak)
+- [x] `Master_Material`: tabel (kode, nama, kategori, thickness, UoM, metode harga, status, ringkasan supplier/harga), cari & filter (status, kategori, "belum ada harga"), tambah dengan saran `MTR-NNNN` dan pilihan metode harga (P3)
+- [x] `Material_Detail` tab **Info**: edit identitas (admin), status, metode harga (`manage_price`)
+- [x] Tab **Supplier & Harga**: daftar supplier material (kode di supplier, utama, status, approve), tambah supplier; per supplier harga berlaku + riwayat, tambah harga (warna opsional, tanggal berlaku, **currency IDR/USD wajib dipilih — tanpa nilai awal**), akhiri harga. Tambah/akhiri harga: Master Admin & Vendor – CBD (`manage_price`, keputusan user 27 Sep 2026). Harga disembunyikan untuk VENDOR_SPEC
 
-**Selesai bila:** duplikat material (nama+thickness+UoM setelah normalisasi) ditolak; harga baru menutup harga lama; tanggal mundur ditolak; material QUOTATION tidak bisa diberi harga; `fn_price_lookup` mengembalikan harga warna dulu lalu semua warna.
+### F3b — Approval harga (tambahan, keputusan user 29 Sep 2026)
+- [x] SQL F3b (`sql/F3b_price_approval.sql`: kolom `status`/`decided_by`/`decided_at`/`reject_reason` di `material_price`, `uq_price_one_proposed`, `fn_price_activate`, `fn_price_approve`, `fn_price_reject`, `fn_price_cancel`; `fn_price_add`, `fn_price_end`, `fn_price_lookup`, `v_material_list` diperbarui)
+- [x] `Master Material`: filter **Harga menunggu approval**, ringkasan usulan di kolom Supplier
+- [x] `Material Detail`: status MENUNGGU APPROVAL / DITOLAK di tabel harga, tombol **Approve**, **Tolak** (Custom Widget `cwReasonForm`), **Batalkan**; `cwPriceForm` mode **Usulkan**
+
+**Selesai bila:** usulan Vendor CBD tidak dipakai sebelum di-approve dan harga lama tetap berlaku; approve menutup harga lama; tolak wajib beralasan; hanya satu usulan per supplier + warna.
+
+**Selesai bila (F3):** duplikat material (nama+thickness+UoM setelah normalisasi) ditolak; harga baru menutup harga lama; tanggal mundur ditolak; material QUOTATION tidak bisa diberi harga; `fn_price_lookup` mengembalikan harga warna dulu lalu semua warna.
 
 ### F4 — Model, Season, Article, lampiran
 - [ ] SQL F4 (`product_model`, `specsheet`, `article`, `article_attachment`, `trg_article_limit`, `v_model_list`, `v_article_status`)
@@ -258,7 +268,7 @@ Tabel DB baru di tiap fase ditulis di bagian **7. Perubahan database** dan dicat
 
 ### F8 — CBD: harga, rekap, refresh, terbit, sinkron
 - [ ] SQL F8 (`fn_cbd_set_quotation`, `fn_cbd_override_price`, `fn_cbd_clear_override`, `fn_cbd_refresh_prices`, `fn_cbd_refresh_from_spec`, `fn_cbd_set_margin`, `v_cbd_recap`, `v_cbd_checklist`, `fn_cbd_publish`, perbarui `fn_revision_publish` dengan penandaan sinkron)
-- [ ] Harga: quotation (material QUOTATION), override + alasan (material CATALOG), hapus override; info kenapa harga kosong — currency wajib dipilih setiap input (tanpa nilai awal)
+- [ ] Harga: quotation (material QUOTATION), override + alasan (material CATALOG), hapus override; info kenapa harga kosong (termasuk *harga master menunggu approval* — F3b: hanya harga APPROVED yang dipakai) — currency wajib dipilih setiap input (tanpa nilai awal)
 - [ ] Rekap di `cwCbdGrid` (panel ringkasan menempel): exchange rate, amortisasi, adjustment, target FOB, actual FOB, selisih (OVER/UNDER/SESUAI), selling price ⇄ margin %
 - [ ] Banner + tombol **Refresh dari Specsheet** / **Refresh Harga dari Master**
 - [ ] Modal **Terbitkan** CBD + tab Riwayat
@@ -276,7 +286,7 @@ Tabel DB baru di tiap fase ditulis di bagian **7. Perubahan database** dan dicat
 
 ### F10 — Beranda "Tugas Saya"
 - [ ] SQL F10 (`v_worklist_spec`, `v_worklist_cbd`, `v_worklist_admin`, `v_recent_published`)
-- [ ] Per role: Vendor Spec (draft berjalan, article belum masuk revisi) · Vendor CBD (belum ada CBD, perlu refresh, perlu revisi, harga master kosong) · Master Admin (antrian PROPOSED) · Brand (terbit terbaru) · System Admin (ringkasan)
+- [ ] Per role: Vendor Spec (draft berjalan, article belum masuk revisi) · Vendor CBD (belum ada CBD, perlu refresh, perlu revisi, harga master kosong) · Master Admin (antrian PROPOSED, termasuk usulan harga F3b) · Brand (terbit terbaru) · System Admin (ringkasan)
 
 **Selesai bila:** setiap role melihat daftar yang benar, klik membuka page tujuan.
 
@@ -449,6 +459,14 @@ CREATE TABLE material_price (
   CHECK (valid_to IS NULL OR valid_to >= valid_from)
 );
 CREATE INDEX idx_material_price_link ON material_price (material_supplier_id, color_key);
+
+-- F3b: approval harga
+ALTER TABLE material_price
+  ADD COLUMN status        text NOT NULL DEFAULT 'PROPOSED' CHECK (status IN ('PROPOSED','APPROVED','REJECTED')),
+  ADD COLUMN decided_by    text,
+  ADD COLUMN decided_at    timestamptz,
+  ADD COLUMN reject_reason text;           -- wajib bila REJECTED
+CREATE UNIQUE INDEX uq_price_one_proposed ON material_price (material_supplier_id, color_key) WHERE status = 'PROPOSED';
 ```
 
 ### F4
@@ -675,12 +693,14 @@ Diperbarui setiap fase selesai direview. Kolom **Dibuat** = Anda sudah menjalank
 | `component_group` | tabel | F2 | ✅ | ✅ |
 | `component` + `fn_component_check`/`trg_component_check`, `idx_component_group` | tabel/trigger | F2 | ✅ | ✅ |
 | `fn_component_add` | function | F2 | ✅ | ✅ |
-| `material` | tabel | F3 | ⬜ | ⬜ |
-| `material_supplier` | tabel | F3 | ⬜ | ⬜ |
-| `material_price` | tabel | F3 | ⬜ | ⬜ |
-| `fn_material_check`/`trg_material_check`, `fn_material_supplier_check`/`trg_material_supplier_check` | trigger | F3 | ⬜ | ⬜ |
-| `fn_material_add`, `fn_material_update`, `fn_link_save` | function | F3 | ⬜ | ⬜ |
-| `fn_price_add`, `fn_price_end`, `fn_price_lookup`, `fn_ensure_link`, `v_material_list` | function/view | F3 | ⬜ | ⬜ |
+| `material` | tabel | F3 | ✅ | ⬜ (kirim hasil cek skema) |
+| `material_supplier` | tabel | F3 | ✅ | ⬜ (kirim hasil cek skema) |
+| `material_price` | tabel | F3 | ✅ | ⬜ (kirim hasil cek skema) |
+| `fn_material_check`/`trg_material_check`, `fn_material_supplier_check`/`trg_material_supplier_check` | trigger | F3 | ✅ | ⬜ (kirim hasil cek skema) |
+| `fn_material_add`, `fn_material_update`, `fn_link_save` | function | F3 | ✅ | ⬜ (kirim hasil cek skema) |
+| `fn_price_add`, `fn_price_end`, `fn_price_lookup`, `fn_ensure_link`, `v_material_list` | function/view | F3 | ✅ | ⬜ (kirim hasil cek skema) |
+| `material_price` + kolom approval, `uq_price_one_proposed` | tabel (ALTER) | F3b | ✅ | ⬜ (kirim hasil cek skema) |
+| `fn_price_activate`, `fn_price_approve`, `fn_price_reject`, `fn_price_cancel` (+ `fn_price_add`, `fn_price_end`, `fn_price_lookup`, `v_material_list` diperbarui) | function/view | F3b | ✅ | ⬜ (kirim hasil cek skema) |
 | `product_model` | tabel | F4 | ⬜ | ⬜ |
 | `specsheet` | tabel | F4 | ⬜ | ⬜ |
 | `article` + `trg_article_limit` | tabel | F4 | ⬜ | ⬜ |
@@ -720,9 +740,10 @@ ORDER BY 1, 2;
 | `cwTempPassword` *(dibuat user)* | `Admin` (modal `mdlPasswordSementara`) | F1 | ✅ | ✅ |
 | `cwSupplierForm` | `Master Supplier` (modal `mdlSupplier`) | F2 | ✅ | ✅ |
 | `cwKomponenForm` | `Master Komponen` (modal `mdlKomponen`) | F2 | ✅ | ✅ |
-| `cwMaterialForm` | `Master Material` + `Material Detail` (modal `mdlMaterial`) | F3 | ⬜ | ⬜ |
-| `cwLinkForm` | `Material Detail` (modal `mdlLink`) | F3 | ⬜ | ⬜ |
-| `cwPriceForm` | `Material Detail` (modal `mdlHarga`) | F3 | ⬜ | ⬜ |
+| `cwMaterialForm` | `Master Material` + `Material Detail` (modal `mdlMaterial`) | F3 | ✅ | ✅ |
+| `cwLinkForm` | `Material Detail` (modal `mdlLink`) | F3 | ✅ | ✅ |
+| `cwPriceForm` | `Material Detail` (modal `mdlHarga`) | F3 | ✅ | ✅ |
+| `cwReasonForm` (umum, dipakai ulang) | `Material Detail` (modal `mdlTolakHarga`) | F3b | ✅ | ✅ |
 | `cwStepper` | `Specsheet`, `CBD` | F5 / F7 | ⬜ | ⬜ |
 | `cwBomGrid` | `Specsheet` | F5 | ⬜ | ⬜ |
 | `cwCbdGrid` | `CBD` | F7 / F8 | ⬜ | ⬜ |
@@ -735,6 +756,8 @@ ORDER BY 1, 2;
 |---|---|---|---|
 | v1 | 25 Sep 2026 | F0 + F1 | ✅ Lolos, semua uji user berhasil. Skema DB sesuai register (F1 + F1b lengkap, objek lama sudah di-DROP). Query & `Auth`/`Util`/`LoginCtrl` identik dengan file repo; `cwLogin` identik (hanya diformat ulang Appsmith). Deviasi atas keputusan user: 4 Custom Widget tambahan (kode disalin ke `widgets/`), `AdminCtrl` ditulis ulang untuk `cwUserForm` (disalin ke `js/AdminCtrl.js`), nama page memakai spasi, filter audit pakai tombol **Cari**, panel detail before/after audit tidak dibuat. Temuan T1–T6 di bawah. |
 | v2 | 29 Sep 2026 | F2 | ✅ Lolos, semua uji user berhasil. Skema DB: semua objek F2 ada (`supplier`, `component_group`, `component`, `fn_has_perm`, `fn_auth_any`, `fn_supplier_check`, `fn_component_check`, `fn_component_add`, trigger). Query, `SupplierCtrl`, `KomponenCtrl`, `Auth` (`requiredPerm`, `pageQueries`) identik dengan repo; `cwSupplierForm`/`cwKomponenForm` identik (teks info supplier dipersingkat user → disalin ke repo). Deviasi: filter & cari pakai tombol **Cari** (sama seperti Audit Log), bukan otomatis. T1, T3–T8 sudah diperbaiki; T2 belum. Temuan baru T9–T12. |
+| v3 | 29 Sep 2026 | F3 | 🟡 Uji user lolos. Semua 14 query F3 identik dengan panduan; `MaterialCtrl`, `MaterialDetailCtrl`, `Auth` (izin + `pageQueries`) identik dengan repo; `cwMaterialForm`/`cwLinkForm`/`cwPriceForm` identik; event & Default model sesuai. T9 & T10 sudah diperbaiki. **Terlewat:** kolom tombol **Ganti harga** & **Akhiri** di `tblPrices` (T13). Temuan T13–T17. Hasil cek skema F3 belum dikirim. |
+| v3b | 30 Sep 2026 | F3b (+ perbaikan T13–T17) | ✅ File dari user `export_v4.json`, lalu `export_v4.5.json` (setelah perbaikan T18–T20) — versi terakhir disimpan sebagai `export_v3b.json`. Semua 17 query Master Material & Material Detail identik dengan panduan; `a_price_end` & `a_price_cancel` konfirmasi ON; query baca Manual. `MaterialCtrl`, `MaterialDetailCtrl` identik; kode `cwMaterialForm`, `cwLinkForm`, `cwPriceForm`, `cwReasonForm` identik, event & Default model sesuai. T13–T16 ✅. Deviasi (diterima): tombol **Batalkan** tidak tampil untuk Master Admin (admin memakai Tolak). Temuan T18–T20; di export v4.5: T18 ✅, T19 ✅, T20 sebagian (kosmetik tersisa). |
 
 ### Temuan review v1 (diperbaiki sebelum/bersama F2)
 
@@ -753,10 +776,28 @@ ORDER BY 1, 2;
 
 | # | Tingkat | Temuan | Perbaikan | Status |
 |---|---|---|---|---|
-| T9 | **Bug** | `cwHeader` di `Master Supplier` & `Master Komponen` masih `onLogout: {{navigateTo('Login', { mode: 'keluar' })}}` (disalin sebelum T7). `LoginCtrl` tidak lagi membaca `?mode=keluar` → tombol **Keluar** tidak logout; token masih valid sehingga Login langsung kembali ke Beranda | Event `onLogout` di kedua page: `{{storeValue('doLogout', true).then(() => navigateTo('Login'))}}`. Page lain: salin `cwHeader` dari Admin/Beranda, bukan dari page lama | ⬜ |
-| T10 | Kecil | `q_me` = *Automatic* di 9 page (semua kecuali Beranda & Admin, termasuk Login) → jalan dobel sebelum `Auth`/`LoginCtrl` | Set **Manual** di semua page | ✅ dikerjakan user 29 Sep 2026 (dicek di export v3) |
+| T9 | **Bug** | `cwHeader` di `Master Supplier` & `Master Komponen` masih `onLogout: {{navigateTo('Login', { mode: 'keluar' })}}` (disalin sebelum T7). `LoginCtrl` tidak lagi membaca `?mode=keluar` → tombol **Keluar** tidak logout; token masih valid sehingga Login langsung kembali ke Beranda | Event `onLogout` di kedua page: `{{storeValue('doLogout', true).then(() => navigateTo('Login'))}}`. Page lain: salin `cwHeader` dari Admin/Beranda, bukan dari page lama | ✅ v3 |
+| T10 | Kecil | `q_me` = *Automatic* di 9 page (semua kecuali Beranda & Admin, termasuk Login) → jalan dobel sebelum `Auth`/`LoginCtrl` | Set **Manual** di semua page | ✅ v3 (sisa: `q_me` di Login masih Automatic — lihat T17) |
 | T11 | Kecil | Tinggi `cwKomponenForm` 430 px, isi terpanjang (vendor + pesan error + info usulan) ±490 px → tombol Simpan terpotong/harus scroll. Lebar modal 884 px & 736 px (rencana ±480 px) | `mdlKomponen`: tinggi ±540, `cwKomponenForm` ±520 px; `mdlSupplier` tinggi ±360, widget ±340 px; lebar kedua modal ±480–520 px | ➖ dibiarkan (keputusan user 29 Sep 2026) |
 | T12 | Kecil | `mdlSupplier` & `mdlKomponen`: *close on outside click* ON → klik di luar modal menutup form dan isian hilang | Matikan (tutup lewat Batal / ✕) | ➖ dibiarkan (keputusan user 29 Sep 2026) |
+
+### Temuan review v3
+
+| # | Tingkat | Temuan | Perbaikan | Status |
+|---|---|---|---|---|
+| T13 | **Terlewat** | `tblPrices` tidak punya kolom tombol **Ganti harga** dan **Akhiri** → harga tidak bisa diakhiri dari UI (mis. harga khusus warna yang sudah tidak berlaku); `MaterialDetailCtrl.endPrice()` tidak dipakai | Tambah 2 kolom Button sesuai `steps/F3_langkah.md` §3c (Cell visible `{{!currentRow.valid_to}}`) | ✅ v3b |
+| T14 | **Bug** | `a_price_end`: *Request confirmation before running* **OFF** (panduan: ON) → begitu tombol Akhiri ada, harga langsung diakhiri tanpa konfirmasi | Nyalakan | ✅ v3b |
+| T15 | Sedang | 5 query baca di `Material Detail` (`q_material`, `q_material_meta`, `q_links`, `q_link_supplier_options`, `q_prices`) = *Automatic* → jalan sebelum `Auth` dan di luar `pageQueries`; untuk Vendor Spec `q_prices` ditolak DB → muncul toast error *tidak punya akses* (data harga tetap aman) | Set **Manual** | ✅ v3b |
+| T16 | Kecil | Kolom `price` (`tblPrices`) & `supplier_count` (`tblMaterials`) bertipe **Number** padahal Computed value berupa teks terformat → berisiko tampil salah (mis. `45.000` terbaca 45) | Column type **Text** | ✅ v3b |
+| T17 | Kecil | Kolom **Metode Harga** disembunyikan lewat *Cell visible* → judul kolom tetap tampil untuk Vendor Spec; label `Kategory`; `q_me` di Login masih *Automatic* | Visible (kolom) `{{MaterialCtrl.canViewPrice()}}`; label `Kategori`; `q_me` Login → Manual | 🟡 label ✅; sisanya → T20 |
+
+### Temuan review v3b
+
+| # | Tingkat | Temuan | Perbaikan | Status |
+|---|---|---|---|---|
+| T18 | **Bug** | Kolom `state` (Keterangan) di `tblPrices` belum diganti: Computed value masih `currentRow["state"]` dan Text color mapping lama → **alasan penolakan tidak terlihat** oleh tim CBD (`reject_reason` disembunyikan), MENUNGGU APPROVAL & DITOLAK berwarna abu-abu | Computed value `{{MaterialDetailCtrl.stateText(currentRow)}}`, Text color `{{MaterialDetailCtrl.stateColor(currentRow.state)}}` (`steps/F3b_langkah.md` §3c) | ✅ v3b (export v4.5) |
+| T19 | Sedang | Cell visible tombol **Ganti Harga** & **Akhiri** masih `!currentRow.valid_to` → tombol juga muncul di baris usulan (MENUNGGU APPROVAL) dan DITOLAK; Akhiri di baris itu ditolak DB, Ganti Harga membuka form yang langsung terblokir | Tambah `&& currentRow.status === 'APPROVED'` di Cell visible kedua tombol | ✅ v3b (export v4.5) |
+| T20 | Kecil | Sisa T17: kolom **Metode Harga** masih disembunyikan lewat *Cell visible* (judul kolom tetap tampil untuk Vendor Spec); `q_me` di Login masih *Automatic*; label switch `swMaterialHargaPending` = `Approval` | Kolom: Visible `{{MaterialCtrl.canViewPrice()}}` (kalau tidak bisa di-binding, biarkan); `q_me` Login → Manual; label `Harga menunggu approval` | 🟡 `q_me` Login ✅; judul kolom Metode Harga & label switch `Approval` belum (kosmetik) |
 
 Catatan lain:
 - Nama app di Appsmith "Test Database" dan datasource `Prestasi` (rencana: "Sistem Specsheet & CBD" / `pg_main`) — tidak memengaruhi fungsi. **User akan merapikan nama app sebelum handover** (dicek lagi di F11).
