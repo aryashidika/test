@@ -7,7 +7,7 @@
 | Target | Appsmith **v2.4** self-hosted (HTTPS) + PostgreSQL **16.15** (datasource `pg_main`) |
 | Akses | App **publik** dengan login di dalam app (email + password), bukan akun Appsmith |
 | Data lama | Tidak dimigrasi (mulai dari DB kosong) |
-| Status | Rencana disetujui 24 Sep 2026 (termasuk P1–P3) · login in-app disetujui 25 Sep 2026 · UI campuran + Custom Widget disetujui 25 Sep 2026 · **F0 + F1 selesai** (export v1, 25 Sep 2026) · **F2 disiapkan** 27 Sep 2026 (`steps/F2_langkah.md`) · berikutnya: user memperbaiki T1–T8, menjalankan F2, export v2 |
+| Status | Rencana disetujui 24 Sep 2026 (termasuk P1–P3) · login in-app disetujui 25 Sep 2026 · UI campuran + Custom Widget disetujui 25 Sep 2026 · **F0 + F1 selesai** (export v1, 25 Sep 2026) · **F2 selesai** (export v2, 29 Sep 2026) · berikutnya: **F3** (T9 masih terbuka) |
 | File siap tempel | `steps/F<n>_langkah.md` (langkah per fase: query, widget, uji), `sql/F<n>_*.sql` (jalankan lewat `z_run_sql` di app privat **DB Tools**), `js/*.js` (isi JSObject), `widgets/<cw>/` (Custom Widget: HTML/CSS/JS + README kontrak) |
 
 Legenda status: ⬜ belum · 🟡 dibuat (belum diverifikasi dari export) · ✅ terverifikasi
@@ -20,7 +20,7 @@ Legenda status: ⬜ belum · 🟡 dibuat (belum diverifikasi dari export) · ✅
 |---|---|---|---|
 | F0 | Persiapan: cek versi, app, cara menjalankan SQL | – | ✅ |
 | F1 | Fondasi DB, login in-app & role, Admin user + audit | `export_v1.json` | ✅ semua uji lolos · temuan T1–T8 (lihat §9) |
-| F2 | Master Supplier & Komponen | `export_v2.json` | 🟡 file siap, menunggu export |
+| F2 | Master Supplier & Komponen | `export_v2.json` | ✅ semua uji lolos · temuan T9–T12 (lihat §9) |
 | F3 | Master Material, supplier material, harga | `export_v3.json` | ⬜ |
 | F4 | Model, Season, Article, lampiran article | `export_v4.json` | ⬜ |
 | F5 | Specsheet: revisi & grid BOM | `export_v5.json` | ⬜ |
@@ -207,9 +207,9 @@ Tabel DB baru di tiap fase ditulis di bagian **7. Perubahan database** dan dicat
 **Selesai bila:** buka URL app tanpa login → halaman Login; login benar masuk Beranda sesuai role; password sementara wajib diganti; 5 kali salah → terkunci 15 menit; logout/sesi habis → kembali ke Login; query tanpa token ditolak DB; login/logout/ganti password tercatat di Audit Log.
 
 ### F2 — Master Supplier & Komponen
-- [ ] SQL F2 (`sql/F2_master.sql`: `fn_has_perm`, `fn_auth_any`, `supplier` + `trg_supplier_check`, `component_group` + seed a/b/c/d, `component` + `trg_component_check`, `fn_component_add`)
-- [ ] `Master_Supplier`: tabel + cari + filter status, tambah (modal), ubah nama, status (tanpa currency default — keputusan user 27 Sep 2026: currency dipilih saat harga dimasukkan) — form modal: Custom Widget `cwSupplierForm`
-- [ ] `Master_Komponen`: tabel per grup, saran nomor berikutnya (max+10), tambah, ubah, status; vendor → otomatis PROPOSED; admin → Approve — form modal: Custom Widget `cwKomponenForm`
+- [x] SQL F2 (`sql/F2_master.sql`: `fn_has_perm`, `fn_auth_any`, `supplier` + `trg_supplier_check`, `component_group` + seed a/b/c/d, `component` + `trg_component_check`, `fn_component_add`)
+- [x] `Master_Supplier`: tabel + cari + filter status, tambah (modal), ubah nama, status (tanpa currency default — keputusan user 27 Sep 2026: currency dipilih saat harga dimasukkan) — form modal: Custom Widget `cwSupplierForm`
+- [x] `Master_Komponen`: tabel per grup, saran nomor berikutnya (max+10), tambah, ubah, status; vendor → otomatis PROPOSED; admin → Approve — form modal: Custom Widget `cwKomponenForm`
 
 **Selesai bila:** nomor bukan kelipatan 10 / di luar rentang / sudah dipakai ditolak dengan pesan jelas; nama supplier beda kapital ditolak; semua perubahan masuk audit log.
 
@@ -669,11 +669,11 @@ Diperbarui setiap fase selesai direview. Kolom **Dibuat** = Anda sudah menjalank
 | `app_session` | tabel | F1b | ✅ | ✅ |
 | `fn_audit`, `fn_token_hash`, `fn_random_password`, `fn_auth`, `fn_me` | function | F1b | ✅ | ✅ |
 | `fn_login`, `fn_logout`, `fn_change_password`, `fn_user_save`, `fn_user_reset_password` | function | F1b | ✅ | ✅ |
-| `fn_has_perm`, `fn_auth_any` | function | F2 | ⬜ | ⬜ |
-| `supplier` + `fn_supplier_check`/`trg_supplier_check` | tabel/trigger | F2 | ⬜ | ⬜ |
-| `component_group` | tabel | F2 | ⬜ | ⬜ |
-| `component` + `fn_component_check`/`trg_component_check`, `idx_component_group` | tabel/trigger | F2 | ⬜ | ⬜ |
-| `fn_component_add` | function | F2 | ⬜ | ⬜ |
+| `fn_has_perm`, `fn_auth_any` | function | F2 | ✅ | ✅ |
+| `supplier` + `fn_supplier_check`/`trg_supplier_check` | tabel/trigger | F2 | ✅ | ✅ |
+| `component_group` | tabel | F2 | ✅ | ✅ |
+| `component` + `fn_component_check`/`trg_component_check`, `idx_component_group` | tabel/trigger | F2 | ✅ | ✅ |
+| `fn_component_add` | function | F2 | ✅ | ✅ |
 | `material` | tabel | F3 | ⬜ | ⬜ |
 | `material_supplier` | tabel | F3 | ⬜ | ⬜ |
 | `material_price` | tabel | F3 | ⬜ | ⬜ |
@@ -715,8 +715,8 @@ ORDER BY 1, 2;
 | `cwMenu` *(dibuat user)* | `Beranda` | F1 | ✅ | ⚠️ target page salah (T1) |
 | `cwUserForm` *(dibuat user)* | `Admin` (modal `mdlUser`) | F1 | ✅ | ✅ |
 | `cwTempPassword` *(dibuat user)* | `Admin` (modal `mdlPasswordSementara`) | F1 | ✅ | ✅ |
-| `cwSupplierForm` | `Master Supplier` (modal `mdlSupplier`) | F2 | ⬜ | ⬜ |
-| `cwKomponenForm` | `Master Komponen` (modal `mdlKomponen`) | F2 | ⬜ | ⬜ |
+| `cwSupplierForm` | `Master Supplier` (modal `mdlSupplier`) | F2 | ✅ | ✅ |
+| `cwKomponenForm` | `Master Komponen` (modal `mdlKomponen`) | F2 | ✅ | ✅ |
 | `cwStepper` | `Specsheet`, `CBD` | F5 / F7 | ⬜ | ⬜ |
 | `cwBomGrid` | `Specsheet` | F5 | ⬜ | ⬜ |
 | `cwCbdGrid` | `CBD` | F7 / F8 | ⬜ | ⬜ |
@@ -728,19 +728,29 @@ ORDER BY 1, 2;
 | Versi | Tanggal | Fase | Hasil review |
 |---|---|---|---|
 | v1 | 25 Sep 2026 | F0 + F1 | ✅ Lolos, semua uji user berhasil. Skema DB sesuai register (F1 + F1b lengkap, objek lama sudah di-DROP). Query & `Auth`/`Util`/`LoginCtrl` identik dengan file repo; `cwLogin` identik (hanya diformat ulang Appsmith). Deviasi atas keputusan user: 4 Custom Widget tambahan (kode disalin ke `widgets/`), `AdminCtrl` ditulis ulang untuk `cwUserForm` (disalin ke `js/AdminCtrl.js`), nama page memakai spasi, filter audit pakai tombol **Cari**, panel detail before/after audit tidak dibuat. Temuan T1–T6 di bawah. |
+| v2 | 29 Sep 2026 | F2 | ✅ Lolos, semua uji user berhasil. Skema DB: semua objek F2 ada (`supplier`, `component_group`, `component`, `fn_has_perm`, `fn_auth_any`, `fn_supplier_check`, `fn_component_check`, `fn_component_add`, trigger). Query, `SupplierCtrl`, `KomponenCtrl`, `Auth` (`requiredPerm`, `pageQueries`) identik dengan repo; `cwSupplierForm`/`cwKomponenForm` identik (teks info supplier dipersingkat user → disalin ke repo). Deviasi: filter & cari pakai tombol **Cari** (sama seperti Audit Log), bukan otomatis. T1, T3–T8 sudah diperbaiki; T2 belum. Temuan baru T9–T12. |
 
 ### Temuan review v1 (diperbaiki sebelum/bersama F2)
 
 | # | Tingkat | Temuan | Perbaikan | Status |
 |---|---|---|---|---|
-| T1 | **Bug** | `cwMenu` memakai `target: 'Master_Material'` dan `'Model_List'`, padahal nama page di app `Master Material` / `Model List` → menu Master & Model tidak bisa dibuka (tidak terlihat oleh System Admin, jadi lolos uji) | Ubah target di Default model `cwMenu` menjadi `'Master Material'` dan `'Model List'` | ⬜ |
-| T2 | **Bug (kemungkinan)** | Kolom tanggal memakai `currentRow["Login terakhir"]` (`tblUsers.last_login_at`) dan `currentRow["Created At"]` (`tblAudit.created_at`) — `currentRow` memakai nama kolom data, bukan label → semua baris menampilkan waktu sekarang / "Invalid date" | Computed value: `{{Util.fmtDateTime(currentRow.last_login_at)}}` dan `{{Util.fmtDateTime(currentRow.created_at)}}` | ⬜ |
-| T3 | Kecil | Run behaviour `q_me`, `q_users`, `q_audit_entities` = *Automatic* → jalan sebelum `Auth` mengecek sesi (dobel, dan memunculkan error saat sesi habis) | Set ke **Manual** (sudah dijalankan oleh `Auth.onPageLoad` / `pageQueries`) | ⬜ |
-| T4 | Kecil | `selAuditEntitas` punya Default value sisa template `GREEN` | Kosongkan Default selected value | ⬜ |
-| T5 | Kecil | `a_user_reset_password`: *Request confirmation before running* OFF → reset langsung jalan tanpa konfirmasi | Nyalakan (atau konfirmasi di widget) | ⬜ |
-| T6 | Kecil | `mdlPasswordSementara` bisa tertutup dengan klik di luar modal (password sementara hanya tampil sekali) | *Quick dismiss* / close on outside click **OFF** | ⬜ |
-| T7 | **Bug** | Keluar lewat URL `Login?mode=keluar` tersimpan di riwayat browser: setelah login ulang, tombol **Back** kembali ke URL itu dan user ikut ter-logout | `LoginCtrl` baru (flag `appsmith.store.doLogout`, tidak lagi membaca `?mode=keluar`) + event `onLogout` di `cwHeader` (Beranda & Admin): `{{storeValue('doLogout', true).then(() => navigateTo('Login'))}}` | ⬜ |
-| T8 | Kecil | `txtIzin` (teks uji sementara berisi daftar izin) masih ada di Beranda | Hapus widget, Deploy | ⬜ |
+| T1 | **Bug** | `cwMenu` memakai `target: 'Master_Material'` dan `'Model_List'`, padahal nama page di app `Master Material` / `Model List` → menu Master & Model tidak bisa dibuka (tidak terlihat oleh System Admin, jadi lolos uji) | Ubah target di Default model `cwMenu` menjadi `'Master Material'` dan `'Model List'` | ✅ v2 |
+| T2 | **Bug (kemungkinan)** | Kolom tanggal memakai `currentRow["Login terakhir"]` (`tblUsers.last_login_at`) dan `currentRow["Created At"]` (`tblAudit.created_at`) — `currentRow` memakai nama kolom data, bukan label → semua baris menampilkan waktu sekarang / "Invalid date" | Computed value: `{{Util.fmtDateTime(currentRow.last_login_at)}}` dan `{{Util.fmtDateTime(currentRow.created_at)}}` | ➖ dibiarkan (keputusan user 29 Sep 2026) |
+| T3 | Kecil | Run behaviour `q_me`, `q_users`, `q_audit_entities` = *Automatic* → jalan sebelum `Auth` mengecek sesi (dobel, dan memunculkan error saat sesi habis) | Set ke **Manual** (sudah dijalankan oleh `Auth.onPageLoad` / `pageQueries`) | ✅ v2 (Beranda/Admin) · sisa `q_me` di page lain → T10 |
+| T4 | Kecil | `selAuditEntitas` punya Default value sisa template `GREEN` | Kosongkan Default selected value | ✅ v2 |
+| T5 | Kecil | `a_user_reset_password`: *Request confirmation before running* OFF → reset langsung jalan tanpa konfirmasi | Nyalakan (atau konfirmasi di widget) | ✅ v2 |
+| T6 | Kecil | `mdlPasswordSementara` bisa tertutup dengan klik di luar modal (password sementara hanya tampil sekali) | *Quick dismiss* / close on outside click **OFF** | ✅ v2 |
+| T7 | **Bug** | Keluar lewat URL `Login?mode=keluar` tersimpan di riwayat browser: setelah login ulang, tombol **Back** kembali ke URL itu dan user ikut ter-logout | `LoginCtrl` baru (flag `appsmith.store.doLogout`, tidak lagi membaca `?mode=keluar`) + event `onLogout` di `cwHeader` (Beranda & Admin): `{{storeValue('doLogout', true).then(() => navigateTo('Login'))}}` | ✅ v2 (Beranda/Admin) · page baru → T9 |
+| T8 | Kecil | `txtIzin` (teks uji sementara berisi daftar izin) masih ada di Beranda | Hapus widget, Deploy | ✅ v2 |
+
+### Temuan review v2
+
+| # | Tingkat | Temuan | Perbaikan | Status |
+|---|---|---|---|---|
+| T9 | **Bug** | `cwHeader` di `Master Supplier` & `Master Komponen` masih `onLogout: {{navigateTo('Login', { mode: 'keluar' })}}` (disalin sebelum T7). `LoginCtrl` tidak lagi membaca `?mode=keluar` → tombol **Keluar** tidak logout; token masih valid sehingga Login langsung kembali ke Beranda | Event `onLogout` di kedua page: `{{storeValue('doLogout', true).then(() => navigateTo('Login'))}}`. Page lain: salin `cwHeader` dari Admin/Beranda, bukan dari page lama | ⬜ |
+| T10 | Kecil | `q_me` = *Automatic* di 9 page (semua kecuali Beranda & Admin, termasuk Login) → jalan dobel sebelum `Auth`/`LoginCtrl` | Set **Manual** di semua page | ✅ dikerjakan user 29 Sep 2026 (dicek di export v3) |
+| T11 | Kecil | Tinggi `cwKomponenForm` 430 px, isi terpanjang (vendor + pesan error + info usulan) ±490 px → tombol Simpan terpotong/harus scroll. Lebar modal 884 px & 736 px (rencana ±480 px) | `mdlKomponen`: tinggi ±540, `cwKomponenForm` ±520 px; `mdlSupplier` tinggi ±360, widget ±340 px; lebar kedua modal ±480–520 px | ➖ dibiarkan (keputusan user 29 Sep 2026) |
+| T12 | Kecil | `mdlSupplier` & `mdlKomponen`: *close on outside click* ON → klik di luar modal menutup form dan isian hilang | Matikan (tutup lewat Batal / ✕) | ➖ dibiarkan (keputusan user 29 Sep 2026) |
 
 Catatan lain:
 - Nama app di Appsmith "Test Database" dan datasource `Prestasi` (rencana: "Sistem Specsheet & CBD" / `pg_main`) — tidak memengaruhi fungsi. **User akan merapikan nama app sebelum handover** (dicek lagi di F11).
