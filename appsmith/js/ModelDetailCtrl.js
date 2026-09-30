@@ -108,6 +108,22 @@ export default {
 		return '#6b7280';
 	},
 
+	// Kolom "CBD" di tblArticles (F7): CBD terbit terakhir (+ perlu revisi) atau draft. Kosong untuk role tanpa
+	// view_cbd (q_articles mengosongkan kolomnya); draft hanya untuk role view_drafts.
+	cbdText(row) {
+		if (!this.canViewCbd()) return '';
+		const parts = [];
+		if (row.cbd_pub_label) parts.push(`${row.cbd_pub_sync === 'NEEDS_REVISION' ? 'PERLU REVISI' : 'TERBIT'} · ${row.cbd_pub_label}`);
+		if (row.cbd_draft_label) parts.push(`DRAFT · ${row.cbd_draft_label}`);
+		return parts.length ? parts.join(' · ') : 'BELUM ADA CBD';
+	},
+
+	cbdColor(row) {
+		if (row.cbd_pub_label) return row.cbd_pub_sync === 'NEEDS_REVISION' ? '#dc2626' : '#16a34a';
+		if (row.cbd_draft_label) return '#d97706';
+		return '#6b7280';
+	},
+
 	attachmentTitle() {
 		const a = this.article;
 		return a ? `Lampiran — ${this.esc(a.code)} · ${this.esc(a.colorway)}` : 'Lampiran';

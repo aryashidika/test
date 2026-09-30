@@ -234,7 +234,11 @@ export default {
 
 	openCbd() {
 		const m = this.model();
-		if (m) navigateTo('Cost Breakdown (CBD)', this.seasonId ? { model_id: m.id, season: this.seasonId } : { model_id: m.id });
+		if (!m) return;
+		const p = { model_id: m.id };
+		if (this.seasonId) p.season = this.seasonId;
+		if (this.from) p.from = this.from;   // tombol kembali di CBD mengarah ke page asal yang sama
+		navigateTo('Cost Breakdown (CBD)', p);
 	},
 
 	// ---- buat revisi ----

@@ -8,6 +8,11 @@
   --border: #D6DCE8;
   --draft: #B45309;
   --draft-bg: #FEF3C7;
+  --danger: #C0392B;
+  --danger-bg: #FDEDEB;
+  --ok: #15803D;
+  --ok-bg: #DCFCE7;
+  --info-bg: #DCE4F3;
   --radius: 8px;
   --font: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
 }
@@ -36,8 +41,15 @@ body {
 .wrap {
   height: 100%;
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
   padding: 0 12px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
 }
 
 .steps {
@@ -149,3 +161,63 @@ body {
   color: var(--muted);
   padding: 0 4px;
 }
+
+.chip.needs {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.chip.needs.active {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: #fff;
+}
+
+.arts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.art {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.art:hover {
+  background: var(--surface-alt);
+}
+
+.art.active {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 1px var(--primary);
+}
+
+.art:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(59, 111, 224, 0.3);
+}
+
+.badge {
+  font-size: 10.5px;
+  font-weight: 700;
+  border-radius: 4px;
+  padding: 1px 6px;
+  white-space: nowrap;
+}
+
+.badge.ok { background: var(--ok-bg); color: var(--ok); }
+.badge.draft { background: var(--draft-bg); color: var(--draft); }
+.badge.danger { background: var(--danger-bg); color: var(--danger); }
+.badge.info { background: var(--info-bg); color: var(--primary); }
+.badge.muted { background: var(--surface-alt); color: var(--muted); }
