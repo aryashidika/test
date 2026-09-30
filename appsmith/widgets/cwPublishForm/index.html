@@ -1,0 +1,27 @@
+<div class="wrap">
+  <div class="head">
+    <h2 id="title">Terbitkan Revisi</h2>
+    <button type="button" class="x" id="btnX" aria-label="Tutup">✕</button>
+  </div>
+
+  <div id="msg" class="msg" role="alert" hidden></div>
+
+  <ul class="checklist" id="checks"></ul>
+  <div class="blocked" id="blocked" hidden></div>
+
+  <div id="formBox">
+    <label for="category">Kategori perubahan <span class="req">*</span></label>
+    <select id="category"></select>
+
+    <label for="reason">Alasan perubahan <span class="req" id="reasonReq">*</span></label>
+    <textarea id="reason" maxlength="500"></textarea>
+    <div class="hint" id="reasonHint"></div>
+
+    <div class="info" id="note">Terbit = final. Revisi terkunci dan tidak bisa diubah atau dihapus; perubahan berikutnya lewat Buat Revisi.</div>
+  </div>
+
+  <div class="actions">
+    <button type="button" class="btn-secondary" id="btnCancel">Batal</button>
+    <button type="button" class="btn-primary" id="btnSave">Terbitkan</button>
+  </div>
+</div>

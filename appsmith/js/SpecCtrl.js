@@ -1,9 +1,11 @@
 // JSObject "SpecCtrl" — page Specsheet (?model_id=<model id>&season=<specsheet id>, keduanya opsional).
 // Dibuka dari Model List / Model Detail -> model & season langsung terpilih; dari sidebar -> pilih dulu
 // di selSpecModel lalu selSpecSeason. Stepper revisi (cwStepper), Buat Revisi (cwRevisionForm di mdlRevisi), Hapus Draft.
+// Terbitkan (cwPublishForm di mdlTerbit, F6) & Riwayat (tblRiwayat di mdlRiwayat, F6).
 // Grid BOM & article revisi ada di BomCtrl. Izin: lihat = view_specsheet (Brand hanya revisi terbit — difilter
 // query) · ubah = edit_specsheet (Vendor – Specsheet). Semua dicek lagi di DB.
-// Query q_spec_model, q_spec_seasons, q_revisions dijalankan dengan params (loadModel / loadSeason);
+// Query q_spec_model, q_spec_seasons, q_revisions, q_change_log dijalankan dengan params (loadModel / loadSeason),
+// q_publish_checklist saat modal Terbitkan dibuka;
 // isi revisi lewat BomCtrl.load().
 export default {
 	modelId: '',       // model yang dipilih
@@ -13,8 +15,17 @@ export default {
 	firstLoad: true,
 
 	revKey: 0, revBusy: false, revMsg: null,
+	pubKey: 0, pubBusy: false, pubMsg: null,
 
 	STAGES: ['PULL', 'SMS', 'GTM', 'PROD'],
+
+	// Kategori change log untuk specsheet (DB juga menerima EX_RATE / LOP / AMORTIZATION / YIELD untuk CBD)
+	CATEGORIES: [
+		{ value: 'MATERIAL', label: 'Material (ganti / tambah material, warna)' },
+		{ value: 'COMPONENT', label: 'Komponen (tambah / hapus baris)' },
+		{ value: 'TREATMENT', label: 'Treatment / proses' },
+		{ value: 'OTHER', label: 'Lainnya' },
+	],
 
 	// ---- data ----
 	models() {
@@ -50,6 +61,14 @@ export default {
 		const pub = this.revisions().filter(r => r.status === 'PUBLISHED');
 		pub.sort((a, b) => (b.stage_order - a.stage_order) || (b.revision_no - a.revision_no));
 		return pub[0] || null;
+	},
+
+	changeLogs() {
+		return q_change_log.data || [];
+	},
+
+	logFor(revisionId) {
+		return this.changeLogs().find(l => l.revision_id === revisionId) || null;
 	},
 
 	label(r) {
@@ -109,7 +128,10 @@ export default {
 	// Muat revisi season ini lalu buka revisi: pickId, revisi yang sedang dibuka, draft, atau terbit terakhir.
 	async loadSeason(pickId) {
 		try {
-			await q_revisions.run({ specsheet_id: this.seasonId || '' });
+			await Promise.all([
+				q_revisions.run({ specsheet_id: this.seasonId || '' }),
+				q_change_log.run({ specsheet_id: this.seasonId || '' }),
+			]);
 		} catch (e) {
 			showAlert(Util.cleanError(e && e.message), 'error');
 		}
@@ -185,6 +207,8 @@ export default {
 		if (r.status === 'PUBLISHED') t += ` · terbit ${Util.fmtDateTime(r.published_at)} oleh ${e(r.published_by || '-')}`;
 		else t += ` · dibuat ${Util.fmtDateTime(r.created_at)} oleh ${e(r.created_by || '-')}`;
 		if (r.source_label) t += ` · sumber: ${e(r.source_season)} ${e(r.source_label)}`;
+		const log = r.status === 'PUBLISHED' ? this.logFor(r.id) : null;
+		if (log) t += `<br><span style="color:#6b7280">Perubahan (${e(log.category)}): ${e(log.reason)}</span>`;
 		if (this.canEdit() && r.status === 'PUBLISHED' && this.draft()) {
 			t += ` · <span style="color:#d97706">ada draft ${e(this.label(this.draft()))}</span>`;
 		}
@@ -274,6 +298,96 @@ export default {
 		showAlert('Revisi draft dibuat.', 'success');
 		await this.refreshSeasons();
 		await this.loadSeason(id);
+	},
+
+	// ---- terbitkan (F6) ----
+	// Checklist dimuat ulang setiap modal dibuka (isi grid bisa berubah).
+	async openPublish() {
+		const r = this.revision();
+		if (!r || r.status !== 'DRAFT') return;
+		try {
+			await q_publish_checklist.run({ revision_id: r.id });
+		} catch (e) {
+			const msg = e && e.message;
+			if (Util.isSessionError(msg)) {
+				await removeValue('token');
+				showAlert('Sesi login habis. Silakan login lagi.', 'warning');
+				navigateTo('Login');
+				return;
+			}
+			showAlert(Util.cleanError(msg), 'error');
+			return;
+		}
+		this.pubBusy = false;
+		this.pubMsg = null;
+		this.pubKey = this.pubKey + 1;
+		showModal('mdlTerbit');
+	},
+
+	publishFormModel() {
+		const r = this.revision();
+		const s = this.season();
+		const c = (q_publish_checklist.data && q_publish_checklist.data[0]) || null;
+		const checks = !c ? [] : [
+			{ label: 'Minimal satu article aktif', ok: c.active_articles > 0, blocking: true,
+				detail: `${c.active_articles} article aktif` },
+			{ label: 'Setiap article aktif dipakai di BOM', ok: !c.unused_articles, blocking: true,
+				detail: c.unused_articles ? `Belum dipakai (belum ada warna di baris mana pun): ${c.unused_articles}` : '' },
+			{ label: 'Tidak ada material INACTIVE', ok: !c.inactive_materials, blocking: true,
+				detail: c.inactive_materials || '' },
+			{ label: 'Semua baris punya supplier (dibutuhkan harga CBD)', ok: c.no_supplier_lines === 0, blocking: false,
+				detail: c.no_supplier_lines ? `${c.no_supplier_lines} baris tanpa supplier — boleh terbit, tapi harga CBD-nya tidak bisa diambil` : '' },
+		];
+		const requiresReason = c ? !!c.requires_reason : true;
+		return {
+			key: this.pubKey,
+			title: `Terbitkan ${s ? s.season + ' · ' : ''}${this.label(r)}`,
+			checks,
+			blocked: !c || !!c.blocked,
+			requiresReason,
+			categories: this.CATEGORIES,
+			defaultCategory: requiresReason ? '' : 'OTHER',
+			busy: this.pubBusy,
+			message: this.pubMsg,
+		};
+	},
+
+	async publish() {
+		const f = cwPublishForm.model || {};
+		const r = this.revision();
+		if (!r) return;
+		this.pubMsg = null;
+		this.pubBusy = true;
+		try {
+			await a_revision_publish.run({ revision_id: r.id, category: f.category || '', reason: f.reason || '' });
+		} catch (e) {
+			const msg = e && e.message;
+			if (Util.isSessionError(msg)) {
+				closeModal('mdlTerbit');
+				await removeValue('token');
+				showAlert('Sesi login habis. Silakan login lagi.', 'warning');
+				navigateTo('Login');
+				return;
+			}
+			this.pubMsg = { type: 'error', text: Util.cleanError(msg) };
+			return;
+		} finally {
+			this.pubBusy = false;
+		}
+		closeModal('mdlTerbit');
+		showAlert(`Revisi ${this.label(r)} diterbitkan.`, 'success');
+		await this.refreshSeasons();
+		await this.loadSeason(r.id);
+	},
+
+	// ---- riwayat (F6) ----
+	historyLabel() {
+		const n = this.changeLogs().length;
+		return n ? `Riwayat (${n})` : 'Riwayat';
+	},
+
+	openHistory() {
+		showModal('mdlRiwayat');
 	},
 
 	// Query a_revision_delete memakai "Request confirmation before running" = ON
