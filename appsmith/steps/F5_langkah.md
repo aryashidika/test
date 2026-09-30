@@ -315,21 +315,148 @@ Grid BOM (draft FH25 PULL r0)
 - [ ] Material INACTIVE tidak ada di saran; diketik manual → ditolak
 - [ ] Header article **✕** → berubah **Drop?** → klik lagi → kolom hilang, info *di-drop: …*; **Masukkan ke Revisi** article itu → kolom kembali (warna lama tetap)
 
-Hapus draft & copy
-- [ ] **Hapus Draft** (konfirmasi) → stepper kosong lagi, article di Model Detail tetap ada
-- [ ] Buat lagi draft FH25 berisi beberapa baris, lalu terbitkan lewat DB Tools (F6 belum ada):
-  ```sql
-  UPDATE specsheet_revision SET status = 'PUBLISHED', published_at = now(), published_by = 'uji'
-   WHERE status = 'DRAFT' AND specsheet_id = (SELECT s.id FROM specsheet s JOIN product_model m ON m.id = s.model_id
-                                               WHERE m.code = 'ILZ-01' AND s.season = 'FH25');
-  ```
-- [ ] Reload: chip `r0` FH25 biru (terbit), grid **hanya baca**; coba ubah via DB Tools `UPDATE bom_line SET process = 'x'` pada revisi itu → ditolak *Revisi ini sudah diterbitkan…*
-- [ ] Season **SS26** → **+ Buat Revisi** → **Copy dari season lain** → sumber `FH25 — PULL r0 terbit`, stage PULL → baris BOM sama dengan FH25, kolom = 3 article SS26, **warna kosong**
-- [ ] Model Detail SS26: kode article yang sudah masuk revisi → tombol Hapus hilang, form Ubah: kode terkunci (uji F4 yang ditunda)
-- [ ] Kembali ke FH25 (sudah terbit) → **+ Buat Revisi** → pilihan **Revisi berikutnya: PULL r1** / **Stage berikutnya: SMS r0** → Revisi berikutnya → `r1` draft berisi baris + warna yang sama
-- [ ] Brand: FH25 hanya `r0` (terbit), draft `r1` tidak terlihat; grid hanya baca; Model List kolom Specsheet menampilkan revisi terbit
-- [ ] Master Admin: bisa melihat draft, tidak ada tombol ubah (hanya Vendor – Specsheet yang `edit_specsheet`)
-- [ ] Admin → Audit Log: entri `specsheet_revision`, `revision_article`, `bom_line`, `bom_cell`
+Hapus draft & copy — langkah lengkap ada di **§4b** di bawah.
+
+---
+
+## 4b. Uji lengkap: hapus draft, terbit (sementara lewat DB Tools), copy, revisi berikutnya
+
+**Keadaan awal** (setelah uji Grid BOM di atas): model `ILZ-01`, season **FH25** punya draft `PULL r0` berisi beberapa
+baris; season **SS26** belum punya revisi. Login sebagai **Vendor – Specsheet** kecuali disebut lain.
+Semua query di bawah dijalankan di app **DB Tools** (`z_run_sql`).
+
+**Q-cek** — query bantu untuk melihat isi semua revisi `ILZ-01` (dipakai berulang):
+```sql
+SELECT s.season, r.stage, r.revision_no, r.status,
+       src_s.season || ' ' || src.stage || ' r' || src.revision_no AS sumber,
+       (SELECT count(*) FROM bom_line l WHERE l.revision_id = r.id AND l.is_active) AS baris,
+       (SELECT count(*) FROM revision_article a WHERE a.revision_id = r.id AND a.status = 'ACTIVE') AS article_aktif,
+       (SELECT count(*) FROM bom_cell c JOIN bom_line l ON l.id = c.bom_line_id
+         WHERE l.revision_id = r.id AND l.is_active AND c.color IS NOT NULL) AS sel_berwarna
+FROM specsheet_revision r
+JOIN specsheet s ON s.id = r.specsheet_id
+JOIN product_model m ON m.id = s.model_id
+LEFT JOIN specsheet_revision src ON src.id = r.source_revision_id
+LEFT JOIN specsheet src_s ON src_s.id = src.specsheet_id
+WHERE m.code = 'ILZ-01'
+ORDER BY s.season_sort, r.stage_order, r.revision_no;
+```
+
+### A. Hapus draft
+
+| # | Langkah | Hasil yang diharapkan |
+|---|---|---|
+| A1 | DB Tools: jalankan **Q-cek** | 1 baris: `FH25 · PULL · 0 · DRAFT`, `baris` > 0 |
+| A2 | Specsheet → model `ILZ-01`, season `FH25` → **Hapus Draft** → di dialog konfirmasi pilih **Cancel** | Tidak ada yang berubah, draft masih ada (boleh muncul toast "dibatalkan") |
+| A3 | **Hapus Draft** lagi → **Confirm** | Toast *Draft PULL r0 dihapus.*; stepper *Belum ada revisi. Klik "+ Buat Revisi".*; grid kosong; **Hapus Draft** hilang; **+ Buat Revisi** muncul |
+| A4 | DB Tools: **Q-cek** | 0 baris |
+| A5 | Model Detail `ILZ-01` → season `FH25` | 2 article tetap ada; kolom Specsheet *BELUM MASUK SPECSHEET*; tombol **Hapus** article muncul lagi (article belum dipakai) |
+
+### B. Siapkan revisi sumber di FH25 lalu terbitkan
+
+| # | Langkah | Hasil yang diharapkan |
+|---|---|---|
+| B1 | Specsheet `FH25` → **+ Buat Revisi** → **Mulai kosong**, stage `PULL` → **Buat** | Chip `r0` kuning bergaris putus di PULL; grid kosong dengan 2 kolom article |
+| B2 | Isi grid: baris `10` (material A + supplier); **+ Sub** di baris 10, nama `Lining` (material B); baris lokal `Heel badge` No. `35` (material C). Warna: baris 10 → `Black` / `White`, baris 10-1 → `Black` / `Black`, baris 35 → `Gold` / kosong. Remarks baris 10 → `Emboss` | Urutan `10`, `10-1`, `35`; reload page → isi sama |
+| B3 | Pindah ke season `SS26` → **+ Buat Revisi** | **Copy dari season lain** **nonaktif**, teks *Belum ada season lain model ini yang punya revisi terbit* (FH25 masih draft) → **Batal** |
+| B4 | DB Tools: terbitkan draft FH25 (query di bawah; F6 belum ada) | `1 row affected` |
+
+```sql
+UPDATE specsheet_revision SET status = 'PUBLISHED', published_at = now(), published_by = 'uji'
+ WHERE status = 'DRAFT' AND specsheet_id = (SELECT s.id FROM specsheet s JOIN product_model m ON m.id = s.model_id
+                                             WHERE m.code = 'ILZ-01' AND s.season = 'FH25');
+```
+
+| # | Langkah | Hasil yang diharapkan |
+|---|---|---|
+| B5 | Reload page Specsheet, pilih `ILZ-01` / `FH25` | Chip `r0` biru terisi (terbit); info *PUBLISHED · terbit … oleh uji*; grid **hanya baca** (tidak ada input, baris **+ Tambah**, **+ Sub**, **✕** di header article); **Hapus Draft** & **Masukkan ke Revisi** tidak tampil; **+ Buat Revisi** tampil |
+| B6 | DB Tools: coba ubah baris revisi terbit (query di bawah) — **harus error** | *Revisi ini sudah diterbitkan dan tidak bisa diubah…* |
+
+```sql
+UPDATE bom_line SET process = 'x'
+ WHERE revision_id = (SELECT r.id FROM specsheet_revision r JOIN specsheet s ON s.id = r.specsheet_id
+                       JOIN product_model m ON m.id = s.model_id
+                      WHERE m.code = 'ILZ-01' AND s.season = 'FH25' AND r.status = 'PUBLISHED' LIMIT 1);
+```
+
+| # | Langkah | Hasil yang diharapkan |
+|---|---|---|
+| B7 | DB Tools: coba hapus revisi terbit (query di bawah) — **harus error** | *Revisi PULL r0 sudah diterbitkan dan tidak bisa diubah atau dihapus.* |
+
+```sql
+DELETE FROM specsheet_revision
+ WHERE id = (SELECT r.id FROM specsheet_revision r JOIN specsheet s ON s.id = r.specsheet_id
+              JOIN product_model m ON m.id = s.model_id
+             WHERE m.code = 'ILZ-01' AND s.season = 'FH25' AND r.status = 'PUBLISHED' LIMIT 1);
+```
+
+| # | Langkah | Hasil yang diharapkan |
+|---|---|---|
+| B8 | Model Detail `FH25` | Kolom Specsheet kedua article *AKTIF · PULL r0 terbit* (hijau); tombol **Hapus** article tidak tampil; **Ubah** article → kode **terkunci** dengan catatan *Kode tidak bisa diubah…*, colorway tetap bisa diubah (uji F4 yang ditunda) |
+| B9 | Model List → filter season `FH25` → **Cari** | Kolom Specsheet `PULL r0 · PUBLISHED · 2 article aktif` |
+
+### C. Copy specsheet ke SS26 (model sama)
+
+| # | Langkah | Hasil yang diharapkan |
+|---|---|---|
+| C1 | Specsheet `SS26` → **+ Buat Revisi** | **Mulai kosong** dan **Copy dari season lain (model sama)** (aktif); tidak ada Revisi/Stage berikutnya |
+| C2 | Pilih **Copy…**, ubah Season sumber ke `— pilih season —` → **Buat** | Pesan merah *Pilih season sumber.*, modal tetap terbuka |
+| C3 | Season sumber `FH25 — PULL r0 terbit`, stage `PULL` → **Buat** | Toast *Revisi draft dibuat.*; chip `r0` kuning di PULL; info *… DRAFT … sumber: FH25 PULL r0* |
+| C4 | Lihat grid SS26 | Baris sama dengan FH25: `10` (material A, supplier sama, remarks `Emboss`), `10-1 ↳ Lining`, `35 Heel badge` **lokal**; kolom = **3 article SS26**; **semua warna kosong** |
+| C5 | DB Tools: **Q-cek** | `SS26 · PULL · 0 · DRAFT`, sumber `FH25 PULL r0`, `baris` = 3, `article_aktif` = 3, `sel_berwarna` = 0 |
+| C6 | DB Tools: cek line_key baru & induk subkomponen (query di bawah) | 3 baris; semua `key_baru` = true, `origin_ok` = true; baris `Lining`: `induk_baru` = true |
+
+```sql
+SELECT coalesce(n.sub_name, n.local_component_name, '(komponen master)') AS baris,
+       n.line_key <> o.line_key AS key_baru, n.origin_line_key = o.line_key AS origin_ok,
+       CASE WHEN n.parent_line_key IS NULL THEN NULL
+            ELSE EXISTS (SELECT 1 FROM bom_line p WHERE p.revision_id = n.revision_id AND p.line_key = n.parent_line_key) END AS induk_baru
+FROM bom_line n
+JOIN bom_line o ON o.line_key = n.origin_line_key
+WHERE n.revision_id = (SELECT r.id FROM specsheet_revision r JOIN specsheet s ON s.id = r.specsheet_id
+                        JOIN product_model m ON m.id = s.model_id
+                       WHERE m.code = 'ILZ-01' AND s.season = 'SS26' AND r.status = 'DRAFT');
+```
+
+| # | Langkah | Hasil yang diharapkan |
+|---|---|---|
+| C7 | Isi warna `Navy` di baris 10, article pertama SS26 → pindah ke season `FH25` | FH25 `r0` tidak berubah (baris 10 tetap `Black` / `White`) — hasil copy tidak terhubung ke sumber |
+| C8 | Kembali ke `SS26` | **+ Buat Revisi** tidak tampil (sudah ada draft) |
+| C9 | Model Detail `SS26` | 3 article *DI DRAFT · PULL r0* (kuning); tombol **Hapus** tidak tampil; kode terkunci di form Ubah |
+
+### D. Revisi berikutnya & stage berikutnya (FH25)
+
+| # | Langkah | Hasil yang diharapkan |
+|---|---|---|
+| D1 | Specsheet `FH25` → **+ Buat Revisi** | **Revisi berikutnya: PULL r1** (*Salin PULL r0 …*) dan **Stage berikutnya: SMS r0**; tidak ada Mulai kosong / Copy |
+| D2 | Pilih **Revisi berikutnya** → **Buat** | Chip `r1` kuning di PULL sebelah `r0`; grid bisa diedit, baris + **warna sama** dengan r0; info *sumber: FH25 PULL r0* |
+| D3 | DB Tools: **Q-cek** | `FH25 · PULL · 1 · DRAFT`, `baris` = 3, `article_aktif` = 2, `sel_berwarna` sama dengan `FH25 PULL 0` |
+| D4 | Di r1 ganti warna baris 10 → `Red` → klik chip `r0` | r0 (hanya baca) tetap `Black`; klik chip `r1` → `Red` |
+| D5 | Di r1 → **Hapus Draft** → **Confirm** | Chip `r1` hilang, `r0` otomatis terbuka |
+| D6 | **+ Buat Revisi** → **Stage berikutnya: SMS r0** → **Buat** | Stage SMS punya chip `r0` kuning dan bergaris bawah (stage aktif); chip PULL `r0` tetap |
+| D7 | DB Tools: **Q-cek** | `FH25 · SMS · 0 · DRAFT`, sumber `FH25 PULL r0`, isi sama dengan PULL r0 |
+
+Biarkan draft **FH25 SMS r0** dan **SS26 PULL r0** — dipakai untuk uji role di bawah dan uji Terbitkan di F6.
+
+### E. Hak akses per role
+
+| # | Akun | Langkah | Hasil yang diharapkan |
+|---|---|---|---|
+| E1 | Brand Viewer | Specsheet `ILZ-01` / `FH25` | Pilihan season `FH25 (1 revisi)`, `SS26 (0 revisi)`; stepper hanya `PULL r0` (draft SMS **tidak** terlihat); grid hanya baca; tidak ada tombol ubah |
+| E2 | Brand Viewer | Season `SS26` | Stepper *Belum ada revisi yang terbit.*; grid kosong |
+| E3 | Brand Viewer | Model List (tanpa filter) · lalu filter `FH25` | Tanpa filter (season terbaru SS26): *Belum ada specsheet* · filter FH25: `PULL r0 · PUBLISHED · 2 article aktif` |
+| E4 | Brand Viewer | Model Detail `FH25` | Kolom Specsheet *AKTIF · PULL r0 terbit* (draft SMS tidak disebut) |
+| E5 | Vendor – Specsheet | Model List filter `FH25` | `SMS r0 · DRAFT · 2 article aktif` (revisi terakhir = urut stage, P2) |
+| E6 | Master Admin | Specsheet `FH25` | Chip `PULL r0` dan `SMS r0` (draft terlihat); grid hanya baca; **+ Buat Revisi** / **Hapus Draft** tidak tampil |
+| E7 | Vendor – CBD | Specsheet `FH25` | Sama dengan Master Admin; tombol **Buka CBD →** tampil |
+
+### F. Audit log
+
+| # | Akun | Langkah | Hasil yang diharapkan |
+|---|---|---|---|
+| F1 | System Admin | Admin → Audit Log → entitas `specsheet_revision` | `INSERT` untuk setiap revisi yang dibuat (FH25 PULL r0 ×2, SS26 PULL r0, FH25 PULL r1, FH25 SMS r0); `DELETE` untuk dua draft yang dihapus; `UPDATE` status DRAFT → PUBLISHED dari DB Tools (user tercatat = pengubah terakhir revisi itu, karena query DB Tools tidak lewat login; di F6 terbit lewat app mencatat user yang menerbitkan) |
+| F2 | System Admin | Entitas `bom_line` / `bom_cell` | `INSERT` / `UPDATE` oleh email Vendor – Specsheet; `DELETE` saat draft dihapus |
+| F3 | System Admin | Entitas `revision_article` | `INSERT` saat revisi dibuat; `UPDATE` saat article di-drop / diaktifkan lagi |
 
 ---
 
