@@ -185,12 +185,12 @@ export default {
 	// ---- navigasi ----
 	openSpecsheet() {
 		const m = this.model();
-		if (m) navigateTo('Specsheet', this.seasonId ? { model_id: m.id, season: this.seasonId } : { model_id: m.id });
+		if (m) navigateTo('Specsheet', this.seasonId ? { model_id: m.id, season: this.seasonId, from: 'detail' } : { model_id: m.id, from: 'detail' });
 	},
 
 	openCbd() {
 		const m = this.model();
-		if (m) navigateTo('Cost Breakdown (CBD)', this.seasonId ? { model_id: m.id, season: this.seasonId } : { model_id: m.id });
+		if (m) navigateTo('Cost Breakdown (CBD)', this.seasonId ? { model_id: m.id, season: this.seasonId, from: 'detail' } : { model_id: m.id, from: 'detail' });
 	},
 
 	// ---- model ----

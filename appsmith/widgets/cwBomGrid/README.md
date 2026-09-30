@@ -15,6 +15,7 @@ Hanya tampilan & input. Setiap perubahan dikirim sebagai `model.action` + **satu
     dulu (utama paling atas), link INACTIVE tidak ditawarkan. Badge **usulan** (link PROPOSED) / **⚠ nonaktif**.
   - **Warna** per article dengan saran warna se-season.
   - **+ Sub** membuka baris form subkomponen di bawah induknya.
+  - **Hapus** (kolom aksi) → **Yakin?** / **Hapus + sub?** → klik lagi = hapus baris (induk ikut menghapus subkomponennya; F5b).
   - Baris **+ Tambah** di bawah: komponen `10 - Vamp` / `10` / nama unik = komponen master APPROVED; teks lain =
     komponen **lokal** (No. wajib, bukan kelipatan 10). Material dipilih → supplier utama (atau satu-satunya) terisi.
   - Header article **✕** → **Drop?** → klik lagi = drop article (tanpa dialog, aman di iframe).
@@ -61,5 +62,6 @@ Satu event **`onAction`** → `{{BomCtrl.onAction()}}`. Sebelumnya widget mengis
 | `setProcess` | `line_id`, `process` | `a_bom_set_process` |
 | `setCell` | `line_id`, `article_id`, `color` | `a_cell_save` |
 | `dropArticle` | `article_id` | `a_rev_article_set` (`DROPPED`) |
+| `deleteLine` | `line_id` | `a_bom_delete_line` (F5b) |
 
 Setiap aksi juga membawa `seq` (nomor urut) supaya dua aksi berurutan yang sama tetap terbaca berbeda.

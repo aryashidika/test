@@ -108,6 +108,7 @@ export default {
 			setProcess: [a_bom_set_process, { line_id: a.line_id, process: a.process }, []],
 			setCell: [a_cell_save, { line_id: a.line_id, article_id: a.article_id, color: a.color }, ['colors']],
 			dropArticle: [a_rev_article_set, { revision_id: r.id, article_id: a.article_id, status: 'DROPPED' }, ['articles']],
+			deleteLine: [a_bom_delete_line, { line_id: a.line_id }, ['colors']],
 		};
 		const def = actions[a.type];
 		if (!def) return;

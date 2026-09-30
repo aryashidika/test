@@ -282,6 +282,24 @@ input.cell:disabled {
   color: var(--muted);
 }
 
+.c-act .link {
+  display: block;
+}
+
+.link.danger {
+  color: var(--danger);
+  font-weight: 400;
+  font-size: 12px;
+}
+
+.link.danger.confirm {
+  color: #fff;
+  background: var(--danger);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-weight: 700;
+}
+
 .btn {
   height: 28px;
   padding: 0 10px;

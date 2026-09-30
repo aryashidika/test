@@ -92,11 +92,12 @@ export default {
 		navigateTo('Model Detail', row.specsheet_id ? { id: row.id, season: row.specsheet_id } : { id: row.id });
 	},
 
+	// from: 'list' -> tombol kembali di Specsheet / CBD mengarah ke Model List
 	openSpecsheet(row) {
-		navigateTo('Specsheet', row.specsheet_id ? { model_id: row.id, season: row.specsheet_id } : { model_id: row.id });
+		navigateTo('Specsheet', row.specsheet_id ? { model_id: row.id, season: row.specsheet_id, from: 'list' } : { model_id: row.id, from: 'list' });
 	},
 
 	openCbd(row) {
-		navigateTo('Cost Breakdown (CBD)', row.specsheet_id ? { model_id: row.id, season: row.specsheet_id } : { model_id: row.id });
+		navigateTo('Cost Breakdown (CBD)', row.specsheet_id ? { model_id: row.id, season: row.specsheet_id, from: 'list' } : { model_id: row.id, from: 'list' });
 	},
 }

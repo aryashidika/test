@@ -16,6 +16,8 @@ let addState = {};          // isian baris tambah (dipertahankan saat render ula
 let subState = {};
 let dropArmed = null;       // article yang tombol drop-nya menunggu klik kedua
 let dropTimer = null;
+let delArmed = null;        // baris yang tombol Hapus-nya menunggu klik kedua
+let delTimer = null;
 
 function applyTheme(t) {
   t = t || {};
@@ -255,8 +257,33 @@ function armDrop(btn, art) {
   clearTimeout(dropTimer);
   dropTimer = setTimeout(() => {
     dropArmed = null;
-    btn.classList.remove('confirm');
-    btn.textContent = '✕';
+    const b = document.querySelector(`#thead .drop[data-art="${art.id}"]`);
+    if (b) {
+      b.classList.remove('confirm');
+      b.textContent = '✕';
+    }
+  }, 3000);
+}
+
+// Hapus baris: klik pertama -> "Yakin?" (3 detik), klik kedua -> kirim. Baris induk ikut menghapus subkomponennya.
+function armDelete(btn, line, hasSubs) {
+  if (delArmed === line.id) {
+    clearTimeout(delTimer);
+    delArmed = null;
+    send('deleteLine', { line_id: line.id });
+    return;
+  }
+  delArmed = line.id;
+  btn.classList.add('confirm');
+  btn.textContent = hasSubs ? 'Hapus + sub?' : 'Yakin?';
+  clearTimeout(delTimer);
+  delTimer = setTimeout(() => {
+    delArmed = null;
+    const b = document.querySelector(`#tbody .link.danger[data-line="${line.id}"]`);
+    if (b) {
+      b.classList.remove('confirm');
+      b.textContent = 'Hapus';
+    }
   }, 3000);
 }
 
@@ -392,7 +419,7 @@ function materialCell(line, editable) {
   return c;
 }
 
-function lineRow(line, arts, editable) {
+function lineRow(line, arts, editable, hasSubs) {
   const tr = el('tr', line.is_sub ? 'sub' : '');
   tr.appendChild(td('c-no', String(line.display_no ?? '')));
   const comp = el('td', 'c-comp');
@@ -427,6 +454,13 @@ function lineRow(line, arts, editable) {
       });
       act.appendChild(b);
     }
+    const del = el('button', 'link danger', delArmed === line.id ? (hasSubs ? 'Hapus + sub?' : 'Yakin?') : 'Hapus');
+    if (delArmed === line.id) del.classList.add('confirm');
+    del.type = 'button';
+    del.dataset.line = line.id;
+    del.title = hasSubs ? 'Hapus baris ini beserta subkomponennya (klik dua kali)' : 'Hapus baris ini (klik dua kali)';
+    del.addEventListener('click', () => armDelete(del, line, hasSubs));
+    act.appendChild(del);
     tr.appendChild(act);
   }
   const cells = typeof line.cells === 'string' ? JSON.parse(line.cells || '{}') : (line.cells || {});
@@ -528,6 +562,7 @@ function render(model, keepState) {
       const b = el('button', 'drop', dropArmed === a.id ? 'Drop?' : '✕');
       if (dropArmed === a.id) b.classList.add('confirm');
       b.type = 'button';
+      b.dataset.art = a.id;
       b.title = `Drop article ${a.code} dari revisi ini (klik dua kali)`;
       b.addEventListener('click', () => armDrop(b, a));
       box.appendChild(b);
@@ -548,8 +583,9 @@ function render(model, keepState) {
     tr.appendChild(c);
     tbody.appendChild(tr);
   }
+  const parents = new Set(lines.filter(l => l.is_sub).map(l => l.parent_line_key));
   lines.forEach(line => {
-    tbody.appendChild(lineRow(line, arts, editable));
+    tbody.appendChild(lineRow(line, arts, editable, !line.is_sub && parents.has(line.line_key)));
     if (editable && subParent === line.id) {
       const f = formInputs('sub', subState, true);
       const ok = el('button', 'btn', 'Tambah');

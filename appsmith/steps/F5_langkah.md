@@ -463,3 +463,55 @@ Biarkan draft **FH25 SMS r0** dan **SS26 PULL r0** — dipakai untuk uji role di
 ## 5. Export
 
 Export app → `appsmith/exports/export_v5.json` → kirim di chat bersama hasil query cek skema (PLAN.md §8) dan uji yang gagal (kalau ada).
+
+---
+
+## 6. Perbaikan setelah review export v5 (30 Sep 2026)
+
+### 6a. T28 — query baca Specsheet ke Manual
+Page `Specsheet`: `q_spec_models`, `q_spec_model`, `q_spec_seasons`, `q_revisions`, `q_rev_articles`, `q_bom_grid`,
+`q_bom_options`, `q_season_colors` → *Run behaviour* **Manual** (sekarang *Automatic*: ikut jalan tanpa params saat
+page dibuka dan bisa mengosongkan grid/stepper setelah `SpecCtrl.init()` selesai — sama dengan T22).
+
+### 6b. Grid BOM hanya tampil kalau ada revisi yang dibuka
+`cwBomGrid` → Visible: `{{!!SpecCtrl.revision()}}`
+
+### 6c. Tombol kembali sesuai asal halaman
+- JSObject `ModelCtrl` (Model List) dan `ModelDetailCtrl` (Model Detail) → tempel ulang dari `js/`
+  (tombol Specsheet/CBD mengirim `from: 'list'` / `from: 'detail'`).
+- JSObject `SpecCtrl` → tempel ulang `js/SpecCtrl.js` (fungsi baru `backLabel()`, teks *Pilih model dan season dahulu.* sudah ikut).
+- `btnKembali` → Label: `{{SpecCtrl.backLabel()}}` (hapus juga karakter Tab di akhir label lama).
+
+| Dibuka dari | Tombol kembali |
+|---|---|
+| Model List (tombol **Specsheet**) | `← Model List` |
+| Model Detail (**Buka Specsheet**) | `← Model Detail` |
+| Sidebar, model sudah dipilih | `← Model Detail` |
+| Sidebar, model belum dipilih | `← Model List` |
+
+### 6d. F5b — hapus baris BOM (permintaan user; tidak ada di Python)
+1. DB Tools → `z_run_sql` → tempel `sql/F5b_bom_delete.sql` → Run.
+2. Query baru **`a_bom_delete_line`** (prepared ON, Manual):
+   ```sql
+   SELECT fn_bom_delete_line({{appsmith.store.token}}, {{this.params.line_id}}::uuid) AS deleted;
+   ```
+3. JSObject `BomCtrl` → tempel ulang `js/BomCtrl.js` (aksi `deleteLine`).
+4. `cwBomGrid` → tempel ulang **JavaScript** dan **Style** dari `widgets/cwBomGrid/` (tombol **Hapus** di kolom aksi,
+   konfirmasi klik dua kali: **Yakin?** / **Hapus + sub?**).
+
+Lalu **Deploy**.
+
+### 6e. Uji
+- [ ] Specsheet dibuka dari sidebar tanpa model → grid tidak tampil; pilih model yang belum punya revisi → grid tetap tidak tampil; buka revisi → grid tampil
+- [ ] Reload page Specsheet berkali-kali → stepper & grid selalu terisi (tidak kosong mendadak) — T28
+- [ ] Model List → **Specsheet** → tombol `← Model List` → kembali ke Model List
+- [ ] Model Detail → **Buka Specsheet** → tombol `← Model Detail` → kembali ke model & season yang sama
+- [ ] Sidebar → Specsheet → pilih model → tombol `← Model Detail`
+- [ ] Draft: klik **Hapus** di baris tanpa subkomponen → **Yakin?** → tunggu 3 detik → kembali **Hapus** (batal); klik dua kali → baris hilang
+- [ ] Baris induk yang punya subkomponen → **Hapus + sub?** → klik lagi → induk & subkomponennya hilang
+- [ ] Hapus subkomponen saja → induk tetap
+- [ ] Hapus baris komponen lokal No. `35`, lalu tambah lagi komponen lokal No. `35` → berhasil (nomor bebas lagi)
+- [ ] Revisi terbit: grid hanya baca, tidak ada tombol Hapus (DB juga menolak lewat `trg_lock_published`, sudah diuji di B6)
+- [ ] Audit Log `bom_line`: `DELETE` oleh email Vendor – Specsheet
+
+Export ulang → simpan sebagai `export_v5.json` (menimpa) → kirim di chat.

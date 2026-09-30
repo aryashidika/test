@@ -7,6 +7,7 @@
 // isi revisi lewat BomCtrl.load().
 export default {
 	modelId: '',       // model yang dipilih
+	from: '',          // asal halaman (?from=list | detail) -> tujuan tombol kembali
 	seasonId: '',      // specsheet (season) yang dipilih
 	revisionId: '',    // revisi yang dibuka
 	firstLoad: true,
@@ -75,6 +76,7 @@ export default {
 			showAlert(Util.cleanError(e && e.message), 'error');
 		}
 		const url = appsmith.URL.queryParams;
+		if (this.firstLoad) this.from = url.from || '';
 		const want = this.modelId || (this.firstLoad ? url.model_id : '');
 		this.modelId = this.models().some(m => m.id === want) ? want : '';
 		if (want && !this.modelId) showAlert('Model tidak ditemukan. Pilih model di atas.', 'warning');
@@ -151,7 +153,7 @@ export default {
 
 	headerText() {
 		const m = this.model();
-		if (!m) return this.modelId && q_spec_model.isLoading ? 'Memuat…' : 'Pilih model dan season di atas.';
+		if (!m) return this.modelId && q_spec_model.isLoading ? 'Memuat…' : 'Pilih model dan season dahulu.';
 		const e = v => this.esc(v || '-');
 		return `<b style="font-size:18px">${e(m.code)} — ${e(m.name)}</b><br>`
 			+ `<span style="color:#6b7280">Kategori: ${e(m.category)} · Factory: ${e(m.factory)} · Outsole Mould: ${e(m.outsole_mold)}`
@@ -190,9 +192,19 @@ export default {
 	},
 
 	// ---- navigasi ----
+	// Tombol kembali: ke page asal (Model List / Model Detail). Dibuka dari sidebar: Model Detail kalau model
+	// sudah dipilih, kalau belum Model List.
+	backToList() {
+		return this.from === 'list' || !this.model();
+	},
+
+	backLabel() {
+		return this.backToList() ? '← Model List' : '← Model Detail';
+	},
+
 	openModel() {
 		const m = this.model();
-		if (!m) return navigateTo('Model List');
+		if (this.backToList()) return navigateTo('Model List');
 		navigateTo('Model Detail', this.seasonId ? { id: m.id, season: this.seasonId } : { id: m.id });
 	},
 
