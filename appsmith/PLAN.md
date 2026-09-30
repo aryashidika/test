@@ -7,7 +7,7 @@
 | Target | Appsmith **v2.4** self-hosted (HTTPS) + PostgreSQL **16.15** (datasource `pg_main`) |
 | Akses | App **publik** dengan login di dalam app (email + password), bukan akun Appsmith |
 | Data lama | Tidak dimigrasi (mulai dari DB kosong) |
-| Status | Rencana disetujui 24 Sep 2026 (termasuk P1–P3) · login in-app disetujui 25 Sep 2026 · UI campuran + Custom Widget disetujui 25 Sep 2026 · **F0 + F1 selesai** (export v1, 25 Sep 2026) · **F2 selesai** (export v2, 29 Sep 2026) · **F3 dikerjakan** (export v3, 29 Sep 2026; T13–T17 diperbaiki user) · **F3 + F3b selesai** (export v3b, 30 Sep 2026) · **F4 selesai** (export v4 = file user v4.7, 30 Sep 2026; Copy Article dihapus — keputusan user) · **F5 + F5b selesai** (export v5 = file user v5.5, 30 Sep 2026) · **F6 selesai** (export v6; uji ulang dilaporkan lolos di v7) · **F7 selesai** (export v7 = file user v7.1, 30 Sep 2026; T34–T35 diperbaiki) · berikutnya: **F8** (chat baru) |
+| Status | Rencana disetujui 24 Sep 2026 (termasuk P1–P3) · login in-app disetujui 25 Sep 2026 · UI campuran + Custom Widget disetujui 25 Sep 2026 · **F0 + F1 selesai** (export v1, 25 Sep 2026) · **F2 selesai** (export v2, 29 Sep 2026) · **F3 dikerjakan** (export v3, 29 Sep 2026; T13–T17 diperbaiki user) · **F3 + F3b selesai** (export v3b, 30 Sep 2026) · **F4 selesai** (export v4 = file user v4.7, 30 Sep 2026; Copy Article dihapus — keputusan user) · **F5 + F5b selesai** (export v5 = file user v5.5, 30 Sep 2026) · **F6 selesai** (export v6; uji ulang dilaporkan lolos di v7) · **F7 selesai** (export v7 = file user v7.1, 30 Sep 2026; T34–T35 diperbaiki) · **F8 disiapkan** (30 Sep 2026: `sql/F8_cbd_price.sql`, `steps/F8_langkah.md`) |
 | File siap tempel | `steps/F<n>_langkah.md` (langkah per fase: query, widget, uji), `sql/F<n>_*.sql` (jalankan lewat `z_run_sql` di app privat **DB Tools**), `js/*.js` (isi JSObject), `widgets/<cw>/` (Custom Widget: HTML/CSS/JS + README kontrak) |
 
 Legenda status: ⬜ belum · 🟡 dibuat (belum diverifikasi dari export) · ✅ terverifikasi
@@ -27,7 +27,7 @@ Legenda status: ⬜ belum · 🟡 dibuat (belum diverifikasi dari export) · ✅
 | F5 | Specsheet: revisi & grid BOM (+ F5b hapus baris) | `export_v5.json` | ✅ semua uji lolos · T28–T29, U1–U3 diperbaiki (v5.5) |
 | F6 | Specsheet: checklist & terbit | `export_v6.json` | ✅ T30 ✅, T31 sebagian, T33 dilaporkan lolos (hasil E3 belum dikirim) |
 | F7 | CBD: buat revisi & grid baris | `export_v7.json` | ✅ semua uji lolos (laporan user) · T34–T35 ✅, T36 sebagian (v7.1) |
-| F8 | CBD: harga, rekap, refresh, terbit, sinkron specsheet | `export_v8.json` | ⬜ |
+| F8 | CBD: harga, rekap, refresh, terbit, sinkron specsheet | `export_v8.json` | 🟡 file siap (30 Sep 2026), menunggu export v8 |
 | F9 | Export Excel specsheet & CBD | `export_v9.json` | ⬜ |
 | F10 | Beranda "Tugas Saya" | `export_v10.json` | ⬜ |
 | F11 | Dokumentasi & handover (`appsmith/README.md`) | – | ⬜ |
@@ -85,6 +85,7 @@ Legenda status: ⬜ belum · 🟡 dibuat (belum diverifikasi dari export) · ✅
 | P2 | Ringkasan status di daftar model memakai revisi yang **dibuat** terakhir | Pakai urutan stage + nomor revisi, sama seperti bagian lain |
 | P3 | Form tambah material tidak punya pilihan metode harga (selalu CATALOG) | Ada pilihan CATALOG / QUOTATION |
 | P4 | Ganti material pada baris induk: subkomponen tetap menunjuk `line_key` baris lama yang sudah nonaktif → hilang dari grid | Subkomponen ikut dipindah ke baris baru (`fn_bom_replace_material`) — ditemukan saat menyiapkan F5, 30 Sep 2026 |
+| P5 | Penandaan sinkron CBD membandingkan specsheet terbit **sebelumnya** dengan yang baru → CBD yang sudah NEEDS_REVISION kembali IN_SYNC bila revisi specsheet berikutnya tidak mengubah apa-apa | Dibandingkan dengan **acuan CBD itu sendiri** (`fn_cbd_sync_spec`) — ditemukan saat menyiapkan F8, 30 Sep 2026 |
 
 ---
 
@@ -104,7 +105,7 @@ Legenda status: ⬜ belum · 🟡 dibuat (belum diverifikasi dari export) · ✅
 | `article_service.py` (Model) + lampiran (baru) | `Model_Detail` | `q_articles`, `a_article_add`, `a_article_update`, `a_article_delete`, `q_attachments`, `q_attachment_file`, `a_attachment_add`, `a_attachment_delete` · `ModelDetailCtrl` | `article`, `article_attachment`, `trg_article_check`, `trg_article_delete_check`, `fn_article_is_used`, `fn_attachment_add`, `v_article_status` |
 | `revision_service.py` | `Specsheet` | `q_spec_models`, `q_spec_model`, `q_spec_seasons`, `q_revisions`, `a_revision_create`, `a_revision_delete` (F5) · `a_revision_publish`, `q_publish_checklist`, `q_change_log` (F6) · `SpecCtrl` (+ `cwPublishForm`) | `specsheet_revision`, `revision_article`, `trg_lock_published`, `trg_revision_lock`, `fn_revision_create`, `fn_revision_delete_draft` · `change_log`, `v_revision_checklist`, `fn_revision_publish` (F6) |
 | `bom_service.py`, `article_service.py` (revisi) | `Specsheet` | `q_bom_grid`, `q_rev_articles`, `q_bom_options`, `q_season_colors`, `a_bom_add_line`, `a_bom_add_sub`, `a_bom_replace_material`, `a_bom_set_supplier`, `a_bom_set_process`, `a_cell_save`, `a_rev_article_set`, `a_bom_delete_line` (F5b) · `BomCtrl` (grid = Custom Widget `cwBomGrid`, satu event `onAction`) | `bom_line`, `bom_cell`, `fn_bom_add_line`, `fn_bom_add_sub`, `fn_bom_replace_material`, `fn_bom_set_supplier`, `fn_bom_cell_set`, `fn_rev_article_set`, `fn_bom_delete_line` (F5b), `v_bom_grid` |
-| `cbd_service.py`, `cbd_calc.py` | `Cost Breakdown (CBD)` | F7: `q_cbd_models`, `q_cbd_model`, `q_cbd_seasons`, `q_cbd_articles`, `q_cbd_revisions`, `q_cbd_lines`, `q_cbd_sources`, `a_cbd_create`, `a_cbd_delete`, `a_cbd_line_set` · F8: `q_cbd_recap`, `a_cbd_header_update`, `a_cbd_set_margin`, `a_cbd_price_*`, `a_cbd_refresh*`, `a_cbd_publish` · `CbdCtrl`, `CbdGridCtrl` (grid = Custom Widget `cwCbdGrid`, satu event `onAction`; buat = `cwCbdForm`) | `cbd_revision`, `cbd_line`, `fn_cbd_*`, `v_cbd_line`, `v_cbd_article` (F7) · `v_cbd_recap`, `v_cbd_checklist` (F8) |
+| `cbd_service.py`, `cbd_calc.py` | `Cost Breakdown (CBD)` | F7: `q_cbd_models`, `q_cbd_model`, `q_cbd_seasons`, `q_cbd_articles`, `q_cbd_revisions`, `q_cbd_lines`, `q_cbd_sources`, `a_cbd_create`, `a_cbd_delete`, `a_cbd_line_set` · F8: `q_cbd_recap`, `q_cbd_checklist`, `q_cbd_change_log`, `a_cbd_header_set`, `a_cbd_set_quotation`, `a_cbd_override_price`, `a_cbd_clear_override`, `a_cbd_refresh_prices`, `a_cbd_refresh_spec`, `a_cbd_publish` · `CbdCtrl`, `CbdGridCtrl` (grid + rekap + banner = Custom Widget `cwCbdGrid`, satu event `onAction`; buat = `cwCbdForm`; harga = `cwCbdPriceForm`; terbit = `cwPublishForm`) | `cbd_revision`, `cbd_line`, `fn_cbd_*`, `v_cbd_line`, `v_cbd_article` (F7) · `v_cbd_price_check`, `v_cbd_recap`, `v_cbd_checklist`, `fn_cbd_publish`, `fn_cbd_sync_spec` (F8) |
 | `export_service.py` | `Specsheet`, `CBD` | `ExportCtrl` (ExcelJS) | pakai view yang sama |
 | `worklist_service.py` | `Beranda` | `q_worklist_*` · `BerandaCtrl` | `v_worklist_*` |
 | `report_service.py`, `diff_service.py`, `cbd_diff_service.py` | Opsional | – | – |
@@ -280,12 +281,13 @@ File siap (30 Sep 2026): `sql/F7_cbd.sql`, `js/CbdCtrl.js`, `js/CbdGridCtrl.js`,
 **Selesai bila:** baris CBD = baris BOM terbit yang dipakai article (termasuk subkomponen); yield/loss tersalin dari sumber (lineKey → originLineKey → identitas); baris sumber yang hilang jadi MISSING_IN_SPEC.
 
 ### F8 — CBD: harga, rekap, refresh, terbit, sinkron
-- [ ] SQL F8 (`fn_cbd_set_quotation`, `fn_cbd_override_price`, `fn_cbd_clear_override`, `fn_cbd_refresh_prices`, `fn_cbd_refresh_from_spec`, `fn_cbd_set_margin`, `v_cbd_recap`, `v_cbd_checklist`, `fn_cbd_publish`, perbarui `fn_revision_publish` dengan penandaan sinkron)
-- [ ] Harga: quotation (material QUOTATION), override + alasan (material CATALOG), hapus override; info kenapa harga kosong (termasuk *harga master menunggu approval* — F3b: hanya harga APPROVED yang dipakai) — currency wajib dipilih setiap input (tanpa nilai awal)
+File siap (30 Sep 2026): `sql/F8_cbd_price.sql`, `js/CbdCtrl.js`, `js/CbdGridCtrl.js`, `widgets/cwCbdGrid/` (rekap + banner + tombol harga), `widgets/cwCbdPriceForm/` (baru), `widgets/cwPublishForm/` (opsi `blockedWhere`), `steps/F8_langkah.md`.
+- [ ] SQL F8 (`fn_cbd_populate` versi array — sumber bisa revisi itu sendiri, `fn_cbd_create` diperbarui, `v_cbd_price_check`, `v_cbd_recap`, `v_cbd_checklist`, `fn_cbd_price_line`, `fn_cbd_check_price`, `fn_cbd_set_quotation`, `fn_cbd_override_price`, `fn_cbd_clear_override`, `fn_cbd_refresh_prices`, `fn_cbd_refresh_from_spec`, `fn_cbd_header_set` (rate/amortisasi/adjustment/target FOB/selling price/margin), `fn_cbd_publish`, `fn_cbd_sync_spec`, `fn_revision_publish` + penandaan sinkron)
+- [ ] Harga: quotation (material QUOTATION, kosong = tidak dihargai terpisah), override + alasan (material CATALOG), hapus override — modal `mdlCbdHarga` / `cwCbdPriceForm`; info kenapa harga kosong (`price_gap`: quotation, tanpa supplier, harga tersedia, *menunggu approval* F3b, warna lain, tidak ada) — currency wajib dipilih setiap input (tanpa nilai awal)
 - [ ] Rekap di `cwCbdGrid` (panel ringkasan menempel): exchange rate, amortisasi, adjustment, target FOB, actual FOB, selisih (OVER/UNDER/SESUAI), selling price ⇄ margin %
-- [ ] Banner + tombol **Refresh dari Specsheet** / **Refresh Harga dari Master**
-- [ ] Modal **Terbitkan** CBD + tab Riwayat
-- [ ] Terbit specsheet → CBD terbit article terkait jadi NEEDS_REVISION bila baris/supplier/warna berubah
+- [ ] Banner + tombol **Refresh dari Specsheet** / **Refresh Harga dari Master** (di `cwCbdGrid`)
+- [ ] Modal **Terbitkan** CBD (`mdlCbdTerbit`, `cwPublishForm`) + **Riwayat** (tombol + modal `mdlCbdRiwayat`, sama dengan Specsheet F6)
+- [ ] Terbit specsheet → CBD terbit terakhir article aktif jadi NEEDS_REVISION bila baris/supplier/warna berubah dibanding acuannya (P5); sama → acuan dipindah, IN_SYNC
 
 **Selesai bila:** angka rekap sama dengan rumus Python (cek 1 contoh manual); terbit ditolak bila specsheet usang / rate kosong / harga master berubah / baris berharga tanpa yield.
 
@@ -741,7 +743,10 @@ Diperbarui setiap fase selesai direview. Kolom **Dibuat** = Anda sudah menjalank
 | `cbd_line` + `idx_cbd_line_revision`, `fn_cbd_line_lock`/`trg_lock_published` | tabel/trigger | F7 | ✅ | ✅ |
 | `fn_spec_latest_pub`, `fn_cbd_article_spec_status`, `fn_cbd_draft`, `fn_cbd_group_code`, `fn_cbd_identity`, `fn_cbd_expected_lines`, `fn_cbd_populate`, `fn_cbd_create`, `fn_cbd_delete_draft`, `fn_cbd_line_set` | function | F7 | ✅ | ✅ |
 | `v_cbd_line`, `v_cbd_article`; `v_article_status` diperluas (kolom CBD) | view | F7 | ✅ | ✅ |
-| `fn_cbd_set_*`, `fn_cbd_refresh_*`, `v_cbd_recap`, `v_cbd_checklist`, `fn_cbd_publish` | function/view | F8 | ⬜ | ⬜ |
+| `fn_cbd_populate` (versi `cbd_line[]`, versi F7 di-DROP), `fn_cbd_create` diperbarui | function | F8 | ⬜ | ⬜ |
+| `v_cbd_price_check`, `v_cbd_recap`, `v_cbd_checklist` | view | F8 | ⬜ | ⬜ |
+| `fn_cbd_price_line`, `fn_cbd_check_price`, `fn_cbd_set_quotation`, `fn_cbd_override_price`, `fn_cbd_clear_override`, `fn_cbd_refresh_prices`, `fn_cbd_refresh_from_spec`, `fn_cbd_header_set`, `fn_cbd_publish` | function | F8 | ⬜ | ⬜ |
+| `fn_cbd_sync_spec`; `fn_revision_publish` diperbarui (penandaan sinkron) | function | F8 | ⬜ | ⬜ |
 | `v_worklist_*`, `v_recent_published` | view | F10 | ⬜ | ⬜ |
 
 Cara verifikasi skema (dijalankan di akhir tiap fase lewat query `z_run_sql`, hasilnya ditempel ke chat):
@@ -775,9 +780,10 @@ ORDER BY 1, 2;
 | `cwStepper` | `Specsheet`, `CBD` (+ baris chip article, event `onArticle`) | F5 / F7 | ✅ | ✅ (kode sama di kedua page) |
 | `cwRevisionForm` | `Specsheet` (modal `mdlRevisi`) | F5 | ✅ | ✅ |
 | `cwBomGrid` | `Specsheet` | F5 | ✅ | ✅ (termasuk tombol Hapus F5b, v5.5) |
-| `cwPublishForm` | `Specsheet` (modal `mdlTerbit`); dipakai ulang CBD F8 | F6 | ✅ | ✅ |
+| `cwPublishForm` | `Specsheet` (modal `mdlTerbit`); `CBD` (modal `mdlCbdTerbit`, F8 — opsi `blockedWhere`) | F6 / F8 | ✅ | ✅ (F6) |
 | `cwCbdForm` | `CBD` (modal `mdlCbdBaru`) | F7 | ✅ | ✅ |
-| `cwCbdGrid` | `CBD` | F7 / F8 | ✅ | ✅ (F7) |
+| `cwCbdGrid` | `CBD` (+ rekap, banner, tombol harga F8) | F7 / F8 | ✅ | ✅ (F7) |
+| `cwCbdPriceForm` | `CBD` (modal `mdlCbdHarga`) | F8 | ⬜ | ⬜ |
 
 ---
 

@@ -262,3 +262,119 @@ input.cell.need {
   color: var(--muted);
   padding: 16px 8px;
 }
+
+/* ---------------------------------------------------------------- F8: harga, banner, rekap */
+.acts {
+  margin-top: 2px;
+  text-align: right;
+}
+
+.lnk {
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--accent);
+  cursor: pointer;
+}
+
+.lnk:hover:not(:disabled) {
+  text-decoration: underline;
+}
+
+.lnk.danger {
+  color: var(--danger);
+}
+
+.lnk:disabled, .bbtn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.banners {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 0 8px 6px;
+}
+
+.banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-radius: var(--radius);
+  padding: 6px 10px;
+  font-size: 12.5px;
+}
+
+.banner.danger { background: var(--danger-bg); color: var(--danger); }
+.banner.warn { background: var(--warn-bg); color: var(--warn); }
+.banner.info { background: var(--info-bg); color: var(--primary); }
+
+.banner .btext {
+  flex: 1;
+}
+
+.bbtn {
+  flex: none;
+  height: 28px;
+  padding: 0 12px;
+  border: none;
+  border-radius: var(--radius);
+  background: var(--primary);
+  color: #fff;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.recap {
+  flex: none;
+  display: grid;
+  grid-template-columns: repeat(9, minmax(110px, 1fr));
+  gap: 8px;
+  padding: 8px;
+  border-top: 1px solid var(--border);
+  background: var(--surface-alt);
+}
+
+.rf label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  margin-bottom: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rf .rv {
+  height: 28px;
+  line-height: 28px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.rf.strong .rv {
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.vl {
+  display: inline-block;
+  margin-left: 6px;
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 16px;
+  border-radius: 4px;
+  padding: 0 5px;
+}
+
+.vl.over { background: var(--danger-bg); color: var(--danger); }
+.vl.under { background: #E3F4EA; color: #1E7B45; }
+.vl.sesuai { background: var(--info-bg); color: var(--primary); }

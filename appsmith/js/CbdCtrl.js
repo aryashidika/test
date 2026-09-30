@@ -1,7 +1,8 @@
 // JSObject "CbdCtrl" — page Cost Breakdown (CBD) (?model_id=<model id>&season=<specsheet id>&from=list|detail, semua opsional).
 // Dibuka dari Model List / Model Detail / Specsheet -> model & season langsung terpilih; dari sidebar -> pilih dulu
 // di selCbdModel lalu selCbdSeason. Chip article + stepper revisi CBD (cwStepper), Buat CBD (cwCbdForm di mdlCbdBaru),
-// Hapus Draft. Grid baris ada di CbdGridCtrl. Izin: lihat = view_cbd (Brand hanya revisi terbit — difilter query)
+// Hapus Draft, Terbitkan (cwPublishForm di mdlCbdTerbit, F8), Riwayat (tblCbdRiwayat di mdlCbdRiwayat, F8).
+// Grid baris, rekap & harga ada di CbdGridCtrl. Izin: lihat = view_cbd (Brand hanya revisi terbit — difilter query)
 // · ubah = edit_cbd (Vendor – CBD). Semua dicek lagi di DB.
 // CBD per article; acuan = revisi specsheet terbit terakhir season itu (article harus ACTIVE di sana).
 export default {
@@ -13,8 +14,21 @@ export default {
 	firstLoad: true,
 
 	createKey: 0, createBusy: false, createMsg: null,
+	pubKey: 0, pubBusy: false, pubMsg: null,
 
 	STAGES: ['PULL', 'SMS', 'GTM', 'PROD'],
+
+	// Kategori change log CBD (sama dengan Python; DB menerima semuanya)
+	CATEGORIES: [
+		{ value: 'MATERIAL', label: 'Material / harga material' },
+		{ value: 'YIELD', label: 'Yield / Loss %' },
+		{ value: 'EX_RATE', label: 'Exchange rate' },
+		{ value: 'AMORTIZATION', label: 'Amortisasi' },
+		{ value: 'LOP', label: 'LOP' },
+		{ value: 'COMPONENT', label: 'Komponen (ikut specsheet)' },
+		{ value: 'TREATMENT', label: 'Treatment / proses' },
+		{ value: 'OTHER', label: 'Lainnya' },
+	],
 
 	// ---- data ----
 	models() {
@@ -60,6 +74,15 @@ export default {
 		return pub[0] || null;
 	},
 
+	// Change log semua revisi CBD article ini (terbaru dulu)
+	changeLogs() {
+		return q_cbd_change_log.data || [];
+	},
+
+	logFor(revisionId) {
+		return this.changeLogs().find(l => l.revision_id === revisionId) || null;
+	},
+
 	label(r) {
 		return r ? `${r.stage} r${r.revision_no}` : '';
 	},
@@ -81,6 +104,9 @@ export default {
 	canDeleteDraft() {
 		const r = this.revision();
 		return this.canEdit() && !!r && r.status === 'DRAFT';
+	},
+	canPublish() {
+		return this.editable();
 	},
 
 	// ---- muat data ----
@@ -147,7 +173,10 @@ export default {
 	// Muat revisi CBD article ini lalu buka: pickId, revisi yang sedang dibuka, draft, atau terbit terakhir.
 	async loadArticle(pickId) {
 		try {
-			await q_cbd_revisions.run({ article_id: this.articleId || '' });
+			await Promise.all([
+				q_cbd_revisions.run({ article_id: this.articleId || '' }),
+				q_cbd_change_log.run({ article_id: this.articleId || '' }),
+			]);
 		} catch (e) {
 			showAlert(Util.cleanError(e && e.message), 'error');
 		}
@@ -254,9 +283,11 @@ export default {
 		}
 		t += ` · acuan specsheet ${e(r.spec_label)}`;
 		if (r.source_label) t += ` · sumber: ${e(r.source_season)} / ${e(r.source_article)} / ${e(r.source_label)}`;
-		if (r.status === 'DRAFT' && a.draft_stale) {
-			t += `<br><span style="color:#dc2626">Specsheet sudah terbit ${e(a.spec_pub_label)} — baris draft ini masih memakai ${e(r.spec_label)}. Refresh dari specsheet tersedia di F8; sementara hapus draft lalu buat ulang.</span>`;
+		if (r.status === 'PUBLISHED' && r.sync_status === 'NEEDS_REVISION') {
+			t += `<br><span style="color:#dc2626">Specsheet terbit ${e(a.spec_pub_label)} mengubah baris / supplier / warna article ini — buat revisi CBD berikutnya.</span>`;
 		}
+		const log = r.status === 'PUBLISHED' ? this.logFor(r.id) : null;
+		if (log) t += `<br><span style="color:#6b7280">Perubahan (${e(log.category)}): ${e(log.reason)}</span>`;
 		return t;
 	},
 
@@ -368,6 +399,102 @@ export default {
 		const id = a_cbd_create.data && a_cbd_create.data[0] && a_cbd_create.data[0].id;
 		showAlert('CBD draft dibuat.', 'success');
 		await this.refresh(id);
+	},
+
+	// ---- terbitkan (F8) ----
+	// Checklist dimuat ulang setiap modal dibuka (isi grid & harga master bisa berubah).
+	async openPublish() {
+		const r = this.revision();
+		if (!r || r.status !== 'DRAFT') return;
+		try {
+			await q_cbd_checklist.run({ revision_id: r.id });
+		} catch (e) {
+			const msg = e && e.message;
+			if (Util.isSessionError(msg)) {
+				await removeValue('token');
+				showAlert('Sesi login habis. Silakan login lagi.', 'warning');
+				navigateTo('Login');
+				return;
+			}
+			showAlert(Util.cleanError(msg), 'error');
+			return;
+		}
+		this.pubBusy = false;
+		this.pubMsg = null;
+		this.pubKey = this.pubKey + 1;
+		showModal('mdlCbdTerbit');
+	},
+
+	publishFormModel() {
+		const r = this.revision();
+		const a = this.article();
+		const c = (q_cbd_checklist.data && q_cbd_checklist.data[0]) || null;
+		const checks = !c ? [] : [
+			{ label: 'Specsheet acuan = terbit terakhir', ok: !c.spec_stale, blocking: true,
+				detail: c.spec_stale ? 'Klik "Refresh dari Specsheet" di atas grid' : '' },
+			{ label: 'Exchange rate terisi', ok: !!c.rate_ok, blocking: true,
+				detail: c.rate_ok ? '' : 'Isi Exchange rate di rekap' },
+			{ label: 'Harga master sama dengan master terkini', ok: c.stale_prices === 0, blocking: true,
+				detail: c.stale_prices ? `${c.stale_prices} baris berubah — klik "Refresh Harga dari Master"` : '' },
+			{ label: 'Baris berharga punya Yield', ok: c.no_yield_count === 0, blocking: true,
+				detail: c.no_yield_count ? `${c.no_yield_count} baris belum diisi Yield (kotak kuning)` : '' },
+			{ label: 'Semua baris berharga', ok: c.unpriced_count === 0, blocking: false,
+				detail: c.unpriced_count ? `${c.unpriced_count} baris tanpa harga akan terbit dengan cost 0` : '' },
+		];
+		if (c && c.spec_status !== 'ACTIVE') {
+			checks.unshift({ label: 'Article aktif di specsheet terbit', ok: false, blocking: true,
+				detail: 'Article di-drop / belum terbit — CBD ini tidak bisa diterbitkan' });
+		}
+		const requiresReason = c ? !!c.requires_reason : true;
+		return {
+			key: this.pubKey,
+			title: `Terbitkan CBD ${a ? a.code + ' · ' : ''}${this.label(r)}`,
+			checks,
+			blocked: !c || !!c.blocked,
+			blockedWhere: 'di grid / rekap CBD',
+			requiresReason,
+			categories: this.CATEGORIES,
+			defaultCategory: requiresReason ? '' : 'OTHER',
+			busy: this.pubBusy,
+			message: this.pubMsg,
+		};
+	},
+
+	async publish() {
+		const f = cwPublishForm.model || {};
+		const r = this.revision();
+		if (!r) return;
+		this.pubMsg = null;
+		this.pubBusy = true;
+		try {
+			await a_cbd_publish.run({ revision_id: r.id, category: f.category || '', reason: f.reason || '' });
+		} catch (e) {
+			const msg = e && e.message;
+			if (Util.isSessionError(msg)) {
+				closeModal('mdlCbdTerbit');
+				await removeValue('token');
+				showAlert('Sesi login habis. Silakan login lagi.', 'warning');
+				navigateTo('Login');
+				return;
+			}
+			this.pubMsg = { type: 'error', text: Util.cleanError(msg) };
+			return;
+		} finally {
+			this.pubBusy = false;
+		}
+		closeModal('mdlCbdTerbit');
+		showAlert(`CBD ${this.label(r)} diterbitkan.`, 'success');
+		await this.refresh(r.id);
+	},
+
+	// ---- riwayat (F8) ----
+	historyLabel() {
+		const n = this.changeLogs().length;
+		return n ? `Riwayat (${n})` : 'Riwayat';
+	},
+
+	openHistory() {
+		showModal('mdlCbdRiwayat');
 	},
 
 	// Query a_cbd_delete memakai "Request confirmation before running" = ON

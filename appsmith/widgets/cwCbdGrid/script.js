@@ -1,7 +1,9 @@
 // cwCbdGrid — grid baris CBD page Cost Breakdown (CBD), dikelompokkan per grup komponen (a/b/c/d) + bagian
-// MISSING_IN_SPEC. Hanya tampilan & input: Yield dan Loss % diedit di sel (revisi DRAFT). Setiap perubahan
-// dikirim sebagai model.action + event onAction (CbdGridCtrl.onAction()); aturan final di DB (fn_cbd_line_set).
-// Usage, harga IDR/USD, cost/pair dihitung di DB (v_cbd_line) — di sini hanya diformat.
+// MISSING_IN_SPEC, dengan panel rekap yang menempel di atas grid dan banner refresh (F8).
+// Hanya tampilan & input: Yield, Loss %, dan nilai rekap diedit di sel (revisi DRAFT); harga lewat tombol
+// Isi harga / Override… / Hapus override (modal di luar widget). Setiap aksi dikirim sebagai model.action + event
+// onAction (CbdGridCtrl.onAction()); aturan final di DB. Usage, harga IDR/USD, cost/pair, dan rekap dihitung
+// di DB (v_cbd_line, v_cbd_recap) — di sini hanya diformat.
 const $ = id => document.getElementById(id);
 let M = {};
 let seq = 0;
@@ -13,6 +15,19 @@ const COLS = [
   ['c-sup', 'Supplier'], ['c-uom', 'UoM'], ['c-rem', 'Remarks'], ['c-num', 'Yield'], ['c-num', 'Usage'],
   ['c-num', 'Loss %'], ['c-price', 'Harga'], ['c-cur', 'Cur'], ['c-num', 'USD'], ['c-num', 'IDR'],
   ['c-num', 'Cost/pr (Rp)'], ['c-src', 'Asal'],
+];
+
+// Rekap: [field (null = hanya baca), label, kunci nilai, digit desimal, boleh minus, uang (tolak 47.500)]
+const RECAP = [
+  ['RATE', 'Exchange rate (Rp / 1 USD)', 'exchange_rate', 4, false, true],
+  [null, 'Material cost', 'material_cost', 2],
+  ['AMORTIZATION', 'Amortisasi', 'amortization', 2, false, true],
+  ['ADJUSTMENT', 'Adjustment', 'adjustment', 2, true, true],
+  [null, 'Actual FOB', 'actual_fob', 2],
+  ['TARGET_FOB', 'Target FOB', 'target_fob', 2, false, true],
+  [null, 'Selisih', 'variance', 2],
+  ['SELLING_PRICE', 'Selling price', 'selling_price', 2, false, true],
+  ['MARGIN', 'Margin %', 'margin_pct', 2, true, false],
 ];
 
 function applyTheme(t) {
@@ -52,10 +67,16 @@ function inputText(v, max) {
 }
 
 // Teks ketikan -> angka kanonik '1.25' ('' = kosong). Satu pemisah desimal (koma atau titik); tanpa pemisah ribuan.
-function parseInput(text) {
+// money: '47.500' ditolak karena ambigu (47500 atau 47,5). neg: boleh diawali '-'.
+function parseInput(text, opt) {
+  opt = opt || {};
   const t = String(text ?? '').trim().replace(/\s+/g, '');
   if (!t) return { value: '' };
-  if (!/^\d+([.,]\d+)?$/.test(t)) return { error: `"${text}" bukan angka. Pakai koma atau titik untuk desimal, tanpa pemisah ribuan.` };
+  const re = opt.neg ? /^-?\d+([.,]\d+)?$/ : /^\d+([.,]\d+)?$/;
+  if (!re.test(t)) return { error: `"${text}" bukan angka. Pakai koma atau titik untuk desimal, tanpa pemisah ribuan.` };
+  if (opt.money && /^-?\d{1,3}\.\d{3}$/.test(t)) {
+    return { error: `"${text}" ambigu. Tulis tanpa titik ribuan (mis. 16250), desimal pakai koma (mis. 16250,5).` };
+  }
   return { value: t.replace(',', '.') };
 }
 
@@ -81,49 +102,36 @@ function showMessage() {
   box.hidden = false;
 }
 
-function commit(line, field, input) {
-  const p = parseInput(input.value);
-  if (p.error) {
-    input.classList.add('invalid');
-    localMsg = { type: 'error', text: p.error };
-    showMessage();
-    return;
-  }
-  const n = p.value === '' ? null : Number(p.value);
-  if (field === 'yield' && n !== null && n <= 0) {
-    input.classList.add('invalid');
-    localMsg = { type: 'error', text: 'Yield harus lebih besar dari 0.' };
-    showMessage();
-    return;
-  }
-  if (field === 'loss' && n !== null && n >= 100) {
-    input.classList.add('invalid');
-    localMsg = { type: 'error', text: 'Loss % harus 0 sampai kurang dari 100.' };
-    showMessage();
-    return;
-  }
-  send(field === 'yield' ? 'setYield' : 'setLoss', { line_id: line.id, value: p.value });
+function invalid(input, text) {
+  input.classList.add('invalid');
+  localMsg = { type: 'error', text };
+  showMessage();
 }
 
-// Input angka yang disimpan saat berubah (Enter / Tab / klik di luar); Enter pindah ke baris berikutnya, Esc batal
-function numInput(line, field, value, max) {
+// Input angka yang disimpan saat berubah (Enter / Tab / klik di luar); Esc batal.
+// o: { key, col, value, max, label, parse, check(n) -> pesan error | null, commit(value), need, needTitle }
+function numInput(o) {
   const i = el('input', 'cell');
   i.type = 'text';
   i.inputMode = 'decimal';
   i.autocomplete = 'off';
-  i.value = inputText(value, max);
-  i.dataset.key = `${field}:${line.id}`;
-  i.dataset.col = field;
+  i.value = inputText(o.value, o.max);
+  i.dataset.key = o.key;
+  i.dataset.col = o.col;
   i.dataset.orig = i.value;
-  i.setAttribute('aria-label', `${field === 'yield' ? 'Yield' : 'Loss %'} ${line.display_no || ''} ${line.display_name || ''}`);
-  if (field === 'yield' && num(line.price_original) !== null && num(value) === null) {
+  i.setAttribute('aria-label', o.label);
+  if (o.need) {
     i.classList.add('need');
-    i.title = 'Baris berharga tanpa yield — wajib diisi sebelum terbit';
+    i.title = o.needTitle || '';
   }
   i.addEventListener('input', () => i.classList.remove('invalid'));
   i.addEventListener('change', () => {
     if (i.value.trim() === i.dataset.orig) return;
-    commit(line, field, i);
+    const p = parseInput(i.value, o.parse);
+    if (p.error) return invalid(i, p.error);
+    const err = o.check ? o.check(p.value === '' ? null : Number(p.value)) : null;
+    if (err) return invalid(i, err);
+    o.commit(p.value);
   });
   i.addEventListener('keydown', e => {
     if (e.key === 'Escape') {
@@ -132,7 +140,7 @@ function numInput(line, field, value, max) {
       i.blur();
     } else if (e.key === 'Enter') {
       e.preventDefault();
-      const all = Array.from(document.querySelectorAll(`#tbody input.cell[data-col="${field}"]`));
+      const all = Array.from(document.querySelectorAll(`input.cell[data-col="${o.col}"]`));
       const next = all[all.indexOf(i) + 1];
       if (next) {
         next.focus();
@@ -143,6 +151,28 @@ function numInput(line, field, value, max) {
     }
   });
   return i;
+}
+
+function lineInput(line, field, value, max) {
+  const yieldCol = field === 'yield';
+  return numInput({
+    key: `${field}:${line.id}`, col: field, value, max,
+    label: `${yieldCol ? 'Yield' : 'Loss %'} ${line.display_no || ''} ${line.display_name || ''}`,
+    need: yieldCol && num(line.price_original) !== null && num(value) === null,
+    needTitle: 'Baris berharga tanpa yield — wajib diisi sebelum terbit',
+    check: n => yieldCol ? (n !== null && n <= 0 ? 'Yield harus lebih besar dari 0.' : null)
+      : (n !== null && n >= 100 ? 'Loss % harus 0 sampai kurang dari 100.' : null),
+    commit: v => send(yieldCol ? 'setYield' : 'setLoss', { line_id: line.id, value: v }),
+  });
+}
+
+function linkBtn(text, title, onClick, danger) {
+  const b = el('button', 'lnk' + (danger ? ' danger' : ''), text);
+  b.type = 'button';
+  if (title) b.title = title;
+  b.disabled = !!M.busy;
+  b.addEventListener('click', onClick);
+  return b;
 }
 
 // ---------------------------------------------------------------- sel
@@ -156,35 +186,63 @@ function td(cls, child) {
 }
 
 function roText(v) {
-  const s = el('span', 'ro' + (v ? '' : ' none'), v || '-');
-  return s;
+  return el('span', 'ro' + (v ? '' : ' none'), v || '-');
 }
 
-function priceCell(line) {
+// Kenapa harga kosong (price_gap dari v_cbd_price_check, hanya revisi DRAFT)
+function gapText(line) {
+  switch (line.price_gap) {
+    case 'QUOTATION': return ['material quotation — belum diisi (cost 0)', ''];
+    case 'NO_SUPPLIER': return ['supplier belum dipilih di specsheet', ''];
+    case 'AVAILABLE': return ['harga master tersedia — klik Refresh Harga', 'warn'];
+    case 'PENDING': return ['harga master menunggu approval Master Admin', 'warn'];
+    case 'NO_COLOR_PRICE': return [`belum ada harga untuk warna ini (ada: ${line.other_colors || '-'})`, 'warn'];
+    case 'NO_PRICE': return ['belum ada harga master untuk supplier ini', 'warn'];
+    default: return [line.price_method === 'QUOTATION' ? 'tidak dihargai terpisah' : 'tanpa harga', ''];
+  }
+}
+
+function priceCell(line, editable) {
   const box = el('div');
   const p = num(line.price_original);
+  const missing = line.status !== 'ACTIVE';
   if (p !== null) {
     box.appendChild(el('span', 'ro', fmt(p, line.currency === 'USD' ? 4 : 2)));
     const src = { MASTER: 'master', OVERRIDE: 'override', QUOTATION: 'quotation' }[line.price_source] || '';
     if (src) {
       const b = el('span', `badge ${src}`, src);
       if (line.price_source === 'MASTER' && line.master_price_valid_from) {
-        b.title = `Harga master${line.master_price_color ? ' warna ' + line.master_price_color : ' semua warna'} berlaku ${line.master_price_valid_from}`;
+        b.title = `Harga master${line.master_price_color ? ' warna ' + line.master_price_color : ' semua warna'} berlaku sejak ${line.master_price_valid_from}`;
       }
       if (line.price_source === 'OVERRIDE' && line.price_override_reason) b.title = `Alasan: ${line.price_override_reason}`;
+      if (line.price_source === 'QUOTATION' && line.price_reference) b.title = `Referensi: ${line.price_reference}`;
       box.appendChild(b);
     }
-    return box;
-  }
-  if (line.status !== 'ACTIVE') {
+  } else if (missing) {
     box.appendChild(el('span', 'ro none', '-'));
-    return box;
+  } else {
+    const [t, tone] = gapText(line);
+    box.appendChild(el('span', 'hint' + (tone ? ' ' + tone : ''), t));
   }
-  // kenapa harga kosong
-  let why = 'belum ada harga master';
-  if (line.price_method === 'QUOTATION') why = 'material quotation (harga diisi di CBD — F8)';
-  else if (!line.supplier_id) why = 'baris tanpa supplier di specsheet';
-  box.appendChild(el('span', 'hint warn', why));
+  if (!missing && line.master_stale) {
+    box.appendChild(el('span', 'hint warn', line.price_source === 'QUOTATION'
+      ? 'material sekarang katalog — klik Refresh Harga' : 'harga master berubah — klik Refresh Harga'));
+  }
+  if (editable && !missing) {
+    const acts = el('div', 'acts');
+    if (line.price_method === 'QUOTATION') {
+      acts.appendChild(linkBtn(p !== null ? 'Ubah harga' : 'Isi harga', 'Harga quotation material proses',
+        () => send('editPrice', { line_id: line.id, mode: 'QUOTATION' })));
+    } else if (line.price_source === 'OVERRIDE') {
+      acts.appendChild(linkBtn('Hapus override', 'Kembali ke harga master',
+        () => send('clearOverride', { line_id: line.id }), true));
+    } else {
+      acts.appendChild(linkBtn('Override…',
+        'Harga khusus baris CBD ini saja (mis. nego sekali pakai). Harga untuk semua CBD diisi di Master Material.',
+        () => send('editPrice', { line_id: line.id, mode: 'OVERRIDE' })));
+    }
+    box.appendChild(acts);
+  }
   return box;
 }
 
@@ -213,10 +271,10 @@ function lineRow(line, editable) {
   tr.appendChild(td('c-uom', roText(line.uom)));
   tr.appendChild(td('c-rem', roText(line.remarks)));
   const canEdit = editable && !missing;
-  tr.appendChild(td('c-num', canEdit ? numInput(line, 'yield', line.yield_value, 6) : fmt(line.yield_value, 6)));
+  tr.appendChild(td('c-num', canEdit ? lineInput(line, 'yield', line.yield_value, 6) : fmt(line.yield_value, 6)));
   tr.appendChild(td('c-num', fmt(line.usage_value, 4)));
-  tr.appendChild(td('c-num', canEdit ? numInput(line, 'loss', line.loss_pct, 2) : fmt(line.loss_pct, 2, 2)));
-  tr.appendChild(td('c-price', priceCell(line)));
+  tr.appendChild(td('c-num', canEdit ? lineInput(line, 'loss', line.loss_pct, 2) : fmt(line.loss_pct, 2, 2)));
+  tr.appendChild(td('c-price', priceCell(line, editable)));
   tr.appendChild(td('c-cur', roText(line.currency)));
   tr.appendChild(td('c-num', fmt(line.price_usd, 4, 2)));
   tr.appendChild(td('c-num', fmt(line.price_idr, 2)));
@@ -234,13 +292,65 @@ function groupRow(label, missing) {
   return tr;
 }
 
+// ---------------------------------------------------------------- banner & rekap
+function renderBanners() {
+  const box = $('banners');
+  box.innerHTML = '';
+  (M.banners || []).forEach(b => {
+    const d = el('div', `banner ${b.tone || 'info'}`);
+    d.appendChild(el('span', 'btext', b.text));
+    if (b.action && b.actionLabel) {
+      const btn = el('button', 'bbtn', b.actionLabel);
+      btn.type = 'button';
+      btn.disabled = !!M.busy;
+      btn.addEventListener('click', () => send(b.action, {}));
+      d.appendChild(btn);
+    }
+    box.appendChild(d);
+  });
+  box.hidden = !(M.banners || []).length;
+}
+
+function renderRecap() {
+  const box = $('recap');
+  box.innerHTML = '';
+  const r = M.recap;
+  box.hidden = !r;
+  if (!r) return;
+  const editable = !!M.editable;
+  RECAP.forEach(([field, label, k, max, neg, money]) => {
+    const f = el('div', 'rf' + (k === 'actual_fob' ? ' strong' : ''));
+    f.appendChild(el('label', null, label));
+    if (field && editable) {
+      f.appendChild(numInput({
+        key: `hdr:${field}`, col: `hdr:${field}`, value: r[k], max, label,
+        parse: { neg, money },
+        need: field === 'RATE' && num(r[k]) === null,
+        needTitle: 'Exchange rate wajib diisi sebelum terbit',
+        check: n => field === 'RATE' ? (n === null || n <= 0 ? 'Exchange rate harus diisi dan lebih besar dari 0.' : null)
+          : field === 'MARGIN' ? (n !== null && n >= 100 ? 'Margin harus kurang dari 100%.' : null)
+          : (['TARGET_FOB', 'SELLING_PRICE'].includes(field) && n !== null && n <= 0) ? 'Harus lebih besar dari 0 (kosongkan kalau belum ada).'
+          : null,
+        commit: v => send('setHeader', { field, value: v }),
+      }));
+    } else {
+      const v = el('div', 'rv', fmt(r[k], max, k === 'margin_pct' ? 2 : 0) + (k === 'margin_pct' && num(r[k]) !== null ? ' %' : ''));
+      if (k === 'variance' && r.variance_label) {
+        v.appendChild(el('span', `vl ${r.variance_label.toLowerCase()}`, r.variance_label));
+      }
+      f.appendChild(v);
+    }
+    box.appendChild(f);
+  });
+}
+
 // ---------------------------------------------------------------- render
 function render(model) {
   // simpan fokus, scroll, dan ketikan yang belum disimpan
   const active = document.activeElement;
   const focusKey = active && active.dataset ? active.dataset.key : null;
   const dirty = {};
-  document.querySelectorAll('#tbody input.cell[data-key]').forEach(i => {
+  document.querySelectorAll('input.cell[data-key]').forEach(i => {
     if (i.value !== i.dataset.orig) dirty[i.dataset.key] = i.value;
   });
   const scroll = $('scroll');
@@ -254,13 +364,16 @@ function render(model) {
   const editable = !!M.editable;
   const lines = M.lines || [];
 
+  renderBanners();
+  renderRecap();
+
   const thead = $('thead');
   thead.innerHTML = '';
   const hr = el('tr');
   COLS.forEach(([c, t]) => {
     const th = el('th', c, t);
     if (t === 'Yield') th.title = 'Jumlah pasang dari satu unit material. Usage = 1 / Yield.';
-    if (t === 'USD' || t === 'IDR') th.title = 'Konversi memakai exchange rate revisi ini (diisi di rekap — F8).';
+    if (t === 'USD' || t === 'IDR') th.title = 'Konversi memakai exchange rate revisi ini (di rekap).';
     hr.appendChild(th);
   });
   thead.appendChild(hr);
@@ -290,13 +403,13 @@ function render(model) {
   }
 
   // pulihkan ketikan, fokus, scroll
-  document.querySelectorAll('#tbody input.cell[data-key]').forEach(i => {
+  document.querySelectorAll('input.cell[data-key]').forEach(i => {
     const d = dirty[i.dataset.key];
     // ketikan yang sudah tersimpan (nilai DB sama) tidak dipulihkan
-    if (d !== undefined && parseInput(d).value !== parseInput(i.dataset.orig).value) i.value = d;
+    if (d !== undefined && parseInput(d, { neg: true }).value !== parseInput(i.dataset.orig, { neg: true }).value) i.value = d;
   });
   if (focusKey) {
-    const i = document.querySelector(`#tbody input[data-key="${CSS.escape(focusKey)}"]`);
+    const i = document.querySelector(`input.cell[data-key="${CSS.escape(focusKey)}"]`);
     if (i) i.focus();
   }
   scroll.scrollLeft = pos[0];
@@ -307,8 +420,6 @@ function render(model) {
   const parts = [`${active_.length} baris`];
   if (noYield) parts.push(`${noYield} berharga tanpa yield`);
   if (noPrice) parts.push(`${noPrice} tanpa harga`);
-  if (num(M.exchangeRate) !== null) parts.push(`rate ${fmt(M.exchangeRate, 4)}`);
-  else parts.push('rate belum diisi');
   if (!editable) parts.push('hanya baca');
   $('status').textContent = (M.busy ? 'Menyimpan… · ' : '') + parts.join(' · ');
   showMessage();

@@ -1,6 +1,6 @@
-// cwPublishForm — modal Terbitkan revisi di page Specsheet (mdlTerbit). Hanya tampilan; checklist
-// dihitung di DB (v_revision_checklist) dan disusun SpecCtrl.publishFormModel(). Terbit lewat
-// SpecCtrl.publish() -> fn_revision_publish (checklist, kategori, dan alasan dicek lagi di DB).
+// cwPublishForm — modal Terbitkan revisi: Specsheet (mdlTerbit, F6) dan CBD (mdlCbdTerbit, F8). Hanya tampilan;
+// checklist dihitung di DB (v_revision_checklist / v_cbd_checklist) dan disusun <Page>Ctrl.publishFormModel().
+// Terbit lewat SpecCtrl.publish() / CbdCtrl.publish() (checklist, kategori, dan alasan dicek lagi di DB).
 const $ = id => document.getElementById(id);
 let lastKey = null;
 let busy = false;
@@ -44,7 +44,7 @@ function renderChecks(m) {
   const failed = checks.filter(c => c.blocking && !c.ok).length;
   blocked = !!m.blocked || failed > 0 || !checks.length;
   $('blocked').textContent = !checks.length ? 'Checklist belum termuat. Tutup lalu buka lagi.'
-    : `Perbaiki ${failed} hal di atas di grid BOM sebelum terbit.`;
+    : `Perbaiki ${failed} hal di atas ${m.blockedWhere || 'di grid BOM'} sebelum terbit.`;
   $('blocked').hidden = !blocked;
   $('formBox').hidden = blocked;
   $('btnSave').hidden = blocked;
