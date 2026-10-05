@@ -9,6 +9,10 @@ Setelan untuk **semua query baru** (datasource `Prestasi`): *Use prepared statem
 Modal baru disalin dari pola lama boleh, tapi **event handler selalu ditempel dari panduan ini** (jangan membawa
 handler page lain).
 
+> **Diubah di F8b** (5 Okt 2026, `steps/F8b_langkah.md`): Amortisasi & Adjustment bukan lagi kolom rekap, tetapi baris
+> di tabel **Cost recapitulation** di bawah grid (+ Direct Labour, Lainnya); Target FOB, Selling price & Margin % juga
+> pindah ke bawah grid. Uji B3 di bawah memakai baris Amortisasi / Adjustment di tabel itu.
+
 Aturan F8 (= Python `cbd_service.py` / `cbd_calc.py`):
 - **Harga** (hanya draft, baris ACTIVE):
   - material **Quotation** → harga quotation diisi di CBD (**Isi harga**); kosong = baris tidak dihargai terpisah (cost 0);

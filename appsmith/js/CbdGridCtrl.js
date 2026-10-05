@@ -3,12 +3,14 @@
 // onAction() menjalankan query lalu memuat ulang grid & rekap. Semua aturan dicek di DB (fn_cbd_*, trg_lock_published).
 // F7: Yield & Loss %. F8: rekap (rate, amortisasi, adjustment, target FOB, selling price ⇄ margin), harga quotation /
 // override / hapus override, Refresh Harga dari Master, Refresh dari Specsheet.
+// F8b: Cost recapitulation (baris biaya q_cbd_cost_items: tambah / ubah / hapus), amortisasi & adjustment jadi baris.
 export default {
 	busyCount: 0,
 	message: null,   // { type, text } ditampilkan di atas grid
 
 	priceKey: 0, priceBusy: false, priceMsg: null,
 	priceLineId: '', priceMode: '',
+	costOkKey: 0,    // naik setelah tambah biaya berhasil -> cwCbdGrid mengosongkan form tambah
 
 	lines() {
 		return q_cbd_lines.data || [];
@@ -16,6 +18,10 @@ export default {
 
 	recap() {
 		return (q_cbd_recap.data && q_cbd_recap.data[0]) || null;
+	},
+
+	costItems() {
+		return q_cbd_cost_items.data || [];
 	},
 
 	async load() {
@@ -28,7 +34,7 @@ export default {
 		const r = CbdCtrl.revision();
 		const p = { revision_id: r ? r.id : '' };
 		try {
-			await Promise.all([q_cbd_lines.run(p), q_cbd_recap.run(p)]);
+			await Promise.all([q_cbd_lines.run(p), q_cbd_recap.run(p), q_cbd_cost_items.run(p)]);
 		} catch (e) {
 			if (showError) showAlert(Util.cleanError(e && e.message), 'error');
 		}
@@ -77,6 +83,8 @@ export default {
 			editable: CbdCtrl.editable(),
 			lines: this.lines(),
 			recap: r ? this.recap() : null,
+			costItems: r ? this.costItems() : [],
+			costOkKey: this.costOkKey,
 			banners: this.banners(),
 			busy: this.busyCount > 0,
 			message: this.message,
@@ -121,6 +129,17 @@ export default {
 				break;
 			case 'setHeader':
 				await this.exec(a_cbd_header_set, { revision_id: r.id, field: a.field, value: a.value ?? '' });
+				break;
+			case 'addCost':
+				if (await this.exec(a_cbd_cost_add, {
+					revision_id: r.id, item_type: a.item_type, name: a.name || '', amount: a.amount ?? '', remarks: a.remarks || '',
+				})) this.costOkKey = this.costOkKey + 1;
+				break;
+			case 'setCost':
+				await this.exec(a_cbd_cost_set, { item_id: a.item_id, field: a.field, value: a.value ?? '' });
+				break;
+			case 'deleteCost':      // a_cbd_cost_delete: Request confirmation = ON
+				await this.exec(a_cbd_cost_delete, { item_id: a.item_id });
 				break;
 			case 'editPrice':
 				this.openPrice(a.line_id, a.mode);
