@@ -1,6 +1,6 @@
 # F8 — CBD: harga, rekap, refresh, terbit, sinkron: langkah di Appsmith
 
-Urutan: **1** SQL → **2** page CBD (JSObject, query, widget, modal) → **3** Specsheet (kecil) → **4** uji →
+Urutan: **1** SQL → **2** page CBD (JSObject, query, desain & langkah widget §2d–2i) → **3** Specsheet (kecil) → **4** uji →
 **5** export `export_v8.json`.
 
 Setelan untuk **semua query baru** (datasource `Prestasi`): *Use prepared statements* **ON**, *Run behaviour* **Manual**
@@ -151,52 +151,186 @@ SELECT fn_cbd_publish({{appsmith.store.token}}, {{this.params.revision_id}}::uui
                       {{this.params.category}}, {{this.params.reason}}) AS id;
 ```
 
-### 2d. Widget di page
+### 2d. Desain page (teks)
 
-Baris revisi (di bawah `cwStepper`), kiri → kanan — perkecil `txtCbdRevisi` supaya muat 3 tombol:
+Grid Appsmith: lebar 64 kolom, 1 baris = 10 px. Posisi ditulis **baris atas–bawah · kolom kiri–kanan** (geser/tarik
+widget sampai angka di panel mendekati; tidak harus persis). ★ = baru di F8, ✎ = diubah, lainnya tetap dari F7.
 
-| Widget | Setelan |
-|---|---|
-| `txtCbdRevisi` | Lebar ±kolom 0–40 · *Height* **Auto height** (bisa 3 baris: info + perlu revisi + change log) |
-| `btnCbdRiwayat` *(baru)* | Button, style **secondary** · Label `{{CbdCtrl.historyLabel()}}` · Visible `{{!!CbdCtrl.articleId}}` · onClick `{{CbdCtrl.openHistory()}}` |
-| `btnCbdTerbitkan` *(baru)* | Button, style **primary** · Label `Terbitkan…` · Visible (atau Disabled `!…`, sesuai pola Anda) `{{CbdCtrl.canPublish()}}` · onClick `{{CbdCtrl.openPublish()}}` |
-| `btnCbdHapusDraft` | tetap |
+```
+kolom:   0                                                   48     53        59    64
+         ┌──────────────────────────────────────────────────────────────────────────┐
+  0–  8  │ cwHeader   Cost Breakdown (CBD) · nama user · Keluar                      │
+  8– 17  │ cntHeader  [← Model List]  ILZ-02 — Illuzion …           [Buka Specsheet →]│
+ 17– 24  │ [Model ▾ selCbdModel]  [Season ▾ selCbdSeason]  [+ Buat CBD]              │
+ 24– 36  │ cwStepper  (A1 · TERBIT PULL r0) (A2 · DRAFT PULL r0)                     │
+         │            PULL ── r0 ── r1   │ SMS │ GTM │ PROD                          │
+ 36– 40  │ txtCbdRevisi                                 │★Riwayat│★Terbitkan│✎Hapus  │
+         │ A1 · Black · PULL r1 · DRAFT · acuan …       │  (2)   │    …     │ Draft  │
+         │ (auto height, bisa 2–3 baris)                │        │          │        │
+ 41–109  │✎cwCbdGrid  (±680 px)                                                     │
+         │ ┌──────────────────────────────────────────────────────────────────────┐ │
+         │ │ [pesan error / info ……………………]           4 baris · 1 tanpa harga     │ │ bar
+         │ │ ▌Harga master untuk 1 baris berubah …  [Refresh Harga dari Master]   │ │ banner
+         │ │ Exch.rate│Mat.cost│Amortisasi│Adjustment│Actual FOB│Target FOB│Selisih   │Selling│Margin%│ rekap
+         │ │ [16250 ] │8.308,5 │[1500    ]│[-200    ]│ 9.608,5  │[9000    ]│608,5 OVER│[     ]│[    ]│ (menempel)
+         │ ├──────────────────────────────────────────────────────────────────────┤ │
+         │ │ No│Komponen│Material│Thk│Color│Supplier│UoM│Remarks│Yield│Usage│Loss%│Harga        │Cur│USD│IDR│Cost/pr│Asal
+         │ │ A · Upper                                                            │ │
+         │ │ 10│Vamp    │Mesh …  │   │Black│PT Maju │M  │       │[12,5]│0,08│[3] │45.000 master│IDR│ … │
+         │ │   │        │        │   │     │        │   │       │      │    │    │Override…    │   │   │
+         │ │ 35│Heel badge lokal │ … │Gold │   -    │PCS│       │[    ]│ -  │[0] │quotation —  │   │   │
+         │ │   │        │        │   │     │        │   │       │      │    │    │belum diisi  │   │   │
+         │ │   │        │        │   │     │        │   │       │      │    │    │Isi harga    │   │   │
+         │ │ Hilang dari specsheet (MISSING_IN_SPEC) — 1 baris, tidak dihitung     │ │
+         │ └──────────────────────────────────────────────────────────────────────┘ │
+         └──────────────────────────────────────────────────────────────────────────┘
+Modal (tidak terlihat di canvas): mdlCbdBaru (F7) · ★mdlCbdHarga · ★mdlCbdTerbit · ★mdlCbdRiwayat
+```
 
-`cwCbdGrid`:
-1. Tempel ulang kode `widgets/cwCbdGrid/` (HTML / Style / JavaScript — ketiganya berubah).
-2. Tinggi **±680 px** (tambah banner + rekap di atas grid).
-3. Default model & event `onAction` **tetap** (`{{CbdGridCtrl.gridModel()}}`, `{{CbdGridCtrl.onAction()}}`).
+```
+★ mdlCbdHarga (±560 px)            ★ mdlCbdTerbit (±560 px)            ★ mdlCbdRiwayat (±900 px)
+┌───────────────────────────────┐  ┌───────────────────────────────┐  ┌─────────────────────────────────────────┐
+│ Override Harga              ✕ │  │ Terbitkan CBD A1 · PULL r1  ✕ │  │ Riwayat CBD                           ✕ │
+│ 10 · Vamp · MTR-0001 … · Black│  │ ✓ Specsheet acuan = terbit …  │  │ Revisi │Kategori│Alasan     │Oleh │Waktu │
+│ ┌ Harga sekarang: 45.000 IDR ┐│  │ ✓ Exchange rate terisi        │  │ PULL r1│YIELD   │Yield vamp │vcbd │01 Okt│
+│ Harga *          Currency *   │  │ ✓ Harga master sama …         │  │ PULL r0│OTHER   │Revisi awal│vcbd │30 Sep│
+│ [47000      ]    [IDR] [USD]  │  │ ✕ Baris berharga punya Yield  │  │                                         │
+│ Terbaca: 47.000 IDR           │  │ ! Semua baris berharga        │  │                                         │
+│ Alasan override *             │  │ Kategori * [— pilih — ▾]      │  │                                         │
+│ [harga nego order ini       ] │  │ Alasan *   [              ]   │  │                                         │
+│              [Batal] [Simpan] │  │          [Batal] [Terbitkan]  │  │                                         │
+└───────────────────────────────┘  └───────────────────────────────┘  └─────────────────────────────────────────┘
+  isi = Custom Widget                isi = Custom Widget                isi = Table tblCbdRiwayat
+  cwCbdPriceForm                     cwPublishForm
+```
 
-### 2e. Modal `mdlCbdHarga` — Custom Widget `cwCbdPriceForm` *(baru)*
+Mode **Quotation** di `mdlCbdHarga`: judul *Harga Quotation*, harga boleh kosong (= tidak dihargai terpisah), kolom
+bawah = *Referensi* (opsional).
 
-Modal lebar ±560 px, *close on outside click* **OFF**; widget tinggi ±520 px (kode `widgets/cwCbdPriceForm/`).
+### 2e. Langkah widget di page
 
-| Default model | `onSave` | `onCancel` |
+Buka page **Cost Breakdown (CBD)** di editor. Pola tombol mengikuti page Specsheet Anda: tombol tetap tampil,
+**Disabled** bila tidak boleh dipakai.
+
+**Langkah 1 — ✎ `txtCbdRevisi`**
+1. Klik `txtCbdRevisi` → tarik sisi kanan sampai kolom **48** (sekarang 59).
+2. Properti tetap: Text `{{CbdCtrl.revisionText()}}` · *Height* **Auto height** · Font size **M**.
+
+**Langkah 2 — `btnCbdHapusDraft`**: tetap di baris 36–40 · kolom **59–64**, properti tidak berubah
+(Label `Hapus Draft`, variant Secondary, warna `#dc2626`, Disabled `{{!CbdCtrl.canDeleteDraft()}}`,
+onClick `{{CbdCtrl.deleteDraft()}}`).
+
+**Langkah 3 — ★ `btnCbdTerbitkan`** (klik `btnCbdHapusDraft` → Ctrl+C → Ctrl+V, lalu ubah)
+
+| Bagian panel | Properti | Nilai |
 |---|---|---|
-| `{{CbdGridCtrl.priceFormModel()}}` | `{{CbdGridCtrl.savePrice()}}` | `{{closeModal('mdlCbdHarga')}}` |
+| (judul panel) | Name | `btnCbdTerbitkan` |
+| Posisi | baris · kolom | 36–40 · **53–59** |
+| Basic | Label | `Terbitkan…` |
+| Basic | onClick | `{{CbdCtrl.openPublish()}}` |
+| General | Visible | ON |
+| General | Disabled | klik **JS** di samping toggle → `{{!CbdCtrl.canPublish()}}` |
+| Style | Button variant | **Primary** |
+| Style | Button color | `{{appsmith.theme.colors.primaryColor}}` (ganti merah hasil salin) |
 
-### 2f. Modal `mdlCbdTerbit` — Custom Widget `cwPublishForm`
+**Langkah 4 — ★ `btnCbdRiwayat`** (salin lagi, ubah)
 
-Modal lebar ±560 px, *close on outside click* **OFF**; widget `cwPublishForm` tinggi ±520 px. Boleh disalin dari
-modal `mdlTerbit` page Specsheet, lalu **tempel ulang kode** `widgets/cwPublishForm/` (ada opsi baru `blockedWhere`)
-dan ganti isi berikut:
-
-| Default model | `onPublish` | `onCancel` |
+| Bagian panel | Properti | Nilai |
 |---|---|---|
-| `{{CbdCtrl.publishFormModel()}}` | `{{CbdCtrl.publish()}}` | `{{closeModal('mdlCbdTerbit')}}` |
+| (judul panel) | Name | `btnCbdRiwayat` |
+| Posisi | baris · kolom | 36–40 · **48–53** |
+| Basic | Label | `{{CbdCtrl.historyLabel()}}` |
+| Basic | onClick | `{{CbdCtrl.openHistory()}}` |
+| General | Visible | klik **JS** → `{{!!CbdCtrl.articleId}}` |
+| General | Disabled | OFF (hapus binding hasil salin) |
+| Style | Button variant | **Secondary** · Button color `{{appsmith.theme.colors.primaryColor}}` |
 
-### 2g. Modal `mdlCbdRiwayat` + `tblCbdRiwayat`
+**Langkah 5 — ✎ `cwCbdGrid`**
+1. Klik `cwCbdGrid` → **Edit source** → tab **HTML**: hapus semua, tempel `widgets/cwCbdGrid/index.html`; tab
+   **Style**: tempel `style.css`; tab **JavaScript**: tempel `script.js` → tutup editor.
+2. Tarik tepi bawah sampai tinggi **±680 px** (baris 41–109). Kalau `txtCbdRevisi` jadi 2–3 baris, grid ikut turun.
+3. Properti yang **tetap**: Default model `{{CbdGridCtrl.gridModel()}}` · Visible `{{!!CbdCtrl.revision()}}` ·
+   *Height* **Fixed** · event **onAction** `{{CbdGridCtrl.onAction()}}`. Tidak ada event baru (semua aksi F8 lewat
+   `onAction`).
 
-Modal lebar ±900 px. `tblCbdRiwayat`: Table Data `{{CbdCtrl.changeLogs()}}`, **Search OFF**, kolom:
+### 2f. ★ Modal `mdlCbdHarga` — Custom Widget `cwCbdPriceForm`
 
-| Kolom | Label | Setelan |
-|---|---|---|
-| `revision_label` | Revisi | – |
-| `category` | Kategori | – |
-| `reason` | Alasan | *Cell wrapping* ON |
-| `created_by` | Oleh | – |
-| `created_at` | Waktu | Computed value `{{Util.fmtDateTime(currentRow.created_at)}}`, Column type **Text** |
-| `id`, `revision_id` | – | disembunyikan |
+1. Panel widget → seret **Modal** ke canvas → rename `mdlCbdHarga`.
+2. Hapus isi bawaan modal: teks judul, tombol ikon ✕, tombol **Close** dan **Confirm** (judul & tombol sudah ada di
+   Custom Widget).
+3. Properti modal:
+
+   | Properti | Nilai |
+   |---|---|
+   | *Quick dismiss* / Close on outside click | **OFF** |
+   | Width | ±**560** px (tarik sisi modal) |
+   | Height | **Auto height** |
+
+4. Seret **Custom** widget ke dalam modal → rename `cwCbdPriceForm` → lebar penuh (kolom 0–64), tinggi **±520 px**.
+5. **Edit source** → HTML / Style / JavaScript ← `widgets/cwCbdPriceForm/index.html`, `style.css`, `script.js`.
+6. Properti widget:
+
+   | Properti | Nilai |
+   |---|---|
+   | Default model | `{{CbdGridCtrl.priceFormModel()}}` |
+   | Events → **+ Add event** `onSave` | `{{CbdGridCtrl.savePrice()}}` |
+   | Events → **+ Add event** `onCancel` | `{{closeModal('mdlCbdHarga')}}` |
+   | Height | **Fixed** |
+   | Visible | ON |
+
+### 2g. ★ Modal `mdlCbdTerbit` — Custom Widget `cwPublishForm`
+
+1. Page **Specsheet** → Explorer → Widgets → klik `mdlTerbit` → Ctrl+C → page **CBD** → klik canvas kosong → Ctrl+V.
+   (Atau buat Modal baru seperti 2f langkah 1–3 lalu seret Custom widget ke dalamnya.)
+2. Rename modal `mdlCbdTerbit`. Widget di dalamnya tetap bernama **`cwPublishForm`** (nama sama di page lain tidak
+   masalah; `CbdCtrl.publish()` membaca `cwPublishForm.model`).
+3. Properti modal: *Close on outside click* **OFF** · Width ±**560** px · Height **Auto height**.
+4. `cwPublishForm` → **Edit source** → tempel ulang kode `widgets/cwPublishForm/` (3 tab). Tinggi ±**520 px** (Fixed).
+5. Ganti properti (⚠️ jangan biarkan handler Specsheet):
+
+   | Properti | Nilai |
+   |---|---|
+   | Default model | `{{CbdCtrl.publishFormModel()}}` |
+   | Event `onPublish` | `{{CbdCtrl.publish()}}` |
+   | Event `onCancel` | `{{closeModal('mdlCbdTerbit')}}` |
+
+### 2h. ★ Modal `mdlCbdRiwayat` + `tblCbdRiwayat`
+
+1. Page **Specsheet** → salin `mdlRiwayat` → tempel di page CBD → rename modal `mdlCbdRiwayat`, tabel di dalamnya
+   `tblCbdRiwayat`. (Atau Modal baru + seret **Table**, posisi baris 4–32 · kolom 0–64.)
+2. Properti modal: Width ±**900** px · Height **Auto height** · Close on outside click boleh ON (hanya baca). Bila ada
+   teks judul hasil salin, ganti jadi `Riwayat CBD`.
+3. Properti `tblCbdRiwayat`:
+
+   | Bagian panel | Properti | Nilai |
+   |---|---|---|
+   | Data | Table data | `{{CbdCtrl.changeLogs()}}` |
+   | Data | Primary key column | `id` |
+   | Search & filters | Allow searching | **OFF** |
+   | Search & filters | Allow filtering · Allow download | OFF |
+   | Pagination | Show pagination | ON |
+
+4. Kolom (dari salinan Specsheet: **hapus** kolom `source_label` / *Sumber* — CBD tidak punya kolom itu):
+
+   | Kolom | Label | Column type | Computed value | Lainnya |
+   |---|---|---|---|---|
+   | `id` | – | Text | (bawaan) | Visible **OFF** |
+   | `revision_id` | – | Text | (bawaan) | Visible **OFF** |
+   | `revision_label` | Revisi | Text | (bawaan) | – |
+   | `category` | Kategori | Text | (bawaan) | – |
+   | `reason` | Alasan | Text | (bawaan) | *Cell wrapping* **ON** |
+   | `created_by` | Oleh | Text | (bawaan) | – |
+   | `created_at` | Waktu | **Text** | `{{Util.fmtDateTime(currentRow.created_at)}}` | – |
+
+### 2i. Cek akhir sebelum Deploy
+
+- [ ] Explorer → Queries: 10 query F8 ada (3 baca **Manual**, 7 tulis); konfirmasi `a_cbd_clear_override` &
+      `a_cbd_refresh_spec` **ON**, `a_cbd_publish` **OFF**; tidak ada `Query1`.
+- [ ] Explorer → Widgets: `btnCbdRiwayat`, `btnCbdTerbitkan`, `mdlCbdHarga` (+ `cwCbdPriceForm`), `mdlCbdTerbit`
+      (+ `cwPublishForm`), `mdlCbdRiwayat` (+ `tblCbdRiwayat`).
+- [ ] Event Custom Widget sesuai tabel di atas: `cwCbdGrid.onAction`, `cwCbdPriceForm.onSave/onCancel`,
+      `cwPublishForm.onPublish/onCancel` (bukan `SpecCtrl` / `mdlTerbit`).
+- [ ] Preview sebagai Vendor – CBD: rekap tampil di atas grid; **Terbitkan…** aktif hanya di draft.
 
 Lalu **Deploy**.
 
