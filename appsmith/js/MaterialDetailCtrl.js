@@ -188,7 +188,9 @@ export default {
 	},
 
 	// ---- supplier material ----
-	openAddLink() {
+	// Daftar supplier dimuat ulang setiap modal dibuka (supplier bisa baru ditambah di jendela lain).
+	async openAddLink() {
+		try { await q_link_supplier_options.run(); } catch (e) { /* daftar lama tetap dipakai */ }
 		this.linkIsNew = true;
 		this.linkForm = { supplier_id: '', supplier_material_code: '', is_preferred: this.links().length === 0, status: 'PROPOSED' };
 		this.linkBusy = false;
@@ -321,8 +323,9 @@ export default {
 		return Util.run(a_price_cancel, { id: row.id }, 'Usulan harga dibatalkan.', [q_prices, q_material]);
 	},
 
+	// Ambil baris asli dari q_prices: baris dari tabel berisi nilai tampilan ("2,49"), bukan angka -> NaN.
 	openReject(row) {
-		this.rejectRow = row;
+		this.rejectRow = this.prices().find(p => p.id === row.id) || row;
 		this.rejectBusy = false;
 		this.rejectMsg = null;
 		this.rejectKey = this.rejectKey + 1;

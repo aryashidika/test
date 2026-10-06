@@ -138,9 +138,10 @@ body {
 .c-mat { width: 270px; min-width: 270px; }
 .c-sup { width: 190px; min-width: 190px; }
 .c-uom { width: 64px; min-width: 64px; color: var(--muted); }
-.c-rem { width: 170px; min-width: 170px; }
+.c-thk { width: 80px; min-width: 80px; color: var(--muted); }
+.c-rem { width: 200px; min-width: 200px; }
 .c-act { width: 84px; min-width: 84px; }
-.c-art { width: 150px; min-width: 150px; }
+.c-art { width: 190px; min-width: 190px; }
 
 .art-head {
   display: flex;
@@ -203,7 +204,8 @@ tr.sub .c-comp .name::before {
   padding: 0 4px;
 }
 
-input.cell {
+input.cell, textarea.cell {
+  display: block;
   width: 100%;
   height: 28px;
   padding: 0 6px;
@@ -214,22 +216,22 @@ input.cell {
   background: transparent;
 }
 
-input.cell:hover {
+input.cell:hover, textarea.cell:hover {
   border-color: var(--border);
 }
 
-input.cell:focus {
+input.cell:focus, textarea.cell:focus {
   outline: none;
   border-color: var(--accent);
   background: #fff;
   box-shadow: 0 0 0 2px rgba(59, 111, 224, 0.18);
 }
 
-input.cell.invalid {
+input.cell.invalid, textarea.cell.invalid {
   border-color: var(--danger);
 }
 
-input.cell:disabled {
+input.cell:disabled, textarea.cell:disabled {
   background: var(--surface-alt);
   cursor: not-allowed;
 }
@@ -338,4 +340,44 @@ tr.add input.cell, tr.subform input.cell {
 .empty {
   color: var(--muted);
   padding: 16px 8px;
+}
+
+/* F10b: kotak teks warna & Remarks membungkus teks */
+textarea.cell {
+  min-height: 28px;
+  padding: 5px 6px;
+  line-height: 1.35;
+  resize: none;
+  overflow: hidden;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.ro.lines {
+  white-space: pre-line;
+}
+
+.suggest {
+  position: fixed;
+  z-index: 50;
+  max-width: 320px;
+  max-height: 240px;
+  overflow-y: auto;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow: 0 8px 20px rgba(18, 42, 82, 0.16);
+  padding: 4px 0;
+  font-size: 12.5px;
+}
+
+.suggest .opt {
+  padding: 5px 10px;
+  cursor: pointer;
+  white-space: normal;
+}
+
+.suggest .opt:hover, .suggest .opt.on {
+  background: var(--surface-alt, #EEF1F7);
+  color: var(--primary);
 }

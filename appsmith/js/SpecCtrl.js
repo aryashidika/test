@@ -1,5 +1,5 @@
-// JSObject "SpecCtrl" — page Specsheet (?model_id=<model id>&season=<specsheet id>, keduanya opsional).
-// Dibuka dari Model List / Model Detail -> model & season langsung terpilih; dari sidebar -> pilih dulu
+// JSObject "SpecCtrl" — page Specsheet (?model_id=<model id>&season=<specsheet id>&from=list|detail|home, semua opsional).
+// Dibuka dari Model List / Model Detail / Beranda (Tugas Saya, F10) -> model & season langsung terpilih; dari sidebar -> pilih dulu
 // di selSpecModel lalu selSpecSeason. Stepper revisi (cwStepper), Buat Revisi (cwRevisionForm di mdlRevisi), Hapus Draft.
 // Terbitkan (cwPublishForm di mdlTerbit, F6) & Riwayat (tblRiwayat di mdlRiwayat, F6).
 // Grid BOM & article revisi ada di BomCtrl. Izin: lihat = view_specsheet (Brand hanya revisi terbit — difilter
@@ -9,7 +9,7 @@
 // isi revisi lewat BomCtrl.load().
 export default {
 	modelId: '',       // model yang dipilih
-	from: '',          // asal halaman (?from=list | detail) -> tujuan tombol kembali
+	from: '',          // asal halaman (?from=list | detail | home) -> tujuan tombol kembali
 	seasonId: '',      // specsheet (season) yang dipilih
 	revisionId: '',    // revisi yang dibuka
 	firstLoad: true,
@@ -223,10 +223,12 @@ export default {
 	},
 
 	backLabel() {
+		if (this.from === 'home') return '← Beranda';
 		return this.backToList() ? '← Model List' : '← Model Detail';
 	},
 
 	openModel() {
+		if (this.from === 'home') return navigateTo('Beranda');
 		const m = this.model();
 		if (this.backToList()) return navigateTo('Model List');
 		navigateTo('Model Detail', this.seasonId ? { id: m.id, season: this.seasonId } : { id: m.id });
@@ -339,8 +341,10 @@ export default {
 				detail: c.unused_articles ? `Belum dipakai (belum ada warna di baris mana pun): ${c.unused_articles}` : '' },
 			{ label: 'Tidak ada material INACTIVE', ok: !c.inactive_materials, blocking: true,
 				detail: c.inactive_materials || '' },
-			{ label: 'Semua baris punya supplier (dibutuhkan harga CBD)', ok: c.no_supplier_lines === 0, blocking: false,
-				detail: c.no_supplier_lines ? `${c.no_supplier_lines} baris tanpa supplier — boleh terbit, tapi harga CBD-nya tidak bisa diambil` : '' },
+			{ label: 'Semua baris punya supplier', ok: c.no_supplier_lines === 0, blocking: true,
+				detail: c.no_supplier_lines ? `${c.no_supplier_lines} baris tanpa supplier — isi supplier di grid BOM` : '' },
+			{ label: 'Tidak ada usulan yang belum di-approve', ok: !c.proposed_items, blocking: true,
+				detail: c.proposed_items ? `Menunggu Master Admin: ${c.proposed_items}` : '' },
 		];
 		const requiresReason = c ? !!c.requires_reason : true;
 		return {
@@ -351,13 +355,16 @@ export default {
 			requiresReason,
 			categories: this.CATEGORIES,
 			defaultCategory: requiresReason ? '' : 'OTHER',
+			maxImages: 5,
 			busy: this.pubBusy,
 			message: this.pubMsg,
 		};
 	},
 
+	// Gambar dari cwPublishForm dilampirkan ke change log setelah terbit (fn_change_log_attach, F10b).
 	async publish() {
 		const f = cwPublishForm.model || {};
+		const images = Array.isArray(f.images) ? f.images : [];
 		const r = this.revision();
 		if (!r) return;
 		this.pubMsg = null;
@@ -378,10 +385,30 @@ export default {
 		} finally {
 			this.pubBusy = false;
 		}
+		const logId = ((a_revision_publish.data || [])[0] || {}).id;
+		const failed = await this.attachImages(logId, images);
 		closeModal('mdlTerbit');
-		showAlert(`Revisi ${this.label(r)} diterbitkan.`, 'success');
+		showAlert(`Revisi ${this.label(r)} diterbitkan.`
+			+ (failed ? ` ${failed} gambar gagal dilampirkan.` : (images.length ? ` ${images.length} gambar dilampirkan.` : '')),
+			failed ? 'warning' : 'success');
 		await this.refreshSeasons();
 		await this.loadSeason(r.id);
+	},
+
+	// Mengembalikan jumlah gambar yang gagal dilampirkan
+	async attachImages(logId, images) {
+		if (!images.length) return 0;
+		let failed = 0;
+		this.pubBusy = true;
+		for (const img of images) {
+			try {
+				await a_change_log_attach.run({ log_id: logId, file_name: img.name || 'gambar', data: img.data || '' });
+			} catch (e) {
+				failed += 1;
+			}
+		}
+		this.pubBusy = false;
+		return failed;
 	},
 
 	// ---- riwayat (F6) ----
@@ -391,7 +418,40 @@ export default {
 	},
 
 	openHistory() {
+		this.galleryLogId = '';
 		showModal('mdlRiwayat');
+	},
+
+	// ---- gambar change log (F10b): baris riwayat dipilih -> gambar tampil di cwImageGallery ----
+	galleryLogId: '',
+
+	async showImages(row) {
+		const id = row && row.id ? row.id : '';
+		this.galleryLogId = id;
+		if (!id || !row.image_count) return;
+		try {
+			await q_change_log_images.run({ log_id: id });
+		} catch (e) {
+			showAlert(Util.cleanError(e && e.message), 'error');
+		}
+	},
+
+	galleryModel() {
+		const log = this.changeLogs().find(l => l.id === this.galleryLogId) || null;
+		const rows = log && log.image_count ? (q_change_log_images.data || []) : [];
+		return {
+			title: log ? `Gambar ${log.revision_label}` : 'Gambar',
+			emptyText: !log ? 'Pilih baris riwayat untuk melihat gambarnya.' : 'Tidak ada gambar di terbit ini.',
+			loading: !!log && !!log.image_count && q_change_log_images.isLoading,
+			images: rows.map(i => ({ id: i.id, name: i.file_name, mime: i.mime_type, size: i.size_bytes, data: i.data })),
+		};
+	},
+
+	// cwImageGallery onDownload
+	downloadImage() {
+		const m = cwImageGallery.model || {};
+		const img = (this.galleryModel().images || []).find(i => i.id === m.downloadId);
+		if (img) download(`data:${img.mime};base64,${img.data}`, img.name, img.mime);
 	},
 
 	// Query a_revision_delete memakai "Request confirmation before running" = ON

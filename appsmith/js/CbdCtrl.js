@@ -1,13 +1,14 @@
-// JSObject "CbdCtrl" — page Cost Breakdown (CBD) (?model_id=<model id>&season=<specsheet id>&from=list|detail, semua opsional).
-// Dibuka dari Model List / Model Detail / Specsheet -> model & season langsung terpilih; dari sidebar -> pilih dulu
-// di selCbdModel lalu selCbdSeason. Chip article + stepper revisi CBD (cwStepper), Buat CBD (cwCbdForm di mdlCbdBaru),
+// JSObject "CbdCtrl" — page Cost Breakdown (CBD) (?model_id=<model id>&season=<specsheet id>&article=<article id>&from=list|detail|home,
+// semua opsional). Dibuka dari Model List / Model Detail / Specsheet / Beranda (Tugas Saya, F10) -> model, season & article
+// langsung terpilih; dari sidebar -> pilih dulu di selCbdModel lalu selCbdSeason.
+// Chip article + stepper revisi CBD (cwStepper), Buat CBD (cwCbdForm di mdlCbdBaru),
 // Hapus Draft, Terbitkan (cwPublishForm di mdlCbdTerbit, F8), Riwayat (tblCbdRiwayat di mdlCbdRiwayat, F8).
 // Grid baris, rekap & harga ada di CbdGridCtrl. Izin: lihat = view_cbd (Brand hanya revisi terbit — difilter query)
 // · ubah = edit_cbd (Vendor – CBD). Semua dicek lagi di DB.
 // CBD per article; acuan = revisi specsheet terbit terakhir season itu (article harus ACTIVE di sana).
 export default {
 	modelId: '',       // model yang dipilih
-	from: '',          // asal halaman (?from=list | detail) -> tujuan tombol kembali
+	from: '',          // asal halaman (?from=list | detail | home) -> tujuan tombol kembali
 	seasonId: '',      // specsheet (season) yang dipilih
 	articleId: '',     // article yang dipilih (chip)
 	revisionId: '',    // revisi CBD yang dibuka
@@ -122,12 +123,13 @@ export default {
 		const want = this.modelId || (this.firstLoad ? url.model_id : '');
 		this.modelId = this.models().some(m => m.id === want) ? want : '';
 		if (want && !this.modelId) showAlert('Model tidak ditemukan. Pilih model di atas.', 'warning');
-		await this.loadModel(this.firstLoad ? url.season : this.seasonId);
+		await this.loadModel(this.firstLoad ? url.season : this.seasonId, this.firstLoad ? url.article : '');
 		this.firstLoad = false;
 	},
 
-	// Muat model + season-nya, pilih season (wantSeason atau season terbaru), lalu article.
-	async loadModel(wantSeason) {
+	// Muat model + season-nya, pilih season (wantSeason atau season terbaru), lalu article (wantArticle atau
+	// article aktif pertama).
+	async loadModel(wantSeason, wantArticle) {
 		try {
 			await Promise.all([
 				q_cbd_model.run({ model_id: this.modelId || '' }),
@@ -140,7 +142,7 @@ export default {
 		const found = list.find(s => s.id === wantSeason);
 		this.seasonId = found ? found.id : (list[0] ? list[0].id : '');   // q_cbd_seasons: season terbaru dulu
 		this.articleId = '';
-		await this.loadSeason();
+		await this.loadSeason(wantArticle);
 	},
 
 	async pickModel(id) {
@@ -297,10 +299,12 @@ export default {
 	},
 
 	backLabel() {
+		if (this.from === 'home') return '← Beranda';
 		return this.backToList() ? '← Model List' : '← Model Detail';
 	},
 
 	openModel() {
+		if (this.from === 'home') return navigateTo('Beranda');
 		const m = this.model();
 		if (this.backToList()) return navigateTo('Model List');
 		navigateTo('Model Detail', this.seasonId ? { id: m.id, season: this.seasonId } : { id: m.id });
@@ -455,13 +459,16 @@ export default {
 			requiresReason,
 			categories: this.CATEGORIES,
 			defaultCategory: requiresReason ? '' : 'OTHER',
+			maxImages: 5,
 			busy: this.pubBusy,
 			message: this.pubMsg,
 		};
 	},
 
+	// Gambar dari cwPublishForm dilampirkan ke change log setelah terbit (fn_change_log_attach, F10b).
 	async publish() {
 		const f = cwPublishForm.model || {};
+		const images = Array.isArray(f.images) ? f.images : [];
 		const r = this.revision();
 		if (!r) return;
 		this.pubMsg = null;
@@ -482,9 +489,29 @@ export default {
 		} finally {
 			this.pubBusy = false;
 		}
+		const logId = ((a_cbd_publish.data || [])[0] || {}).id;
+		const failed = await this.attachImages(logId, images);
 		closeModal('mdlCbdTerbit');
-		showAlert(`CBD ${this.label(r)} diterbitkan.`, 'success');
+		showAlert(`CBD ${this.label(r)} diterbitkan.`
+			+ (failed ? ` ${failed} gambar gagal dilampirkan.` : (images.length ? ` ${images.length} gambar dilampirkan.` : '')),
+			failed ? 'warning' : 'success');
 		await this.refresh(r.id);
+	},
+
+	// Mengembalikan jumlah gambar yang gagal dilampirkan
+	async attachImages(logId, images) {
+		if (!images.length) return 0;
+		let failed = 0;
+		this.pubBusy = true;
+		for (const img of images) {
+			try {
+				await a_change_log_attach.run({ log_id: logId, file_name: img.name || 'gambar', data: img.data || '' });
+			} catch (e) {
+				failed += 1;
+			}
+		}
+		this.pubBusy = false;
+		return failed;
 	},
 
 	// ---- riwayat (F8) ----
@@ -494,7 +521,40 @@ export default {
 	},
 
 	openHistory() {
+		this.galleryLogId = '';
 		showModal('mdlCbdRiwayat');
+	},
+
+	// ---- gambar change log (F10b): baris riwayat dipilih -> gambar tampil di cwImageGallery ----
+	galleryLogId: '',
+
+	async showImages(row) {
+		const id = row && row.id ? row.id : '';
+		this.galleryLogId = id;
+		if (!id || !row.image_count) return;
+		try {
+			await q_change_log_images.run({ log_id: id });
+		} catch (e) {
+			showAlert(Util.cleanError(e && e.message), 'error');
+		}
+	},
+
+	galleryModel() {
+		const log = this.changeLogs().find(l => l.id === this.galleryLogId) || null;
+		const rows = log && log.image_count ? (q_change_log_images.data || []) : [];
+		return {
+			title: log ? `Gambar ${log.revision_label}` : 'Gambar',
+			emptyText: !log ? 'Pilih baris riwayat untuk melihat gambarnya.' : 'Tidak ada gambar di terbit ini.',
+			loading: !!log && !!log.image_count && q_change_log_images.isLoading,
+			images: rows.map(i => ({ id: i.id, name: i.file_name, mime: i.mime_type, size: i.size_bytes, data: i.data })),
+		};
+	},
+
+	// cwImageGallery onDownload
+	downloadImage() {
+		const m = cwImageGallery.model || {};
+		const img = (this.galleryModel().images || []).find(i => i.id === m.downloadId);
+		if (img) download(`data:${img.mime};base64,${img.data}`, img.name, img.mime);
 	},
 
 	// Query a_cbd_delete memakai "Request confirmation before running" = ON

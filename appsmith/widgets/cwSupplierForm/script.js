@@ -38,11 +38,15 @@ function fillSelect(sel, options, selected) {
 function fillForm(m) {
   const f = m.form || {};
   const isEdit = m.mode === 'edit';
-  $('title').textContent = isEdit ? 'Ubah Supplier' : 'Tambah Supplier';
+  const propose = !isEdit && m.canManage === false;    // Vendor: supplier baru = usulan (F10b)
+  $('title').textContent = isEdit ? 'Ubah Supplier' : (propose ? 'Usulkan Supplier' : 'Tambah Supplier');
   $('name').value = f.name || '';
   $('name').classList.remove('invalid');
   fillSelect($('status'), m.statusOptions, f.status || 'APPROVED');
   $('statusBox').hidden = !isEdit;
+  $('addInfo').textContent = propose
+    ? 'Usulan tersimpan sebagai PROPOSED dan menunggu persetujuan Master Admin. Supplier usulan sudah bisa dipilih di BOM, tetapi specsheet baru bisa terbit setelah disetujui.'
+    : 'Supplier baru langsung berstatus APPROVED.';
   $('addInfo').hidden = isEdit;
   $('name').focus();
 }

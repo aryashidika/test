@@ -1,4 +1,7 @@
-// cwBomGrid — grid BOM page Specsheet: No, Komponen, Material, Supplier, UoM, Remarks + satu kolom per article.
+// cwBomGrid — grid BOM page Specsheet: No, Komponen, Material, Supplier, UoM, Thickness, Remarks + satu kolom per article.
+// F10b: sel warna & Remarks = kotak teks yang membungkus (terbaca semua); Remarks boleh beberapa baris (Shift+Enter);
+//   saran warna = daftar sendiri (panah atas/bawah lalu Enter memilih saran — ketikan setengah jadi tidak tersimpan);
+//   kolom Thickness (dari master material).
 // Hanya tampilan & input. Setiap perubahan dikirim sebagai model.action + event onAction (BomCtrl.onAction());
 // BomCtrl menjalankan query lalu memuat ulang data. Aturan final di DB (fn_bom_*).
 // Teks yang diketik dicocokkan ke master di sini (seperti bom_service.py resolve_*):
@@ -34,6 +37,18 @@ function norm(s) {
 
 function tidy(s) {
   return String(s ?? '').replace(/\s+/g, ' ').trim();
+}
+
+// Remarks: baris dipertahankan, spasi di dalam baris dirapatkan, baris kosong dibuang
+function tidyLines(s) {
+  return String(s ?? '').split(/\r?\n/).map(x => x.replace(/\s+/g, ' ').trim()).filter(x => x).join('\n');
+}
+
+// Tinggi kotak teks mengikuti isi
+function autosize(t) {
+  if (!t || t.tagName !== 'TEXTAREA') return;
+  t.style.height = 'auto';
+  t.style.height = `${t.scrollHeight + 2}px`;
 }
 
 function el(tag, cls, text) {
@@ -167,12 +182,22 @@ function showMessage() {
   box.hidden = false;
 }
 
-// Input sel yang disimpan saat berubah (change = Enter / Tab / klik di luar)
+// Input sel yang disimpan saat berubah (change = Enter / Tab / klik di luar).
+// opts.multiline: kotak teks yang membungkus · opts.keepLines: Shift/Alt+Enter = baris baru (Remarks)
+// · opts.suggest: daftar saran sendiri (warna)
 function cellInput(key, value, opts) {
-  const i = el('input', 'cell');
-  i.type = 'text';
+  const multi = !!(opts.multiline || opts.keepLines);
+  const i = el(multi ? 'textarea' : 'input', 'cell');
+  if (multi) {
+    i.rows = 1;
+    i.spellcheck = false;
+    i.addEventListener('input', () => autosize(i));
+  } else {
+    i.type = 'text';
+  }
   i.autocomplete = 'off';
   i.value = value || '';
+  const clean = opts.keepLines ? tidyLines : tidy;
   i.dataset.key = key;
   i.dataset.orig = i.value;
   if (opts.col) i.dataset.col = opts.col;
@@ -183,15 +208,29 @@ function cellInput(key, value, opts) {
   i.addEventListener('input', () => i.classList.remove('invalid'));
   if (opts.onCommit) {
     i.addEventListener('change', () => {
-      if (tidy(i.value) === tidy(i.dataset.orig)) return;
+      if (!i.isConnected) return;              // elemen sudah diganti render ulang: jangan simpan ketikan setengah jadi
+      if (clean(i.value) === clean(i.dataset.orig)) return;
       opts.onCommit(i);
     });
   }
+  if (opts.suggest) attachSuggest(i, opts.suggest);
   i.addEventListener('keydown', e => {
+    if (e.defaultPrevented) return;            // sudah ditangani daftar saran
     if (e.key === 'Escape') {
       i.value = i.dataset.orig;
       i.classList.remove('invalid');
+      autosize(i);
       i.blur();
+    } else if (e.key === 'Enter' && opts.keepLines && (e.shiftKey || e.altKey)) {
+      if (e.altKey) {                          // Alt+Enter seperti Excel
+        e.preventDefault();
+        const p = i.selectionStart;
+        i.value = `${i.value.slice(0, p)}\n${i.value.slice(i.selectionEnd)}`;
+        i.setSelectionRange(p + 1, p + 1);
+        autosize(i);
+      }                                        // Shift+Enter: baris baru bawaan kotak teks
+    } else if (e.key === 'Enter' && multi && !opts.col) {
+      e.preventDefault();                      // baris tambah/sub: Enter ditangani formRow
     } else if (e.key === 'Enter' && opts.col) {
       e.preventDefault();
       moveDown(i);
@@ -200,9 +239,85 @@ function cellInput(key, value, opts) {
   return i;
 }
 
+// ---------------------------------------------------------------- daftar saran (warna)
+let sugTarget = null;
+let sugItems = [];
+let sugIndex = -1;
+
+function hideSuggest() {
+  sugTarget = null;
+  sugItems = [];
+  sugIndex = -1;
+  $('suggest').hidden = true;
+}
+
+function showSuggest(input, source) {
+  const key = norm(input.value);
+  const all = typeof source === 'function' ? source() : (source || []);
+  sugItems = all.filter(c => norm(c) !== key && (!key || norm(c).includes(key))).slice(0, 8);
+  sugTarget = input;
+  sugIndex = -1;
+  const box = $('suggest');
+  box.innerHTML = '';
+  if (!sugItems.length) {
+    box.hidden = true;
+    return;
+  }
+  sugItems.forEach((c, n) => {
+    const o = el('div', 'opt', c);
+    o.addEventListener('mousedown', e => {     // mousedown: sebelum kotak teks kehilangan fokus
+      e.preventDefault();
+      pickSuggest(n);
+    });
+    box.appendChild(o);
+  });
+  const r = input.getBoundingClientRect();
+  box.style.left = `${Math.max(0, Math.min(r.left, window.innerWidth - 260))}px`;
+  box.style.minWidth = `${Math.max(r.width, 180)}px`;
+  box.hidden = false;
+  const below = window.innerHeight - r.bottom;
+  if (below < box.offsetHeight + 4 && r.top > box.offsetHeight) {
+    box.style.top = `${r.top - box.offsetHeight - 2}px`;
+  } else {
+    box.style.top = `${r.bottom + 2}px`;
+  }
+}
+
+function markSuggest() {
+  Array.from($('suggest').children).forEach((o, n) => o.classList.toggle('on', n === sugIndex));
+}
+
+function pickSuggest(n) {
+  const input = sugTarget;
+  if (!input || !sugItems[n]) return;
+  input.value = sugItems[n];
+  autosize(input);
+  hideSuggest();
+}
+
+function attachSuggest(input, source) {
+  input.addEventListener('focus', () => showSuggest(input, source));
+  input.addEventListener('input', () => showSuggest(input, source));
+  input.addEventListener('blur', () => { if (sugTarget === input) hideSuggest(); });
+  input.addEventListener('keydown', e => {
+    if (sugTarget !== input || $('suggest').hidden) return;
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      const n = sugItems.length;
+      sugIndex = e.key === 'ArrowDown' ? (sugIndex + 1) % n : (sugIndex - 1 + n) % n;
+      markSuggest();
+    } else if (e.key === 'Enter' && sugIndex >= 0) {
+      pickSuggest(sugIndex);                   // Enter tetap lanjut: simpan & pindah ke baris berikutnya
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      hideSuggest();
+    }
+  });
+}
+
 // Enter di sel -> simpan (blur) lalu pindah ke sel yang sama di baris berikutnya
 function moveDown(input) {
-  const inputs = Array.from(document.querySelectorAll(`#tbody input.cell[data-col="${input.dataset.col}"]`));
+  const inputs = Array.from(document.querySelectorAll(`#tbody .cell[data-col="${input.dataset.col}"]`));
   const next = inputs[inputs.indexOf(input) + 1];
   if (next) {
     next.focus();
@@ -236,7 +351,7 @@ function commitSupplier(line, input) {
 
 function commitProcess(line, input) {
   input.dataset.orig = input.value;
-  send('setProcess', { line_id: line.id, process: tidy(input.value) });
+  send('setProcess', { line_id: line.id, process: tidyLines(input.value) });
 }
 
 function commitCell(line, article, input) {
@@ -305,13 +420,15 @@ function formInputs(prefix, state, isSub) {
   }
   mk('mat', { list: 'dlMaterials', placeholder: 'Kode / nama material…', label: 'Material' });
   mk('sup', { list: supplierListId(null), placeholder: 'Supplier…', label: 'Supplier' });
-  mk('rem', { placeholder: 'Remarks', label: 'Remarks' });
+  mk('rem', { placeholder: 'Remarks', label: 'Remarks', keepLines: true, title: 'Shift+Enter / Alt+Enter = baris baru' });
   f.uom = el('span', 'ro none', '-');
+  f.thk = el('span', 'ro none', '-');
 
   const syncMaterial = () => {
     const r = resolveMaterial(f.mat.value);
     const mat = r.mat || null;
     f.uom.textContent = mat ? mat.uom : '-';
+    f.thk.textContent = mat && mat.thickness ? mat.thickness : '-';
     f.sup.setAttribute('list', supplierListId(mat ? mat.id : null));
     if (mat && !tidy(f.sup.value)) {
       f.sup.value = defaultSupplier(mat.id);
@@ -355,7 +472,7 @@ function submitAdd(f) {
   if (m.error) return fail(f.mat, m.error);
   const s = resolveSupplier(f.sup.value);
   if (s.error) return fail(f.sup, s.error);
-  send('addLine', Object.assign(data, { material_id: m.mat.id, supplier_id: s.id || '', process: tidy(f.rem.value) }));
+  send('addLine', Object.assign(data, { material_id: m.mat.id, supplier_id: s.id || '', process: tidyLines(f.rem.value) }));
 }
 
 function submitSub(parent, f) {
@@ -367,7 +484,7 @@ function submitSub(parent, f) {
   if (s.error) return fail(f.sup, s.error);
   send('addSub', {
     parent_id: parent.id, sub_name: tidy(f.name.value), material_id: m.mat.id,
-    supplier_id: s.id || '', process: tidy(f.rem.value),
+    supplier_id: s.id || '', process: tidyLines(f.rem.value),
   });
 }
 
@@ -388,9 +505,13 @@ function supplierCell(line, editable) {
   } else {
     c.appendChild(el('span', 'ro' + (line.supplier_name ? '' : ' none'), line.supplier_name || '-'));
   }
-  if (line.supplier_id && line.link_status === 'PROPOSED') {
+  if (line.supplier_id && line.supplier_status === 'PROPOSED') {
+    const b = el('span', 'badge proposed', 'supplier usulan');
+    b.title = 'Supplier baru — menunggu approval Master Admin. Specsheet baru bisa terbit setelah disetujui.';
+    c.appendChild(b);
+  } else if (line.supplier_id && line.link_status === 'PROPOSED') {
     const b = el('span', 'badge proposed', 'usulan');
-    b.title = 'Kombinasi material + supplier ini baru — menunggu approval Master Admin, tetap bisa dipakai.';
+    b.title = 'Kombinasi material + supplier ini baru — menunggu approval Master Admin. Specsheet baru bisa terbit setelah disetujui.';
     c.appendChild(b);
   } else if (line.supplier_id && line.link_status === 'INACTIVE') {
     const b = el('span', 'badge inactive', '⚠ nonaktif');
@@ -430,13 +551,15 @@ function lineRow(line, arts, editable, hasSubs) {
   tr.appendChild(materialCell(line, editable));
   tr.appendChild(supplierCell(line, editable));
   tr.appendChild(td('c-uom', line.uom || '-'));
+  tr.appendChild(td('c-thk', line.thickness || '-'));
   const rem = el('td', 'c-rem');
   if (editable) {
     rem.appendChild(cellInput(`rem:${line.id}`, line.process, {
-      col: 'rem', placeholder: '', label: 'Remarks', onCommit: i => commitProcess(line, i),
+      col: 'rem', placeholder: '', label: 'Remarks', keepLines: true,
+      title: 'Shift+Enter / Alt+Enter = baris baru · Enter = simpan', onCommit: i => commitProcess(line, i),
     }));
   } else {
-    rem.appendChild(el('span', 'ro' + (line.process ? '' : ' none'), line.process || '-'));
+    rem.appendChild(el('span', 'ro lines' + (line.process ? '' : ' none'), line.process || '-'));
   }
   tr.appendChild(rem);
   if (editable) {
@@ -469,7 +592,8 @@ function lineRow(line, arts, editable, hasSubs) {
     const v = cells[a.id] || '';
     if (editable) {
       c.appendChild(cellInput(`cell:${line.id}:${a.id}`, v, {
-        col: `art:${a.id}`, list: 'dlColors', label: `Warna ${a.code}`, onCommit: i => commitCell(line, a, i),
+        col: `art:${a.id}`, multiline: true, suggest: () => M.colors || [], label: `Warna ${a.code}`,
+        onCommit: i => commitCell(line, a, i),
       }));
     } else {
       c.appendChild(el('span', 'ro' + (v ? '' : ' none'), v || '-'));
@@ -495,6 +619,9 @@ function formRow(cls, f, first, button, cancel, arts) {
   const uom = el('td', 'c-uom');
   uom.appendChild(f.uom);
   tr.appendChild(uom);
+  const thk = el('td', 'c-thk');
+  thk.appendChild(f.thk);
+  tr.appendChild(thk);
   const rem = el('td', 'c-rem');
   rem.appendChild(f.rem);
   tr.appendChild(rem);
@@ -504,7 +631,7 @@ function formRow(cls, f, first, button, cancel, arts) {
   tr.appendChild(act);
   arts.forEach(() => tr.appendChild(el('td', 'c-art')));
   [f.mat, f.sup, f.rem, first.input, f.no].forEach(i => i && i.addEventListener('keydown', e => {
-    if (e.key === 'Enter') {
+    if (e.key === 'Enter' && !e.shiftKey && !e.altKey) {
       e.preventDefault();
       button.click();
     }
@@ -518,9 +645,10 @@ function render(model, keepState) {
   const focusKey = active && active.dataset ? active.dataset.key : null;
   const selStart = focusKey && typeof active.selectionStart === 'number' ? active.selectionStart : null;
   const dirty = {};
-  document.querySelectorAll('#tbody input.cell[data-key]').forEach(i => {
+  document.querySelectorAll('#tbody .cell[data-key]').forEach(i => {
     if (i.value !== i.dataset.orig && !/^(add|sub):/.test(i.dataset.key)) dirty[i.dataset.key] = i.value;
   });
+  hideSuggest();
   const scroll = $('scroll');
   const pos = [scroll.scrollLeft, scroll.scrollTop];
 
@@ -548,7 +676,7 @@ function render(model, keepState) {
   const thead = $('thead');
   thead.innerHTML = '';
   const hr = el('tr');
-  [['c-no', 'No'], ['c-comp', 'Komponen'], ['c-mat', 'Material'], ['c-sup', 'Supplier'], ['c-uom', 'UoM'], ['c-rem', 'Remarks']]
+  [['c-no', 'No'], ['c-comp', 'Komponen'], ['c-mat', 'Material'], ['c-sup', 'Supplier'], ['c-uom', 'UoM'], ['c-thk', 'Thickness'], ['c-rem', 'Remarks']]
     .forEach(([c, t]) => hr.appendChild(el('th', c, t)));
   if (editable) hr.appendChild(el('th', 'c-act', ''));
   arts.forEach(a => {
@@ -575,7 +703,7 @@ function render(model, keepState) {
   // isi
   const tbody = $('tbody');
   tbody.innerHTML = '';
-  const cols = 6 + (editable ? 1 : 0) + arts.length;
+  const cols = 7 + (editable ? 1 : 0) + arts.length;
   if (!lines.length && !editable) {
     const tr = el('tr');
     const c = el('td', 'empty', M.emptyText || 'Belum ada baris BOM.');
@@ -611,11 +739,12 @@ function render(model, keepState) {
   }
 
   // pulihkan ketikan, fokus, scroll
-  document.querySelectorAll('#tbody input.cell[data-key]').forEach(i => {
+  document.querySelectorAll('#tbody .cell[data-key]').forEach(i => {
     if (dirty[i.dataset.key] !== undefined) i.value = dirty[i.dataset.key];
+    autosize(i);
   });
   if (focusKey) {
-    const i = document.querySelector(`#tbody input[data-key="${CSS.escape(focusKey)}"]`);
+    const i = document.querySelector(`#tbody [data-key="${CSS.escape(focusKey)}"]`);
     if (i && !i.disabled) {
       i.focus();
       if (selStart !== null) {
@@ -634,6 +763,7 @@ function render(model, keepState) {
 
 appsmith.onReady(() => {
   applyTheme(appsmith.theme);
+  $('scroll').addEventListener('scroll', hideSuggest);
   render(appsmith.model);
   appsmith.onModelChange(m => render(m));
   if (typeof appsmith.onThemeChange === 'function') appsmith.onThemeChange(applyTheme);

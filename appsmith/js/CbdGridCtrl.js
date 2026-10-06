@@ -2,7 +2,9 @@
 // modal mdlCbdHarga berisi cwCbdPriceForm). cwCbdGrid mengirim satu event onAction dengan model.action = { type, ... };
 // onAction() menjalankan query lalu memuat ulang grid & rekap. Semua aturan dicek di DB (fn_cbd_*, trg_lock_published).
 // F7: Yield & Loss %. F8: rekap (rate, amortisasi, adjustment, target FOB, selling price ⇄ margin), harga quotation /
-// override / hapus override, Refresh Harga dari Master, Refresh dari Specsheet.
+// hapus override, Refresh Harga dari Master, Refresh dari Specsheet.
+// F10b: override harga katalog tidak dipakai lagi (hanya "Hapus override" untuk draft lama); Loss % boleh kosong (= 0);
+// exchange rate boleh dikosongkan (terbit diblokir checklist).
 // F8b: Cost recapitulation (baris biaya q_cbd_cost_items: tambah / ubah / hapus), amortisasi & adjustment jadi baris.
 export default {
 	busyCount: 0,
@@ -60,7 +62,7 @@ export default {
 			out.push({
 				tone: 'warn', action: 'refreshPrices', actionLabel: 'Refresh Harga dari Master',
 				text: `Harga master untuk ${stale} baris baru tersedia atau berubah sejak CBD ini dibuat. `
-					+ 'Samakan dulu sebelum terbit (override tidak ikut berubah).',
+					+ 'Samakan dulu sebelum terbit.',
 			});
 		}
 		const gaps = lines.filter(l => ['NO_PRICE', 'NO_COLOR_PRICE', 'PENDING'].includes(l.price_gap)).length;
@@ -190,7 +192,7 @@ export default {
 				current = 'Harga sekarang: kosong';
 			}
 			if (!q && l.master_price != null && l.price_source !== 'MASTER') info = `Harga master berlaku: ${fmt(l.master_price, l.master_currency)}.`;
-			if (!q && l.price_gap === 'PENDING') info = 'Ada usulan harga master yang menunggu approval Master Admin — setelah di-approve, klik Refresh Harga (override tidak perlu).';
+			if (!q && l.price_gap === 'PENDING') info = 'Ada usulan harga master yang menunggu approval Master Admin — setelah di-approve, klik Refresh Harga.';
 		}
 		return {
 			key: this.priceKey,

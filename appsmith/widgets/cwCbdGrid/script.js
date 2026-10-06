@@ -274,14 +274,11 @@ function priceCell(line, editable) {
       acts.appendChild(linkBtn(p !== null ? 'Ubah harga' : 'Isi harga', 'Harga quotation material proses',
         () => send('editPrice', { line_id: line.id, mode: 'QUOTATION' })));
     } else if (line.price_source === 'OVERRIDE') {
+      // F10b: override tidak dipakai lagi — draft lama hanya bisa dikembalikan ke harga master
       acts.appendChild(linkBtn('Hapus override', 'Kembali ke harga master',
         () => send('clearOverride', { line_id: line.id }), true));
-    } else {
-      acts.appendChild(linkBtn('Override…',
-        'Harga khusus baris CBD ini saja (mis. nego sekali pakai). Harga untuk semua CBD diisi di Master Material.',
-        () => send('editPrice', { line_id: line.id, mode: 'OVERRIDE' })));
     }
-    box.appendChild(acts);
+    if (acts.childNodes.length) box.appendChild(acts);
   }
   return box;
 }
@@ -371,7 +368,7 @@ function headerInput(field, label, value, max, neg, money) {
     parse: { neg, money },
     need: field === 'RATE' && num(value) === null,
     needTitle: 'Exchange rate wajib diisi sebelum terbit',
-    check: n => field === 'RATE' ? (n === null || n <= 0 ? 'Exchange rate harus diisi dan lebih besar dari 0.' : null)
+    check: n => field === 'RATE' ? (n !== null && n <= 0 ? 'Exchange rate harus lebih besar dari 0 (kosongkan kalau belum ada).' : null)
       : field === 'MARGIN' ? (n !== null && n >= 100 ? 'Margin harus kurang dari 100%.' : null)
       : (n !== null && n <= 0) ? 'Harus lebih besar dari 0 (kosongkan kalau belum ada).'
       : null,

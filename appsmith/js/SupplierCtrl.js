@@ -1,6 +1,7 @@
 // JSObject "SupplierCtrl" — page Master Supplier. Form: Custom Widget cwSupplierForm di modal mdlSupplier.
 // Supplier tidak punya currency — currency dipilih per harga (F3/CBD).
-// Tambah & ubah hanya Master Admin (manage_master); dicek lagi di DB oleh fn_auth.
+// Tambah: Master Admin (langsung APPROVED) atau Vendor (propose_master -> PROPOSED, F10b). Ubah & status hanya
+// Master Admin (manage_master). Semua dicek lagi di DB (fn_auth / fn_auth_any).
 export default {
 	isNew: true,
 	form: { id: null, name: '', status: 'APPROVED' },
@@ -18,6 +19,10 @@ export default {
 		return Auth.can('manage_master');
 	},
 
+	canAdd() {
+		return this.canManage() || Auth.can('propose_master');
+	},
+
 	openForm(isNew, form) {
 		this.isNew = isNew;
 		this.form = form;
@@ -28,7 +33,7 @@ export default {
 	},
 
 	openAdd() {
-		this.openForm(true, { id: null, name: '', status: 'APPROVED' });
+		this.openForm(true, { id: null, name: '', status: this.canManage() ? 'APPROVED' : 'PROPOSED' });
 	},
 
 	openEdit(row) {
@@ -43,7 +48,7 @@ export default {
 		const data = {
 			id: this.form.id,
 			name: String(m.name || '').trim(),
-			status: this.isNew ? 'APPROVED' : m.status,
+			status: this.isNew ? null : m.status,      // supplier baru: status ditentukan DB (APPROVED / PROPOSED)
 		};
 		if (!data.name) {
 			this.message = { type: 'error', text: 'Nama supplier wajib diisi.' };
@@ -68,7 +73,8 @@ export default {
 			this.busy = false;
 		}
 		closeModal('mdlSupplier');
-		showAlert(this.isNew ? 'Supplier ditambahkan.' : 'Supplier disimpan.', 'success');
+		showAlert(!this.isNew ? 'Supplier disimpan.'
+			: (this.canManage() ? 'Supplier ditambahkan.' : 'Usulan supplier terkirim, menunggu persetujuan Master Admin.'), 'success');
 		try { await q_suppliers.run(); } catch (e) { /* abaikan */ }
 	},
 }

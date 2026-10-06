@@ -57,7 +57,7 @@ export default {
 	},
 
 	// Kolom: A NO · B COMPONENT NAME · C MATERIAL DESCRIPTION · D SOURCE OF MATERIAL · satu kolom warna per article
-	// aktif · UNIT OF MSRMNT · PROCESS. Baris 1–11 = header (diulang tiap halaman cetak), data mulai baris 12.
+	// aktif · UNIT OF MSRMNT · THICKNESS (F10c) · PROCESS. Baris 1–11 = header (diulang tiap halaman cetak), data mulai baris 12.
 	build(m, s, r) {
 		const articles = BomCtrl.activeArticles();
 		const lines = q_bom_grid.data || [];
@@ -65,7 +65,8 @@ export default {
 		const K = Math.max(articles.length, 1);
 		const A0 = 5;                 // kolom article pertama (E)
 		const UOM = A0 + K;
-		const PROC = UOM + 1;
+		const THK = UOM + 1;
+		const PROC = THK + 1;
 		const N = PROC;
 		const v = x => (x === null || x === undefined || x === '' ? '-' : String(x));
 
@@ -75,7 +76,7 @@ export default {
 		const ws = wb.addWorksheet('Specsheet', {
 			pageSetup: { orientation: 'landscape', paperSize: 9, fitToPage: true, fitToWidth: 1, fitToHeight: 0 },
 		});
-		[6, 24, 46, 20].concat(articles.length ? articles.map(() => 22) : [22], [11, 20])
+		[6, 24, 46, 20].concat(articles.length ? articles.map(() => 22) : [22], [11, 11, 20])
 			.forEach((w, i) => { ws.getColumn(i + 1).width = w; });
 		const cell = (row, col, value, style) => {
 			const c = ws.getRow(row).getCell(col);
@@ -152,7 +153,7 @@ export default {
 
 		// ---- baris 9–11: header tabel ----
 		const hd = { font: { bold: true, size: 10 }, alignment: { horizontal: 'center', vertical: 'middle', wrapText: true } };
-		[['NO.', 1], ['COMPONENT NAME', 2], ['MATERIAL DESCRIPTION', 3], ['SOURCE OF MATERIAL', 4], ['UNIT OF MSRMNT', UOM], ['PROCESS', PROC]]
+		[['NO.', 1], ['COMPONENT NAME', 2], ['MATERIAL DESCRIPTION', 3], ['SOURCE OF MATERIAL', 4], ['UNIT OF MSRMNT', UOM], ['THICKNESS', THK], ['PROCESS', PROC]]
 			.forEach(([t, c]) => { cell(9, c, t, hd); merge(9, c, 11, c); });
 		cell(9, A0, 'ARTICLE NO.', hd);
 		merge(9, A0, 9, A0 + K - 1);
@@ -180,13 +181,14 @@ export default {
 		const top = h => ({ vertical: 'middle', horizontal: h, wrapText: true });
 		lines.forEach(l => {
 			if (!l.is_sub) { closeParent(); parentRow = row; }
-			const mat = [l.thickness, l.material_name].filter(x => x).join(' ');
+			const mat = l.material_name || '';
 			cell(row, 1, l.is_sub ? '' : (l.display_no || ''), { alignment: top('center') });
 			cell(row, 2, l.is_sub ? '' : (l.display_name || '') + (l.is_local ? ' (lokal)' : ''), { alignment: top() });
 			cell(row, 3, l.is_sub && l.display_name && l.display_name !== l.material_name ? `${l.display_name} — ${mat}` : mat, { alignment: top() });
 			cell(row, 4, l.supplier_name || '', { alignment: top('center') });
 			articles.forEach((a, i) => { cell(row, A0 + i, (l.cells || {})[a.id] || '', { alignment: top('center') }); });
 			cell(row, UOM, l.uom || '', { alignment: top('center') });
+			cell(row, THK, l.thickness || '', { alignment: top('center') });
 			cell(row, PROC, l.process || '', { alignment: top() });
 			if (!l.is_sub) ws.getRow(row).getCell(1).alignment = top('center');
 			box(row, 1, row, N);

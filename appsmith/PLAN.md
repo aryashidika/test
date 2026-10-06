@@ -7,7 +7,7 @@
 | Target | Appsmith **v2.4** self-hosted (HTTPS) + PostgreSQL **16.15** (datasource `pg_main`) |
 | Akses | App **publik** dengan login di dalam app (email + password), bukan akun Appsmith |
 | Data lama | Tidak dimigrasi (mulai dari DB kosong) |
-| Status | Rencana disetujui 24 Sep 2026 (termasuk P1–P3) · login in-app disetujui 25 Sep 2026 · UI campuran + Custom Widget disetujui 25 Sep 2026 · **F0 + F1 selesai** (export v1, 25 Sep 2026) · **F2 selesai** (export v2, 29 Sep 2026) · **F3 dikerjakan** (export v3, 29 Sep 2026; T13–T17 diperbaiki user) · **F3 + F3b selesai** (export v3b, 30 Sep 2026) · **F4 selesai** (export v4 = file user v4.7, 30 Sep 2026; Copy Article dihapus — keputusan user) · **F5 + F5b selesai** (export v5 = file user v5.5, 30 Sep 2026) · **F6 selesai** (export v6; uji ulang dilaporkan lolos di v7) · **F7 selesai** (export v7 = file user v7.1, 30 Sep 2026; T34–T35 diperbaiki) · **F8 dikerjakan** (export v8.1, 5 Okt 2026; uji ditunda ke end-to-end) · **F8b dikerjakan** (export v8b; T42) · **F9 dikerjakan** (export v9 = file user v9.5, 5 Okt 2026; uji ditunda ke end-to-end) · **berikutnya F10** |
+| Status | Rencana disetujui 24 Sep 2026 (termasuk P1–P3) · login in-app disetujui 25 Sep 2026 · UI campuran + Custom Widget disetujui 25 Sep 2026 · **F0 + F1 selesai** (export v1, 25 Sep 2026) · **F2 selesai** (export v2, 29 Sep 2026) · **F3 dikerjakan** (export v3, 29 Sep 2026; T13–T17 diperbaiki user) · **F3 + F3b selesai** (export v3b, 30 Sep 2026) · **F4 selesai** (export v4 = file user v4.7, 30 Sep 2026; Copy Article dihapus — keputusan user) · **F5 + F5b selesai** (export v5 = file user v5.5, 30 Sep 2026) · **F6 selesai** (export v6; uji ulang dilaporkan lolos di v7) · **F7 selesai** (export v7 = file user v7.1, 30 Sep 2026; T34–T35 diperbaiki) · **F8 dikerjakan** (export v8.1, 5 Okt 2026; uji ditunda ke end-to-end) · **F8b dikerjakan** (export v8b; T42) · **F9 dikerjakan** (export v9 = file user v9.5, 5 Okt 2026; uji ditunda ke end-to-end) · **F10 + E2E + F10b/F10c selesai** (export v11 = file user v10.5, 6 Okt 2026; uji E2E lolos, sisa T49–T52 kosmetik/kecil) · **F11 setelah UAT & go-live** (keputusan user 6 Okt 2026) |
 | File siap tempel | `steps/F<n>_langkah.md` (langkah per fase: query, widget, uji), `sql/F<n>_*.sql` (jalankan lewat `z_run_sql` di app privat **DB Tools**), `js/*.js` (isi JSObject), `widgets/<cw>/` (Custom Widget: HTML/CSS/JS + README kontrak) |
 
 Legenda status: ⬜ belum · 🟡 dibuat (belum diverifikasi dari export) · ✅ terverifikasi
@@ -30,8 +30,10 @@ Legenda status: ⬜ belum · 🟡 dibuat (belum diverifikasi dari export) · ✅
 | F8 | CBD: harga, rekap, refresh, terbit, sinkron specsheet | `export_v8.json` | 🟡 export v8 direview 5 Okt 2026 · temuan T37–T41 · hasil uji & cek skema belum dikirim |
 | F8b | CBD: Cost recapitulation (baris biaya) + Harga jual di bawah grid, subtotal grup (permintaan user 5 Okt 2026) | `export_v8b.json` | 🟡 export v8b direview 5 Okt 2026 · T42 ✅ (v9.5) · uji ditunda ke end-to-end |
 | F9 | Export Excel specsheet & CBD | `export_v9.json` | 🟡 export v9.5 direview 5 Okt 2026 (T43–T44 terpasang) · uji X1–X9 ditunda ke end-to-end |
-| F10 | Beranda "Tugas Saya" | `export_v10.json` | ⬜ |
-| F11 | Dokumentasi & handover (`appsmith/README.md`) | – | ⬜ |
+| F10 | Beranda "Tugas Saya" | `export_v10.json` | ✅ export v10.1 (T45 diperbaiki); uji H1–H17 lolos lewat E2E (6 Okt 2026) |
+| F10b | Revisi dari uji E2E (laporan user 5 Okt 2026, uji sampai G8): 14 keluhan — lihat §6 F10b | `export_v11.json` | ✅ export v11 (file user v10.5, 6 Okt 2026); uji G8–J lolos; sisa T49–T52 · usulan F10d (blokir terbit bila supplier/pasangan INACTIVE) belum diputuskan user |
+| E2E | Uji end-to-end dari DB kosong (keputusan user 5 Okt 2026: hapus semua data kecuali akun System Admin, semua data diinput lewat UI, audit log dihapus) — gabungan uji tertunda F8 A–E, F8b G, F9 X, F10 H | – | ✅ lolos 6 Okt 2026 (uji lanjut dari G8 pada data yang ada; selisih angka terjelaskan oleh input data, bukan bug) |
+| F11 | Dokumentasi & handover (`appsmith/README.md`) | – | ⬜ dikerjakan **setelah UAT & go-live** (keputusan user 6 Okt 2026) |
 | Opsional | Where-used, histori harga, diff revisi, harga referensi brand | – | ⬜ |
 
 ---
@@ -87,6 +89,7 @@ Legenda status: ⬜ belum · 🟡 dibuat (belum diverifikasi dari export) · ✅
 | P3 | Form tambah material tidak punya pilihan metode harga (selalu CATALOG) | Ada pilihan CATALOG / QUOTATION |
 | P4 | Ganti material pada baris induk: subkomponen tetap menunjuk `line_key` baris lama yang sudah nonaktif → hilang dari grid | Subkomponen ikut dipindah ke baris baru (`fn_bom_replace_material`) — ditemukan saat menyiapkan F5, 30 Sep 2026 |
 | P5 | Penandaan sinkron CBD membandingkan specsheet terbit **sebelumnya** dengan yang baru → CBD yang sudah NEEDS_REVISION kembali IN_SYNC bila revisi specsheet berikutnya tidak mengubah apa-apa | Dibandingkan dengan **acuan CBD itu sendiri** (`fn_cbd_sync_spec`) — ditemukan saat menyiapkan F8, 30 Sep 2026 |
+| P6 | Beranda Brand "terbit terbaru" memilih revisi per season/article berdasarkan waktu terbit | Revisi terbit terakhir = urut stage + nomor revisi (sama dengan P1/P2); daftar tetap diurutkan terbaru dulu (`v_recent_published`, F10) |
 
 ---
 
@@ -108,7 +111,7 @@ Legenda status: ⬜ belum · 🟡 dibuat (belum diverifikasi dari export) · ✅
 | `bom_service.py`, `article_service.py` (revisi) | `Specsheet` | `q_bom_grid`, `q_rev_articles`, `q_bom_options`, `q_season_colors`, `a_bom_add_line`, `a_bom_add_sub`, `a_bom_replace_material`, `a_bom_set_supplier`, `a_bom_set_process`, `a_cell_save`, `a_rev_article_set`, `a_bom_delete_line` (F5b) · `BomCtrl` (grid = Custom Widget `cwBomGrid`, satu event `onAction`) | `bom_line`, `bom_cell`, `fn_bom_add_line`, `fn_bom_add_sub`, `fn_bom_replace_material`, `fn_bom_set_supplier`, `fn_bom_cell_set`, `fn_rev_article_set`, `fn_bom_delete_line` (F5b), `v_bom_grid` |
 | `cbd_service.py`, `cbd_calc.py` | `Cost Breakdown (CBD)` | F7: `q_cbd_models`, `q_cbd_model`, `q_cbd_seasons`, `q_cbd_articles`, `q_cbd_revisions`, `q_cbd_lines`, `q_cbd_sources`, `a_cbd_create`, `a_cbd_delete`, `a_cbd_line_set` · F8: `q_cbd_recap`, `q_cbd_checklist`, `q_cbd_change_log`, `a_cbd_header_set`, `a_cbd_set_quotation`, `a_cbd_override_price`, `a_cbd_clear_override`, `a_cbd_refresh_prices`, `a_cbd_refresh_spec`, `a_cbd_publish` · `CbdCtrl`, `CbdGridCtrl` (grid + rekap + banner = Custom Widget `cwCbdGrid`, satu event `onAction`; buat = `cwCbdForm`; harga = `cwCbdPriceForm`; terbit = `cwPublishForm`) | `cbd_revision`, `cbd_line`, `fn_cbd_*`, `v_cbd_line`, `v_cbd_article` (F7) · `v_cbd_price_check`, `v_cbd_recap`, `v_cbd_checklist`, `fn_cbd_publish`, `fn_cbd_sync_spec` (F8) |
 | `export_service.py` | `Specsheet`, `CBD` | `SpecExportCtrl`, `CbdExportCtrl` (ExcelJS; data dari query page, tanpa query baru; `q_cbd_model` + 3 kolom) | pakai view yang sama |
-| `worklist_service.py` | `Beranda` | `q_worklist_*` · `BerandaCtrl` | `v_worklist_*` |
+| `worklist_service.py` | `Beranda` | `q_worklist_spec`, `q_worklist_proposals`, `q_worklist_cbd`, `q_worklist_gap`, `q_worklist_admin`, `q_worklist_pub_spec`, `q_worklist_pub_cbd`, `q_worklist_system` · `BerandaCtrl` (+ `Auth.pageQueries` → `BerandaCtrl.load()`) · Custom Widget `cwWorklist` | `v_worklist_spec`, `v_worklist_cbd`, `v_worklist_price_gap`, `v_worklist_admin`, `v_recent_published`, `v_system_summary` |
 | `report_service.py`, `diff_service.py`, `cbd_diff_service.py` | Opsional | – | – |
 | `merge_service.py`, `csv_import.py`, `reset_service.py`, `seed_*.py`, `photo_service.py` | tidak dibawa | – | – |
 
@@ -310,10 +313,27 @@ File: `js/XlsxWriter.js`, `js/SpecExportCtrl.js`, `js/CbdExportCtrl.js`, `steps/
 **Selesai bila:** file `.xlsx` terunduh, isinya sama dengan layar.
 
 ### F10 — Beranda "Tugas Saya"
-- [ ] SQL F10 (`v_worklist_spec`, `v_worklist_cbd`, `v_worklist_admin`, `v_recent_published`)
+File siap (5 Okt 2026): `sql/F10_worklist.sql`, `js/BerandaCtrl.js`, `widgets/cwWorklist/` (satu Custom Widget untuk semua role — penyimpangan dari keputusan 10 "Beranda = widget bawaan", alasan: daftar multi-bagian per role; user boleh menolak), `js/SpecCtrl.js` + `js/CbdCtrl.js` (parameter `from=home`, CBD + `article`), `steps/F10_langkah.md`. View: `v_worklist_spec`, `v_worklist_cbd`, `v_worklist_price_gap`, `v_worklist_admin` (+ usulan harga F3b), `v_recent_published`, `v_system_summary`. Query: `q_worklist_spec/proposals/cbd/gap/admin/pub_spec/pub_cbd/system`. P6: "terbit terbaru" memakai urutan stage + nomor revisi.
+- [x] (dibuat, belum diverifikasi) SQL F10 (`v_worklist_spec`, `v_worklist_cbd`, `v_worklist_admin`, `v_recent_published`)
 - [ ] Per role: Vendor Spec (draft berjalan, article belum masuk revisi) · Vendor CBD (belum ada CBD, perlu refresh, perlu revisi, harga master kosong) · Master Admin (antrian PROPOSED, termasuk usulan harga F3b) · Brand (terbit terbaru) · System Admin (ringkasan)
 
 **Selesai bila:** setiap role melihat daftar yang benar, klik membuka page tujuan.
+
+### F10b — Revisi dari uji end-to-end (5 Okt 2026)
+File: `sql/F10b_revisi_uji.sql`, `steps/F10b_langkah.md`, JS `LoginCtrl`, `SupplierCtrl`, `MaterialCtrl`, `MaterialDetailCtrl`,
+`SpecCtrl`, `SpecExportCtrl`, `CbdCtrl`, `CbdGridCtrl`, `BerandaCtrl`; widget `cwBomGrid`, `cwMaterialForm`,
+`cwSupplierForm`, `cwPublishForm`, `cwCbdGrid`, **`cwImageGallery`** (baru). `RESET_data_uji.sql` + `change_log_attachment`.
+Keputusan user 5 Okt 2026:
+- ~~Width material~~ **dibatalkan 6 Okt 2026 (F10c)**: user maksud **Thickness**. `sql/F10c_hapus_width.sql` menghapus `material.width`/`width_key`, fungsi material kembali ke parameter F3, view dibuat ulang (view turunan disimpan & dibuat ulang otomatis). Grid BOM: kolom **Thickness** setelah UoM; Excel specsheet: kolom THICKNESS (MATERIAL DESCRIPTION = nama saja). CBD sudah punya kolom Thickness.
+- **Supplier usulan**: Vendor (propose_master) bisa menambah supplier → PROPOSED → Master Admin approve.
+- **Gambar di change log**: tempel / pilih saat Terbitkan (Specsheet & CBD), lihat di Riwayat.
+- **Huruf kapital** "lebih luas": nama & kategori material, nama komponen, supplier, kode & nama model, kode article & colorway,
+  nama komponen lokal & subkomponen BOM (trigger `trg_aa_upper`; data lama diubah kecuali baris BOM terbit & kode article terpakai).
+- Specsheet **tidak bisa terbit** bila ada baris tanpa supplier atau usulan belum di-approve (keputusan sebelumnya "usulan boleh terbit" dicabut).
+- **Override harga katalog dihapus**; **Loss %** default kosong (= 0 %, tidak memblokir); **rate** boleh dikosongkan (memblokir terbit).
+- **Revisi awal** = belum ada revisi terbit lain di article (CBD) / season (specsheet) — termasuk hasil copy.
+Bug: T47 trigger kunci CBD terbit membandingkan kolom generated `stage_order` (NULL di BEFORE trigger) → penandaan sinkron
+(`fn_cbd_sync_spec`) saat terbit specsheet selalu gagal; T48 "harga NaN" di form tolak (baris tabel berisi teks tampilan).
 
 ### F11 — Dokumentasi & handover
 - [ ] `appsmith/README.md` (panduan operasional): arsitektur (diagram DB ↔ query ↔ JSObject ↔ widget), daftar page & hak akses, cara menambah user / reset password, cara menjalankan SQL di DB Tools, cara export & deploy, cara mengubah matriks hak akses, cara mengubah Custom Widget, troubleshooting (sesi habis, akun terkunci, error constraint)
@@ -780,7 +800,9 @@ Diperbarui setiap fase selesai direview. Kolom **Dibuat** = Anda sudah menjalank
 | `cbd_cost_item` + `idx_cbd_cost_item_revision`, `uq_cbd_cost_default`, `trg_lock_published`; kolom `cbd_revision.amortization`/`adjustment` di-DROP | tabel | F8b | ✅ | ⬜ (cek skema belum dikirim) |
 | `v_cbd_recap`, `v_cbd_checklist` (dibuat ulang), `fn_cbd_cost_label`, `fn_cbd_cost_defaults`, `fn_cbd_check_cost`, `fn_cbd_cost_item`, `fn_cbd_cost_add`, `fn_cbd_cost_set`, `fn_cbd_cost_delete`; `fn_cbd_header_set`, `fn_cbd_create` diperbarui | view/function | F8b | ✅ | ⬜ (cek skema belum dikirim) |
 | `fn_cbd_sync_spec`; `fn_revision_publish` diperbarui (penandaan sinkron) | function | F8 | ✅ | ⬜ (cek skema belum dikirim) |
-| `v_worklist_*`, `v_recent_published` | view | F10 | ⬜ | ⬜ |
+| `v_worklist_spec`, `v_worklist_cbd`, `v_worklist_price_gap`, `v_worklist_admin`, `v_recent_published`, `v_system_summary` | view | F10 | ✅ (user: tanpa error) | ⬜ |
+| `cbd_line.loss_pct` boleh NULL, `change_log_attachment`, `trg_aa_upper` (6 tabel), `fn_upper_names`, `fn_change_log_attach`; `v_revision_checklist` (+ `proposed_items`) & `v_worklist_spec` dibuat ulang; `fn_cbd_revision_lock`, `fn_material_check`, `fn_cbd_line_set`, `fn_cbd_populate`, `fn_cbd_override_price` (ditolak), `fn_cbd_header_set`, `fn_revision_publish`, `v_bom_grid` (+ `supplier_status`), `v_cbd_line`, `v_cbd_checklist`, `v_worklist_admin` diperbarui | tabel/view/function | F10b | ⬜ | ⬜ |
+| Hapus `material.width` + `width_key`; `uq_material_identity` kembali (nama + thickness + UoM); `fn_material_add/update` kembali ke parameter F3; `v_material_list`, `v_bom_grid`, `v_cbd_line` + view turunannya dibuat ulang | tabel/view/function | F10c | ⬜ | ⬜ |
 
 Cara verifikasi skema (dijalankan di akhir tiap fase lewat query `z_run_sql`, hasilnya ditempel ke chat):
 ```sql
@@ -817,6 +839,8 @@ ORDER BY 1, 2;
 | `cwCbdForm` | `CBD` (modal `mdlCbdBaru`) | F7 | ✅ | ✅ |
 | `cwCbdGrid` | `CBD` (+ rekap, banner, tombol harga F8; Cost recapitulation, Harga jual, subtotal F8b) | F7 / F8 / F8b | ✅ | ✅ (kode F8 identik; tinggi → T40) |
 | `cwCbdPriceForm` | `CBD` (modal `mdlCbdHarga`) | F8 | ✅ | ✅ (kode identik, event & Default model sesuai) |
+| `cwWorklist` | `Beranda` (Tugas Saya, semua role; event `onOpen`, `onRefresh`) | F10 | ✅ | ✅ (v10, kode identik) |
+| `cwImageGallery` | `Specsheet` (`mdlRiwayat`), `CBD` (`mdlCbdRiwayat`) — gambar change log, event `onDownload` | F10b | 🟡 file siap (harness) | ⬜ |
 
 ---
 
@@ -836,6 +860,10 @@ ORDER BY 1, 2;
 | v8.1 | 5 Okt 2026 | F8 perbaikan | 🟡 File dari user `export_v8.1.json` (disimpan menimpa `export_v8.json`). T37 (3 query baca Manual), T38 (modal harga & terbit tidak tertutup klik luar), T39 (`cwPublishForm` JS baru di Specsheet & CBD) ✅; judul riwayat per article ✅. Cek alur JSON: sintaks semua JSObject & Custom Widget page CBD lolos parser JS; semua query/widget/modal yang dirujuk ada; params setiap `.run()` / `exec()` cocok dengan `this.params` query; handler event Custom Widget menunjuk fungsi yang ada. `fn_cbd_populate` hanya satu (versi `cbd_line[]`) ✅. Sisa: T40 tinggi grid 570 px, Search `tblCbdRiwayat` ON. Uji A–E ditunda ke uji end-to-end di akhir (keputusan user 5 Okt 2026). |
 | v8b | 5 Okt 2026 | F8b | 🟡 File dari user `export_v8.5.json` → `export_v8b.json`. 4 query F8b identik dengan panduan (prepared ON, `a_cbd_cost_delete` konfirmasi ON); `CbdGridCtrl`, `CbdCtrl` identik dengan repo; `cwCbdGrid` HTML/CSS identik, JS identik kecuali catatan di bawah tabel Harga jual dihapus user (disalin ke repo); tinggi 730 px (T40 ✅); Search `tblCbdRiwayat` OFF (T41 ✅). Cek alur: sintaks JSObject & Custom Widget lolos, semua nama yang dirujuk ada, params `exec()`/`.run()` cocok. Temuan T42. Uji G1–G12 & cek skema ditunda ke end-to-end. |
 | v9 | 5 Okt 2026 | F9 | 🟡 File dari user `Export_v9.5.json` → `export_v9.json`. JSObject `XlsxWriter` (page Specsheet & CBD), `SpecExportCtrl`, `CbdExportCtrl` identik dengan repo (hanya komentar kepala yang dibuang Appsmith); JSObject lain tidak berubah. `q_cbd_model` (+ `outsole_mold`, `last_no`, `construction`) sesuai panduan, Manual, prepared ON; `q_cbd_cost_items` Manual (T42 ✅). Tombol `btnSpecExport` / `btnCbdExport`: label, onClick, Visible, Disabled sesuai; SECONDARY, ikon `cloud-download`, kolom 53–64 (tombol Buat dipersempit 42–53). Tidak ada `Query1`. Library ExcelJS masih terpasang (tidak dipakai). Uji X1–X9 ditunda ke end-to-end. |
+| v10 | 5 Okt 2026 | F10 | 🟡 File dari user (Downloads) → `export_v10.json`. 8 query `q_worklist_*` identik dengan panduan (prepared ON) tetapi **Automatic** (T45). `BerandaCtrl`, `SpecCtrl`, `CbdCtrl` identik dengan repo; `Auth.pageQueries` Beranda = `BerandaCtrl.load()` ✅. `cwWorklist` HTML/CSS/JS identik, Default model `{{BerandaCtrl.model()}}`, event `onOpen`/`onRefresh` sesuai, tinggi 740 px. Deviasi (diterima): `cwWorklist` diletakkan **di bawah** `cwMenu` (panduan: di atas). Page lain: hanya `SpecCtrl`/`CbdCtrl` berubah (sesuai rencana), widget tidak berubah. Tidak ada `Query1`. Hasil uji H1–H17 & cek SQL F10 belum dikirim. |
+| v10.1 | 5 Okt 2026 | F10 perbaikan | ✅ File dari user `export_v10.1.json` (disimpan menimpa `export_v10.json`). T45 ✅: 8 query `q_worklist_*` Manual, `layoutOnLoadActions` Beranda tinggal `Auth.onPageLoad`; tidak ada perubahan lain. User: SQL F10 jalan tanpa error. Uji H1–H17 digabung ke uji end-to-end. |
+| v10.2 | 6 Okt 2026 | F10b + F10c (sebelum uji G8) | 🟡 File dari user `export_v10.2.json` (disimpan sebagai `export_v11.json`). Semua query F10b sesuai panduan (`a_material_add`/`a_material_update` kembali ke versi F3, `a_supplier_insert`, `q_season_colors`, `q_change_log`(+`image_count`), `q_cbd_change_log`, `q_change_log_images` ×2, `a_change_log_attach` ×2 timeout 30000, `q_worklist_proposals` +SUPPLIER); semua JSObject = repo (LoginCtrl, SupplierCtrl, MaterialDetailCtrl, SpecCtrl, SpecExportCtrl, CbdCtrl, CbdGridCtrl, BerandaCtrl); semua Custom Widget = repo (beda format saja), cwImageGallery terpasang di kedua modal Riwayat; T46 ✅ (`LoginCtrl.onPageLoad` On page load). Temuan T49–T52. |
+| v10.5 | 6 Okt 2026 | Uji ulang G8–J | 🟡 File dari user `export_v10.5.json` (disimpan menimpa `export_v11.json`). Satu-satunya perubahan dari v10.2: `a_cbd_override_price` dihapus. **T49–T52 belum diperbaiki.** User: semua uji lolos. Angka DB: SMS r0 566/567 174.413,98 / 259.413,98 (data lama sebelum F10b; LOP 85.000, bukan 81.370), GTM r0 566 189.213,46 / 277.453,46 **OVER** (harapan 192.695,51 / 280.935,51 UNDER — selisih material 3.482,05 terjelaskan: harga master HS ALPHA diisi USD 12,80 bukan 12,60 (+470,66), usulan Elastic Knit USD 2,49 tidak pernah di-approve sehingga CBD benar memakai 2,27 (−3.952,72); target FOB diisi 260.000 → OVER benar. **Tidak ada bug.**), GTM r0 567 175.729,70 / 260.729,70. |
 | v6 | 30 Sep 2026 | F6 | 🟡 User: cek skema berhasil. 3 query F6 identik dengan panduan (prepared ON, Manual, `a_revision_publish` konfirmasi OFF); `SpecCtrl` identik dengan repo; `cwPublishForm` identik (hanya format), Default model & event `onPublish`/`onCancel` sesuai; `tblRiwayat` data & kolom Waktu sesuai. Tidak ada `Query1`; page lain tidak berubah dari v5. Deviasi (diterima, pola v4): `btnTerbitkan` & `btnHapusDraft` **Disabled** `{{!SpecCtrl.editable()}}` alih-alih disembunyikan. Audit log: hanya **1** terbit lewat F6 (`change_log` 1 baris, MATERIAL) → uji B1, C4–C6, E2 belum terbukti (T33). Temuan T30–T33. |
 | v5.5 | 30 Sep 2026 | F5 perbaikan + F5b | ✅ File dari user `export_v5.5.json` (disimpan menimpa `export_v5.json`). 8 query baca Specsheet Manual (T28 ✅); `a_bom_delete_line` sesuai panduan; `ModelCtrl`, `ModelDetailCtrl`, `SpecCtrl`, `BomCtrl` identik dengan repo; `cwBomGrid` JS/CSS identik (hanya format), Visible `{{!!SpecCtrl.revision()}}` (U1 ✅); `btnKembali` = `{{SpecCtrl.backLabel()}}` (U2, T29 ✅); tombol Hapus baris (U3/F5b ✅). Tidak ada `Query1`. User: semua uji lolos. |
 
@@ -940,6 +968,17 @@ ORDER BY 1, 2;
 |---|---|---|---|---|
 | T43 | **Bug** | Klik **Export Excel** (Specsheet): `RangeError: Maximum call stack size exceeded`, lalu `SpecExportCtrl is not defined`, tanpa toast (error lolos dari try/catch → terjadi di dalam ExcelJS/worker Appsmith, bukan di kode kita). Perbaikan pertama (gaya `thin()`, base64 manual) tidak membantu | ExcelJS dilepas. JSObject baru **`XlsxWriter`** (`js/XlsxWriter.js`, ditempel di page Specsheet & CBD): penulis .xlsx tanpa library (XML + zip STORE, tanpa rekursi). API = subset ExcelJS yang dipakai, jadi `build()` tidak berubah; `save()` → `wb.toBase64()`. Diuji: file dibuka openpyxl — isi, rumus + hasil, merge, border, fill, font, numFmt, freeze, landscape A4 benar | 🟡 terpasang (v9.5), uji di end-to-end |
 | T44 | Permintaan | Export Excel specsheet dibuat seperti PDF contoh user (*SS_SPECS_FH26_…_PROD.pdf*) tanpa kotak validasi. Jawaban user: tanpa gambar/logo, PURPOSE dicentang otomatis dari stage, tanpa highlight, kolom persis PDF | `SpecExportCtrl.build()` ditulis ulang (layout PDF; komposisi material tidak ada di DB → tidak ikut); `XlsxWriter` + `printTitleRows` (header berulang tiap halaman) & `footer` (`Page &P / &N`). Diuji: xlsx → PDF (LibreOffice) tampil sesuai | 🟡 terpasang (v9.5), uji di end-to-end |
+
+### Temuan review v10
+
+| # | Tingkat | Temuan | Perbaikan | Status |
+|---|---|---|---|---|
+| T45 | **Bug** | 8 query `q_worklist_*` = *Automatic* → masuk `layoutOnLoadActions` dan jalan **sebelum** `Auth.onPageLoad`, untuk **semua role**: query role lain ditolak DB → muncul hingga 6–7 toast error *Role … tidak punya akses* setiap Beranda dibuka (data tetap aman); dan query jalan dobel (sekali otomatis, sekali dari `BerandaCtrl.load()`) | Set **Manual** di kedelapan query, Deploy | ✅ v10.1 |
+| T46 | **Bug** (laporan user 5 Okt 2026) | `LoginCtrl.onPageLoad` di page Login = *Manual* sejak v2 (v1: On page load; kemungkinan ikut terubah saat T10/T17) → page Login tidak pernah memproses `doLogout`: **Keluar tidak menghapus token**, dan state JSObject (`view = 'change'` dari login pertama) tetap tersimpan → setelah Keluar muncul form ganti password, tombol Keluar/Batal membawa kembali ke Beranda karena sesi masih aktif. Juga `?mode=ganti` dan redirect "sudah login → Beranda" tidak jalan | 1) `LoginCtrl.onPageLoad` → *Run behaviour* **On page load**; 2) `LoginCtrl` baru: `resetView()`/`goHome()` mengembalikan tampilan ke login setiap kali pindah ke Beranda (tidak bergantung pada sisa state) | ✅ v10.2 |
+| T49 | **Bug** | `q_change_log_images` page CBD = *Automatic* → masuk `layoutOnLoadActions` (jalan sebelum `Auth.onPageLoad`, tanpa `log_id`) | Set **Manual**, Deploy | ⬜ |
+| T50 | **Bug** | Event `onRowSelected` `tblRiwayat` (Specsheet) = `{{SpecCtrl.showImages(tblRiwayat.selectedRow)}}.` — ada titik setelah `}}` → nilai jadi teks campuran, gambar bisa tidak dimuat | Hapus titik di akhir | ⬜ |
+| T51 | Tampilan | Kolom **Gambar** di `tblRiwayat` & `tblCbdRiwayat` bertipe *Number* padahal isinya teks ("2 gambar" / "-") | Ubah *Column type* → **Plain text** | ⬜ |
+| T52 | Tampilan | `cwPublishForm` & modal Terbit tidak ditinggikan (Specsheet 46 baris / `mdlTerbit` 480 px, CBD 47 baris / `mdlCbdTerbit` 500 px — sama dengan v10) → bagian Gambar + tombol Terbitkan bisa terpotong / harus scroll di dalam widget | Tinggi widget & modal +160 px (widget ±62 baris, modal ±640–660 px) | ⬜ |
 
 Catatan lain:
 - Nama app di Appsmith "Test Database" dan datasource `Prestasi` (rencana: "Sistem Specsheet & CBD" / `pg_main`) — tidak memengaruhi fungsi. **User akan merapikan nama app sebelum handover** (dicek lagi di F11).

@@ -1,11 +1,16 @@
 // cwPublishForm — modal Terbitkan revisi: Specsheet (mdlTerbit, F6) dan CBD (mdlCbdTerbit, F8). Hanya tampilan;
 // checklist dihitung di DB (v_revision_checklist / v_cbd_checklist) dan disusun <Page>Ctrl.publishFormModel().
 // Terbit lewat SpecCtrl.publish() / CbdCtrl.publish() (checklist, kategori, dan alasan dicek lagi di DB).
+// F10b: gambar opsional (tempel Ctrl+V / pilih file; PNG/JPG ≤ 5 MB, maks. model.maxImages) -> model.images
+//   [{ name, data (base64 tanpa awalan) }]; dilampirkan ke change log oleh <Page>Ctrl setelah terbit.
 const $ = id => document.getElementById(id);
 let lastKey = null;
 let busy = false;
 let blocked = false;
 let requiresReason = true;
+let images = [];           // { name, type, size, data, url }
+let maxImages = 5;
+const MAX_BYTES = 5 * 1024 * 1024;
 
 function applyTheme(t) {
   t = t || {};
@@ -70,6 +75,61 @@ function fillForm(m) {
   $('reason').placeholder = requiresReason ? 'Apa yang berubah dibanding revisi sebelumnya?' : 'Kosongkan = "Revisi awal."';
   $('reasonHint').textContent = requiresReason ? '' : 'Opsional untuk revisi awal.';
   $('reasonHint').hidden = requiresReason;
+  maxImages = Number(m.maxImages) || 5;
+  images = [];
+  renderImages();
+}
+
+// ---------------------------------------------------------------- gambar
+function renderImages() {
+  const box = $('thumbs');
+  box.innerHTML = '';
+  images.forEach((img, n) => {
+    const t = document.createElement('div');
+    t.className = 'thumb';
+    t.title = `${img.name} (${Math.ceil(img.size / 1024)} KB)`;
+    const pic = document.createElement('img');
+    pic.src = img.url;
+    pic.alt = img.name;
+    const x = document.createElement('button');
+    x.type = 'button';
+    x.textContent = '✕';
+    x.title = 'Hapus gambar ini';
+    x.addEventListener('click', () => {
+      images.splice(n, 1);
+      renderImages();
+    });
+    t.appendChild(pic);
+    t.appendChild(x);
+    box.appendChild(t);
+  });
+  $('imgHint').textContent = `PNG / JPG, maks. 5 MB per gambar, maks. ${maxImages} gambar`
+    + (images.length ? ` · ${images.length} dipilih` : '') + '.';
+}
+
+function addFiles(files) {
+  const list = Array.from(files || []).filter(f => f && f.type && f.type.indexOf('image/') === 0);
+  if (!list.length) return false;
+  let error = '';
+  list.forEach(f => {
+    if (images.length >= maxImages) { error = `Maksimal ${maxImages} gambar.`; return; }
+    if (f.type !== 'image/png' && f.type !== 'image/jpeg') { error = 'Hanya gambar PNG atau JPG.'; return; }
+    if (f.size > MAX_BYTES) { error = `${f.name || 'Gambar'} lebih dari 5 MB.`; return; }
+    const slot = { name: '', type: f.type, size: f.size, data: '', url: '' };
+    const ext = f.type === 'image/png' ? 'png' : 'jpg';
+    slot.name = f.name && f.name !== 'image.png' ? f.name : `gambar-${images.length + 1}.${ext}`;
+    images.push(slot);
+    const reader = new FileReader();
+    reader.onload = () => {
+      slot.url = String(reader.result || '');
+      slot.data = slot.url.replace(/^data:[^,]*,/, '');
+      renderImages();
+    };
+    reader.readAsDataURL(f);
+  });
+  renderImages();
+  showMessage(error ? { type: 'error', text: error } : null);
+  return true;
 }
 
 function setBusy(v) {
@@ -107,7 +167,12 @@ function submit() {
     showMessage({ type: 'error', text: 'Alasan perubahan wajib diisi untuk revisi ini.' });
     return;
   }
-  appsmith.updateModel({ category, reason });
+  if (images.some(i => !i.data)) {
+    showMessage({ type: 'error', text: 'Gambar masih dimuat, coba lagi sebentar.' });
+    return;
+  }
+  showMessage(null);
+  appsmith.updateModel({ category, reason, images: images.map(i => ({ name: i.name, data: i.data })) });
   appsmith.triggerEvent('onPublish');
 }
 
@@ -121,6 +186,26 @@ appsmith.onReady(() => {
   $('btnX').addEventListener('click', cancel);
   $('category').addEventListener('change', () => $('category').classList.remove('invalid'));
   $('reason').addEventListener('input', () => $('reason').classList.remove('invalid'));
+  // Tempel gambar di mana pun di form (teks biasa tetap tertempel normal)
+  document.addEventListener('paste', e => {
+    if (busy || blocked) return;
+    const files = Array.from((e.clipboardData && e.clipboardData.items) || [])
+      .filter(it => it.kind === 'file').map(it => it.getAsFile());
+    if (files.length && addFiles(files)) e.preventDefault();
+  });
+  $('btnPick').addEventListener('click', () => $('file').click());
+  $('file').addEventListener('change', () => {
+    addFiles($('file').files);
+    $('file').value = '';
+  });
+  const drop = $('paste');
+  drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('over'); });
+  drop.addEventListener('dragleave', () => drop.classList.remove('over'));
+  drop.addEventListener('drop', e => {
+    e.preventDefault();
+    drop.classList.remove('over');
+    addFiles(e.dataTransfer && e.dataTransfer.files);
+  });
   applyTheme(appsmith.theme);
   render(appsmith.model);
   appsmith.onModelChange(render);

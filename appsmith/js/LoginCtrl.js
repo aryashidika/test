@@ -1,6 +1,7 @@
 // JSObject "LoginCtrl" — page Login (home page). Page ini TIDAK memakai Auth.
 // Tampilan: Custom Widget cwLogin (lihat widgets/cwLogin/README.md).
-// Setelan: fungsi onPageLoad -> Run on page load = ON.
+// Setelan: fungsi onPageLoad -> Run behaviour = On page load (WAJIB — tanpa ini tombol Keluar tidak
+//   menghapus token dan page Login menampilkan sisa tampilan sebelumnya, T46).
 // Keluar: tombol Keluar mengisi appsmith.store.doLogout = true lalu membuka page Login
 //   (bukan lewat URL ?mode=keluar — URL itu tersimpan di riwayat browser sehingga tombol
 //   Back setelah login ulang akan ikut logout).
@@ -21,6 +22,19 @@ export default {
 		this.forced = !!forced;
 		this.view = 'change';
 		this.setMessage(null);
+	},
+
+	// Kembalikan tampilan ke awal sebelum pindah ke Beranda — state JSObject tetap tersimpan selama sesi
+	// browser, jadi tanpa ini page Login berikutnya masih menampilkan form ganti password (T46).
+	resetView() {
+		this.view = 'login';
+		this.forced = false;
+		this.setMessage(null);
+	},
+
+	goHome() {
+		this.resetView();
+		navigateTo('Beranda');
 	},
 
 	async onPageLoad() {
@@ -44,7 +58,7 @@ export default {
 			this.openChange(me.must_change_password);
 			return;
 		}
-		navigateTo('Beranda');
+		this.goHome();
 	},
 
 	async loadMe() {
@@ -86,7 +100,7 @@ export default {
 			this.openChange(true);
 			return;
 		}
-		navigateTo('Beranda');
+		this.goHome();
 	},
 
 	async changePassword() {
@@ -115,7 +129,7 @@ export default {
 			this.busy = false;
 		}
 		showAlert('Password berhasil diganti.', 'success');
-		navigateTo('Beranda');
+		this.goHome();
 	},
 
 	// Batal: kalau wajib ganti password -> keluar; kalau tidak -> kembali ke Beranda
@@ -124,7 +138,7 @@ export default {
 			await this.logout();
 			return;
 		}
-		navigateTo('Beranda');
+		this.goHome();
 	},
 
 	async logout() {
