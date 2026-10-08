@@ -1,5 +1,5 @@
-B="D:/OJT_PM/Mock Up/appsmith/exports/export_v11.json"; N="$1"
-PY=../venv/Scripts/python.exe
+B="$1"; N="$2"   # pakai: bash check.sh <base.json> <build.json>
+PY="${PY:-../venv/Scripts/python.exe}"
 PYTHONIOENCODING=utf-8 $PY validate.py "$B" "$B" | grep '^ERROR' | sort > base_err.txt
 PYTHONIOENCODING=utf-8 $PY validate.py "$B" "$N" > build_out.txt
 grep -v '^ERROR' build_out.txt | grep -v '^HASIL'

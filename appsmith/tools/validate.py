@@ -1,5 +1,6 @@
 # Validasi build JSON Appsmith: python validate.py <base.json> <build.json>
-import json, re, sys
+import json, os, re, sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from aslib import App, check_js, sanitize
 import esprima
 
@@ -70,12 +71,13 @@ for a in d['actionList']:
     if u.get('collectionId'): continue
     queries.setdefault(u['pageId'], {})[u['name']] = u
     if u['name'].lower().startswith('query'): err(f'{u["pageId"]}: ada query uji {u["name"]}')
-    if u.get('pluginType') == 'DB':
+    if (a.get('pluginType') or u.get('pluginType')) == 'DB':
         tpl = u['actionConfiguration'].get('pluginSpecifiedTemplates') or [{}]
         if tpl[0].get('value') is not True: err(f'{u["pageId"]}/{u["name"]}: prepared statement OFF')
         if u['runBehaviour'] != 'MANUAL': err(f'{u["pageId"]}/{u["name"]}: bukan Manual ({u["runBehaviour"]})')
+        elif not u.get('userSetOnLoad'): warns.append(f'{u["pageId"]}/{u["name"]}: Manual tetapi userSetOnLoad=false (bisa jadi Automatic saat import)')
         body = u['actionConfiguration']['body']
-        if 'fn_auth' not in body: warns.append(f'{u["pageId"]}/{u["name"]}: tanpa fn_auth')
+        if 'fn_auth' not in body and not re.search(r'fn_\w+\(', body): warns.append(f'{u["pageId"]}/{u["name"]}: tanpa fn_auth')
 
 # ---- 4. referensi nama di JS & widget per page (query, JSObject.member, widget)
 GLOBAL_OK = {'appsmith', 'Math', 'JSON', 'moment', 'Object', 'Array', 'String', 'Number', 'Promise', 'console', 'Date', 'window', 'document', 'Boolean', '_', 'e', 'this', 'currentRow', 'currentIndex', 'row', 'tableData'}
@@ -153,10 +155,50 @@ for pg in pages:
         if w['srcDoc'] != w['uncompiledSrcDoc']: err(f'{pg}/{n}: srcDoc != uncompiledSrcDoc')
         print(f'widget OK {pg}/{n}')
 
+# ---- 6b. tabel yang tableData = {{q_x.data}}: setiap kolom hasil query harus ada di primaryColumns
+#      (kalau tidak, Appsmith menambahkannya sendiri sebagai kolom TERLIHAT)
+import pglast
+checked_tables = []
+def select_names(body):
+    sql = re.sub(r'\{\{.*?\}\}', "'x'", body, flags=re.S)
+    stmt = pglast.parse_sql(sql)[0].stmt
+    while getattr(stmt, 'op', None) is not None and str(stmt.op) != 'SetOperation.SETOP_NONE' and stmt.larg is not None:
+        stmt = stmt.larg
+    names = []
+    for t in stmt.targetList or []:
+        if t.name:
+            names.append(t.name)
+        elif t.val.__class__.__name__ == 'ColumnRef':
+            last = t.val.fields[-1]
+            if last.__class__.__name__ == 'A_Star':
+                return None
+            names.append(last.sval)
+        else:
+            names.append('?column?')
+    return names
+for pg in pages:
+    for n, w in build.names[pg].items():
+        if w.get('type') != 'TABLE_WIDGET_V2': continue
+        m = re.fullmatch(r'\{\{\s*(q_\w+)\.data\s*\}\}', str(w.get('tableData', '')).strip())
+        if not m or m.group(1) not in queries.get(pg, {}): continue
+        try:
+            names = select_names(queries[pg][m.group(1)]['actionConfiguration']['body'])
+        except Exception as e:
+            warns.append(f'{pg}/{n}: query {m.group(1)} tidak bisa diurai ({e})'); continue
+        if names is None:
+            warns.append(f'{pg}/{n}: {m.group(1)} memakai SELECT * — kolom tidak dicek'); continue
+        pc = w.get('primaryColumns', {})
+        miss = [x for x in names if x not in pc]
+        checked_tables.append(n)
+        if miss: err(f'{pg}/{n}: kolom hasil {m.group(1)} tidak terdaftar di tabel (akan muncul sendiri): {miss}')
+        extra = [k for k, c in pc.items() if k not in names and not c.get('isDerived') and c.get('columnType') != 'button']
+        if extra: warns.append(f'{pg}/{n}: kolom tabel tanpa data dari {m.group(1)}: {extra}')
+
 # ---- 7. published = unpublished
 for p in d['pageList']:
-    if p['publishedPage'] != p['unpublishedPage']: err(f'page {p["unpublishedPage"]["name"]} belum published')
+    if p.get('publishedPage') != p['unpublishedPage']: err(f'page {p["unpublishedPage"]["name"]} belum published')
 
+print('tabel dicek kolomnya:', len(checked_tables), sorted(checked_tables))
 print('\nRingkasan: pages', len(pages), '| query', sum(len(v) for v in queries.values()),
       f'(base {sum(1 for a in base.d["actionList"] if not a["unpublishedAction"].get("collectionId"))})',
       '| JSObject', len(d['actionCollectionList']))

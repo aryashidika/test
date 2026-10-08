@@ -1,0 +1,11 @@
+
+/* R2b: cwVariantForm — peringatan awalan kode */
+.warn-box {
+  margin-top: 8px;
+  border: 1px solid #F1D9A6;
+  background: #FFF8E6;
+  color: #8A5A00;
+  border-radius: var(--radius);
+  padding: 8px 12px;
+  font-size: 12.5px;
+}

@@ -1,18 +1,20 @@
-// cwMaterialForm — form Tambah / Usulkan / Ubah Material di mdlMaterial. Hanya tampilan; simpan lewat
-// MaterialCtrl.save(). Hak ubah per field ditentukan model (canIdentity, canPriceMethod, canStatus);
-// aturan final di DB (fn_material_add / fn_material_update / trg_material_check).
+// cwMaterialForm — form Tambah / Ubah Material INDUK di mdlMaterial (Master Material & Material Detail).
+// Hanya tampilan; simpan lewat MaterialCtrl.save() / MaterialDetailCtrl.saveMaterial().
+// R2: tanpa Material Code & thickness (pindah ke varian), tanpa usulan; metode harga hanya tim CBD
+// (canPriceMethod); daftar nama mirip saat mengetik (event onSearch). Aturan final di DB.
 const $ = id => document.getElementById(id);
-const IDENTITY = ['code', 'category', 'name', 'thickness', 'uom'];
+const IDENTITY = ['category', 'name', 'uom'];
 const METHOD_HINT = {
-  CATALOG: 'Harga diambil dari master harga per supplier (diisi tim CBD di Material Detail).',
+  CATALOG: 'Harga diambil dari master harga per varian × supplier (diajukan tim CBD).',
   QUOTATION: 'Material proses (printing, molding, dst.): tidak ada harga master, harga diisi per CBD.',
 };
 let lastKey = null;
 let busy = false;
 let isEdit = false;
-let nextCode = '';
 let method = 'CATALOG';
-let canPriceMethod = true;
+let canPriceMethod = false;
+let similarTimer = null;
+let lastQuery = null;
 
 function applyTheme(t) {
   t = t || {};
@@ -60,27 +62,53 @@ function setMethod(v) {
   $('methodHint').textContent = METHOD_HINT[method];
 }
 
-function updateSuggest() {
-  $('btnSuggest').hidden = isEdit || !nextCode || $('code').value.trim().toUpperCase() === nextCode;
-  $('btnSuggest').textContent = `Pakai saran ${nextCode}`;
+// ---- nama mirip ----
+const norm = s => String(s || '').trim().replace(/\s+/g, ' ').toLowerCase();
+
+function renderSimilar(m) {
+  const list = m.similar || [];
+  const show = list.length > 0 && norm(m.similarFor) === norm($('name').value);
+  $('similar').hidden = !show;
+  const ul = $('similarList');
+  ul.innerHTML = '';
+  if (!show) return;
+  list.forEach(x => {
+    const li = document.createElement('li');
+    li.textContent = x.label;
+    if (x.info) {
+      const meta = document.createElement('span');
+      meta.className = 'meta';
+      meta.textContent = ` · ${x.info}`;
+      li.appendChild(meta);
+    }
+    ul.appendChild(li);
+  });
+}
+
+function querySimilar() {
+  clearTimeout(similarTimer);
+  similarTimer = setTimeout(() => {
+    const q = $('name').value.trim().replace(/\s+/g, ' ');
+    if (q === lastQuery) return;
+    lastQuery = q;
+    appsmith.updateModel({ similarQuery: q });
+    appsmith.triggerEvent('onSearch');
+  }, 350);
 }
 
 // Isi ulang field hanya saat modal dibuka (key berubah) — busy/message tidak menghapus ketikan user
 function fillForm(m) {
   const f = m.form || {};
   isEdit = m.mode === 'edit';
-  nextCode = m.nextCode || '';
-  canPriceMethod = m.canPriceMethod !== false;
-  $('title').textContent = isEdit ? 'Ubah Material' : (m.canManage ? 'Tambah Material' : 'Usulkan Material');
-  $('code').value = f.material_code || (isEdit ? '' : nextCode);
+  canPriceMethod = !!m.canPriceMethod;
+  $('title').textContent = isEdit ? 'Ubah Material' : 'Tambah Material';
   $('name').value = f.name || '';
   $('category').value = f.category || '';
-  $('thickness').value = f.thickness || '';
   $('uom').value = f.uom || '';
   fillDatalist($('dlCategory'), m.categories);
   fillDatalist($('dlUom'), m.uoms);
   setMethod(f.price_method);
-  fillSelect($('status'), m.statusOptions, f.status || 'APPROVED');
+  fillSelect($('status'), m.statusOptions, f.status || 'ACTIVE');
 
   const canIdentity = m.canIdentity !== false;
   IDENTITY.forEach(id => {
@@ -90,13 +118,12 @@ function fillForm(m) {
   document.querySelectorAll('#method button').forEach(b => { b.disabled = !canPriceMethod; });
   $('statusBox').hidden = !(isEdit && m.canStatus);
   const notes = [];
-  if (!canIdentity) notes.push('Data material hanya bisa diubah Master Admin.');
-  if (!canPriceMethod) notes.push('Metode harga ditentukan tim CBD.');
+  if (!canIdentity) notes.push('Data material diubah tim specsheet (Vendor Spec).');
+  if (!canPriceMethod) notes.push('Metode harga ditentukan tim CBD (default Catalog).');
   $('lockNote').textContent = notes.join(' ');
   $('lockNote').hidden = notes.length === 0;
-  $('proposeInfo').hidden = isEdit || !!m.canManage;
-  $('btnSave').dataset.label = !isEdit && !m.canManage ? 'Usulkan' : 'Simpan';
-  updateSuggest();
+  $('addInfo').hidden = isEdit;
+  lastQuery = isEdit ? $('name').value.trim() : null;
   (canIdentity ? (isEdit ? $('name') : $('category')) : $('btnCancel')).focus();
 }
 
@@ -105,7 +132,7 @@ function setBusy(v) {
   $('btnSave').disabled = v;
   $('btnCancel').disabled = v;
   $('btnX').disabled = v;
-  $('btnSave').textContent = v ? 'Menyimpan…' : ($('btnSave').dataset.label || 'Simpan');
+  $('btnSave').textContent = v ? 'Menyimpan…' : 'Simpan';
 }
 
 function render(model) {
@@ -116,6 +143,7 @@ function render(model) {
   }
   showMessage(m.message);
   setBusy(!!m.busy);
+  renderSimilar(m);
 }
 
 function clean(id) {
@@ -125,16 +153,14 @@ function clean(id) {
 function submit() {
   if (busy) return;
   const data = {
-    material_code: clean('code').toUpperCase(),
     name: clean('name'),
     category: clean('category'),
-    thickness: clean('thickness'),
     uom: clean('uom').toUpperCase(),
     price_method: method,
     status: $('status').value,
   };
   IDENTITY.forEach(id => $(id).classList.remove('invalid'));
-  const required = [['code', 'Material Code'], ['category', 'Kategori'], ['name', 'Nama material'], ['uom', 'UoM']];
+  const required = [['category', 'Kategori'], ['name', 'Nama material'], ['uom', 'Mea (UoM)']];
   const missing = required.find(([id]) => !clean(id));
   if (missing) {
     $(missing[0]).classList.add('invalid');
@@ -154,12 +180,7 @@ appsmith.onReady(() => {
   $('btnSave').addEventListener('click', submit);
   $('btnCancel').addEventListener('click', cancel);
   $('btnX').addEventListener('click', cancel);
-  $('code').addEventListener('input', updateSuggest);
-  $('btnSuggest').addEventListener('click', () => {
-    $('code').value = nextCode;
-    $('code').classList.remove('invalid');
-    updateSuggest();
-  });
+  $('name').addEventListener('input', querySimilar);
   document.querySelectorAll('#method button').forEach(b => b.addEventListener('click', () => {
     if (canPriceMethod) setMethod(b.dataset.v);
   }));

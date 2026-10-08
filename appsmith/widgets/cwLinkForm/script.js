@@ -1,6 +1,6 @@
 // cwLinkForm — form Tambah / Ubah supplier material di mdlLink (page Material Detail). Hanya tampilan;
 // simpan lewat MaterialDetailCtrl.saveLink() -> fn_link_save. Hak ubah per field dari model
-// (canLink: kode & supplier utama, canStatus: status); aturan final di DB.
+// (canLink: supplier utama, canStatus: status); aturan final di DB. R2: tanpa kode supplier & approval.
 const $ = id => document.getElementById(id);
 let lastKey = null;
 let busy = false;
@@ -60,18 +60,16 @@ function fillForm(m) {
   fillSelect($('supplier'), options, f.supplier_id, options.length ? '— Pilih supplier —' : '— Semua supplier sudah terdaftar —');
   $('supplier').classList.remove('invalid');
 
-  $('code').value = f.supplier_material_code || '';
-  $('code').disabled = !canLink;
   $('preferred').checked = !!f.is_preferred;
   $('preferred').disabled = !canLink;
 
-  fillSelect($('status'), m.statusOptions, f.status || 'PROPOSED');
+  fillSelect($('status'), m.statusOptions, f.status || 'ACTIVE');
   $('statusBox').hidden = !(isEdit && canStatus);
 
-  $('lockNote').textContent = isEdit && !canLink ? 'Kode supplier dan supplier utama diatur tim specsheet.' : '';
+  $('lockNote').textContent = isEdit && !canLink ? 'Supplier utama diatur tim specsheet.' : '';
   $('lockNote').hidden = !(isEdit && !canLink);
-  $('proposeInfo').hidden = isEdit || canStatus;
-  (isEdit ? (canLink ? $('code') : $('status')) : $('supplier')).focus();
+  $('proposeInfo').hidden = isEdit;
+  (isEdit ? $('status') : $('supplier')).focus();
 }
 
 function setBusy(v) {
@@ -103,7 +101,6 @@ function submit() {
   }
   appsmith.updateModel({
     supplier_id: supplierId,
-    supplier_material_code: $('code').value.trim(),
     is_preferred: $('preferred').checked,
     status: $('status').value,
   });
@@ -118,9 +115,6 @@ appsmith.onReady(() => {
   $('btnSave').addEventListener('click', submit);
   $('btnCancel').addEventListener('click', cancel);
   $('btnX').addEventListener('click', cancel);
-  $('code').addEventListener('keydown', e => {
-    if (e.key === 'Enter') submit();
-  });
   applyTheme(appsmith.theme);
   render(appsmith.model);
   appsmith.onModelChange(render);

@@ -266,3 +266,32 @@ input[type=number]::-webkit-inner-spin-button {
 .link:hover {
   text-decoration: underline;
 }
+
+/* R2: "cari dulu, baru buat" — daftar nama mirip */
+.similar {
+  margin-top: 8px;
+  border: 1px solid #F1D9A6;
+  background: #FFF8E6;
+  border-radius: var(--radius);
+  padding: 8px 12px;
+  font-size: 12.5px;
+}
+
+.similar-title {
+  font-weight: 600;
+  color: #8A5A00;
+  margin-bottom: 4px;
+}
+
+.similar ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.similar li {
+  margin: 2px 0;
+}
+
+.similar .meta {
+  color: var(--muted);
+}

@@ -13,9 +13,6 @@
   <div class="readonly" id="supplierName" hidden></div>
   <div class="hint" id="supplierHint">Supplier harus sudah ada di Master Supplier.</div>
 
-  <label for="code">Kode material di supplier</label>
-  <input id="code" type="text" maxlength="60" autocomplete="off" placeholder="opsional">
-
   <label class="check-row">
     <input id="preferred" type="checkbox">
     <span>Supplier utama (otomatis terisi di BOM saat material dipilih)</span>
@@ -27,7 +24,7 @@
   </div>
 
   <div class="field-note" id="lockNote" hidden></div>
-  <div class="info" id="proposeInfo" hidden>Supplier baru tersimpan sebagai PROPOSED sampai di-approve Master Admin (tetap bisa dipakai di BOM).</div>
+  <div class="info" id="proposeInfo" hidden>Supplier langsung terhubung ke material ini (semua varian). Harga per varian diajukan tim CBD.</div>
 
   <div class="actions">
     <button type="button" class="btn-secondary" id="btnCancel">Batal</button>

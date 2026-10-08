@@ -1,7 +1,10 @@
 // cwSupplierForm — form Tambah/Ubah Supplier di mdlSupplier. Hanya tampilan; simpan lewat SupplierCtrl.save().
+// R2: tanpa usulan/approval (status ACTIVE/INACTIVE), daftar nama mirip saat mengetik (event onSearch).
 const $ = id => document.getElementById(id);
 let lastKey = null;
 let busy = false;
+let similarTimer = null;
+let lastQuery = null;
 
 function applyTheme(t) {
   t = t || {};
@@ -34,20 +37,52 @@ function fillSelect(sel, options, selected) {
   sel.value = selected || (options && options[0] ? options[0].value : '');
 }
 
+// ---- nama mirip ----
+const norm = s => String(s || '').trim().replace(/\s+/g, ' ').toLowerCase();
+
+function renderSimilar(m) {
+  const list = m.similar || [];
+  const show = list.length > 0 && norm(m.similarFor) === norm($('name').value);
+  $('similar').hidden = !show;
+  const ul = $('similarList');
+  ul.innerHTML = '';
+  if (!show) return;
+  list.forEach(x => {
+    const li = document.createElement('li');
+    li.textContent = x.label;
+    if (x.info) {
+      const meta = document.createElement('span');
+      meta.className = 'meta';
+      meta.textContent = ` · ${x.info}`;
+      li.appendChild(meta);
+    }
+    ul.appendChild(li);
+  });
+}
+
+function querySimilar() {
+  clearTimeout(similarTimer);
+  similarTimer = setTimeout(() => {
+    const q = $('name').value.trim().replace(/\s+/g, ' ');
+    if (q === lastQuery) return;
+    lastQuery = q;
+    appsmith.updateModel({ similarQuery: q });
+    appsmith.triggerEvent('onSearch');
+  }, 350);
+}
+
 // Isi ulang field hanya saat modal dibuka (key berubah) — busy/message tidak menghapus ketikan user
 function fillForm(m) {
   const f = m.form || {};
   const isEdit = m.mode === 'edit';
-  const propose = !isEdit && m.canManage === false;    // Vendor: supplier baru = usulan (F10b)
-  $('title').textContent = isEdit ? 'Ubah Supplier' : (propose ? 'Usulkan Supplier' : 'Tambah Supplier');
+  $('title').textContent = isEdit ? 'Ubah Supplier' : 'Tambah Supplier';
   $('name').value = f.name || '';
   $('name').classList.remove('invalid');
-  fillSelect($('status'), m.statusOptions, f.status || 'APPROVED');
+  fillSelect($('status'), m.statusOptions, f.status || 'ACTIVE');
   $('statusBox').hidden = !isEdit;
-  $('addInfo').textContent = propose
-    ? 'Usulan tersimpan sebagai PROPOSED dan menunggu persetujuan Master Admin. Supplier usulan sudah bisa dipilih di BOM, tetapi specsheet baru bisa terbit setelah disetujui.'
-    : 'Supplier baru langsung berstatus APPROVED.';
   $('addInfo').hidden = isEdit;
+  $('editNote').hidden = !isEdit;
+  lastQuery = isEdit ? $('name').value.trim() : null;
   $('name').focus();
 }
 
@@ -67,6 +102,7 @@ function render(model) {
   }
   showMessage(m.message);
   setBusy(!!m.busy);
+  renderSimilar(m);
 }
 
 function submit() {
@@ -95,6 +131,7 @@ appsmith.onReady(() => {
   $('name').addEventListener('keydown', e => {
     if (e.key === 'Enter') submit();
   });
+  $('name').addEventListener('input', querySimilar);
   applyTheme(appsmith.theme);
   render(appsmith.model);
   appsmith.onModelChange(render);

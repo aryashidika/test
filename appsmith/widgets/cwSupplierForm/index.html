@@ -9,13 +9,18 @@
   <label for="name">Nama supplier <span class="req">*</span></label>
   <input id="name" type="text" maxlength="150" autocomplete="off" placeholder="mis. PT Maju Jaya">
   <div class="hint">Nama yang hanya beda huruf besar/kecil atau spasi dianggap sama.</div>
+  <div class="similar" id="similar" hidden>
+    <div class="similar-title">Supplier dengan nama mirip sudah ada — pakai yang ini bila sama:</div>
+    <ul id="similarList"></ul>
+  </div>
 
   <div id="statusBox">
     <label for="status">Status <span class="req">*</span></label>
     <select id="status"></select>
   </div>
 
-  <div class="info" id="addInfo" hidden>Supplier baru langsung berstatus APPROVED.</div>
+  <div class="info" id="addInfo" hidden>Supplier dipakai bersama semua pabrik dan langsung bisa dipilih.</div>
+  <div class="field-note" id="editNote" hidden>Nama tidak bisa diubah bila supplier sudah dipakai di dokumen terbit. INACTIVE ditolak selama masih dipakai di draft.</div>
 
   <div class="actions">
     <button type="button" class="btn-secondary" id="btnCancel">Batal</button>

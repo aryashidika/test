@@ -74,6 +74,9 @@ class App:
             u['jsonPathKeys'] = self.path_keys(body)
         if run_behaviour is not None:
             u['runBehaviour'] = run_behaviour
+            # userSetOnLoad=True: Appsmith tidak mengubah Manual -> Automatic saat import (temuan R1:
+            # q_factories & q_change_log_images kembali Automatic karena flag ini false)
+            u['userSetOnLoad'] = True
         if confirm is not None:
             u['confirmBeforeExecute'] = confirm
         self.note(f'query {page}/{name} diubah')
@@ -87,7 +90,7 @@ class App:
         u['actionConfiguration']['body'] = body
         u['jsonPathKeys'] = self.path_keys(body)
         u['runBehaviour'] = 'MANUAL'
-        u['userSetOnLoad'] = False
+        u['userSetOnLoad'] = True          # lihat set_query
         u['confirmBeforeExecute'] = confirm
         u['createdAt'] = datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
         a['id'] = f'{page}_{name}'
@@ -95,6 +98,11 @@ class App:
         self.d['actionList'].append(a)
         self.note(f'query baru {page}/{name}')
         return a
+
+    def delete_query(self, page, name):
+        a = self.action(page, name)
+        self.d['actionList'].remove(a)
+        self.note(f'query {page}/{name} dihapus')
 
     # ------------------------------------------------------------- JSObject
     def collection(self, page, name):

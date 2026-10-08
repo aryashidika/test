@@ -16,13 +16,18 @@
 
   <label for="name">Nama komponen <span class="req">*</span></label>
   <input id="name" type="text" maxlength="150" autocomplete="off" placeholder="mis. Vamp">
+  <div class="similar" id="similar" hidden>
+    <div class="similar-title">Komponen dengan nama mirip sudah ada — pakai yang ini bila sama:</div>
+    <ul id="similarList"></ul>
+  </div>
 
   <div id="statusBox">
     <label for="status">Status <span class="req">*</span></label>
     <select id="status"></select>
   </div>
 
-  <div class="info" id="proposeInfo" hidden>Usulan tersimpan sebagai PROPOSED dan menunggu persetujuan Master Admin.</div>
+  <div class="info" id="addInfo" hidden>Komponen dipakai bersama semua pabrik dan langsung bisa dipilih.</div>
+  <div class="field-note" id="editNote" hidden>Nama, nomor, dan kelompok tidak bisa diubah bila komponen sudah dipakai di dokumen terbit. INACTIVE ditolak selama masih dipakai di draft.</div>
 
   <div class="actions">
     <button type="button" class="btn-secondary" id="btnCancel">Batal</button>

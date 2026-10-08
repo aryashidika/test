@@ -1,4 +1,4 @@
-// cwKomponenForm — form Tambah/Usulkan/Ubah Komponen di mdlKomponen. Hanya tampilan; simpan lewat
+// cwKomponenForm — form Tambah/Ubah Komponen di mdlKomponen. Hanya tampilan; simpan lewat
 // KomponenCtrl.save(). Aturan nomor dicek ringan di sini untuk umpan balik cepat; aturan final di DB
 // (trg_component_check).
 const $ = id => document.getElementById(id);
@@ -92,12 +92,48 @@ function onGroupChange() {
   updateHint();
 }
 
+// ---- nama mirip (R2: "cari dulu, baru buat") ----
+let similarTimer = null;
+let lastQuery = null;
+const norm = s => String(s || '').trim().replace(/\s+/g, ' ').toLowerCase();
+
+function renderSimilar(m) {
+  const list = m.similar || [];
+  const show = list.length > 0 && norm(m.similarFor) === norm($('name').value);
+  $('similar').hidden = !show;
+  const ul = $('similarList');
+  ul.innerHTML = '';
+  if (!show) return;
+  list.forEach(x => {
+    const li = document.createElement('li');
+    li.textContent = x.label;
+    if (x.info) {
+      const meta = document.createElement('span');
+      meta.className = 'meta';
+      meta.textContent = ` · ${x.info}`;
+      li.appendChild(meta);
+    }
+    ul.appendChild(li);
+  });
+}
+
+function querySimilar() {
+  clearTimeout(similarTimer);
+  similarTimer = setTimeout(() => {
+    const q = $('name').value.trim().replace(/\s+/g, ' ');
+    if (q === lastQuery) return;
+    lastQuery = q;
+    appsmith.updateModel({ similarQuery: q });
+    appsmith.triggerEvent('onSearch');
+  }, 350);
+}
+
 // Isi ulang field hanya saat modal dibuka (key berubah) — busy/message tidak menghapus ketikan user
 function fillForm(m) {
   const f = m.form || {};
   isEdit = m.mode === 'edit';
   groups = m.groups || [];
-  $('title').textContent = isEdit ? 'Ubah Komponen' : (m.canManage ? 'Tambah Komponen' : 'Usulkan Komponen');
+  $('title').textContent = isEdit ? 'Ubah Komponen' : 'Tambah Komponen';
   fillSelect($('group'), groups.map(g => ({
     value: g.code,
     label: `${g.code} — ${g.name} (${g.range_start}–${g.range_end})`,
@@ -105,10 +141,12 @@ function fillForm(m) {
   lastSuggest = suggestionOf(currentGroup());
   $('number').value = f.number === null || f.number === undefined ? '' : String(f.number);
   $('name').value = f.name || '';
-  fillSelect($('status'), m.statusOptions, f.status || 'APPROVED');
+  fillSelect($('status'), m.statusOptions, f.status || 'ACTIVE');
   $('statusBox').hidden = !isEdit;
-  $('proposeInfo').hidden = isEdit || !!m.canManage;
-  $('btnSave').dataset.label = !isEdit && !m.canManage ? 'Usulkan' : 'Simpan';
+  $('addInfo').hidden = isEdit;
+  $('editNote').hidden = !isEdit;
+  $('btnSave').dataset.label = 'Simpan';
+  lastQuery = isEdit ? $('name').value.trim() : null;
   ['group', 'number', 'name'].forEach(id => $(id).classList.remove('invalid'));
   updateHint();
   (isEdit ? $('name') : ($('group').value ? $('name') : $('group'))).focus();
@@ -130,6 +168,7 @@ function render(model) {
   }
   showMessage(m.message);
   setBusy(!!m.busy);
+  renderSimilar(m);
 }
 
 function validate(g, numText, name) {
@@ -176,6 +215,7 @@ appsmith.onReady(() => {
   $('btnX').addEventListener('click', cancel);
   $('group').addEventListener('change', onGroupChange);
   $('number').addEventListener('input', updateHint);
+  $('name').addEventListener('input', querySimilar);
   $('btnSuggest').addEventListener('click', () => {
     if (lastSuggest !== null) $('number').value = String(lastSuggest);
     $('number').classList.remove('invalid');

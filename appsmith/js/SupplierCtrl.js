@@ -1,17 +1,16 @@
-// JSObject "SupplierCtrl" — page Master Supplier. Form: Custom Widget cwSupplierForm di modal mdlSupplier.
-// Supplier tidak punya currency — currency dipilih per harga (F3/CBD).
-// Tambah: Master Admin (langsung APPROVED) atau Vendor (propose_master -> PROPOSED, F10b). Ubah & status hanya
-// Master Admin (manage_master). Semua dicek lagi di DB (fn_auth / fn_auth_any).
 export default {
+	// R2: supplier dipakai bersama semua pabrik, tanpa usulan/approval (ACTIVE / INACTIVE).
 	isNew: true,
-	form: { id: null, name: '', status: 'APPROVED' },
+	form: { id: null, name: '', status: 'ACTIVE' },
 	formKey: 0,        // naik setiap modal dibuka -> cwSupplierForm mengisi ulang field
 	busy: false,
 	message: null,     // { type, text } ditampilkan di dalam cwSupplierForm
+	similar: [],       // nama mirip (fn_similar_names) untuk teks similarFor
+	similarFor: '',
+	similarSeq: 0,
 
 	statusOptions: [
-		{ label: 'APPROVED', value: 'APPROVED' },
-		{ label: 'PROPOSED', value: 'PROPOSED' },
+		{ label: 'ACTIVE', value: 'ACTIVE' },
 		{ label: 'INACTIVE', value: 'INACTIVE' },
 	],
 
@@ -20,7 +19,7 @@ export default {
 	},
 
 	canAdd() {
-		return this.canManage() || Auth.can('propose_master');
+		return this.canManage();
 	},
 
 	openForm(isNew, form) {
@@ -28,12 +27,14 @@ export default {
 		this.form = form;
 		this.busy = false;
 		this.message = null;
+		this.similar = [];
+		this.similarFor = '';
 		this.formKey = this.formKey + 1;
 		showModal('mdlSupplier');
 	},
 
 	openAdd() {
-		this.openForm(true, { id: null, name: '', status: this.canManage() ? 'APPROVED' : 'PROPOSED' });
+		this.openForm(true, { id: null, name: '', status: 'ACTIVE' });
 	},
 
 	openEdit(row) {
@@ -42,13 +43,33 @@ export default {
 		});
 	},
 
+	// cwSupplierForm onSearch: daftar nama mirip ("cari dulu, baru buat")
+	async searchSimilar() {
+		const text = String((cwSupplierForm.model || {}).similarQuery || '').trim();
+		const seq = this.similarSeq + 1;
+		this.similarSeq = seq;
+		if (text.length < 2) {
+			this.similar = [];
+			this.similarFor = text;
+			return;
+		}
+		try {
+			const rows = await q_similar.run({ kind: 'SUPPLIER', text, exclude_id: this.form.id || '' });
+			if (seq !== this.similarSeq) return;
+			this.similar = rows || [];
+			this.similarFor = text;
+		} catch (e) {
+			/* daftar mirip hanya bantuan — abaikan */
+		}
+	},
+
 	async save() {
 		// Baca model dulu — model di-reset saat state (Default model) berubah
 		const m = cwSupplierForm.model || {};
 		const data = {
 			id: this.form.id,
 			name: String(m.name || '').trim(),
-			status: this.isNew ? null : m.status,      // supplier baru: status ditentukan DB (APPROVED / PROPOSED)
+			status: this.isNew ? 'ACTIVE' : m.status,
 		};
 		if (!data.name) {
 			this.message = { type: 'error', text: 'Nama supplier wajib diisi.' };
@@ -73,8 +94,7 @@ export default {
 			this.busy = false;
 		}
 		closeModal('mdlSupplier');
-		showAlert(!this.isNew ? 'Supplier disimpan.'
-			: (this.canManage() ? 'Supplier ditambahkan.' : 'Usulan supplier terkirim, menunggu persetujuan Master Admin.'), 'success');
+		showAlert(this.isNew ? 'Supplier ditambahkan.' : 'Supplier disimpan.', 'success');
 		try { await q_suppliers.run(); } catch (e) { /* abaikan */ }
 	},
 }
