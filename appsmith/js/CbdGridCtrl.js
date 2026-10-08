@@ -1,11 +1,3 @@
-// JSObject "CbdGridCtrl" — page Cost Breakdown (CBD): grid baris CBD + rekap + harga (Custom Widget cwCbdGrid,
-// modal mdlCbdHarga berisi cwCbdPriceForm). cwCbdGrid mengirim satu event onAction dengan model.action = { type, ... };
-// onAction() menjalankan query lalu memuat ulang grid & rekap. Semua aturan dicek di DB (fn_cbd_*, trg_lock_published).
-// F7: Yield & Loss %. F8: rekap (rate, amortisasi, adjustment, target FOB, selling price ⇄ margin), harga quotation /
-// hapus override, Refresh Harga dari Master, Refresh dari Specsheet.
-// F10b: override harga katalog tidak dipakai lagi (hanya "Hapus override" untuk draft lama); Loss % boleh kosong (= 0);
-// exchange rate boleh dikosongkan (terbit diblokir checklist).
-// F8b: Cost recapitulation (baris biaya q_cbd_cost_items: tambah / ubah / hapus), amortisasi & adjustment jadi baris.
 export default {
 	busyCount: 0,
 	message: null,   // { type, text } ditampilkan di atas grid
@@ -192,7 +184,7 @@ export default {
 				current = 'Harga sekarang: kosong';
 			}
 			if (!q && l.master_price != null && l.price_source !== 'MASTER') info = `Harga master berlaku: ${fmt(l.master_price, l.master_currency)}.`;
-			if (!q && l.price_gap === 'PENDING') info = 'Ada usulan harga master yang menunggu approval Master Admin — setelah di-approve, klik Refresh Harga.';
+			if (!q && l.price_gap === 'PENDING') info = 'Ada usulan harga master yang menunggu approval Manager Costing — setelah di-approve, klik Refresh Harga.';
 		}
 		return {
 			key: this.priceKey,

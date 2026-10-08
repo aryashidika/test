@@ -1,14 +1,3 @@
-// JSObject "BerandaCtrl" — page Beranda: "Tugas Saya" (cwWorklist) sesuai role, di atas menu (cwMenu).
-// Per role (satu daftar saja, sama dengan Python):
-//   VENDOR_SPEC  — draft specsheet terbuka · article belum masuk specsheet · usulan master data
-//   VENDOR_CBD   — CBD perlu dibuat · draft perlu refresh · CBD terbit perlu revisi · draft berjalan · harga master belum ada
-//   MASTER_ADMIN — usulan menunggu persetujuan: supplier · material · komponen · supplier material · harga
-//   BRAND_VIEWER — specsheet & CBD terbit terbaru
-//   SYSTEM_ADMIN — ringkasan sistem
-// Data dari view v_worklist_* / v_recent_published / v_system_summary (SQL F10), dibaca lewat query q_worklist_*.
-// Query yang dijalankan hanya milik role-nya (queries()); izin dicek lagi di DB. Dijalankan Auth.pageQueries()
-// dan tombol Muat ulang di cwWorklist. Klik tugas -> halaman tujuan lewat cwWorklist.onOpen -> open();
-// parameter from=home membuat tombol kembali di Specsheet / CBD mengarah ke Beranda.
 export default {
 	loading: false,
 	loaded: false,
@@ -19,7 +8,7 @@ export default {
 		return {
 			VENDOR_SPEC: [q_worklist_spec, q_worklist_proposals],
 			VENDOR_CBD: [q_worklist_cbd, q_worklist_gap],
-			MASTER_ADMIN: [q_worklist_admin],
+			MANAGER_COSTING: [q_worklist_admin],
 			BRAND_VIEWER: [q_worklist_pub_spec, q_worklist_pub_cbd],
 			SYSTEM_ADMIN: [q_worklist_system],
 		}[role] || [];
@@ -81,7 +70,7 @@ export default {
 		const part = {
 			VENDOR_SPEC: () => this.specModel(),
 			VENDOR_CBD: () => this.cbdModel(),
-			MASTER_ADMIN: () => this.adminModel(),
+			MANAGER_COSTING: () => this.adminModel(),
 			BRAND_VIEWER: () => this.brandModel(),
 			SYSTEM_ADMIN: () => this.systemModel(),
 		}[me.role];
@@ -213,7 +202,7 @@ export default {
 		};
 	},
 
-	// ---- Master Admin ----
+	// ---- Manager Costing (R1: antrian usulan harga) ----
 	adminItem(r) {
 		const nav = r.kind === 'COMPONENT' ? { target: 'Master Komponen', params: {} }
 			: r.kind === 'SUPPLIER' ? { target: 'Master Supplier', params: {} } : this.toMaterial(r);

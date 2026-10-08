@@ -1,7 +1,7 @@
 // cwPriceForm — form Tambah Harga di mdlHarga (page Material Detail). Hanya tampilan; simpan lewat
 // MaterialDetailCtrl.savePrice() -> fn_price_add. Currency tidak punya nilai awal (wajib dipilih).
 // Harga baru menutup harga yang masih berlaku untuk supplier + warna yang sama (dicek final di DB).
-// needsApproval (Vendor CBD): harga jadi usulan PROPOSED; harga lama baru ditutup saat di-approve Master Admin.
+// needsApproval (Vendor CBD): harga jadi usulan PROPOSED; harga lama baru ditutup saat di-approve Manager Costing.
 // Maks. satu usulan per supplier + warna: kalau sudah ada (pendingPrices), simpan diblokir.
 const $ = id => document.getElementById(id);
 let lastKey = null;
@@ -100,11 +100,11 @@ function updateInfo() {
   if (pending) {
     const what = pending.color ? `warna ${pending.color}` : 'semua warna';
     warn.textContent = `Sudah ada usulan ${fmt(pending.price)} ${pending.currency} untuk ${what} yang menunggu approval. `
-      + 'Batalkan usulan itu dulu (tombol Batalkan di tabel harga) atau tunggu Master Admin memprosesnya.';
+      + 'Batalkan usulan itu dulu (tombol Batalkan di tabel harga) atau tunggu Manager Costing memprosesnya.';
   }
   const open = currentOpen();
   const parts = [];
-  if (needsApproval) parts.push('Harga ini tersimpan sebagai usulan (PROPOSED) dan baru dipakai setelah di-approve Master Admin.');
+  if (needsApproval) parts.push('Harga ini tersimpan sebagai usulan (PROPOSED) dan baru dipakai setelah di-approve Manager Costing.');
   if (open) {
     const what = open.color ? `warna ${open.color}` : 'semua warna';
     parts.push(`Harga berlaku untuk ${what}: ${fmt(open.price)} ${open.currency} sejak ${fmtDate(open.valid_from)}. `

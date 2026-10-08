@@ -235,7 +235,7 @@ function gapText(line) {
     case 'QUOTATION': return ['material quotation — belum diisi (cost 0)', ''];
     case 'NO_SUPPLIER': return ['supplier belum dipilih di specsheet', ''];
     case 'AVAILABLE': return ['harga master tersedia — klik Refresh Harga', 'warn'];
-    case 'PENDING': return ['harga master menunggu approval Master Admin', 'warn'];
+    case 'PENDING': return ['harga master menunggu approval Manager Costing', 'warn'];
     case 'NO_COLOR_PRICE': return [`belum ada harga untuk warna ini (ada: ${line.other_colors || '-'})`, 'warn'];
     case 'NO_PRICE': return ['belum ada harga master untuk supplier ini', 'warn'];
     default: return [line.price_method === 'QUOTATION' ? 'tidak dihargai terpisah' : 'tanpa harga', ''];

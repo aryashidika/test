@@ -1,10 +1,3 @@
-// JSObject "MaterialDetailCtrl" — page Material Detail (?id=<material id>).
-// Form: cwMaterialForm (mdlMaterial), cwLinkForm (mdlLink), cwPriceForm (mdlHarga), cwReasonForm (mdlTolakHarga).
-// Approval harga (F3b): harga Vendor CBD = usulan PROPOSED -> Master Admin Approve / Tolak (alasan);
-// Vendor CBD bisa Batalkan usulannya. Harga Master Admin langsung APPROVED.
-// Izin: ubah data/status material = manage_master · metode harga & harga = manage_price ·
-// supplier material (tambah, kode, utama) = manage_material_supplier · status supplier material = manage_master.
-// Semua dicek lagi di DB.
 export default {
 	// ---- state form (Default model widget) ----
 	matKey: 0, matBusy: false, matMsg: null,
@@ -75,6 +68,7 @@ export default {
 	canViewPrice() { return Auth.can('view_price'); },
 	canManagePrice() { return Auth.can('manage_price'); },
 	canManageMaster() { return Auth.can('manage_master'); },
+	canApprovePrice() { return Auth.can('approve_price'); },
 	canLink() { return Auth.can('manage_material_supplier'); },
 	canEditMaterial() { return this.canManageMaster() || this.canManagePrice(); },
 	canAddPrice() {
@@ -107,7 +101,7 @@ export default {
 		if (!link) return 'Pilih supplier di tabel atas untuk melihat harganya.';
 		const pending = this.prices().filter(p => p.status === 'PROPOSED').length;
 		return `Harga untuk ${link.supplier_name}. Harga tanpa warna berlaku untuk semua warna; harga dengan warna hanya untuk warna itu.`
-			+ (pending ? ` · ${pending} usulan harga material ini menunggu approval Master Admin.` : '');
+			+ (pending ? ` · ${pending} usulan harga material ini menunggu approval Manager Costing.` : '');
 	},
 
 	fmtPrice(v) {
@@ -303,7 +297,7 @@ export default {
 		if (!ok) return;
 		closeModal('mdlHarga');
 		showAlert(this.canManageMaster() ? 'Harga disimpan dan langsung berlaku.'
-			: 'Usulan harga terkirim, menunggu approval Master Admin.', 'success');
+			: 'Usulan harga terkirim, menunggu approval Manager Costing.', 'success');
 		await this.refresh([q_prices, q_material]);
 	},
 
