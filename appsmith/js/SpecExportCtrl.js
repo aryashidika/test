@@ -47,7 +47,7 @@ export default {
 		this.step = 'menyusun isi';
 		try {
 			const wb = this.build(m, s, r);
-			await this.save(wb, this.fileName('Specsheet', m.code, s.season, `${r.stage}-r${r.revision_no}`, r.status === 'DRAFT' ? 'DRAFT' : ''));
+			await this.save(wb, this.fileName('Specsheet', m.name, s.season, `${r.stage}-r${r.revision_no}`, r.status === 'DRAFT' ? 'DRAFT' : ''));
 			showAlert('File Excel specsheet diunduh.', 'success');
 		} catch (e) {
 			showAlert(`Export gagal saat ${this.step}: ` + Util.cleanError((e && e.message) || String(e)), 'error');
@@ -128,7 +128,7 @@ export default {
 			.forEach(([k, val], i) => {
 				cell(5 + i, 3, `${k}  :  ${v(val)}`, { font: { size: 9 }, border: this.underline() });
 			});
-		cell(5, A0, `MODEL CODE  :  ${m.code}`, small);
+		cell(5, A0, `GENDER  :  ${v(m.gender)}`, small);
 		cell(6, A0, `STAGE ${r.stage} · REVISI ${r.revision_no} · ${r.status}`
 			+ (r.status === 'PUBLISHED' ? (r.published_by ? ` · terbit oleh ${r.published_by}` : '') : ' · BELUM TERBIT'),
 		{ font: { bold: true, size: 10, color: { argb: r.status === 'PUBLISHED' ? 'FF16A34A' : 'FFDC2626' } } });
@@ -186,7 +186,13 @@ export default {
 			cell(row, 2, l.is_sub ? '' : (l.display_name || '') + (l.is_local ? ' (lokal)' : ''), { alignment: top() });
 			cell(row, 3, l.is_sub && l.display_name && l.display_name !== l.material_name ? `${l.display_name} — ${mat}` : mat, { alignment: top() });
 			cell(row, 4, l.supplier_name || '', { alignment: top('center') });
-			articles.forEach((a, i) => { cell(row, A0 + i, (l.cells || {})[a.id] || '', { alignment: top('center') }); });
+			const cells = typeof l.cells === 'string' ? JSON.parse(l.cells || '{}') : (l.cells || {});
+			const codes = typeof l.cell_codes === 'string' ? JSON.parse(l.cell_codes || '{}') : (l.cell_codes || {});
+			// R4: warna + Material Code varian di bawahnya
+			articles.forEach((a, i) => {
+				const color = cells[a.id] || '';
+				cell(row, A0 + i, color && codes[a.id] ? `${color}\n${codes[a.id]}` : color, { alignment: top('center') });
+			});
 			cell(row, UOM, l.uom || '', { alignment: top('center') });
 			cell(row, THK, l.thickness || '', { alignment: top('center') });
 			cell(row, PROC, l.process || '', { alignment: top() });
@@ -203,7 +209,7 @@ export default {
 
 		ws.views = [{ state: 'frozen', xSplit: 0, ySplit: 11 }];
 		ws.printTitleRows = '1:11';
-		ws.footer = `${m.code} ${s.season} ${r.stage} r${r.revision_no} — Page &P / &N`;
+		ws.footer = `${m.name} ${s.season} ${r.stage} r${r.revision_no} — Page &P / &N`;
 		return wb;
 	},
 }

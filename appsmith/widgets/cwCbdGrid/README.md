@@ -73,3 +73,7 @@ Satu event **`onAction`** → `{{CbdGridCtrl.onAction()}}`. Sebelumnya widget me
 | `refreshSpec` | – | `a_cbd_refresh_spec` (konfirmasi ON) |
 
 Setiap aksi juga membawa `seq` (nomor urut) supaya dua aksi berurutan yang sama tetap terbaca berbeda.
+
+## Perubahan R3–R7 (11 Okt 2026)
+
+R5: `recap` tanpa `selling_price`/`margin_pct`, + `stage`, `po_factor`, `po_price` → baris **PO <stage> (× faktor)** di panel atas & Cost recapitulation (kosong bila stage tanpa faktor). `lines[]` + `pending` (usulan harga menunggu → CBD tidak bisa terbit); `price_gap` NO_COLOR_PRICE dihapus. Tabel Harga jual diganti **Simulasi harga jual** (hanya bila `canSimulate` = izin `simulate_margin`): dihitung di layar dari Actual FOB, tidak mengirim event, tidak disimpan.

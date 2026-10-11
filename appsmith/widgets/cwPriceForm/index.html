@@ -1,6 +1,6 @@
 <div class="wrap">
   <div class="head">
-    <h2 id="title">Tambah Harga</h2>
+    <h2 id="title">Ajukan Harga</h2>
     <button type="button" class="x" id="btnX" aria-label="Tutup">✕</button>
   </div>
 
@@ -8,15 +8,29 @@
 
   <div class="hint" id="materialLabel"></div>
 
-  <label for="link">Supplier <span class="req">*</span></label>
-  <select id="link"></select>
+  <div id="proposeTop">
+    <label for="link">Supplier <span class="req">*</span></label>
+    <select id="link"></select>
+  </div>
 
-  <label for="color">Warna</label>
-  <input id="color" type="text" maxlength="80" autocomplete="off" list="dlColor" placeholder="Kosongkan = semua warna">
-  <datalist id="dlColor"></datalist>
-  <div class="hint">Isi hanya untuk warna yang harganya berbeda dari harga semua warna.</div>
+  <div id="copyTop" hidden>
+    <label for="source">Salin dari varian <span class="req">*</span></label>
+    <select id="source"></select>
+    <div class="src-prices" id="sourcePrices"></div>
+  </div>
 
-  <div class="row">
+  <div class="list-head">
+    <label id="listLabel">Varian <span class="req">*</span></label>
+    <span class="count" id="count"></span>
+  </div>
+  <div class="list-tools">
+    <input id="filter" type="text" maxlength="60" autocomplete="off" placeholder="Cari kode / warna / thickness">
+    <button type="button" class="link" id="btnAll">Pilih semua</button>
+    <button type="button" class="link" id="btnNone">Kosongkan</button>
+  </div>
+  <div class="vlist" id="list"></div>
+
+  <div class="row" id="priceRow">
     <div>
       <label for="price">Harga <span class="req">*</span></label>
       <input id="price" type="text" inputmode="decimal" maxlength="20" autocomplete="off" placeholder="mis. 45000 atau 3,25">
@@ -43,11 +57,10 @@
     </div>
   </div>
 
-  <div class="msg error" id="pendingWarn" hidden></div>
-  <div class="info" id="closeInfo" hidden></div>
+  <div class="info" id="info"></div>
 
   <div class="actions">
     <button type="button" class="btn-secondary" id="btnCancel">Batal</button>
-    <button type="button" class="btn-primary" id="btnSave">Simpan</button>
+    <button type="button" class="btn-primary" id="btnSave">Ajukan</button>
   </div>
 </div>

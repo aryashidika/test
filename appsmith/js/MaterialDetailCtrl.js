@@ -1,11 +1,12 @@
 export default {
 	// R2: material INDUK + tab Varian (Material Code + warna + thickness teks ERP, satu per satu — R2b) + tab Supplier.
-	// Bagian harga (cntHarga) disembunyikan sampai R3 (harga per varian × supplier); fungsinya dibiarkan.
+	// R3: tab Harga = harga per varian × supplier (q_prices dari v_material_price, termasuk baris BELUM ADA HARGA).
+	//     Vendor CBD mengajukan (banyak varian sekaligus) / menyalin harga; Manager Costing setujui / tolak / akhiri.
 	// ---- state form (Default model widget) ----
 	matKey: 0, matBusy: false, matMsg: null,
 	linkKey: 0, linkBusy: false, linkMsg: null, linkIsNew: true, linkForm: {},
 	varKey: 0, varBusy: false, varMsg: null, varIsNew: true, varForm: {}, varHint: null, varLookupSeq: 0,
-	priceKey: 0, priceBusy: false, priceMsg: null, priceForm: {},
+	priceKey: 0, priceBusy: false, priceMsg: null, priceMode: 'propose', pricePreset: {},
 	rejectKey: 0, rejectBusy: false, rejectMsg: null, rejectRow: null,
 
 	statusOptions: [
@@ -37,36 +38,27 @@ export default {
 		return q_variants.data || [];
 	},
 
-	selectedLink() {
-		const row = tblLinks.selectedRow;
-		return row && row.id ? row : null;
-	},
-
 	prices() {
 		return this.canViewPrice() ? (q_prices.data || []) : [];
 	},
 
-	// Tabel harga: supplier yang dipilih di tblLinks. Tanpa "Tampilkan riwayat": sembunyikan RIWAYAT
-	// dan usulan DITOLAK yang lebih lama dari 30 hari.
-	pricesForSelected() {
-		const link = this.selectedLink();
-		if (!link) return [];
+	// Tabel harga. Tanpa "Tampilkan riwayat": sembunyikan RIWAYAT dan usulan DITOLAK yang lebih lama dari 30 hari.
+	pricesShown() {
 		const history = swHargaRiwayat.isSwitchedOn === true;
 		const recent = p => p.decided_at && moment().diff(moment(p.decided_at), 'days') <= 30;
-		return this.prices().filter(p => p.link_id === link.id && (history || p.state === 'BERLAKU'
-			|| p.state === 'AKAN BERLAKU' || p.state === 'MENUNGGU APPROVAL' || (p.state === 'DITOLAK' && recent(p))));
+		return this.prices().filter(p => history || (p.state !== 'RIWAYAT' && (p.state !== 'DITOLAK' || recent(p))));
 	},
 
 	// Warna kolom Keterangan di tblPrices
 	stateColor(state) {
 		return {
 			BERLAKU: '#16a34a', 'AKAN BERLAKU': '#d97706', 'MENUNGGU APPROVAL': '#d97706', DITOLAK: '#dc2626',
+			'BELUM ADA HARGA': '#dc2626',
 		}[state] || '#6b7280';
 	},
 
 	stateText(row) {
 		if (row.state === 'DITOLAK') return `DITOLAK: ${row.reject_reason || '-'}`;
-		if (row.state === 'MENUNGGU APPROVAL') return 'MENUNGGU APPROVAL';
 		return row.state;
 	},
 
@@ -79,8 +71,8 @@ export default {
 	canEditMaterial() { return this.canManageMaster() || this.canManagePrice(); },
 	canAddPrice() {
 		const m = this.material();
-		return this.canManagePrice() && !!m && m.price_method === 'CATALOG'
-			&& this.links().some(l => l.status !== 'INACTIVE');
+		return this.canManagePrice() && !!m && m.status === 'ACTIVE' && m.price_method === 'CATALOG'
+			&& this.activeLinks().length > 0 && this.activeVariants().length > 0;
 	},
 
 	// ---- teks info (Text widget merender HTML) ----
@@ -103,11 +95,12 @@ export default {
 		const m = this.material();
 		if (!m || !this.canViewPrice()) return '';
 		if (m.price_method === 'QUOTATION') return 'Material Quotation: tidak ada harga master — harga diisi per CBD.';
-		const link = this.selectedLink();
-		if (!link) return 'Pilih supplier di tabel atas untuk melihat harganya.';
-		const pending = this.prices().filter(p => p.status === 'PROPOSED').length;
-		return `Harga untuk ${link.supplier_name}. Harga tanpa warna berlaku untuk semua warna; harga dengan warna hanya untuk warna itu.`
-			+ (pending ? ` · ${pending} usulan harga material ini menunggu approval Manager Costing.` : '');
+		const all = this.prices();
+		const n = state => all.filter(p => p.state === state).length;
+		const parts = [`Harga per varian × supplier. ${n('BERLAKU')} berlaku`];
+		if (n('MENUNGGU APPROVAL')) parts.push(`${n('MENUNGGU APPROVAL')} menunggu persetujuan Manager Costing`);
+		if (n('BELUM ADA HARGA')) parts.push(`${n('BELUM ADA HARGA')} pasangan belum ada harga`);
+		return parts.join(' · ') + '.';
 	},
 
 	fmtPrice(v) {
@@ -317,12 +310,44 @@ export default {
 		await this.refresh([q_links, q_link_supplier_options, q_material]);
 	},
 
-	// ---- harga (disembunyikan sampai R3) ----
-	openAddPrice(color) {
-		const link = this.selectedLink();
-		this.priceForm = {
-			link_id: link && link.status !== 'INACTIVE' ? link.id : '',
-			color: color || '',
+	// ---- harga (R3: varian × supplier, diajukan Vendor CBD, disetujui Manager Costing) ----
+	activeLinks() {
+		return this.links().filter(l => l.status === 'ACTIVE' && l.supplier_status === 'ACTIVE');
+	},
+
+	activeVariants() {
+		return this.variants().filter(v => v.status === 'ACTIVE');
+	},
+
+	// Tombol Ajukan di baris tabel: varian + supplier masih aktif
+	canProposeRow(row) {
+		return this.canAddPrice() && !!row && row.state !== 'MENUNGGU APPROVAL' && row.state !== 'RIWAYAT'
+			&& this.activeLinks().some(l => l.id === row.link_id) && this.activeVariants().some(v => v.id === row.variant_id);
+	},
+
+	canEndRow(row) {
+		return this.canApprovePrice() && !!row && (row.state === 'BERLAKU' || row.state === 'AKAN BERLAKU') && !row.valid_to;
+	},
+
+	canDecideRow(row) {
+		return this.canApprovePrice() && !!row && row.state === 'MENUNGGU APPROVAL';
+	},
+
+	canCancelRow(row) {
+		return this.canManagePrice() && !!row && row.state === 'MENUNGGU APPROVAL';
+	},
+
+	// Salin harga: ada varian dengan harga berlaku + minimal satu varian aktif lain
+	canCopyPrice() {
+		return this.canAddPrice() && this.activeVariants().length >= 2 && this.prices().some(p => p.state === 'BERLAKU');
+	},
+
+	openProposePrice(row) {
+		const link = row && this.activeLinks().find(l => l.id === row.link_id);
+		this.priceMode = 'propose';
+		this.pricePreset = {
+			link_id: link ? link.id : (this.activeLinks().length === 1 ? this.activeLinks()[0].id : ''),
+			variant_ids: row && row.variant_id ? [row.variant_id] : [],
 		};
 		this.priceBusy = false;
 		this.priceMsg = null;
@@ -330,23 +355,29 @@ export default {
 		showModal('mdlHarga');
 	},
 
+	openCopyPrice() {
+		this.priceMode = 'copy';
+		this.pricePreset = {};
+		this.priceBusy = false;
+		this.priceMsg = null;
+		this.priceKey = this.priceKey + 1;
+		showModal('mdlHarga');
+	},
+
 	priceFormModel() {
-		const prices = this.prices();
-		const colors = {};
-		prices.forEach(p => { if (p.color) colors[String(p.color).toLowerCase()] = p.color; });
 		return {
 			key: this.priceKey,
+			mode: this.priceMode,
 			materialLabel: this.materialLabel(),
-			links: this.links().filter(l => l.status !== 'INACTIVE').map(l => ({ value: l.id, label: l.supplier_name })),
-			form: this.priceForm,
-			colorSuggestions: Object.values(colors).sort((a, b) => a.localeCompare(b)),
-			openPrices: prices.filter(p => p.status === 'APPROVED' && !p.valid_to).map(p => ({
-				link_id: p.link_id, color: p.color, price: p.price, currency: p.currency, valid_from: p.valid_from,
+			links: this.activeLinks().map(l => ({ value: l.id, label: l.supplier_name })),
+			variants: this.activeVariants().map(v => ({
+				id: v.id, code: v.code, color: v.color, thickness_label: v.thickness_label,
 			})),
-			pendingPrices: prices.filter(p => p.status === 'PROPOSED').map(p => ({
-				link_id: p.link_id, color: p.color, price: p.price, currency: p.currency,
+			prices: this.prices().filter(p => ['BERLAKU', 'AKAN BERLAKU', 'MENUNGGU APPROVAL'].includes(p.state)).map(p => ({
+				link_id: p.link_id, variant_id: p.variant_id, supplier_name: p.supplier_name,
+				price: p.price, currency: p.currency, valid_from: p.valid_from, state: p.state,
 			})),
-			needsApproval: true,
+			preset: this.pricePreset,
 			today: moment().utcOffset(7).format('YYYY-MM-DD'),
 			busy: this.priceBusy,
 			message: this.priceMsg,
@@ -355,19 +386,30 @@ export default {
 
 	async savePrice() {
 		const f = cwPriceForm.model || {};
-		const params = {
-			link_id: f.link_id, color: f.color, price: f.price, currency: f.currency,
-			valid_from: f.valid_from, reference: f.reference,
-		};
-		if (!params.link_id || !params.price || !params.currency || !params.valid_from) {
-			this.priceMsg = { type: 'error', text: 'Lengkapi supplier, harga, currency, dan tanggal berlaku.' };
+		const ids = Array.isArray(f.variant_ids) ? f.variant_ids : [];
+		const copy = f.mode === 'copy';
+		if (!ids.length || !f.valid_from || (copy ? !f.source_id : (!f.link_id || !f.price || !f.currency))) {
+			this.priceMsg = { type: 'error', text: 'Lengkapi isian yang wajib.' };
 			return;
 		}
-		const ok = await this.runForm(a_price_add, params,
+		const query = copy ? a_price_copy : a_price_propose;
+		const params = copy
+			? { source_id: f.source_id, variant_ids: JSON.stringify(ids), valid_from: f.valid_from, reference: f.reference }
+			: {
+				link_id: f.link_id, variant_ids: JSON.stringify(ids), price: f.price, currency: f.currency,
+				valid_from: f.valid_from, reference: f.reference,
+			};
+		const ok = await this.runForm(query, params,
 			v => { this.priceMsg = v; }, v => { this.priceBusy = v; }, 'mdlHarga');
 		if (!ok) return;
+		const result = (query.data && query.data[0]) || {};
 		closeModal('mdlHarga');
-		showAlert('Usulan harga terkirim, menunggu approval Manager Costing.', 'success');
+		if (copy) {
+			showAlert(`${result.created || 0} harga diajukan, menunggu persetujuan Manager Costing.`
+				+ (result.skipped ? ` Dilewati: ${result.skipped}` : ''), result.skipped ? 'warning' : 'success');
+		} else {
+			showAlert(`${ids.length} harga diajukan, menunggu persetujuan Manager Costing.`, 'success');
+		}
 		await this.refresh([q_prices, q_material]);
 	},
 
@@ -377,8 +419,8 @@ export default {
 	},
 
 	approvePrice(row) {
-		return Util.run(a_price_approve, { id: row.id },
-			'Harga di-approve dan berlaku sesuai tanggalnya.', [q_prices, q_material]);
+		return Util.run(a_price_decide, { ids: JSON.stringify([row.id]), decision: 'APPROVE', reason: '' },
+			'Harga disetujui dan berlaku sesuai tanggalnya.', [q_prices, q_material]);
 	},
 
 	// Query a_price_cancel memakai "Request confirmation before running" = ON
@@ -388,7 +430,7 @@ export default {
 
 	// Ambil baris asli dari q_prices: baris dari tabel berisi nilai tampilan ("2,49"), bukan angka -> NaN.
 	openReject(row) {
-		this.rejectRow = this.prices().find(p => p.id === row.id) || row;
+		this.rejectRow = this.prices().find(p => p.row_key === row.row_key) || row;
 		this.rejectBusy = false;
 		this.rejectMsg = null;
 		this.rejectKey = this.rejectKey + 1;
@@ -400,8 +442,8 @@ export default {
 		return {
 			key: this.rejectKey,
 			title: 'Tolak Usulan Harga',
-			summary: `${this.materialLabel()}\nSupplier: ${r.supplier_name || '-'} · Warna: ${r.color || 'Semua warna'}\n`
-				+ `Harga: ${this.fmtPrice(r.price)} ${r.currency || ''} · Berlaku mulai ${Util.fmtDate(r.valid_from)} · Diusulkan ${r.created_by || '-'}`,
+			summary: `${this.materialLabel()}\nVarian: ${r.code || '-'} · ${r.color || '-'} · ${r.thickness_label || '-'} · Supplier: ${r.supplier_name || '-'}\n`
+				+ `Harga: ${this.fmtPrice(r.price)} ${r.currency || ''} · Berlaku mulai ${Util.fmtDate(r.valid_from)} · Diajukan ${r.created_by || '-'}`,
 			label: 'Alasan penolakan',
 			placeholder: 'mis. Harga tidak sesuai quotation terbaru',
 			hint: 'Alasan terlihat oleh tim CBD di tabel harga.',
@@ -418,7 +460,7 @@ export default {
 			this.rejectMsg = { type: 'error', text: 'Alasan penolakan wajib diisi.' };
 			return;
 		}
-		const ok = await this.runForm(a_price_reject, { id: this.rejectRow.id, reason },
+		const ok = await this.runForm(a_price_decide, { ids: JSON.stringify([this.rejectRow.id]), decision: 'REJECT', reason },
 			v => { this.rejectMsg = v; }, v => { this.rejectBusy = v; }, 'mdlTolakHarga');
 		if (!ok) return;
 		closeModal('mdlTolakHarga');

@@ -6,8 +6,8 @@ export default {
 	queries() {
 		const role = (Auth.me && Auth.me.role) || '';
 		return {
-			VENDOR_SPEC: [q_worklist_spec, q_worklist_proposals],
-			VENDOR_CBD: [q_worklist_cbd, q_worklist_gap],
+			VENDOR_SPEC: [q_worklist_spec],
+			VENDOR_CBD: [q_worklist_cbd, q_worklist_gap, q_worklist_rejected],
 			MANAGER_COSTING: [q_worklist_admin],
 			BRAND_VIEWER: [q_worklist_pub_spec, q_worklist_pub_cbd],
 			SYSTEM_ADMIN: [q_worklist_system],
@@ -84,7 +84,8 @@ export default {
 		if (unusedCount) flags.push({ text: `${unusedCount} article belum dipakai di BOM`, tone: 'warn', hint: d.unused_articles });
 		if (Number(d.no_supplier) > 0) flags.push({ text: `${d.no_supplier} baris tanpa supplier`, tone: 'warn' });
 		if (d.inactive_materials) flags.push({ text: 'Ada material INACTIVE', tone: 'danger', hint: d.inactive_materials });
-		if (d.proposed_items) flags.push({ text: 'Usulan belum di-approve', tone: 'warn', hint: d.proposed_items });
+		if (Number(d.yellow_cells) > 0) flags.push({ text: `${d.yellow_cells} sel kuning (belum ada Material Code)`, tone: 'warn' });
+		if (d.inactive_suppliers) flags.push({ text: 'Ada supplier nonaktif', tone: 'danger', hint: d.inactive_suppliers });
 		if (!Number(d.article_count)) flags.push({ text: 'Belum ada article aktif', tone: 'warn' });
 		if (!Number(d.line_count)) {
 			flags.push({ text: 'BOM masih kosong', tone: 'info' });
@@ -94,50 +95,36 @@ export default {
 		return flags;
 	},
 
-	proposalCounts() {
-		const c = { SUPPLIER: 0, MATERIAL: 0, COMPONENT: 0, LINK: 0 };
-		(q_worklist_proposals.data || []).forEach(r => { c[r.kind] = Number(r.n) || 0; });
-		return c;
-	},
 
 	specModel() {
 		const rows = q_worklist_spec.data || [];
 		const drafts = rows.filter(r => r.kind === 'DRAFT');
 		const unassigned = rows.filter(r => r.kind === 'UNASSIGNED');
 		const unassignedTotal = unassigned.reduce((n, r) => n + (Number(r.article_count) || 0), 0);
-		const c = this.proposalCounts();
-		const proposalTotal = c.SUPPLIER + c.MATERIAL + c.COMPONENT + c.LINK;
+		const yellowTotal = drafts.reduce((n, r) => n + (Number(r.yellow_cells) || 0), 0);
 		return {
 			subtitle: 'Draft specsheet dan article yang menunggu Anda.',
 			stats: [
 				{ key: 'drafts', value: drafts.length, label: 'Draft specsheet terbuka', tone: 'info' },
 				{ key: 'unassigned', value: unassignedTotal, label: 'Article belum masuk specsheet', tone: 'warn' },
-				{ key: 'proposals', value: proposalTotal, label: 'Usulan menunggu persetujuan', tone: '' },
+				{ key: 'drafts', value: yellowTotal, label: 'Sel kuning (Material Code belum terdaftar)', tone: 'warn' },
 			],
 			sections: [
 				{
 					key: 'drafts', title: 'Draft Specsheet', empty: 'Tidak ada draft specsheet yang terbuka.',
 					items: drafts.map(d => Object.assign({
-						title: `${d.model_code} · ${d.season} — ${d.stage} r${d.revision_no}`,
-						meta: `${d.model_name} · ${d.line_count} baris BOM · ${d.article_count} article aktif`,
+						title: `${d.model_name} · ${d.season} — ${d.stage} r${d.revision_no}`,
+						meta: `${d.line_count} baris BOM · ${d.article_count} article aktif`,
 						flags: this.draftFlags(d),
 					}, this.toSpec(d))),
 				},
 				{
 					key: 'unassigned', title: 'Article Belum Masuk Specsheet', empty: 'Semua article sudah masuk specsheet.',
 					items: unassigned.map(u => Object.assign({
-						title: `${u.model_code} · ${u.season}`,
+						title: `${u.model_name} · ${u.season}`,
 						meta: u.article_codes,
 						flags: [{ text: u.has_revision ? 'Pilih di revisi specsheet' : 'Specsheet belum dibuat', tone: 'muted' }],
 					}, this.toSpec(u))),
-				},
-				{
-					key: 'proposals', title: 'Usulan Master Data', empty: 'Tidak ada usulan yang menunggu.',
-					items: proposalTotal ? [{
-						title: `${c.SUPPLIER} supplier · ${c.MATERIAL} material · ${c.COMPONENT} komponen · ${c.LINK} supplier material`,
-						meta: 'Menunggu persetujuan Master Admin. Usulan sudah bisa dipakai di BOM, tetapi specsheet baru bisa terbit setelah semuanya disetujui.',
-						target: 'Master Material', params: {},
-					}] : [],
 				},
 			],
 		};
@@ -145,10 +132,14 @@ export default {
 
 	// ---- Vendor CBD ----
 	cbdItem(r, flag) {
+		const flags = flag ? [flag] : [];
+		if (Number(r.pending_prices) > 0) {
+			flags.push({ text: `${r.pending_prices} harga menunggu persetujuan`, tone: 'warn', hint: 'CBD belum bisa terbit' });
+		}
 		return Object.assign({
-			title: `${r.model_code} · ${r.season} — ${r.article_code}`,
+			title: `${r.model_name} · ${r.season} — ${r.article_code}`,
 			meta: r.colorway + (r.rev_label ? ` · ${r.rev_label}` : ''),
-			flags: flag ? [flag] : [],
+			flags,
 		}, this.toCbd(r));
 	},
 
@@ -156,6 +147,7 @@ export default {
 		const rows = q_worklist_cbd.data || [];
 		const of = kind => rows.filter(r => r.kind === kind);
 		const gaps = q_worklist_gap.data || [];
+		const rejected = q_worklist_rejected.data || [];
 		const refreshFlag = r => ({
 			text: r.refresh_reason === 'SPEC' ? 'Specsheet acuan sudah direvisi' : 'Harga master berubah', tone: 'warn',
 		});
@@ -166,6 +158,7 @@ export default {
 				{ key: 'to-refresh', value: of('TO_REFRESH').length, label: 'Draft perlu refresh', tone: 'warn' },
 				{ key: 'to-revise', value: of('TO_REVISE').length, label: 'CBD terbit perlu revisi', tone: 'warn' },
 				{ key: 'price-gaps', value: gaps.length, label: 'Harga master belum ada', tone: 'warn' },
+				{ key: 'price-rejected', value: rejected.length, label: 'Usulan harga ditolak', tone: 'warn' },
 			],
 			sections: [
 				{
@@ -187,25 +180,34 @@ export default {
 				},
 				{
 					key: 'price-gaps', title: 'Harga Master Belum Ada',
-					note: 'Material katalog + supplier yang dipakai di specsheet terbit tapi belum punya harga berlaku.',
+					note: 'Varian material katalog + supplier yang dipakai di specsheet terbit tapi belum punya harga berlaku.',
 					empty: 'Semua material yang dipakai sudah punya harga master.',
 					items: gaps.map(g => Object.assign({
-						title: `${g.material_code} · ${g.material_name}`,
+						title: g.material_name,
 						meta: `Supplier ${g.supplier_name} · dipakai di ${g.models}`,
 						flags: [].concat(
-							Number(g.color_count) > 0 ? [{ text: `${g.color_count} warna tanpa harga`, tone: 'warn', hint: g.colors }] : [],
+							Number(g.variant_count) > 0 ? [{ text: `${g.variant_count} Material Code tanpa harga`, tone: 'warn', hint: g.codes }] : [],
 							g.has_pending ? [{ text: 'Usulan harga menunggu approval', tone: 'info' }] : []
 						),
 					}, this.toMaterial(g))),
+				},
+				{
+					key: 'price-rejected', title: 'Usulan Harga Ditolak',
+					note: 'Ditolak Manager Costing dalam 30 hari terakhir dan belum diajukan ulang.',
+					empty: 'Tidak ada usulan harga yang ditolak.', hideWhenEmpty: true,
+					items: rejected.map(x => Object.assign({
+						title: `${x.material_name} · ${x.code}`,
+						meta: `${x.supplier_name} · ${x.currency} ${Util.fmtNum(x.price, x.currency === 'USD' ? 4 : 0)} · ditolak ${x.decided_by || '-'} ${Util.fmtDateTime(x.decided_at)}`,
+						flags: [{ text: `Alasan: ${x.reject_reason || '-'}`, tone: 'danger' }],
+					}, this.toMaterial(x))),
 				},
 			],
 		};
 	},
 
-	// ---- Manager Costing (R1: antrian usulan harga) ----
+	// ---- Manager Costing (R3: satu baris per pengajuan harga -> page Persetujuan Harga) ----
 	adminItem(r) {
-		const nav = r.kind === 'COMPONENT' ? { target: 'Master Komponen', params: {} }
-			: r.kind === 'SUPPLIER' ? { target: 'Master Supplier', params: {} } : this.toMaterial(r);
+		const nav = { target: 'Persetujuan Harga', params: { batch: r.ref_id } };
 		const meta = [r.detail, r.amount_text, `diusulkan ${r.proposed_by || '-'}`, Util.fmtDateTime(r.proposed_at)]
 			.filter(x => x).join(' · ');
 		return Object.assign({ title: r.title, meta, flags: [] }, nav);
@@ -218,24 +220,13 @@ export default {
 			key, title, note, empty, items: of(kind).map(r => this.adminItem(r)),
 		});
 		return {
-			subtitle: 'Usulan yang menunggu persetujuan Anda.',
+			subtitle: 'Usulan harga yang menunggu persetujuan Anda.',
 			stats: [
-				{ key: 'appr-suppliers', value: of('SUPPLIER').length, label: 'Supplier usulan', tone: 'warn' },
-				{ key: 'appr-materials', value: of('MATERIAL').length, label: 'Material usulan', tone: 'warn' },
-				{ key: 'appr-components', value: of('COMPONENT').length, label: 'Komponen usulan', tone: 'warn' },
-				{ key: 'appr-links', value: of('LINK').length, label: 'Supplier material usulan', tone: 'warn' },
-				{ key: 'appr-prices', value: of('PRICE').length, label: 'Harga usulan', tone: 'warn' },
+				{ key: 'appr-prices', value: of('PRICE').length, label: 'Pengajuan harga', tone: 'warn' },
 			],
 			sections: [
-				section('appr-suppliers', 'SUPPLIER', 'Supplier Menunggu Persetujuan', 'Tidak ada supplier usulan.',
-					'Disetujui di halaman Master Supplier (Ubah → status APPROVED).'),
-				section('appr-materials', 'MATERIAL', 'Material Menunggu Persetujuan', 'Tidak ada material usulan.'),
-				section('appr-components', 'COMPONENT', 'Komponen Menunggu Persetujuan', 'Tidak ada komponen usulan.',
-					'Disetujui di halaman Master Komponen.'),
-				section('appr-links', 'LINK', 'Supplier Material Menunggu Persetujuan', 'Tidak ada supplier material usulan.',
-					'Terbentuk otomatis saat tim specsheet memilih supplier di BOM.'),
-				section('appr-prices', 'PRICE', 'Harga Menunggu Approval', 'Tidak ada usulan harga.',
-					'Usulan Vendor CBD. Harga lama tetap berlaku sampai usulan disetujui.'),
+				section('appr-prices', 'PRICE', 'Pengajuan Harga Menunggu Persetujuan', 'Tidak ada usulan harga.',
+					'Usulan Vendor CBD (per pengajuan). Harga lama tetap berlaku sampai usulan disetujui.'),
 			],
 		};
 	},
@@ -252,8 +243,8 @@ export default {
 					key: 'pub-spec', title: 'Specsheet Terbit Terbaru', note: 'Revisi terbit terakhir tiap season.',
 					empty: 'Belum ada specsheet terbit.',
 					items: specs.map(r => Object.assign({
-						title: `${r.model_code} · ${r.season} — ${r.stage} r${r.revision_no}`,
-						meta: `${r.model_name} · terbit ${Util.fmtDateTime(r.published_at)}`,
+						title: `${r.model_name} · ${r.season} — ${r.stage} r${r.revision_no}`,
+						meta: `${r.factory_name} · terbit ${Util.fmtDateTime(r.published_at)}`,
 						flags: [],
 					}, this.toSpec(r))),
 				},
@@ -261,7 +252,7 @@ export default {
 					key: 'pub-cbd', title: 'CBD Terbit Terbaru', note: 'Revisi terbit terakhir tiap article.',
 					empty: 'Belum ada CBD terbit.',
 					items: cbds.map(r => Object.assign({
-						title: `${r.model_code} · ${r.article_code} — ${r.stage} r${r.revision_no}`,
+						title: `${r.model_name} · ${r.article_code} — ${r.stage} r${r.revision_no}`,
 						meta: `${r.colorway} · terbit ${Util.fmtDateTime(r.published_at)}`,
 						flags: r.sync_status === 'NEEDS_REVISION' ? [{ text: 'PERLU REVISI', tone: 'warn' }] : [],
 					}, this.toCbd(r))),

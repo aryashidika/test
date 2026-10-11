@@ -6,6 +6,7 @@
 // Grid baris, rekap & harga ada di CbdGridCtrl. Izin: lihat = view_cbd (Brand hanya revisi terbit — difilter query)
 // · ubah = edit_cbd (Vendor – CBD). Semua dicek lagi di DB.
 // CBD per article; acuan = revisi specsheet terbit terakhir season itu (article harus ACTIVE di sana).
+// R5: harga per varian × supplier; harga menunggu persetujuan memblokir terbit. R7: copy dari article model asal.
 export default {
 	modelId: '',       // model yang dipilih
 	from: '',          // asal halaman (?from=list | detail | home) -> tujuan tombol kembali
@@ -219,7 +220,8 @@ export default {
 	},
 
 	modelOptions() {
-		return this.models().map(m => ({ label: `${m.code} — ${m.name}`, value: m.id }));
+		const all = !(Auth.me && Auth.me.factory_id);     // Brand / System Admin: semua pabrik
+		return this.models().map(m => ({ label: all ? `${m.name} · ${m.factory_name}` : m.name, value: m.id }));
 	},
 
 	seasonOptions() {
@@ -232,7 +234,7 @@ export default {
 		const m = this.model();
 		if (!m) return this.modelId && q_cbd_model.isLoading ? 'Memuat…' : 'Pilih model dan season dahulu.';
 		const e = v => this.esc(v || '-');
-		return `<b style="font-size:18px">${e(m.code)} — ${e(m.name)}</b><br>`
+		return `<b style="font-size:18px">${e(m.name)}</b> <span style="color:#6b7280">· ${e(m.factory_name)}</span><br>`
 			+ `<span style="color:#6b7280">Kategori: ${e(m.category)} · Factory: ${e(m.factory)} · Size Range: ${e(m.size_range)}`
 			+ ` · Sample Size: ${e(m.sample_size)}</span>`;
 	},
@@ -345,15 +347,17 @@ export default {
 		let sources = [];
 		if (a && !this.revisions().length) {
 			sources = (q_cbd_sources.data || []).map(s => ({
-				id: s.id, label: `${s.code} · ${s.season} · ${s.label} terbit${s.dropped ? ' · di-drop' : ''}`,
+				id: s.id,
+				label: `${s.is_cross ? s.model_name + ' (model asal) · ' : ''}${s.code} · ${s.season} · ${s.label} terbit${s.dropped ? ' · di-drop' : ''}`,
 			}));
 			options = [
 				{ v: 'NEW', title: 'CBD baru dari specsheet', desc: `Baris dari specsheet ${specLabel}; harga dari master harga. Yield & Loss % diisi.` },
 				{
-					v: 'COPY', title: 'Copy dari article lain (model sama)', needsSource: true, disabled: !sources.length,
+					v: 'COPY', title: 'Copy dari article lain (model sama / model asal)', needsSource: true, disabled: !sources.length,
 					desc: sources.length
-						? 'Baris, warna & supplier tetap dari specsheet article ini; yang di-copy Yield, Loss %, harga quotation/override, dan rekap.'
-						: 'Belum ada article lain model ini yang punya CBD terbit.',
+						? 'Baris, warna & supplier tetap dari specsheet article ini; yang di-copy Yield, Loss %, harga quotation, dan rekap. '
+							+ 'Dari model asal (copy lintas model): Yield/Loss hanya baris asal dengan material + thickness sama; hanya rate & LOP yang ikut.'
+						: 'Belum ada article lain model ini (atau model asalnya) yang punya CBD terbit.',
 				},
 			];
 		} else if (a && latest) {
@@ -438,6 +442,8 @@ export default {
 				detail: c.spec_stale ? 'Klik "Refresh dari Specsheet" di atas grid' : '' },
 			{ label: 'Exchange rate terisi', ok: !!c.rate_ok, blocking: true,
 				detail: c.rate_ok ? '' : 'Isi Exchange rate di rekap' },
+			{ label: 'Tidak ada harga yang menunggu persetujuan', ok: !c.pending_prices, blocking: true,
+				detail: c.pending_prices ? `${c.pending_prices} baris menunggu Manager Costing: ${c.pending_list || ''}` : '' },
 			{ label: 'Harga master sama dengan master terkini', ok: c.stale_prices === 0, blocking: true,
 				detail: c.stale_prices ? `${c.stale_prices} baris berubah — klik "Refresh Harga dari Master"` : '' },
 			{ label: 'Baris berharga punya Yield', ok: c.no_yield_count === 0, blocking: true,

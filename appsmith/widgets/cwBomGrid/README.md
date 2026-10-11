@@ -65,3 +65,14 @@ Satu event **`onAction`** → `{{BomCtrl.onAction()}}`. Sebelumnya widget mengis
 | `deleteLine` | `line_id` | `a_bom_delete_line` (F5b) |
 
 Setiap aksi juga membawa `seq` (nomor urut) supaya dua aksi berurutan yang sama tetap terbaca berbeda.
+
+## Perubahan R3–R7 (11 Okt 2026)
+
+R4 (specsheet per varian):
+- `materials` = kombinasi **induk × thickness** `[{ material_id, name, uom, thickness, variant_count }]` (dari varian ACTIVE + induk tanpa varian); label "NAMA · THICKNESS".
+- `variants` = `[{ id, code, material_id, material_name, thickness, color }]` varian ACTIVE pabrik user — dipakai untuk Material Code yang diketik di kolom Material (mengisi induk + thickness, baris tambah menawarkan isi warna ke semua article) atau di sel (diganti warnanya; kode material/thickness lain ditolak).
+- `lines[]` + `cell_codes` (`{ article_id: kode }`), `yellow` (jumlah sel kuning); `thickness` dari baris.
+- `canRegister`, `canAddSupplier` (izin `manage_master`).
+- Sel berwarna tanpa varian = **kuning** + tombol **Daftarkan** → action `registerVariant` `{ line_id, material_id, material_name, uom, thickness, color }` → `BomCtrl.openRegister()` (modal `mdlVarianBaru` / `cwVariantForm` mode fixed).
+- Tombol **+ Supplier baru** di bar → action `newSupplier` → `mdlSupplierBaru` / `cwSupplierForm`.
+- `addLine` + `thickness`, `fill_color`; `addSub` + `thickness`; `replaceMaterial` + `thickness`. Badge usulan dihapus; badge ⚠ nonaktif untuk supplier / supplier material INACTIVE.

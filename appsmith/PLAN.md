@@ -7,7 +7,7 @@
 | Target | Appsmith **v2.4** self-hosted (HTTPS) + PostgreSQL **16.15** (datasource `pg_main`) |
 | Akses | App **publik** dengan login di dalam app (email + password), bukan akun Appsmith |
 | Data lama | Tidak dimigrasi (mulai dari DB kosong) |
-| Status | Rencana disetujui 24 Sep 2026 (termasuk P1–P3) · login in-app disetujui 25 Sep 2026 · UI campuran + Custom Widget disetujui 25 Sep 2026 · **F0 + F1 selesai** (export v1, 25 Sep 2026) · **F2 selesai** (export v2, 29 Sep 2026) · **F3 dikerjakan** (export v3, 29 Sep 2026; T13–T17 diperbaiki user) · **F3 + F3b selesai** (export v3b, 30 Sep 2026) · **F4 selesai** (export v4 = file user v4.7, 30 Sep 2026; Copy Article dihapus — keputusan user) · **F5 + F5b selesai** (export v5 = file user v5.5, 30 Sep 2026) · **F6 selesai** (export v6; uji ulang dilaporkan lolos di v7) · **F7 selesai** (export v7 = file user v7.1, 30 Sep 2026; T34–T35 diperbaiki) · **F8 dikerjakan** (export v8.1, 5 Okt 2026; uji ditunda ke end-to-end) · **F8b dikerjakan** (export v8b; T42) · **F9 dikerjakan** (export v9 = file user v9.5, 5 Okt 2026; uji ditunda ke end-to-end) · **F10 + E2E + F10b/F10c selesai** (export v11 = file user v10.5, 6 Okt 2026; uji E2E lolos, sisa T49–T52 kosmetik/kecil) · **F11 setelah UAT & go-live** (keputusan user 6 Okt 2026) · **Revisi besar R1–R7 direncanakan 8 Okt 2026** · **R1 selesai** (`export_r1.json`, 8 Okt 2026) · **R2 + R2b selesai** (`export_r2.json`, 8 Okt 2026) (material per warna/thickness, role baru, pemisahan pabrik, model tanpa kode, copy lintas model — lihat §2 "Revisi besar" dan §6 R) |
+| Status | Rencana disetujui 24 Sep 2026 (termasuk P1–P3) · login in-app disetujui 25 Sep 2026 · UI campuran + Custom Widget disetujui 25 Sep 2026 · **F0 + F1 selesai** (export v1, 25 Sep 2026) · **F2 selesai** (export v2, 29 Sep 2026) · **F3 dikerjakan** (export v3, 29 Sep 2026; T13–T17 diperbaiki user) · **F3 + F3b selesai** (export v3b, 30 Sep 2026) · **F4 selesai** (export v4 = file user v4.7, 30 Sep 2026; Copy Article dihapus — keputusan user) · **F5 + F5b selesai** (export v5 = file user v5.5, 30 Sep 2026) · **F6 selesai** (export v6; uji ulang dilaporkan lolos di v7) · **F7 selesai** (export v7 = file user v7.1, 30 Sep 2026; T34–T35 diperbaiki) · **F8 dikerjakan** (export v8.1, 5 Okt 2026; uji ditunda ke end-to-end) · **F8b dikerjakan** (export v8b; T42) · **F9 dikerjakan** (export v9 = file user v9.5, 5 Okt 2026; uji ditunda ke end-to-end) · **F10 + E2E + F10b/F10c selesai** (export v11 = file user v10.5, 6 Okt 2026; uji E2E lolos, sisa T49–T52 kosmetik/kecil) · **F11 setelah UAT & go-live** (keputusan user 6 Okt 2026) · **Revisi besar R1–R7 direncanakan 8 Okt 2026** · **R1 selesai** (`export_r1.json`, 8 Okt 2026) · **R2 + R2b selesai** (`export_r2.json`, 8 Okt 2026) · **R3–R7 dibuat sekaligus** (11 Okt 2026, satu SQL `sql/R_revisi_semua.sql` + satu import `exports/build_r7.json`; diverifikasi di PostgreSQL 16 lokal) → E2E-R (material per warna/thickness, role baru, pemisahan pabrik, model tanpa kode, copy lintas model — lihat §2 "Revisi besar" dan §6 R) |
 | File siap tempel | `steps/F<n>_langkah.md` (langkah per fase: query, widget, uji), `sql/F<n>_*.sql` (jalankan lewat `z_run_sql` di app privat **DB Tools**), `js/*.js` (isi JSObject), `widgets/<cw>/` (Custom Widget: HTML/CSS/JS + README kontrak) |
 | Mulai R1 | Saya mengedit JSON app langsung → `exports/build_rN.json`, Anda **import sebagai app baru** (keputusan user 8 Okt 2026, lihat §6 "Alur kerja R") |
 
@@ -36,12 +36,12 @@ Legenda status: ⬜ belum · 🟡 dibuat (belum diverifikasi dari export) · ✅
 | E2E | Uji end-to-end dari DB kosong (keputusan user 5 Okt 2026: hapus semua data kecuali akun System Admin, semua data diinput lewat UI, audit log dihapus) — gabungan uji tertunda F8 A–E, F8b G, F9 X, F10 H | – | ✅ lolos 6 Okt 2026 (uji lanjut dari G8 pada data yang ada; selisih angka terjelaskan oleh input data, bukan bug) |
 | R1 | Fondasi revisi: master Pabrik, user menempel ke pabrik, role baru (Master Admin dihapus, Manager Costing), matriks izin, reset data uji, T49–T52 | `build_r1.json` → `export_r1.json` | ✅ uji A1–A13 lolos (laporan user 8 Okt 2026) · tombol **Ubah** di `tblFactories` tidak tampil (bug build: id kolom salinan tidak diganti) → ditambahkan user manual; skrip & validator diperbaiki · `export_r1.json` diterima 8 Okt 2026 (= base R2; T53) |
 | R2 | Master tanpa approval: supplier & komponen bersama, Material Induk + Varian per pabrik, pilihan model (dropdown) | `build_r2.json` → `export_r2.json` | ✅ `build_r2.json` → dirapikan user (`export_r2a.json`) → revisi **R2b** (varian satu baris seperti ERP) `build_r2b.json`; uji B1–B17 lolos (laporan user 8 Okt 2026); `export_r2.json` = build R2b tanpa perubahan (= base R3) |
-| R3 | Harga Varian × Supplier, pengajuan banyak varian, salin harga, approval Manager Costing | `build_r3.json` → `export_r3.json` | ⬜ |
-| R4 | Model tanpa kode (dropdown, ukuran ala kalender, gender) + Specsheet per varian (sel kuning, ketik kode, shortcut daftar) + F10d | `build_r4.json` → `export_r4.json` | ⬜ |
-| R5 | CBD per varian, blokir harga menunggu, PO SMS × 1,25, Selling price & Margin keluar dari CBD (simulasi Brand) | `build_r5.json` → `export_r5.json` | ⬜ |
-| R6 | Tugas Saya per role baru, Brand lintas pabrik, export Excel (Material Code, PO SMS), sapu bersih filter pabrik | `build_r6.json` → `export_r6.json` | ⬜ |
-| R7 | Copy lintas model (specsheet & CBD, pabrik + kategori sama) | `build_r7.json` → `export_r7.json` | ⬜ |
-| E2E-R | Uji end-to-end ulang dari DB kosong dengan **2 pabrik** | – | ⬜ |
+| R3 | Harga Varian × Supplier, pengajuan banyak varian, salin harga, approval Manager Costing | `build_r3.json` (base R4) | 🟡 dibuat 11 Okt 2026, dicek (parser SQL, validator, harness widget & JSObject) — diuji di E2E-R |
+| R4 | Model tanpa kode (dropdown, ukuran ala kalender, gender) + Specsheet per varian (sel kuning, ketik kode, shortcut daftar) + F10d | `build_r4.json` (base R5) | 🟡 dibuat 11 Okt 2026 · SQL dijalankan di PostgreSQL 16 lokal + self-test 55 cek lolos · 132 query app lolos EXPLAIN · harness widget & JSObject |
+| R5 | CBD per varian, blokir harga menunggu, PO SMS × 1,25, Selling price & Margin keluar dari CBD (simulasi Brand) | `build_r5.json` (base R6) | 🟡 dibuat 11 Okt 2026 · SQL di PostgreSQL lokal + self-test (R3–R5) lolos · 132 query EXPLAIN · harness |
+| R6 | Tugas Saya per role baru, Brand lintas pabrik, export Excel (Material Code, PO SMS), sapu bersih filter pabrik | `build_r6.json` (base R7) | 🟡 dibuat 11 Okt 2026 · self-test R3–R6 lolos · 134 query EXPLAIN |
+| R7 | Copy lintas model (specsheet & CBD, pabrik + kategori sama) | **`build_r7.json` (di-import)** → `export_r7.json` | 🟡 dibuat 11 Okt 2026 · self-test R3–R7 87 cek lolos · 135 query EXPLAIN + dijalankan dengan token per role |
+| E2E-R | Uji end-to-end ulang dari DB kosong dengan **2 pabrik** — panduan `steps/E2E_R_uji.md` (pasang: `RESET_data_bisnis` → `R_revisi_semua` → `R_selftest` → import `build_r7.json`) | – | ⬜ menunggu user |
 | F11 | Dokumentasi & handover (`appsmith/README.md`) | – | ⬜ dikerjakan **setelah UAT & go-live** (keputusan user 6 Okt 2026) |
 | Opsional | Where-used, histori harga, diff revisi, harga referensi brand | – | ⬜ |
 
@@ -441,6 +441,8 @@ Appsmith versi ini tidak punya "import ke app yang sudah ada"; import selalu mem
 4. Anda **import sebagai app baru** → hubungkan ulang datasource `Prestasi` bila diminta → cek akses publik → Deploy → uji → rapikan posisi/ukuran widget di UI.
 5. Lolos → app lama diarsipkan, app baru di-rename → export → `exports/export_r<n>.json` → saya review → base fase berikutnya.
 
+**Perubahan alur 11 Okt 2026 (keputusan user):** R3–R7 dikerjakan berurutan tanpa import per fase → **satu file SQL** `sql/R_revisi_semua.sql` (gabungan `sql/R3_…`–`R7_…`, satu transaksi) + `sql/R_selftest.sql` (uji alur inti lalu ROLLBACK, dijalankan sebelum import) + **satu import** `exports/build_r7.json` (build berantai: `build_r3` dari `export_r2`, `build_r4` dari `build_r3`, …) → uji **E2E-R** (`steps/E2E_R_uji.md`). Setiap fase dicek ulang sebelum lanjut: parser SQL (pglast), `tools/check.sh` terhadap build sebelumnya, harness widget, uji logika JSObject dengan data contoh. Detail kecil diputuskan sesuai PLAN dan dicatat di fase masing-masing ("Keputusan detail").
+
 Aturan tetap: **jangan upgrade Appsmith** di tengah R (export sekarang `serverSchemaVersion` 12). Git sync = pilihan setelah go-live.
 Filter pabrik dikerjakan **di setiap fase** pada query/fungsi yang disentuh; R6 menyapu sisanya.
 
@@ -483,56 +485,74 @@ Masa transisi (disengaja): Specsheet & CBD belum memakai varian (R4/R5) dan harg
 **Selesai bila:** Vendor Spec pabrik A membuat induk + varian + link tanpa approval; pabrik B tidak melihat material A; kode ganda di pabrik yang sama ditolak; nama supplier mirip muncul saat mengetik.
 
 ### R3 — Harga Varian × Supplier, approval Manager Costing
-SQL `sql/R3_harga.sql`.
-- [ ] `material_price` → `variant_id` + `material_supplier_id` (kolom warna dihapus), `batch_id` (satu pengajuan), status PROPOSED/APPROVED/REJECTED, maks. satu PROPOSED per varian + supplier
-- [ ] `fn_price_propose` (banyak varian sekaligus), `fn_price_copy` (dari varian lain, semua supplier → PROPOSED), `fn_price_cancel` — `manage_price`
-- [ ] `fn_price_decide` (approve / tolak + alasan, banyak baris sekaligus), `fn_price_end` — `approve_price`; approve menutup harga lama (`fn_price_activate`)
-- [ ] `fn_price_lookup(variant, supplier)`: hanya APPROVED dari supplier & link ACTIVE (bagian F10d)
-- [ ] UI: tab **Harga** di Material Detail = matriks varian × supplier; form Ajukan (supplier, centang varian) & Salin harga; page **Persetujuan Harga** untuk Manager Costing (per pengajuan, "Setujui semua", tolak sebagian)
+SQL `sql/R3_harga.sql`. Build `tools/build_r3.py` → `exports/build_r3.json` (base `export_r2.json`).
+- [x] (dibuat) `material_price` + `variant_id` (wajib) + `batch_id` (satu pengajuan); `uq_price_one_proposed` = (supplier material, varian) PROPOSED; kolom `color`/`color_key` dibiarkan kosong sampai R5 (masih dibaca `v_cbd_line` lama); `fn_price_add/approve/reject` di-DROP
+- [x] (dibuat) `fn_price_propose` (satu supplier + banyak varian, semua-atau-tidak), `fn_price_copy` (harga berlaku varian sumber dari semua supplier aktif → varian tujuan, pasangan yang masih menunggu / bertanggal lebih baru dilewati & dilaporkan), `fn_price_cancel` — `manage_price`, cek pabrik
+- [x] (dibuat) `fn_price_decide(ids jsonb, APPROVE|REJECT, alasan)` (banyak baris, semua-atau-tidak, tidak bisa memproses usulan sendiri, approve ditolak bila material Quotation / supplier atau link nonaktif / varian INACTIVE), `fn_price_end` — `approve_price`; `fn_price_activate` menutup harga lama varian + supplier
+- [x] (dibuat) `fn_price_lookup(variant, supplier, tanggal)`: APPROVED, CATALOG, supplier & link ACTIVE (F10d); versi warna lama (dipakai CBD lama) tidak mengembalikan harga sampai R5
+- [x] (dibuat) View `v_material_price` (semua baris harga + baris **BELUM ADA HARGA** per varian ACTIVE × link ACTIVE), `v_price_pending` (+ harga yang akan ditutup, `problem`), `v_worklist_admin` per pengajuan (+ `factory_id`)
+- [x] (dibuat) UI Material Detail: tab **Harga** (tab ke-3, hanya `view_price`; isi `cntHarga` dipindah, `cntHarga` dihapus) — `tblPrices` satu baris per harga / pasangan (Material Code, Warna, Thickness, Supplier, …), tombol per baris **Ajukan** (Vendor CBD) · **Setujui / Tolak** · **Akhiri** (Manager Costing) · **Batalkan** (Vendor CBD); tombol atas **+ Ajukan Harga** & **Salin Harga**; `cwPriceForm` ditulis ulang (mode propose / copy); query `a_price_propose`, `a_price_copy`, `a_price_decide` (baru), `a_price_add/approve/reject` dihapus
+- [x] (dibuat) Page baru **Persetujuan Harga** (salinan Beranda; `Auth.requiredPerm = approve_price`) dengan Custom Widget baru **`cwPriceApproval`** + `ApprovalCtrl`, `q_price_pending`, `a_price_decide`; Beranda Manager Costing → satu baris per pengajuan, klik membuka page itu (`?batch=`); menu Beranda + item **Persetujuan Harga**
+
+Keputusan detail (Claude, 11 Okt 2026, sesuai PLAN): "matriks varian × supplier" = tabel satu baris per pasangan (bukan kolom dinamis per supplier) + baris BELUM ADA HARGA; satu pengajuan = satu harga untuk semua varian yang dicentang; setujui di page Persetujuan Harga **dan** per baris di Material Detail; Setujui di page persetujuan = dua klik; Salin harga hanya di dalam material yang sama (supplier material per induk).
 
 **Selesai bila:** Vendor CBD mengajukan 4 varian sekaligus; Manager Costing menyetujui 3, menolak 1 dengan alasan; harga lama tertutup saat approve; Manager Costing tidak bisa mengajukan; Vendor CBD tidak bisa approve/akhiri.
 
 ### R4 — Model tanpa kode + Specsheet per varian
-SQL `sql/R4_model_specsheet.sql`.
-- [ ] `product_model`: hapus `code`; `factory_id` otomatis dari user; nama unik per pabrik; kategori/construction/gender/last/outsole mold → `model_option`; ukuran = daftar angka + sample size di dalamnya
-- [ ] Model List/Detail difilter pabrik; `cwModelForm` dropdown + **grid ukuran ala kalender**; label "kode model" di seluruh app diganti nama (±13 file)
-- [ ] `bom_line`: induk + thickness; `bom_cell`: warna + `variant_id` (terisi otomatis); `is_used` = warna tidak kosong; sel kuning = dipakai tanpa varian
-- [ ] Varian baru → sel kuning yang cocok (induk + thickness + warna, draft, pabrik sama) tersambung otomatis
-- [ ] `cwBomGrid`: kolom Material menerima nama/kode (tawarkan isi warna ke sel kosong), sel menerima warna/kode (kode beda induk/thickness ditolak), sel kuning + **Daftarkan varian**, dropdown supplier dua kelompok + **+ Supplier baru**
-- [ ] Checklist terbit: + sel kuning, + supplier/link INACTIVE (**F10d**); − "usulan belum di-approve" (master tanpa approval); baris tanpa supplier tetap memblokir
-- [ ] Semua query/fungsi specsheet difilter pabrik
-- [ ] (dari R2) `fn_variant_update`: kode/warna/thickness dikunci bila varian dipakai dokumen terbit; `fn_option_save`: INACTIVE/ubah nilai dicek ke model pemakai; hapus kolom lama `material.material_code` & `material.thickness` (+ view specsheet/CBD yang membacanya)
+SQL `sql/R4_model_specsheet.sql`. Build `tools/build_r4.py` (helper `tools/rlib.py`) → `exports/build_r4.json` (base `build_r3.json`).
+- [x] (dibuat) `product_model`: kolom `code`, `factory`, `category`, `outsole_mold`, `last_no`, `construction`, `size_range`, `sample_size` (teks) dihapus → `factory_id` (otomatis pabrik user), `name_key` + `uq_model_name` (pabrik, nama), `category_id` (wajib) / `construction_id` / `gender_id` / `last_id` / `outsole_mold_id` → `model_option`, `sizes integer[]`, `sample_size integer` (harus salah satu ukuran); `fn_model_save`, `fn_model_option_ref`, `fn_size_label` ("37–40, 42–44"); view **`v_model`** (nama pilihan + alias kolom lama `factory`, `category`, `last_no`, `size_range`… supaya Specsheet/CBD/export tetap membaca nama yang sama)
+- [x] (dibuat) Penjaga pabrik tulis: `fn_auth_in` + `fn_model_factory` / `fn_sheet_factory` / `fn_article_factory` / `fn_rev_factory` / `fn_line_factory`; `fn_season_add`, `fn_article_save`, `fn_article_delete`, `fn_attachment_add` (+cek pabrik), `fn_attachment_delete` menggantikan INSERT/UPDATE/DELETE langsung di query; semua query baca Model List / Model Detail / Specsheet / Beranda difilter `fn_can_see_factory`
+- [x] (dibuat) `bom_line.thickness` (teks ERP); `bom_cell.variant_id` + `is_used` = warna tidak kosong; trigger `trg_bom_cell_variant` (warna huruf besar + cari varian ACTIVE induk + thickness + warna) dan `trg_variant_relink` (varian baru/berubah → sel draft tersambung / jadi kuning)
+- [x] (dibuat) `fn_bom_add_line` (+ thickness, + `p_fill_color`), `fn_bom_add_sub`, `fn_bom_replace_material` (induk dan/atau thickness), `fn_bom_set_supplier`, `fn_bom_set_process` (baru), `fn_bom_cell_set` (Material Code diketik → warna; kode material/thickness lain ditolak), `fn_bom_check_material(material, pabrik)`, `fn_bom_check_supplier` (supplier ACTIVE); komponen master = ACTIVE (bukan APPROVED)
+- [x] (dibuat) `v_bom_grid` (+ `cell_codes`, `yellow`; `material_code` = kode-kode baris), `v_revision_checklist` (+ `yellow_cells`, `yellow_list`, `inactive_suppliers`; − `proposed_items`), `fn_revision_publish` (blokir sel kuning & supplier/link INACTIVE = **F10d**), `v_worklist_spec` (+ sel kuning), `v_worklist_price_gap` per varian, `v_worklist_cbd`, `v_recent_published` (+ pabrik), `v_model_list` — semua tanpa kode model
+- [x] (dibuat) `fn_variant_save`: kode/warna/thickness dikunci bila dipakai dokumen terbit (`fn_variant_used_published`, R5 menambah CBD); `fn_option_save`: ubah nilai ditolak bila dipakai model ber-specsheet terbit (UKURAN: dipakai model mana pun); INACTIVE selalu boleh
+- [x] (dibuat) UI: `cwModelForm` ditulis ulang (dropdown + **grid ukuran ala kalender** + sample size dari ukuran terpilih), `q_model_options`, `tblModels` tanpa Kode (+ Gender, Pabrik); `cwBomGrid`: material = NAMA · THICKNESS / Material Code (+ tawaran isi warna ke semua article), sel = warna / kode, **sel kuning + Daftarkan**, **+ Supplier baru**, badge usulan dihapus; modal `mdlVarianBaru` (salinan `cwVariantForm`, opsi baru `fixed`) & `mdlSupplierBaru` (salinan `cwSupplierForm`) di Specsheet; checklist terbit (sel kuning, supplier nonaktif); Beranda/Specsheet/CBD memakai nama model; export specsheet: sel = warna + Material Code, header Gender
+- [x] Tetap ada sampai R5: `material.material_code` / `material.thickness` (masih dibaca view CBD)
+
+Keputusan detail (Claude, 11 Okt 2026): Kategori wajib (dipakai filter copy R7), pilihan lain opsional; warna sel disimpan huruf besar; tawaran "isi warna" hanya di baris tambah (ganti material tidak mengisi sel kosong — sel kosong = tidak dipakai); daftar material di grid = kombinasi induk × thickness dari varian ACTIVE (+ induk tanpa varian); daftarkan varian dari specsheet mengunci warna & thickness.
 
 **Selesai bila:** contoh RUNNER-X (Black/White/Navy) berjalan seperti diskusi: Navy kuning → didaftarkan → tersambung → terbit; pabrik B tidak melihat model A.
 
 ### R5 — CBD per varian, PO SMS, selling price keluar dari CBD
-SQL `sql/R5_cbd.sql`.
-- [ ] `cbd_line.variant_id` menggantikan warna; harga dari `fn_price_lookup(variant, supplier)`; status baris Belum ada harga / Menunggu persetujuan
-- [ ] Terbit CBD ditolak bila ada baris menunggu persetujuan (+ aturan F8 yang ada)
-- [ ] Harga quotation ikut copy/next bila **varian sama**; sinkron specsheet membandingkan (baris, supplier, varian)
-- [ ] `stage_setting(stage, po_factor)` seed SMS = 1,25; `cbd_revision.po_factor` dibekukan saat terbit; rekap + baris **PO SMS**; Target FOB tetap dibanding FOB tanpa faktor
-- [ ] Hapus `cbd_revision.selling_price`, field SELLING_PRICE/MARGIN di `fn_cbd_header_set`, margin di `v_cbd_recap`
-- [ ] `cwCbdGrid`: kalkulator simulasi selling price ↔ margin hanya untuk `simulate_margin`, tanpa simpan
-- [ ] Manager Costing: CBD baca saja; semua query/fungsi CBD difilter pabrik
+SQL `sql/R5_cbd.sql`. Build `tools/build_r5.py` → `exports/build_r5.json` (base `build_r4.json`).
+- [x] (dibuat) `cbd_line.variant_id` + `thickness` (dari sel/baris specsheet; `color` tetap untuk tampilan); `fn_cbd_expected_lines` (+ thickness, varian), `fn_cbd_identity` (+ thickness), `fn_cbd_populate`: harga master `fn_price_lookup(varian, supplier)`, quotation ikut bila **varian sama**
+- [x] (dibuat) `v_cbd_price_check` per varian: `price_gap` (QUOTATION / NO_SUPPLIER / AVAILABLE / PENDING / NO_PRICE) + `pending` (ada usulan menunggu untuk varian + supplier); `v_cbd_checklist` + `pending_prices`, `pending_list`; `fn_cbd_publish` **menolak terbit selama ada harga menunggu**; `fn_cbd_sync_spec` membandingkan (baris, supplier, varian)
+- [x] (dibuat) `stage_setting(stage, po_factor)` seed SMS = 1,25 (stage lain kosong); `cbd_revision.po_factor` dibekukan saat terbit; `v_cbd_recap` + `stage`, `po_factor`, `po_price` (Target FOB tetap dibanding Actual FOB tanpa faktor)
+- [x] (dibuat) `cbd_revision.selling_price` dihapus; `fn_cbd_header_set` hanya RATE / TARGET_FOB; `v_cbd_recap` tanpa margin
+- [x] (dibuat) Penjaga pabrik semua tulis CBD (`fn_cbd_factory`, `fn_cbd_line_factory`, `fn_cbd_item_factory` + `fn_auth_in`) dan query baca page CBD; Manager Costing baca saja (tanpa `edit_cbd`)
+- [x] (dibuat) Kolom lama dihapus: `material.material_code`, `material.thickness`, `material_price.color/color_key`, `fn_price_lookup` versi warna; `fn_material_check` tanpa kolom lama; `fn_variant_used_published` + CBD terbit; `fn_cbd_clear_override` hanya memberi pesan
+- [x] (dibuat) UI: banner & status baris "menunggu persetujuan", checklist terbit + "tidak ada harga menunggu", baris **PO SMS** di rekap atas & Cost recapitulation, tabel Harga jual diganti **Simulasi harga jual** (hanya `simulate_margin` = Brand; dihitung di layar dari Actual FOB, tidak disimpan, tidak ikut export); export CBD: blok Harga jual dihapus, baris PO SMS (rumus Excel), Material Code = kode varian
+
+Keputusan detail (Claude, 11 Okt 2026): "menunggu persetujuan" memblokir terbit walau baris sudah punya harga lama (harga bisa berubah); simulasi memakai Actual FOB (bukan PO); faktor PO hanya diubah lewat DB (`stage_setting`), belum ada layar.
 
 **Selesai bila:** CBD tidak bisa terbit selama ada harga menunggu; PO SMS = FOB × 1,25 hanya di SMS; role pabrik tidak melihat selling price/margin; Brand bisa simulasi tanpa menyimpan.
 
 ### R6 — Tugas Saya, Brand lintas pabrik, export, sapu bersih pabrik
-- [ ] Tugas Saya: Vendor Spec (draft, sel kuning) · Vendor CBD (belum ada CBD, perlu refresh/revisi, harga kosong, harga ditolak) · **Manager Costing** (pengajuan harga menunggu) · Brand (terbit terbaru, filter pabrik) · System Admin; antrian Master Admin dihapus
-- [ ] Brand: kolom & filter pabrik di daftar model, specsheet, CBD
-- [ ] Export Excel: kolom **Material Code** (specsheet & CBD), baris **PO SMS**, tanpa selling price/margin, header FACTORY dari master Pabrik
-- [ ] Sapu bersih: semua query baca (±40) & fungsi tulis (±35) punya penjaga pabrik — daftar dicentang satu per satu
+SQL `sql/R6_tugas_pabrik.sql`. Build `tools/build_r6.py` → `exports/build_r6.json` (base `build_r5.json`).
+- [x] (dibuat) Tugas Saya: Vendor Spec (draft + sel kuning + supplier nonaktif, statistik sel kuning — R4/R6) · Vendor CBD (CBD dibuat/refresh/revisi, flag harga menunggu, harga belum ada per Material Code, **usulan harga ditolak** 30 hari & belum diajukan ulang = `v_worklist_price_rejected` + `q_worklist_rejected`) · Manager Costing (pengajuan menunggu — R3) · Brand (terbit terbaru + nama pabrik) · System Admin (tetap); antrian Master Admin sudah dihapus (R2)
+- [x] (dibuat) Brand / System Admin: kolom Pabrik + **filter Pabrik** (`selModelPabrik`, `q_model_factories`) di Model List; dropdown model Specsheet/CBD berlabel "MODEL · PABRIK" (R4)
+- [x] (dibuat) Export: specsheet sel = warna + Material Code, header Gender (R4); CBD: Material Code varian di kolom material, baris PO SMS, tanpa selling price/margin (R5), nama pabrik di baris Model Name
+- [x] (dibuat) Sapu bersih (dipindai otomatis): semua fungsi tulis ber-token memakai `fn_auth_in` / `fn_assert_factory` kecuali master bersama (supplier, komponen), admin (user, pabrik), login — `fn_change_log_attach` ditambah cek pabrik; semua query baca dokumen memakai `fn_can_see_factory` kecuali Admin, master bersama, dan login — `q_worklist_pub_spec/cbd` ditambah filter pabrik
+
+Keputusan detail (Claude, 11 Okt 2026): Material Code di export CBD tetap di kolom deskripsi material "[KODE]" (tidak menambah kolom supaya rumus kolom L tidak bergeser); nama pabrik CBD disisipkan ke baris Model Name (tata letak header tidak berubah).
 
 **Selesai bila:** user pabrik A tidak bisa membaca/menulis data pabrik B lewat query mana pun (diuji juga dengan memanggil query langsung).
 
 ### R7 — Copy lintas model
-Rincian dari diskusi 7 Okt 2026 (sebelumnya di Opsional), disesuaikan dengan R1–R5:
-- [ ] **Specsheet**: mode Copy dari model lain di wizard Buat Revisi (aturan = COPY sekarang: season tujuan belum punya revisi → r0, sumber hanya revisi terbit, `origin_line_key` = `line_key` sumber, article season tujuan, warna kosong). Sumber difilter **pabrik sama + kategori sama**; tampilkan nama model, outsole mold, season & label revisi; ringkasan sebelum konfirmasi. Tanpa penandaan baris bottom.
-- [ ] **Model induk**: `product_model.parent_model_id` diisi otomatis saat copy lintas model pertama; header "Disalin dari Model · Season · Stage r#". Tanpa sinkron otomatis.
-- [ ] **CBD**: hanya dari article model asal specsheet. Yield / Loss % ikut hanya bila cocok lewat `origin_line_key` **dan** induk + thickness sama; harga quotation ikut bila **varian sama**; pencocokan identitas dimatikan untuk lintas model.
-- [ ] **Rekap**: yang ikut hanya exchange rate dan LOP; Amortisasi/Adjustment/Other default 0; Target FOB kosong.
+SQL `sql/R7_copy_model.sql`. Build `tools/build_r7.py` → **`exports/build_r7.json`** (base `build_r6.json`; build yang di-import).
+- [x] (dibuat) **Specsheet**: `fn_revision_create` mode COPY menerima season model lain bila **pabrik sama + kategori sama** (aturan COPY tetap: r0, sumber revisi terbit terakhir, `origin_line_key`, article season tujuan, warna kosong); wizard Buat Revisi + pilihan **Copy dari model lain** (`cwRevisionForm` mode `COPY_MODEL`, `q_copy_model_sources`: nama model, mold, season, label revisi, ringkasan jumlah baris)
+- [x] (dibuat) **Model induk**: `product_model.parent_model_id` diisi otomatis pada copy lintas model pertama; header revisi "disalin dari MODEL · SEASON · STAGE r#" (`q_revisions.source_model`); `fn_sheet_origin_model`
+- [x] (dibuat) **CBD**: `fn_cbd_create` COPY menerima article **model asal specsheet** (`q_cbd_sources` + `is_cross`, label "(model asal)"); `fn_cbd_populate(…, p_cross)`: lintas model = Yield/Loss hanya lewat `origin_line_key` **dan** induk + thickness sama, identitas & baris pengganti dimatikan, quotation bila varian sama
+- [x] (dibuat) **Rekap lintas model**: hanya exchange rate & LOP (Direct Labour) yang ikut; Amortisasi/Adjustment/Lainnya default 0; Target FOB kosong
 
 **Selesai bila:** copy FG → IN, ganti material outsole, terbit, CBD IN dari CBD FG (yield outsole kosong, amortisasi 0, LOP & rate ikut); sumber pabrik/kategori lain tidak muncul.
+
+### Verifikasi R3–R7 (11 Okt 2026, sebelum diserahkan)
+- PostgreSQL 16.4 lokal (binari resmi EDB, disetujui user): seluruh SQL F1 → R2b dijalankan berurutan, lalu `RESET_data_bisnis` + `R_revisi_semua` **2×** (aman diulang) — tanpa error.
+- `sql/R_selftest.sql`: **87 cek** alur inti per role dengan 2 pabrik (harga, maker-checker, pemisahan pabrik, sel kuning, F10d, kunci varian/pilihan, CBD per varian, blokir harga menunggu, PO SMS beku, simulasi tanpa simpan, sinkron perlu revisi, Tugas Saya, copy lintas model) — lolos.
+- Semua **135 query app** lolos `EXPLAIN` di skema akhir; semua query baca dijalankan sungguhan dengan token per role pada data self-test.
+- Validator build tiap fase (tanpa error baru), cek sintaks JS, harness browser untuk `cwPriceForm`, `cwPriceApproval`, `cwModelForm`, `cwBomGrid`, `cwCbdGrid`, `cwRevisionForm` + uji logika JSObject dengan data contoh.
+- Bug yang tertangkap & diperbaiki selama verifikasi: urutan DROP view R3 saat diulang; kondisi "diajukan ulang" di `v_worklist_price_rejected`; argumen `fmt` PO; pilihan bawaan GENDER/UKURAN hilang setelah `RESET_data_bisnis` (sekarang diisi ulang di R4).
 
 ### E2E-R — Uji ulang dari DB kosong
 - [ ] 2 pabrik, 1 user per role per pabrik + Brand + System Admin; data dari contoh Excel FH26 (SMS, GTM)
@@ -1063,6 +1083,11 @@ Diperbarui setiap fase selesai direview. Kolom **Dibuat** = Anda sudah menjalank
 | `v_worklist_spec`, `v_worklist_cbd`, `v_worklist_price_gap`, `v_worklist_admin`, `v_recent_published`, `v_system_summary` | view | F10 | ✅ (user: tanpa error) | ⬜ |
 | `factory` + `trg_factory_check`, `uq_factory_name`; `app_user.factory_id` + `ck_app_user_role`, `ck_app_user_factory`; `role_permission` (matriks R1); `fn_role_label`, `fn_is_factory_role`, `fn_user_factory`, `fn_can_see_factory`, `fn_assert_factory`, `fn_me` (+pabrik), `fn_user_save` (+`p_factory_id`), `fn_factory_save`, `v_factory_list`; tambalan `fn_price_add/approve/reject/end`, `fn_ensure_link` | tabel/view/function | R1 | ⬜ | ⬜ |
 | `ck_supplier_status`, `ck_component_status`, `ck_material_status`, `ck_material_supplier_status` (ACTIVE/INACTIVE); `material.factory_id` + `uq_material_identity` (pabrik, nama, UoM) + `idx_material_factory`, `uq_material_code` dihapus; `material_supplier.supplier_material_code` dihapus; `material_variant` + `uq_variant_code`, `uq_variant_identity`, `idx_variant_material`, `trg_material_variant_check`; `model_option` + `uq_model_option`, `ck_model_option_scope`, `idx_model_option_kind`, `trg_model_option_check`; `fn_similar_key`, `fn_similar_match`, `fn_similar_names`, `fn_master_usage`, `fn_supplier_save`, `fn_component_add`/`fn_component_save`, `fn_material_check`/`fn_material_add`/`fn_material_update` (signature baru), `fn_thickness_label`, `fn_material_variant_check`, `fn_variant_add`, `fn_variant_update` (R2b: diganti `fn_variant_save` + `fn_variant_code_hint`, `fn_clean_thickness`, kolom `thickness` teks + `thickness_key`, `idx_variant_code_parts`), `fn_material_supplier_check`, `fn_link_save` (signature baru), `fn_ensure_link`, `fn_option_is_factory_kind`, `fn_option_kind_label`, `fn_model_option_check`, `fn_option_save`; `v_material_list` (induk), `v_worklist_admin` (PRICE saja); izin `propose_master`, `manage_material_supplier` dihapus | tabel/view/function | R2 + R2b | ✅ (user: uji lolos) | ⬜ |
+| `material_price.variant_id` (wajib) + `batch_id`, `uq_price_one_proposed` (link, varian), `idx_material_price_variant`, `idx_material_price_batch`; `fn_uuid_list`, `fn_price_state`, `fn_price_lookup(uuid,uuid,date)` (baru) + versi warna lama dikosongkan, `fn_price_activate`, `fn_price_propose`, `fn_price_copy`, `fn_price_cancel`, `fn_price_decide`, `fn_price_end`; `v_material_price`, `v_price_pending`, `v_worklist_admin` (per pengajuan); DROP `fn_price_add/approve/reject` | tabel/view/function | R3 | ⬜ | ⬜ |
+| `product_model` tanpa kode (+ `factory_id`, `name_key`, `uq_model_name`, `category_id`…`outsole_mold_id`, `sizes`, `sample_size` int), `v_model`, `fn_model_save`, `fn_model_option_ref`, `fn_size_label`, `fn_model_factory`/`fn_sheet_factory`/`fn_article_factory`/`fn_rev_factory`/`fn_line_factory`, `fn_auth_in`, `fn_season_add`, `fn_article_save`, `fn_article_delete`, `fn_attachment_delete`; `bom_line.thickness`, `bom_cell.variant_id` + `is_used` baru, `trg_bom_cell_variant`, `trg_variant_relink`, `fn_bom_variant_for`, `fn_bom_check_supplier`, `fn_bom_set_process`, fungsi BOM baru; `fn_variant_used_published`; `v_bom_grid`, `v_revision_checklist`, `v_worklist_spec`, `v_worklist_cbd`, `v_worklist_price_gap`, `v_recent_published`, `v_model_list` dibuat ulang | tabel/view/function | R4 | ⬜ | ⬜ |
+| `cbd_line.variant_id`/`thickness`, `stage_setting` (SMS 1,25), `cbd_revision.po_factor`, DROP `cbd_revision.selling_price`, `material.material_code/thickness`, `material_price.color/color_key`, `fn_price_lookup` versi warna; `fn_cbd_factory`/`fn_cbd_line_factory`/`fn_cbd_item_factory`, `fn_price_pending`, `fn_cbd_identity` (+ thickness), `fn_cbd_expected_lines` (+ varian); `v_cbd_line`, `v_cbd_price_check`, `v_cbd_recap`, `v_cbd_checklist` dibuat ulang; semua fungsi tulis CBD + cek pabrik | tabel/view/function | R5 | ⬜ | ⬜ |
+| `fn_change_log_attach` (+ cek pabrik), `v_worklist_price_rejected` | view/function | R6 | ⬜ | ⬜ |
+| `product_model.parent_model_id`, `fn_sheet_origin_model`, `fn_revision_create` (COPY lintas model), `fn_cbd_populate(…, p_cross)`, `fn_cbd_create` (COPY dari model asal) | tabel/function | R7 | ⬜ | ⬜ |
 | `cbd_line.loss_pct` boleh NULL, `change_log_attachment`, `trg_aa_upper` (6 tabel), `fn_upper_names`, `fn_change_log_attach`; `v_revision_checklist` (+ `proposed_items`) & `v_worklist_spec` dibuat ulang; `fn_cbd_revision_lock`, `fn_material_check`, `fn_cbd_line_set`, `fn_cbd_populate`, `fn_cbd_override_price` (ditolak), `fn_cbd_header_set`, `fn_revision_publish`, `v_bom_grid` (+ `supplier_status`), `v_cbd_line`, `v_cbd_checklist`, `v_worklist_admin` diperbarui | tabel/view/function | F10b | ⬜ | ⬜ |
 | Hapus `material.width` + `width_key`; `uq_material_identity` kembali (nama + thickness + UoM); `fn_material_add/update` kembali ke parameter F3; `v_material_list`, `v_bom_grid`, `v_cbd_line` + view turunannya dibuat ulang | tabel/view/function | F10c | ⬜ | ⬜ |
 
@@ -1103,6 +1128,13 @@ ORDER BY 1, 2;
 | `cwCbdPriceForm` | `CBD` (modal `mdlCbdHarga`) | F8 | ✅ | ✅ (kode identik, event & Default model sesuai) |
 | `cwWorklist` | `Beranda` (Tugas Saya, semua role; event `onOpen`, `onRefresh`) | F10 | ✅ | ✅ (v10, kode identik) |
 | `cwImageGallery` | `Specsheet` (`mdlRiwayat`), `CBD` (`mdlCbdRiwayat`) — gambar change log, event `onDownload` | F10b | 🟡 file siap (harness) | ⬜ |
+| `cwPriceForm` (ditulis ulang: Ajukan banyak varian / Salin harga) | `Material Detail` (`mdlHarga`) | R3 | 🟡 build_r3 (harness) | ⬜ |
+| `cwPriceApproval` | `Persetujuan Harga` (events `onDecide`, `onOpenMaterial`, `onRefresh`) | R3 | 🟡 build_r3 (harness) | ⬜ |
+| `cwModelForm` (ditulis ulang: dropdown + grid ukuran) | `Model List`, `Model Detail` | R4 | 🟡 build_r4 (harness) | ⬜ |
+| `cwBomGrid` (induk × thickness, sel kuning, Daftarkan, + Supplier baru) | `Specsheet` | R4 | 🟡 build_r4 (harness) | ⬜ |
+| `cwVariantForm` (+ opsi `fixed`) / `cwSupplierForm` disalin ke `Specsheet` (`mdlVarianBaru`, `mdlSupplierBaru`) | `Specsheet` | R4 | 🟡 build_r4 | ⬜ |
+| `cwCbdGrid` (PO SMS, status menunggu, simulasi harga jual) | `CBD` | R5 | 🟡 build_r5 (harness) | ⬜ |
+| `cwRevisionForm` (+ Copy dari model lain) | `Specsheet` | R7 | 🟡 build_r7 (harness) | ⬜ |
 
 ---
 

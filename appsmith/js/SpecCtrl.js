@@ -7,6 +7,8 @@
 // Query q_spec_model, q_spec_seasons, q_revisions, q_change_log dijalankan dengan params (loadModel / loadSeason),
 // q_publish_checklist saat modal Terbitkan dibuka;
 // isi revisi lewat BomCtrl.load().
+// R4: checklist terbit + sel kuning & supplier INACTIVE. R7: Buat Revisi bisa copy dari model lain (pabrik & kategori
+// sama, q_copy_model_sources); header menampilkan "disalin dari".
 export default {
 	modelId: '',       // model yang dipilih
 	from: '',          // asal halaman (?from=list | detail | home) -> tujuan tombol kembali
@@ -166,7 +168,8 @@ export default {
 	},
 
 	modelOptions() {
-		return this.models().map(m => ({ label: `${m.code} — ${m.name}`, value: m.id }));
+		const all = !(Auth.me && Auth.me.factory_id);     // Brand / System Admin: semua pabrik
+		return this.models().map(m => ({ label: all ? `${m.name} · ${m.factory_name}` : m.name, value: m.id }));
 	},
 
 	seasonOptions() {
@@ -177,8 +180,8 @@ export default {
 		const m = this.model();
 		if (!m) return this.modelId && q_spec_model.isLoading ? 'Memuat…' : 'Pilih model dan season dahulu.';
 		const e = v => this.esc(v || '-');
-		return `<b style="font-size:18px">${e(m.code)} — ${e(m.name)}</b><br>`
-			+ `<span style="color:#6b7280">Kategori: ${e(m.category)} · Factory: ${e(m.factory)} · Outsole Mould: ${e(m.outsole_mold)}`
+		return `<b style="font-size:18px">${e(m.name)}</b> <span style="color:#6b7280">· ${e(m.factory_name)}</span><br>`
+			+ `<span style="color:#6b7280">Kategori: ${e(m.category)} · Gender: ${e(m.gender)} · Outsole Mould: ${e(m.outsole_mold)}`
 			+ ` · Last No.: ${e(m.last_no)} · Construction: ${e(m.construction)} · Size Range: ${e(m.size_range)}`
 			+ ` · Sample Size: ${e(m.sample_size)}</span>`;
 	},
@@ -206,7 +209,10 @@ export default {
 			+ `<b style="color:${Util.statusColor(r.status)}">${r.status}</b>`;
 		if (r.status === 'PUBLISHED') t += ` · terbit ${Util.fmtDateTime(r.published_at)} oleh ${e(r.published_by || '-')}`;
 		else t += ` · dibuat ${Util.fmtDateTime(r.created_at)} oleh ${e(r.created_by || '-')}`;
-		if (r.source_label) t += ` · sumber: ${e(r.source_season)} ${e(r.source_label)}`;
+		if (r.source_label) {
+			t += r.source_model ? ` · disalin dari ${e(r.source_model)} · ${e(r.source_season)} · ${e(r.source_label)}`
+				: ` · sumber: ${e(r.source_season)} ${e(r.source_label)}`;
+		}
 		const log = r.status === 'PUBLISHED' ? this.logFor(r.id) : null;
 		if (log) t += `<br><span style="color:#6b7280">Perubahan (${e(log.category)}): ${e(log.reason)}</span>`;
 		if (this.canEdit() && r.status === 'PUBLISHED' && this.draft()) {
@@ -244,7 +250,11 @@ export default {
 	},
 
 	// ---- buat revisi ----
-	openCreate() {
+	async openCreate() {
+		// R7: sumber copy lintas model (pabrik & kategori sama) dimuat setiap modal dibuka
+		if (!this.revisions().length) {
+			try { await q_copy_model_sources.run({ model_id: this.modelId || '' }); } catch (e) { /* daftar kosong */ }
+		}
 		this.revBusy = false;
 		this.revMsg = null;
 		this.revKey = this.revKey + 1;
@@ -272,6 +282,11 @@ export default {
 			nextStageLabel: nextStage,
 			copySources: this.seasons().filter(x => x.id !== this.seasonId && x.latest_pub_id)
 				.map(x => ({ id: x.id, season: x.season, label: x.latest_pub_label })),
+			modelSources: (q_copy_model_sources.data || []).map(x => ({
+				id: x.id,
+				label: `${x.model_name} · ${x.season} — ${x.label} terbit${x.outsole_mold ? ' · Mold ' + x.outsole_mold : ''}`,
+				summary: `Akan menyalin ${x.line_count} baris BOM dari ${x.model_name} · ${x.season} · ${x.label}.`,
+			})),
 			busy: this.revBusy,
 			message: this.revMsg,
 		};
@@ -283,7 +298,8 @@ export default {
 		this.revBusy = true;
 		try {
 			await a_revision_create.run({
-				specsheet_id: this.seasonId, mode: f.mode, stage: f.stage || '', source_id: f.source_specsheet_id || '',
+				specsheet_id: this.seasonId, mode: f.mode === 'COPY_MODEL' ? 'COPY' : f.mode, stage: f.stage || '',
+				source_id: f.source_specsheet_id || '',
 			});
 		} catch (e) {
 			const msg = e && e.message;
@@ -343,8 +359,10 @@ export default {
 				detail: c.inactive_materials || '' },
 			{ label: 'Semua baris punya supplier', ok: c.no_supplier_lines === 0, blocking: true,
 				detail: c.no_supplier_lines ? `${c.no_supplier_lines} baris tanpa supplier — isi supplier di grid BOM` : '' },
-			{ label: 'Tidak ada usulan yang belum di-approve', ok: !c.proposed_items, blocking: true,
-				detail: c.proposed_items ? `Menunggu Master Admin: ${c.proposed_items}` : '' },
+			{ label: 'Semua warna punya Material Code (tidak ada sel kuning)', ok: !c.yellow_cells, blocking: true,
+				detail: c.yellow_cells ? `${c.yellow_cells} sel kuning: ${c.yellow_list || ''} — klik Daftarkan di sel itu` : '' },
+			{ label: 'Tidak ada supplier nonaktif', ok: !c.inactive_suppliers, blocking: true,
+				detail: c.inactive_suppliers ? `${c.inactive_suppliers} — ganti suppliernya di grid BOM` : '' },
 		];
 		const requiresReason = c ? !!c.requires_reason : true;
 		return {

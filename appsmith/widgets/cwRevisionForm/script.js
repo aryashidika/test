@@ -1,13 +1,16 @@
 // cwRevisionForm — modal Buat Revisi di page Specsheet (mdlRevisi). Hanya tampilan; simpan lewat
 // SpecCtrl.saveRevision() -> fn_revision_create. Pilihan cara mengikuti keadaan season:
-//   belum ada revisi  -> EMPTY (kosong) / COPY (copy season lain model yang sama), + stage awal
+//   belum ada revisi  -> EMPTY (kosong) / COPY (copy season lain model yang sama) /
+//                        COPY_MODEL (R7: copy dari model lain, pabrik + kategori sama; ringkasan jumlah baris), + stage awal
 //   ada revisi terbit -> NEXT_REVISION (stage sama, nomor + 1) / NEXT_STAGE (stage berikutnya r0)
-// Aturan final di DB (satu draft per season, sumber harus terbit & model sama).
+// COPY_MODEL dikirim apa adanya; SpecCtrl.saveRevision() memanggil fn_revision_create mode COPY.
+// Aturan final di DB (satu draft per season, sumber harus terbit; lintas model: pabrik & kategori sama).
 const $ = id => document.getElementById(id);
 let lastKey = null;
 let busy = false;
 let mode = '';
 let options = [];
+let M = {};
 
 function applyTheme(t) {
   t = t || {};
@@ -40,6 +43,13 @@ function buildOptions(m) {
           : 'Belum ada season lain model ini yang punya revisi terbit.',
         disabled: !sources.length,
       },
+      {
+        v: 'COPY_MODEL', title: 'Copy dari model lain (pabrik & kategori sama)',
+        desc: (m.modelSources || []).length
+          ? 'Untuk model turunan (mis. beda outsole). Baris BOM model sumber di-copy; warna kosong; model sumber jadi model induk.'
+          : 'Belum ada model lain dengan kategori sama yang punya specsheet terbit.',
+        disabled: !(m.modelSources || []).length,
+      },
     ];
   }
   if (m.latestLabel) {
@@ -65,11 +75,40 @@ function setMode(v) {
     el.classList.toggle('on', on);
     el.setAttribute('aria-checked', on ? 'true' : 'false');
   });
-  $('firstBox').hidden = !(v === 'EMPTY' || v === 'COPY');
-  $('sourceBox').hidden = v !== 'COPY';
+  $('firstBox').hidden = !(v === 'EMPTY' || v === 'COPY' || v === 'COPY_MODEL');
+  $('sourceBox').hidden = v !== 'COPY' && v !== 'COPY_MODEL';
+  fillSources();
+}
+
+// Isi pilihan sumber sesuai mode: season lain model ini (COPY) atau specsheet model lain (COPY_MODEL)
+function fillSources() {
+  const cross = mode === 'COPY_MODEL';
+  const list = cross ? (M.modelSources || []) : (M.copySources || []);
+  const src = $('source');
+  src.innerHTML = `<option value="">${cross ? '— pilih model & season —' : '— pilih season —'}</option>`;
+  list.forEach(s => {
+    const opt = document.createElement('option');
+    opt.value = s.id;
+    opt.textContent = cross ? s.label : `${s.season} — ${s.label} terbit`;
+    src.appendChild(opt);
+  });
+  if (list.length === 1) src.value = list[0].id;
+  src.classList.remove('invalid');
+  $('sourceLabel').innerHTML = `${cross ? 'Model & season sumber' : 'Season sumber'} <span class="req">*</span>`;
+  $('sourceHint').textContent = cross
+    ? 'Baris BOM revisi terbit terakhir model sumber di-copy (material, thickness, supplier). Article season ini dimuat dengan warna kosong.'
+    : 'Baris BOM revisi terbit terakhir season sumber di-copy. Article season ini dimuat dengan warna kosong.';
+  showSummary();
+}
+
+function showSummary() {
+  const s = mode === 'COPY_MODEL' ? (M.modelSources || []).find(x => x.id === $('source').value) : null;
+  $('sourceSum').textContent = s ? s.summary : '';
+  $('sourceSum').hidden = !s;
 }
 
 function fillForm(m) {
+  M = m;
   $('title').textContent = `Buat Revisi — ${m.season || ''}`;
   options = buildOptions(m);
   const box = $('opts');
@@ -87,17 +126,7 @@ function fillForm(m) {
     b.addEventListener('click', () => setMode(o.v));
     box.appendChild(b);
   });
-  const src = $('source');
-  src.innerHTML = '<option value="">— pilih season —</option>';
-  (m.copySources || []).forEach(s => {
-    const opt = document.createElement('option');
-    opt.value = s.id;
-    opt.textContent = `${s.season} — ${s.label} terbit`;
-    src.appendChild(opt);
-  });
-  if ((m.copySources || []).length === 1) src.value = m.copySources[0].id;
   $('stage').value = 'PULL';
-  src.classList.remove('invalid');
   const first = options.find(o => !o.disabled);
   setMode(first ? first.v : '');
   $('note').hidden = options.length > 0;
@@ -129,18 +158,19 @@ function submit() {
     showMessage({ type: 'error', text: 'Pilih cara membuat revisi.' });
     return;
   }
-  if (mode === 'COPY' && !$('source').value) {
+  const copy = mode === 'COPY' || mode === 'COPY_MODEL';
+  if (copy && !$('source').value) {
     $('source').classList.add('invalid');
     $('source').focus();
-    showMessage({ type: 'error', text: 'Pilih season sumber.' });
+    showMessage({ type: 'error', text: mode === 'COPY' ? 'Pilih season sumber.' : 'Pilih model & season sumber.' });
     return;
   }
   $('source').classList.remove('invalid');
-  const first = mode === 'EMPTY' || mode === 'COPY';
+  const first = mode === 'EMPTY' || copy;
   appsmith.updateModel({
     mode,
     stage: first ? $('stage').value : '',
-    source_specsheet_id: mode === 'COPY' ? $('source').value : '',
+    source_specsheet_id: copy ? $('source').value : '',
   });
   appsmith.triggerEvent('onSave');
 }
@@ -153,7 +183,10 @@ appsmith.onReady(() => {
   $('btnSave').addEventListener('click', submit);
   $('btnCancel').addEventListener('click', cancel);
   $('btnX').addEventListener('click', cancel);
-  $('source').addEventListener('change', () => $('source').classList.remove('invalid'));
+  $('source').addEventListener('change', () => {
+    $('source').classList.remove('invalid');
+    showSummary();
+  });
   applyTheme(appsmith.theme);
   render(appsmith.model);
   appsmith.onModelChange(render);

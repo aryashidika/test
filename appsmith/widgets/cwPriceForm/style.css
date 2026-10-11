@@ -328,3 +328,107 @@ input[type=number]::-webkit-inner-spin-button {
 #pendingWarn {
   margin-top: 16px;
 }
+
+/* R3: daftar varian (centang banyak) + harga sumber salinan */
+.list-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.list-head .count {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.list-tools {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.list-tools input {
+  flex: 1;
+  height: 32px !important;
+}
+
+.vlist {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  max-height: 228px;
+  overflow-y: auto;
+}
+
+.vrow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--surface-alt);
+  font-weight: 400;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.vrow:last-child {
+  border-bottom: none;
+}
+
+.vrow:hover {
+  background: var(--surface-alt);
+}
+
+.vrow.on {
+  background: var(--info-bg);
+}
+
+.vrow.disabled {
+  cursor: not-allowed;
+  color: var(--muted);
+}
+
+.vrow input {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  accent-color: var(--primary);
+}
+
+.vname {
+  flex: 1;
+  min-width: 0;
+}
+
+.vstat {
+  flex: none;
+  font-size: 12px;
+  text-align: right;
+}
+
+.vstat.ok {
+  color: #15803D;
+}
+
+.vstat.warn {
+  color: #B45309;
+}
+
+.vstat.muted {
+  color: var(--muted);
+}
+
+.vlist .empty {
+  padding: 12px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.src-prices {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.5;
+}

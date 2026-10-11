@@ -6,48 +6,46 @@
 
   <div id="msg" class="msg" role="alert" hidden></div>
 
-  <div class="row">
-    <div>
-      <label for="code">Kode Model <span class="req">*</span></label>
-      <input id="code" type="text" maxlength="40" autocomplete="off">
-    </div>
-    <div>
-      <label for="category">Kategori</label>
-      <input id="category" type="text" maxlength="60" autocomplete="off" placeholder="mis. Football">
-    </div>
-  </div>
-
   <label for="name">Nama Model <span class="req">*</span></label>
   <input id="name" type="text" maxlength="200" autocomplete="off">
 
-  <label for="factory">Factory</label>
-  <input id="factory" type="text" maxlength="120" autocomplete="off">
-
   <div class="row">
     <div>
-      <label for="outsole_mold">Outsole Mould</label>
-      <input id="outsole_mold" type="text" maxlength="60" autocomplete="off">
+      <label for="category_id">Kategori <span class="req">*</span></label>
+      <select id="category_id"></select>
     </div>
     <div>
-      <label for="last_no">Last No.</label>
-      <input id="last_no" type="text" maxlength="60" autocomplete="off">
+      <label for="gender_id">Gender</label>
+      <select id="gender_id"></select>
     </div>
   </div>
 
-  <label for="construction">Construction</label>
-  <input id="construction" type="text" maxlength="120" autocomplete="off">
-
   <div class="row">
     <div>
-      <label for="size_range">Size Range</label>
-      <input id="size_range" type="text" maxlength="40" autocomplete="off" placeholder="mis. 37 - 44">
+      <label for="construction_id">Construction</label>
+      <select id="construction_id"></select>
     </div>
     <div>
-      <label for="sample_size">Sample Size</label>
-      <input id="sample_size" type="text" maxlength="20" autocomplete="off" placeholder="mis. 41">
+      <label for="last_id">Last No.</label>
+      <select id="last_id"></select>
     </div>
   </div>
-  <div class="hint">Kode model harus unik (tidak peka huruf besar/kecil).</div>
+
+  <label for="outsole_mold_id">Outsole Mould</label>
+  <select id="outsole_mold_id"></select>
+
+  <div class="size-head">
+    <label>Ukuran</label>
+    <span class="size-sum" id="sizeSum">Belum dipilih</span>
+    <button type="button" class="link" id="btnSizeClear">Kosongkan</button>
+  </div>
+  <div class="sizes" id="sizes" role="group" aria-label="Pilih ukuran"></div>
+  <div class="hint">Klik ukuran awal lalu ukuran akhir untuk memilih rentang. Klik ukuran terpilih untuk membuangnya.</div>
+
+  <label for="sample_size">Sample Size</label>
+  <select id="sample_size"></select>
+
+  <div class="hint">Nama model unik di pabrik Anda. Pilihan dropdown baru ditambah di Master Pilihan.</div>
 
   <div class="actions">
     <button type="button" class="btn-secondary" id="btnCancel">Batal</button>

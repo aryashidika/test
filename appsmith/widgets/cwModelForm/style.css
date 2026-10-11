@@ -324,3 +324,65 @@ input[type=number]::-webkit-inner-spin-button {
   height: 16px;
   accent-color: var(--primary);
 }
+
+/* R4: grid ukuran ala kalender */
+.size-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.size-head label {
+  margin: 0;
+}
+
+.size-sum {
+  flex: 1;
+  color: var(--primary);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.sizes {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.size {
+  height: 36px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: #fff;
+  font: inherit;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.size:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+
+.size.on {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+
+.size.anchor {
+  box-shadow: 0 0 0 3px rgba(59, 111, 224, 0.35);
+}
+
+.link {
+  border: none;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 0;
+  cursor: pointer;
+}

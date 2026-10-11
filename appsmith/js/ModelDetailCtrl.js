@@ -4,6 +4,7 @@
 // Izin: lihat = view_model · ubah model, season, article, lampiran = edit_model. Semua dicek lagi di DB
 // (maks. 5 article per season, kode article yang sudah dipakai terkunci, jenis & ukuran lampiran).
 // Query q_articles & q_attachments selalu dijalankan lewat loadArticles() / loadAttachments() (pakai params).
+// R4: form model = dropdown Master Pilihan + grid ukuran (q_model_options).
 export default {
 	seasonId: '',          // season (specsheet) yang dipilih di selSeason
 	article: null,         // article yang lampirannya sedang dibuka di mdlLampiran
@@ -62,17 +63,17 @@ export default {
 		const m = this.model();
 		if (!m) return q_model.isLoading ? 'Memuat…' : 'Model tidak ditemukan. Buka dari Model List.';
 		const e = v => this.esc(v);
-		return `<b style="font-size:18px">${e(m.code)} — ${e(m.name)}</b><br>`
-			+ `Kategori: ${e(m.category || '-')} · Factory: ${e(m.factory || '-')} · ${this.seasons().length} season`;
+		return `<b style="font-size:18px">${e(m.name)}</b> <span style="color:#6b7280">· ${e(m.factory_name)}</span><br>`
+			+ `Kategori: ${e(m.category || '-')} · Gender: ${e(m.gender || '-')} · ${this.seasons().length} season`;
 	},
 
 	infoText() {
 		const m = this.model();
 		if (!m) return '';
 		const rows = [
-			['Kode Model', m.code], ['Nama Model', m.name], ['Kategori', m.category], ['Factory', m.factory],
+			['Nama Model', m.name], ['Pabrik', m.factory_name], ['Kategori', m.category], ['Gender', m.gender],
 			['Outsole Mould', m.outsole_mold], ['Last No.', m.last_no], ['Construction', m.construction],
-			['Size Range', m.size_range], ['Sample Size', m.sample_size],
+			['Ukuran', m.size_range], ['Sample Size', m.sample_size],
 		];
 		return '<table style="border-collapse:collapse">' + rows.map(([k, v]) =>
 			`<tr><td style="padding:4px 24px 4px 0;color:#6b7280">${k}</td><td style="padding:4px 0"><b>${this.esc(v || '-')}</b></td></tr>`
@@ -210,7 +211,8 @@ export default {
 	},
 
 	// ---- model ----
-	openEditModel() {
+	async openEditModel() {
+		try { await q_model_options.run(); } catch (e) { /* daftar lama tetap dipakai */ }
 		this.modelBusy = false;
 		this.modelMsg = null;
 		this.modelKey = this.modelKey + 1;
@@ -219,25 +221,44 @@ export default {
 
 	modelFormModel() {
 		const m = this.model() || {};
+		const sizes = typeof m.sizes === 'string' ? (m.sizes.match(/\d+/g) || []).map(Number) : (m.sizes || []);
+		const form = {
+			name: m.name, category_id: m.category_id || '', gender_id: m.gender_id || '',
+			construction_id: m.construction_id || '', last_id: m.last_id || '', outsole_mold_id: m.outsole_mold_id || '',
+			sizes, sample_size: m.sample_size ? Number(m.sample_size) : null,
+		};
+		return Object.assign({
+			key: this.modelKey, mode: 'edit', form, busy: this.modelBusy, message: this.modelMsg,
+		}, this.optionModel(form));
+	},
+
+	// ---- pilihan model (R4, q_model_options) ----
+	// { KATEGORI: [{ value, label }], ... } — ACTIVE + nilai lama form (ditandai INACTIVE); sizes = UKURAN ACTIVE
+	optionModel(form) {
+		const rows = q_model_options.data || [];
+		const cur = new Set(Object.values(form || {}).filter(v => typeof v === 'string' && v));
+		const opts = {};
+		['KATEGORI', 'GENDER', 'CONSTRUCTION', 'LAST', 'OUTSOLE_MOLD'].forEach(k => {
+			opts[k] = rows.filter(r => r.kind === k && (r.status === 'ACTIVE' || cur.has(r.id)))
+				.map(r => ({ value: r.id, label: r.status === 'ACTIVE' ? r.value : `${r.value} (INACTIVE)` }));
+		});
+		const sizes = rows.filter(r => r.kind === 'UKURAN' && r.status === 'ACTIVE').map(r => Number(r.value)).filter(n => n > 0);
+		return { options: opts, sizes };
+	},
+
+	// Isi cwModelForm -> parameter query simpan model (fn_model_save; sizes dikirim sebagai JSON)
+	modelParams(f) {
 		return {
-			key: this.modelKey,
-			mode: 'edit',
-			form: {
-				code: m.code, name: m.name, category: m.category, factory: m.factory, outsole_mold: m.outsole_mold,
-				last_no: m.last_no, construction: m.construction, size_range: m.size_range, sample_size: m.sample_size,
-			},
-			busy: this.modelBusy,
-			message: this.modelMsg,
+			name: String(f.name || '').trim(), category_id: f.category_id || '', construction_id: f.construction_id || '',
+			gender_id: f.gender_id || '', last_id: f.last_id || '', outsole_mold_id: f.outsole_mold_id || '',
+			sizes: JSON.stringify(Array.isArray(f.sizes) ? f.sizes : []),
+			sample_size: f.sample_size === null || f.sample_size === undefined ? '' : String(f.sample_size),
 		};
 	},
 
 	async saveModel() {
 		const f = cwModelForm.model || {};
-		const params = {
-			id: appsmith.URL.queryParams.id, code: f.code, name: f.name, category: f.category, factory: f.factory,
-			outsole_mold: f.outsole_mold, last_no: f.last_no, construction: f.construction,
-			size_range: f.size_range, sample_size: f.sample_size,
-		};
+		const params = Object.assign({ id: appsmith.URL.queryParams.id }, this.modelParams(f));
 		const ok = await this.runForm(a_model_update, params,
 			v => { this.modelMsg = v; }, v => { this.modelBusy = v; }, 'mdlModel');
 		if (!ok) return;

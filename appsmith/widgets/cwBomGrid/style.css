@@ -381,3 +381,48 @@ textarea.cell {
   background: var(--surface-alt, #EEF1F7);
   color: var(--primary);
 }
+
+/* R4: varian per sel */
+.grid td.c-art.yellow {
+  background: #FEF9C3;
+}
+
+.vcode {
+  display: block;
+  font-size: 10.5px;
+  color: var(--muted);
+  letter-spacing: 0.02em;
+  padding: 0 2px;
+}
+
+.vcode.warn {
+  color: var(--warn);
+  font-weight: 600;
+}
+
+.link.reg {
+  display: block;
+  font-size: 11.5px;
+  padding: 2px 2px 0;
+}
+
+.fill {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 3px;
+  font-size: 11px;
+  color: var(--primary);
+  cursor: pointer;
+}
+
+.fill input {
+  width: 14px;
+  height: 14px;
+  accent-color: var(--primary);
+}
+
+#btnSupplier {
+  font-size: 12px;
+  white-space: nowrap;
+}

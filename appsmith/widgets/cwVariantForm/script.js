@@ -2,6 +2,8 @@
 // MaterialDetailCtrl.saveVariant() -> fn_variant_save. R2b (keputusan user 8 Okt 2026): satu baris seperti ERP
 // (Material Code, warna, thickness teks). Saat kode 10 karakter diketik, event onLookup -> fn_variant_code_hint:
 // 3 tengah / 3 akhir yang sudah tercatat mengisi & mengunci thickness / warna; awalan beda = peringatan saja.
+// R4: model.fixed = { color, thickness } (dibuka dari sel kuning specsheet) -> warna & thickness terkunci;
+//   bagian kode yang tercatat dengan arti lain hanya diberi peringatan (DB menolak saat simpan).
 const $ = id => document.getElementById(id);
 let lastKey = null;
 let busy = false;
@@ -9,6 +11,7 @@ let isEdit = false;
 let lookupTimer = null;
 let lastLookup = null;
 const locked = { color: false, thickness: false };
+let fixed = null;                          // { color, thickness } dari specsheet
 
 function applyTheme(t) {
   t = t || {};
@@ -45,6 +48,10 @@ const cleanCode = s => String(s || '').trim().replace(/\s+/g, ' ').toUpperCase()
 
 // ---- isi otomatis dari bagian kode ----
 function unlock(field) {
+  if (fixed) {
+    setNote(field, field === 'color' ? 'Dari sel specsheet.' : 'Dari baris specsheet.');
+    return;
+  }
   if (locked[field]) {
     $(field).value = '';
     locked[field] = false;
@@ -64,6 +71,13 @@ function applyHint(h) {
   const part = { thickness: code.substr(4, 3), color: code.substr(7, 3) };
   [['thickness', h.thickness_known, h.thickness, h.thickness_ref],
    ['color', h.color_known, h.color, h.color_ref]].forEach(([field, known, value, ref]) => {
+    if (fixed) {
+      const same = String(value || '').toUpperCase() === String(fixed[field] || '').toUpperCase();
+      setNote(field, !known ? (field === 'color' ? 'Dari sel specsheet.' : 'Dari baris specsheet.')
+        : same ? `Kode ${part[field]} = ${value || 'tanpa thickness'} (cocok).`
+          : `Perhatian: kode ${part[field]} tercatat sebagai ${value || 'tanpa thickness'} (${ref}), bukan ${fixed[field] || 'tanpa thickness'}. Periksa Material Code.`);
+      return;
+    }
     if (known) {
       $(field).value = value || '';
       $(field).disabled = true;
@@ -109,17 +123,18 @@ function fillForm(m) {
   $('materialLabel').textContent = m.materialLabel || '';
   locked.color = false;
   locked.thickness = false;
+  fixed = m.fixed || null;
   ['code', 'color', 'thickness'].forEach(id => {
     $(id).value = f[id] || '';
-    $(id).disabled = false;
+    $(id).disabled = !!fixed && id !== 'code';
     $(id).classList.remove('invalid');
   });
-  setNote('color', '');
-  setNote('thickness', '');
+  setNote('color', fixed ? 'Dari sel specsheet.' : '');
+  setNote('thickness', fixed ? 'Dari baris specsheet.' : '');
   $('prefixWarn').hidden = true;
   fillSelect($('status'), m.statusOptions, f.status || 'ACTIVE');
   $('statusBox').hidden = !isEdit;
-  $('btnAgain').hidden = isEdit;
+  $('btnAgain').hidden = isEdit || !!fixed;
   lastLookup = null;
   $('code').focus();
   if (isEdit) onCodeInput();

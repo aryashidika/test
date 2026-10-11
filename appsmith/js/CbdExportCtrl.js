@@ -1,6 +1,6 @@
 // JSObject "CbdExportCtrl" — page Cost Breakdown (CBD): Export Excel revisi CBD yang sedang dibuka. Layout mengikuti
 // contoh user "FH26_CBD PRODUCTION_ACC ILLUZION IV ELITE FG PRM 097.xlsx": header (kurs 1 $ = …), tabel material per
-// grup + subtotal, baris MISSING_IN_SPEC (tidak dihitung), Cost recapitulation, Target FOB, Harga jual, change log.
+// grup + subtotal, baris MISSING_IN_SPEC (tidak dihitung), Cost recapitulation, Target FOB, baris PO (R5, ganti blok Harga jual), change log.
 // Sel hitungan berisi RUMUS Excel (Usage = 1/Yield, IDR = USD × kurs, Cost/pr, SUM, selisih) beserta hasilnya dari DB,
 // jadi file tetap hidup bila diubah di Excel dan langsung tampil benar. File ditulis JSObject XlsxWriter (tanpa library).
 // Data = query yang sudah dimuat page ini (Brand hanya revisi terbit). Tidak ada query baru (q_cbd_model + 3 kolom).
@@ -70,7 +70,7 @@ export default {
 		this.step = 'menyusun isi';
 		try {
 			const wb = this.build(m, s, a, r);
-			await this.save(wb, this.fileName('CBD', m.code, s.season, a.code, `${r.stage}-r${r.revision_no}`, r.status === 'DRAFT' ? 'DRAFT' : ''));
+			await this.save(wb, this.fileName('CBD', m.name, s.season, a.code, `${r.stage}-r${r.revision_no}`, r.status === 'DRAFT' ? 'DRAFT' : ''));
 			showAlert('File Excel CBD diunduh.', 'success');
 		} catch (e) {
 			showAlert(`Export gagal saat ${this.step}: ` + Util.cleanError((e && e.message) || String(e)), 'error');
@@ -112,7 +112,7 @@ export default {
 		ws.getCell('L3').font = { bold: true, size: 14 };
 		const v = x => x || '-';
 		const info = [
-			['Model Name', `${m.code} — ${m.name}; Mold: ${v(m.outsole_mold)}; Last: ${v(m.last_no)}; Size Range: ${v(m.size_range)}`],
+			['Model Name', `${m.name} (${v(m.factory_name)}); Mold: ${v(m.outsole_mold)}; Last: ${v(m.last_no)}; Size Range: ${v(m.size_range)}`],
 			['Article #', `${a.code}`],
 			['Construction', v(m.construction)],
 			['Color', v(a.colorway)],
@@ -263,22 +263,13 @@ export default {
 		}
 		[tRow, vRow].forEach(row => { row.getCell(11).alignment = { horizontal: 'right' }; });
 
-		// ---- Harga jual ----
-		ws.addRow([]);
-		const sTitle = ws.addRow([]);
-		sTitle.getCell(11).value = 'Harga jual';
-		sTitle.getCell(11).font = { bold: true, size: 12, color: { argb: this.NAVY } };
-		const spRow = ws.addRow([]);
-		spRow.getCell(11).value = 'Selling price';
-		spRow.getCell(12).value = this.n(rc.selling_price);
-		spRow.getCell(12).numFmt = this.RP;
-		const mRow = ws.addRow([]);
-		mRow.getCell(11).value = 'Margin %';
-		if (spRow.getCell(12).value) {
-			mRow.getCell(12).value = this.f(`(L${spRow.number}-L${fobRow})/L${spRow.number}*100`, this.n(rc.margin_pct));
+		// ---- R5: PO (mis. SMS = Actual FOB x 1,25). Selling price & margin tidak ada di CBD. ----
+		const factor = this.n(rc.po_factor);
+		if (factor) {
+			const pRow = recapRow(`PO ${r.stage} (Actual FOB × ${String(factor).replace('.', ',')})`,
+				this.f(`ROUND(L${fobRow}*${factor},2)`, this.n(rc.po_price)), 'harga PO ke brand', true);
+			ws.getRow(pRow).getCell(12).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: this.GROUP_FILL } };
 		}
-		mRow.getCell(12).numFmt = '0.00';
-		[spRow, mRow].forEach(row => { this.box(row, 11, 12); row.getCell(11).alignment = { horizontal: 'right' }; });
 
 		// ---- change log revisi ini ----
 		if (log) {

@@ -26,6 +26,7 @@ const RECAP = [
   [null, 'Actual FOB', 'actual_fob', 2],
   [null, 'Target FOB', 'target_fob', 2],
   [null, 'Selisih', 'variance', 2],
+  [null, 'PO (Actual FOB × faktor stage)', 'po_price', 2],          // R5: kosong bila stage tanpa faktor
 ];
 
 // Jenis baris biaya (F8b) — urutan tampil
@@ -235,9 +236,8 @@ function gapText(line) {
     case 'QUOTATION': return ['material quotation — belum diisi (cost 0)', ''];
     case 'NO_SUPPLIER': return ['supplier belum dipilih di specsheet', ''];
     case 'AVAILABLE': return ['harga master tersedia — klik Refresh Harga', 'warn'];
-    case 'PENDING': return ['harga master menunggu approval Manager Costing', 'warn'];
-    case 'NO_COLOR_PRICE': return [`belum ada harga untuk warna ini (ada: ${line.other_colors || '-'})`, 'warn'];
-    case 'NO_PRICE': return ['belum ada harga master untuk supplier ini', 'warn'];
+    case 'PENDING': return ['harga master menunggu persetujuan Manager Costing', 'warn'];
+    case 'NO_PRICE': return ['belum ada harga master untuk Material Code + supplier ini', 'warn'];
     default: return [line.price_method === 'QUOTATION' ? 'tidak dihargai terpisah' : 'tanpa harga', ''];
   }
 }
@@ -468,6 +468,12 @@ function costTable(r, editable) {
   const fob = labelRow('ACTUAL FOB', fmt(r.actual_fob, 2, 2), 'material cost + semua baris biaya');
   fob.className = 'total';
   tb.appendChild(fob);
+  if (num(r.po_factor) !== null) {                     // R5: PO SMS = Actual FOB x faktor stage
+    const po = labelRow(`PO ${r.stage || ''} (× ${fmt(r.po_factor, 4, 2)})`, fmt(r.po_price, 2, 2),
+      r.status === 'PUBLISHED' ? 'faktor dibekukan saat terbit' : 'faktor stage saat ini');
+    po.className = 'total';
+    tb.appendChild(po);
+  }
   tb.appendChild(labelRow('Target FOB', editable ? headerInput('TARGET_FOB', 'Target FOB', r.target_fob, 2, false, true) : fmt(r.target_fob, 2, 2)));
   tb.appendChild(labelRow('Selisih (Actual − Target)', varianceView(r)));
   t.appendChild(tb);
@@ -533,21 +539,51 @@ function addCostRow() {
   return tr;
 }
 
-// Harga jual: Selling price ⇄ Margin % (saling terhubung, dihitung DB)
-function sellTable(r, editable) {
+// R5: simulasi harga jual Brand (simulate_margin) — Selling price ⇄ Margin % dari Actual FOB.
+// Dihitung di layar saja, TIDAK disimpan (tanpa tombol simpan, tidak ikut export).
+let sim = { key: null, price: '', margin: '' };
+
+function simRead(text, neg) {
+  const p = parseInput(text, { neg, money: true });
+  return p.error || p.value === '' ? null : Number(p.value);
+}
+
+function sellTable(r) {
   const wrap = el('section', 'sect');
-  wrap.appendChild(el('h3', null, 'Harga jual'));
+  wrap.appendChild(el('h3', null, 'Simulasi harga jual'));
+  const fob = num(r.actual_fob);
+  if (sim.key !== r.cbd_revision_id) sim = { key: r.cbd_revision_id, price: '', margin: '' };
   const t = el('table', 'mini sell');
   const tb = el('tbody');
-  [['SELLING_PRICE', 'Selling price (Rp)', 'selling_price', true], ['MARGIN', 'Margin %', 'margin_pct', false]].forEach(([f, label, k, money]) => {
+  const mk = (label, value, aria) => {
+    const i = el('input', 'cell');
+    i.type = 'text';
+    i.inputMode = 'decimal';
+    i.value = value;
+    i.setAttribute('aria-label', aria);
     const tr = el('tr');
     tr.appendChild(cell('td', 'lbl', label));
-    tr.appendChild(cell('td', 'n', editable ? headerInput(f, label, r[k], 2, f === 'MARGIN', money)
-      : fmt(r[k], 2, 2) + (f === 'MARGIN' && num(r[k]) !== null ? ' %' : '')));
+    tr.appendChild(cell('td', 'n', i));
     tb.appendChild(tr);
+    return i;
+  };
+  const price = mk('Selling price (Rp)', sim.price, 'Simulasi selling price');
+  const margin = mk('Margin %', sim.margin, 'Simulasi margin');
+  price.addEventListener('input', () => {
+    sim.price = price.value;
+    const v = simRead(price.value, false);
+    sim.margin = v && fob !== null && v > 0 ? ((v - fob) / v * 100).toFixed(2).replace('.', ',') : '';
+    margin.value = sim.margin;
+  });
+  margin.addEventListener('input', () => {
+    sim.margin = margin.value;
+    const m = simRead(margin.value, true);
+    sim.price = m !== null && m < 100 && fob !== null ? Math.round(fob / (1 - m / 100)).toLocaleString('id-ID') : '';
+    price.value = sim.price;
   });
   t.appendChild(tb);
   wrap.appendChild(t);
+  wrap.appendChild(el('p', 'muted', `Dari Actual FOB ${fmt(r.actual_fob, 2, 2)}. Hanya simulasi — tidak disimpan dan tidak ikut export.`));
   return wrap;
 }
 
@@ -562,7 +598,7 @@ function renderBelow() {
     lastCostOk = M.costOkKey;
   }
   box.appendChild(costTable(r, !!M.editable));
-  box.appendChild(sellTable(r, !!M.editable));
+  if (M.canSimulate) box.appendChild(sellTable(r));
 }
 
 // ---------------------------------------------------------------- render

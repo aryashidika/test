@@ -57,10 +57,18 @@ export default {
 					+ 'Samakan dulu sebelum terbit.',
 			});
 		}
-		const gaps = lines.filter(l => ['NO_PRICE', 'NO_COLOR_PRICE', 'PENDING'].includes(l.price_gap)).length;
+		const pending = lines.filter(l => l.pending).length;
+		if (pending) {
+			out.push({
+				tone: 'danger',
+				text: `${pending} baris punya usulan harga yang menunggu persetujuan Manager Costing — CBD belum bisa terbit. `
+					+ 'Setelah disetujui, klik Refresh Harga dari Master.',
+			});
+		}
+		const gaps = lines.filter(l => l.price_gap === 'NO_PRICE').length;
 		const noSup = lines.filter(l => l.price_gap === 'NO_SUPPLIER').length;
 		const parts = [];
-		if (gaps) parts.push(`${gaps} baris belum punya harga master (isi di Master Material, lalu Refresh Harga) — boleh terbit dengan cost 0.`);
+		if (gaps) parts.push(`${gaps} baris belum punya harga master untuk Material Code + supplier-nya (ajukan di Material Detail) — boleh terbit dengan cost 0.`);
 		if (noSup) parts.push(`${noSup} baris belum punya supplier di specsheet.`);
 		if (parts.length) out.push({ tone: 'info', text: parts.join(' ') });
 		const rc = this.recap();
@@ -79,6 +87,7 @@ export default {
 			recap: r ? this.recap() : null,
 			costItems: r ? this.costItems() : [],
 			costOkKey: this.costOkKey,
+			canSimulate: Auth.can('simulate_margin'),
 			banners: this.banners(),
 			busy: this.busyCount > 0,
 			message: this.message,
@@ -184,7 +193,7 @@ export default {
 				current = 'Harga sekarang: kosong';
 			}
 			if (!q && l.master_price != null && l.price_source !== 'MASTER') info = `Harga master berlaku: ${fmt(l.master_price, l.master_currency)}.`;
-			if (!q && l.price_gap === 'PENDING') info = 'Ada usulan harga master yang menunggu approval Manager Costing — setelah di-approve, klik Refresh Harga.';
+			if (!q && l.pending) info = 'Ada usulan harga master yang menunggu persetujuan Manager Costing — setelah disetujui, klik Refresh Harga.';
 		}
 		return {
 			key: this.priceKey,

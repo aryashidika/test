@@ -40,3 +40,7 @@ Ukuran: modal lebar ±560 px; widget tinggi ±460 px.
 |---|---|---|
 | `onSave` | `.mode` (`EMPTY`/`COPY`/`NEXT_REVISION`/`NEXT_STAGE`), `.stage` (EMPTY/COPY), `.source_specsheet_id` (COPY) | `{{SpecCtrl.saveRevision()}}` |
 | `onCancel` | – | `{{closeModal('mdlRevisi')}}` |
+
+## Perubahan R3–R7 (11 Okt 2026)
+
+R7: pilihan ketiga **Copy dari model lain (pabrik & kategori sama)** = mode `COPY_MODEL` (dikirim apa adanya; `SpecCtrl.saveRevision()` memanggil `fn_revision_create` mode `COPY`). Model masuk + `modelSources: [{ id: <specsheet id>, label, summary }]` (`q_copy_model_sources`); ringkasan "Akan menyalin N baris…" tampil untuk sumber terpilih.
