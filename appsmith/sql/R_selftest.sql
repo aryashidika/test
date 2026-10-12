@@ -3,7 +3,8 @@
 -- Jalankan SETELAH sql/R_revisi_semua.sql, lewat z_run_sql di app "DB Tools" (Use prepared statements = OFF),
 -- SEBELUM import app. Hasil yang diharapkan: baris terakhir "SELFTEST LOLOS". Kalau ada yang salah, query berhenti
 -- dengan pesan "SELFTEST GAGAL: ..." — kirim pesan itu ke pengembang.
--- Data uji memakai nama berawalan UJI / domain uji.test dan ikut dibatalkan.
+-- Data uji memakai nama berawalan UJI, pabrik SELFTEST PABRIK A/B dan email @selftest.invalid (tidak bentrok dengan
+-- user uji buatan Anda, mis. brand@uji.test) dan ikut dibatalkan.
 -- ============================================================================
 BEGIN;
 
@@ -49,25 +50,25 @@ END;
 $$;
 
 -- ---------------------------------------------------------------- data uji: 2 pabrik, user per role
-INSERT INTO factory (name) VALUES ('UJI PABRIK A'), ('UJI PABRIK B');
+INSERT INTO factory (name) VALUES ('SELFTEST PABRIK A'), ('SELFTEST PABRIK B');
 INSERT INTO app_user (email, full_name, role, is_active, password_hash, must_change_password, failed_attempts, factory_id)
 SELECT u.email, u.name, u.role, true, crypt('Uji-12345', gen_salt('bf', 4)), false, 0,
        (SELECT id FROM factory WHERE name = u.factory)
-  FROM (VALUES ('spec.a@uji.test', 'UJI SPEC A', 'VENDOR_SPEC', 'UJI PABRIK A'),
-               ('cbd.a@uji.test', 'UJI CBD A', 'VENDOR_CBD', 'UJI PABRIK A'),
-               ('mc.a@uji.test', 'UJI MC A', 'MANAGER_COSTING', 'UJI PABRIK A'),
-               ('spec.b@uji.test', 'UJI SPEC B', 'VENDOR_SPEC', 'UJI PABRIK B'),
-               ('cbd.b@uji.test', 'UJI CBD B', 'VENDOR_CBD', 'UJI PABRIK B'),
-               ('brand@uji.test', 'UJI BRAND', 'BRAND_VIEWER', NULL)) AS u(email, name, role, factory);
+  FROM (VALUES ('spec.a@selftest.invalid', 'UJI SPEC A', 'VENDOR_SPEC', 'SELFTEST PABRIK A'),
+               ('cbd.a@selftest.invalid', 'UJI CBD A', 'VENDOR_CBD', 'SELFTEST PABRIK A'),
+               ('mc.a@selftest.invalid', 'UJI MC A', 'MANAGER_COSTING', 'SELFTEST PABRIK A'),
+               ('spec.b@selftest.invalid', 'UJI SPEC B', 'VENDOR_SPEC', 'SELFTEST PABRIK B'),
+               ('cbd.b@selftest.invalid', 'UJI CBD B', 'VENDOR_CBD', 'SELFTEST PABRIK B'),
+               ('brand@selftest.invalid', 'UJI BRAND', 'BRAND_VIEWER', NULL)) AS u(email, name, role, factory);
 
 -- ---------------------------------------------------------------- R3 + R4
 DO $$
 DECLARE
-  t_spec  text := pg_temp.tok('spec.a@uji.test');
-  t_cbd   text := pg_temp.tok('cbd.a@uji.test');
-  t_mc    text := pg_temp.tok('mc.a@uji.test');
-  t_specb text := pg_temp.tok('spec.b@uji.test');
-  t_cbdb  text := pg_temp.tok('cbd.b@uji.test');
+  t_spec  text := pg_temp.tok('spec.a@selftest.invalid');
+  t_cbd   text := pg_temp.tok('cbd.a@selftest.invalid');
+  t_mc    text := pg_temp.tok('mc.a@selftest.invalid');
+  t_specb text := pg_temp.tok('spec.b@selftest.invalid');
+  t_cbdb  text := pg_temp.tok('cbd.b@selftest.invalid');
   v_sup   uuid; v_sup2 uuid; v_mat uuid; v_mat2 uuid;
   v1 uuid; v2 uuid; v3 uuid; v4 uuid; vg uuid; ve uuid;
   v_link  uuid; v_link2 uuid; v_batch uuid; v_b2 uuid;
@@ -164,7 +165,7 @@ BEGIN
   m_a := fn_model_save(t_spec, NULL, 'Uji Runner X', v_cat, NULL, v_gender, v_last, NULL, '[44, 37, 38, 39, 40, 42, 43]', 40);
   PERFORM pg_temp.ok((SELECT size_range FROM v_model WHERE id = m_a) = '37–40, 42–44', 'R4 ukuran tersimpan & label ringkas');
   PERFORM pg_temp.ok((SELECT name || '|' || factory_name || '|' || last_no FROM v_model WHERE id = m_a)
-                     = 'UJI RUNNER X|UJI PABRIK A|UJI-L01', 'R4 nama huruf besar, pabrik otomatis, last per pabrik');
+                     = 'UJI RUNNER X|SELFTEST PABRIK A|UJI-L01', 'R4 nama huruf besar, pabrik otomatis, last per pabrik');
   PERFORM pg_temp.must_fail(format('SELECT fn_model_save(%L, NULL, ''Uji Runner Y'', %L, NULL, NULL, %L, NULL, ''[40]'', NULL)',
             t_spec, v_cat, v_lastb), '%pabrik lain%', 'R4 Last pabrik lain ditolak');
   PERFORM pg_temp.must_fail(format('SELECT fn_model_save(%L, NULL, ''Uji Runner Y'', %L, NULL, NULL, NULL, NULL, ''[40, 41]'', 39)',
@@ -316,8 +317,8 @@ BEGIN
   PERFORM fn_price_decide(t_mc, (SELECT jsonb_agg(id) FROM material_price WHERE batch_id = v_b3), 'REJECT', 'Terlalu mahal');
   PERFORM pg_temp.ok((SELECT reject_reason FROM v_worklist_price_rejected WHERE code = 'MSHU120GRY') = 'Terlalu mahal',
                      'R6 Tugas Saya CBD: usulan ditolak + alasan');
-  PERFORM pg_temp.ok((SELECT count(*) FROM v_worklist_cbd WHERE factory_id = (SELECT id FROM factory WHERE name = 'UJI PABRIK B')) = 0
-                     AND (SELECT count(*) FROM v_recent_published WHERE factory_id = (SELECT id FROM factory WHERE name = 'UJI PABRIK A')) >= 2,
+  PERFORM pg_temp.ok((SELECT count(*) FROM v_worklist_cbd WHERE factory_id = (SELECT id FROM factory WHERE name = 'SELFTEST PABRIK B')) = 0
+                     AND (SELECT count(*) FROM v_recent_published WHERE factory_id = (SELECT id FROM factory WHERE name = 'SELFTEST PABRIK A')) >= 2,
                      'R6 worklist & terbit terbaru membawa pabrik (filter di query)');
 
   -- ===== R7: copy lintas model =====
