@@ -335,3 +335,66 @@ input[type=number]::-webkit-inner-spin-button {
   padding: 8px 12px;
   font-size: 12.5px;
 }
+
+/* R9: usulan Material Code */
+.sug {
+  margin-top: 8px;
+  border: 1px solid var(--border, #D6DCE8);
+  background: #F5F8FE;
+  border-radius: var(--radius);
+  padding: 8px 12px;
+  font-size: 12.5px;
+  color: #33415C;
+}
+
+.sug-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.sug-label {
+  min-width: 112px;
+  color: #6B7280;
+}
+
+.sug-code {
+  font-family: Consolas, "Courier New", monospace;
+  font-weight: 600;
+}
+
+.sug-none {
+  color: #8A5A00;
+}
+
+.sug-other {
+  color: #6B7280;
+}
+
+/* R9: konfirmasi arti kode */
+.conf-box {
+  margin-top: 8px;
+  border: 1px solid #F3B7B0;
+  background: #FDEDEB;
+  color: #9B2C1F;
+  border-radius: var(--radius);
+  padding: 8px 12px;
+  font-size: 12.5px;
+}
+
+.conf-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0 0;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.conf-check input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+}

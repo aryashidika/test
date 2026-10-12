@@ -2,12 +2,18 @@
 // MISSING_IN_SPEC, dengan panel ringkasan menempel di atas grid, banner refresh (F8), dan di bawah grid tabel
 // Cost recapitulation (baris biaya) + Harga jual (F8b).
 // Hanya tampilan & input: Yield, Loss %, dan nilai rekap diedit di sel (revisi DRAFT); harga lewat tombol
-// Isi harga / Override… / Hapus override (modal di luar widget). Setiap aksi dikirim sebagai model.action + event
+// Isi harga (quotation) / Hapus override / Ajukan harga master (R8) (modal di luar widget). Setiap aksi dikirim sebagai model.action + event
 // onAction (CbdGridCtrl.onAction()); aturan final di DB. Usage, harga IDR/USD, cost/pair, dan rekap dihitung
 // di DB (v_cbd_line, v_cbd_recap) — di sini hanya diformat.
+// Antrean aksi (sama dengan cwBomGrid): aksi dikirim SATU PER SATU; berikutnya baru dikirim setelah CbdGridCtrl
+//   membalas doneSeq >= seq (ack). Tanpa ack 5 detik -> kirim ulang (seq yang sudah selesai diabaikan). Nilai yang
+//   sudah dikirim ditampilkan (optimistic) sampai antrean kosong. Sel disimpan saat change DAN blur.
 const $ = id => document.getElementById(id);
 let M = {};
 let seq = 0;
+let queue = [];             // aksi menunggu ack CbdGridCtrl (model.doneSeq); queue[0] = yang sedang dikirim
+let retryTimer = null;
+let optimistic = {};        // key input -> nilai yang sudah dikirim tapi belum kembali dari DB
 let lastMsg = null;
 let localMsg = null;
 
@@ -92,9 +98,46 @@ function parseInput(text, opt) {
 function send(type, data) {
   localMsg = null;
   showMessage();
-  seq += 1;
-  appsmith.updateModel({ action: Object.assign({ type, seq }, data) });
+  seq = Math.max(Date.now(), seq + 1);         // naik terus, juga setelah widget dimuat ulang
+  queue.push(Object.assign({ type, seq }, data));
+  if (queue.length === 1) setTimeout(flush, 0);  // setelah pemanggil mencatat nilai optimistic
+}
+
+function flush() {
+  clearTimeout(retryTimer);
+  if (!queue.length) return;
+  appsmith.updateModel({ action: queue[0] });
   appsmith.triggerEvent('onAction');
+  retryTimer = setTimeout(flush, 5000);        // event hilang (model di-reset) -> kirim ulang
+}
+
+// Balasan CbdGridCtrl: model.doneSeq = seq aksi terakhir yang selesai (berhasil atau gagal) dan datanya sudah dimuat ulang
+function onAck(m) {
+  const done = Number((m || {}).doneSeq) || 0;
+  const before = queue.length;
+  while (queue.length && queue[0].seq <= done) queue.shift();
+  if (queue.length === before) return;
+  if (queue.length) {
+    flush();
+  } else {
+    clearTimeout(retryTimer);
+    optimistic = {};
+  }
+}
+
+// Simpan sel (change + blur): nilai yang dipulihkan setelah render ulang tidak memicu change, jadi blur ikut menyimpan
+function committer(i, key, run) {
+  const go = () => {
+    if (!i.isConnected) return;                // elemen sudah diganti render ulang
+    const before = seq;
+    run();
+    if (seq !== before) {
+      i.dataset.orig = i.value.trim();
+      optimistic[key] = i.dataset.orig;
+    }
+  };
+  i.addEventListener('change', go);
+  i.addEventListener('blur', go);
 }
 
 function showMessage() {
@@ -133,7 +176,7 @@ function numInput(o) {
     i.title = o.needTitle || '';
   }
   i.addEventListener('input', () => i.classList.remove('invalid'));
-  i.addEventListener('change', () => {
+  committer(i, o.key, () => {
     if (i.value.trim() === i.dataset.orig) return;
     const p = parseInput(i.value, o.parse);
     if (p.error) return invalid(i, p.error);
@@ -175,7 +218,7 @@ function textInput(o) {
   i.dataset.orig = i.value;
   i.setAttribute('aria-label', o.label);
   i.addEventListener('input', () => i.classList.remove('invalid'));
-  i.addEventListener('change', () => {
+  committer(i, o.key, () => {
     const v = i.value.trim();
     if (v === i.dataset.orig.trim()) return;
     if (o.required && !v) return invalid(i, `${o.label} wajib diisi.`);
@@ -268,8 +311,8 @@ function priceCell(line, editable) {
     box.appendChild(el('span', 'hint warn', line.price_source === 'QUOTATION'
       ? 'material sekarang katalog — klik Refresh Harga' : 'harga master berubah — klik Refresh Harga'));
   }
+  const acts = el('div', 'acts');
   if (editable && !missing) {
-    const acts = el('div', 'acts');
     if (line.price_method === 'QUOTATION') {
       acts.appendChild(linkBtn(p !== null ? 'Ubah harga' : 'Isi harga', 'Harga quotation material proses',
         () => send('editPrice', { line_id: line.id, mode: 'QUOTATION' })));
@@ -278,8 +321,14 @@ function priceCell(line, editable) {
       acts.appendChild(linkBtn('Hapus override', 'Kembali ke harga master',
         () => send('clearOverride', { line_id: line.id }), true));
     }
-    if (acts.childNodes.length) box.appendChild(acts);
   }
+  // R8: ajukan harga MASTER untuk Material Code + supplier baris ini (alur approval biasa; Manager Costing langsung berlaku)
+  if (M.canProposePrice && !missing && line.price_method === 'CATALOG' && line.variant_id && line.supplier_id && !line.pending) {
+    acts.appendChild(linkBtn(M.directPrice ? 'Harga master baru' : 'Ajukan harga master',
+      `Harga master ${line.material_code || ''} · ${line.supplier_name || ''} — berlaku untuk semua CBD`,
+      () => send('proposePrice', { line_id: line.id })));
+  }
+  if (acts.childNodes.length) box.appendChild(acts);
   return box;
 }
 
@@ -666,6 +715,11 @@ function render(model) {
 
   // pulihkan ketikan, fokus, scroll
   document.querySelectorAll('input.cell[data-key]').forEach(i => {
+    const o = optimistic[i.dataset.key];
+    if (o !== undefined) {
+      i.value = o;
+      i.dataset.orig = o;
+    }
     const d = dirty[i.dataset.key];
     if (d === undefined) return;
     // ketikan yang sudah tersimpan (nilai DB sama) tidak dipulihkan
@@ -688,13 +742,16 @@ function render(model) {
   if (noYield) parts.push(`${noYield} berharga tanpa yield`);
   if (noPrice) parts.push(`${noPrice} tanpa harga`);
   if (!editable) parts.push('hanya baca');
-  $('status').textContent = (M.busy ? 'Menyimpan… · ' : '') + parts.join(' · ');
+  $('status').textContent = (M.busy || queue.length ? 'Menyimpan… · ' : '') + parts.join(' · ');
   showMessage();
 }
 
 appsmith.onReady(() => {
   applyTheme(appsmith.theme);
   render(appsmith.model);
-  appsmith.onModelChange(m => render(m));
+  appsmith.onModelChange(m => {
+    onAck(m);
+    render(m);
+  });
   if (typeof appsmith.onThemeChange === 'function') appsmith.onThemeChange(applyTheme);
 });

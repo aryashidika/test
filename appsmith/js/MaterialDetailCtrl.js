@@ -5,7 +5,7 @@ export default {
 	// ---- state form (Default model widget) ----
 	matKey: 0, matBusy: false, matMsg: null,
 	linkKey: 0, linkBusy: false, linkMsg: null, linkIsNew: true, linkForm: {},
-	varKey: 0, varBusy: false, varMsg: null, varIsNew: true, varForm: {}, varHint: null, varLookupSeq: 0,
+	varKey: 0, varBusy: false, varMsg: null, varIsNew: true, varForm: {}, varHint: null, varLookupSeq: 0, varSuggest: null, varSuggestSeq: 0,
 	priceKey: 0, priceBusy: false, priceMsg: null, priceMode: 'propose', pricePreset: {},
 	rejectKey: 0, rejectBusy: false, rejectMsg: null, rejectRow: null,
 
@@ -43,10 +43,15 @@ export default {
 	},
 
 	// Tabel harga. Tanpa "Tampilkan riwayat": sembunyikan RIWAYAT dan usulan DITOLAK yang lebih lama dari 30 hari.
+	// Riwayat OFF: sembunyikan harga yang sudah berakhir dan DITOLAK yang sudah diganti (ada usulan / harga baru untuk
+	// varian × supplier yang sama sesudah ditolak) atau lebih dari 30 hari (R8 catatan 2, sama dengan Beranda).
 	pricesShown() {
 		const history = swHargaRiwayat.isSwitchedOn === true;
+		const all = this.prices();
 		const recent = p => p.decided_at && moment().diff(moment(p.decided_at), 'days') <= 30;
-		return this.prices().filter(p => history || (p.state !== 'RIWAYAT' && (p.state !== 'DITOLAK' || recent(p))));
+		const replaced = p => all.some(n => n.id && n.id !== p.id && n.variant_id === p.variant_id && n.link_id === p.link_id
+			&& n.created_at && p.decided_at && moment(n.created_at).isSameOrAfter(moment(p.decided_at)));
+		return all.filter(p => history || (p.state !== 'RIWAYAT' && (p.state !== 'DITOLAK' || (recent(p) && !replaced(p)))));
 	},
 
 	// Warna kolom Keterangan di tblPrices
@@ -184,6 +189,7 @@ export default {
 		this.varIsNew = true;
 		this.varForm = {};
 		this.varHint = null;
+		this.varSuggest = null;
 		this.varBusy = false;
 		this.varMsg = null;
 		this.varKey = this.varKey + 1;
@@ -196,6 +202,7 @@ export default {
 		this.varIsNew = false;
 		this.varForm = { id: v.id, code: v.code, color: v.color, thickness: v.thickness, status: v.status };
 		this.varHint = null;
+		this.varSuggest = null;
 		this.varBusy = false;
 		this.varMsg = null;
 		this.varKey = this.varKey + 1;
@@ -210,6 +217,7 @@ export default {
 			form: this.varForm,
 			statusOptions: this.statusOptions,
 			hint: this.varHint,
+			suggest: this.varSuggest,    // R9: usulan Material Code
 			busy: this.varBusy,
 			message: this.varMsg,
 		};
@@ -217,6 +225,7 @@ export default {
 
 	// cwVariantForm onLookup: arti 3 tengah (thickness) / 3 akhir (warna) kode yang sudah tercatat di pabrik ini
 	async lookupVariantCode() {
+		if ((cwVariantForm.model || {}).lookupKind === 'suggest') return this.suggestVariantCode();
 		const code = String((cwVariantForm.model || {}).lookupCode || '');
 		const seq = this.varLookupSeq + 1;
 		this.varLookupSeq = seq;
@@ -231,12 +240,29 @@ export default {
 		}
 	},
 
+	// R9 cwVariantForm onLookup (lookupKind 'suggest'): usulan Material Code dari warna + thickness
+	async suggestVariantCode() {
+		const m = cwVariantForm.model || {};
+		const color = String(m.suggestColor || '');
+		const thickness = String(m.suggestThickness || '');
+		const seq = this.varSuggestSeq + 1;
+		this.varSuggestSeq = seq;
+		try {
+			const rows = await q_code_suggest.run({ material_id: appsmith.URL.queryParams.id, color, thickness });
+			if (seq !== this.varSuggestSeq) return;
+			this.varSuggest = Object.assign({ for: `${color}|${thickness}` }, (rows && rows[0]) || {});
+		} catch (e) {
+			/* hanya bantuan isi otomatis — kode tetap diketik/diperiksa user */
+		}
+	},
+
 	async saveVariant() {
 		const f = cwVariantForm.model || {};
 		const isNew = this.varIsNew;
 		const params = {
 			id: isNew ? '' : this.varForm.id, material_id: appsmith.URL.queryParams.id,
 			code: f.code, color: f.color, thickness: f.thickness, status: isNew ? 'ACTIVE' : f.status,
+			confirm: f.confirm === true,   // R9: konfirmasi arti kode yang menyimpang
 		};
 		const ok = await this.runForm(a_variant_save, params,
 			v => { this.varMsg = v; }, v => { this.varBusy = v; }, 'mdlVarian');
@@ -246,12 +272,24 @@ export default {
 			// "Simpan & tambah lagi": modal tetap terbuka, form dikosongkan
 			this.varForm = {};
 			this.varHint = null;
+			this.varSuggest = null;
 			this.varMsg = { type: 'info', text: `Varian ${f.code} tersimpan. Isi varian berikutnya.` };
 			this.varKey = this.varKey + 1;
 			return;
 		}
 		closeModal('mdlVarian');
 		showAlert(isNew ? `Varian ${f.code} ditambahkan.` : 'Varian disimpan.', 'success');
+	},
+
+	// R10: Hapus varian (kolom Hapus di tblVariants). q_variants.delete_block = alasan tidak bisa dihapus (NULL = boleh).
+	// Query a_variant_delete memakai "Request confirmation before running" = ON. Aturan final di DB (fn_variant_delete).
+	deleteVariant(row) {
+		if (!row || !this.canManageMaster()) return;
+		if (row.delete_block) {
+			showAlert(`Varian ${row.code} tidak bisa dihapus: ${row.delete_block}. Jadikan INACTIVE bila tidak dipakai lagi.`, 'warning');
+			return;
+		}
+		return Util.run(a_variant_delete, { id: row.id }, `Varian ${row.code} dihapus.`, [q_variants, q_material, q_prices]);
 	},
 
 	// ---- supplier material ----
@@ -379,6 +417,7 @@ export default {
 			})),
 			preset: this.pricePreset,
 			today: moment().utcOffset(7).format('YYYY-MM-DD'),
+			direct: this.canApprovePrice(),   // R8: Manager Costing -> langsung berlaku, tanpa approval
 			busy: this.priceBusy,
 			message: this.priceMsg,
 		};
@@ -404,11 +443,12 @@ export default {
 		if (!ok) return;
 		const result = (query.data && query.data[0]) || {};
 		closeModal('mdlHarga');
+		const done = this.canApprovePrice() ? 'disimpan dan langsung berlaku' : 'diajukan, menunggu persetujuan Manager Costing';
 		if (copy) {
-			showAlert(`${result.created || 0} harga diajukan, menunggu persetujuan Manager Costing.`
+			showAlert(`${result.created || 0} harga ${done}.`
 				+ (result.skipped ? ` Dilewati: ${result.skipped}` : ''), result.skipped ? 'warning' : 'success');
 		} else {
-			showAlert(`${ids.length} harga diajukan, menunggu persetujuan Manager Costing.`, 'success');
+			showAlert(`${ids.length} harga ${done}.`, 'success');
 		}
 		await this.refresh([q_prices, q_material]);
 	},

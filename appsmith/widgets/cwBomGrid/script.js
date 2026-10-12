@@ -7,6 +7,9 @@
 //   SEL KUNING + tombol Daftarkan (action registerVariant). Tombol "+ Supplier baru" (action newSupplier).
 // Hanya tampilan & input. Setiap perubahan dikirim sebagai model.action + event onAction (BomCtrl.onAction());
 // BomCtrl menjalankan query lalu memuat ulang data. Aturan final di DB (fn_bom_*).
+// Antrean aksi: aksi dikirim SATU PER SATU; berikutnya baru dikirim setelah BomCtrl membalas doneSeq >= seq aksi
+//   (ack). Tanpa ack 5 detik -> kirim ulang (BomCtrl mengabaikan seq yang sudah selesai). Nilai yang sudah dikirim
+//   ditampilkan (optimistic) sampai antrean kosong, supaya render ulang tidak memunculkan nilai lama.
 // Teks yang diketik dicocokkan ke master di sini:
 //   komponen "10 - Vamp" / "10" / nama unik -> master ACTIVE; selain itu komponen lokal (No. wajib)
 //   material "NAMA · THICKNESS" / Material Code / nama unik; supplier = nama (kosong = tanpa supplier)
@@ -14,6 +17,9 @@ const $ = id => document.getElementById(id);
 const SEP = ' · ';
 let M = {};                 // model terakhir
 let seq = 0;
+let queue = [];             // aksi menunggu ack BomCtrl (model.doneSeq); queue[0] = yang sedang dikirim
+let retryTimer = null;
+let optimistic = {};        // key input -> nilai yang sudah dikirim tapi belum kembali dari DB
 let lastMsg = null;         // object message dari model (untuk mendeteksi pesan baru)
 let localMsg = null;        // pesan validasi di widget
 let lastOkKey = null;
@@ -179,9 +185,31 @@ function fillDatalists() {
 function send(type, data) {
   localMsg = null;
   showMessage();
-  seq += 1;
-  appsmith.updateModel({ action: Object.assign({ type, seq }, data) });
+  seq = Math.max(Date.now(), seq + 1);         // naik terus, juga setelah widget dimuat ulang
+  queue.push(Object.assign({ type, seq }, data));
+  if (queue.length === 1) setTimeout(flush, 0);  // setelah pemanggil mencatat nilai optimistic
+}
+
+function flush() {
+  clearTimeout(retryTimer);
+  if (!queue.length) return;
+  appsmith.updateModel({ action: queue[0] });
   appsmith.triggerEvent('onAction');
+  retryTimer = setTimeout(flush, 5000);        // event hilang (model di-reset) -> kirim ulang
+}
+
+// Balasan BomCtrl: model.doneSeq = seq aksi terakhir yang selesai (berhasil atau gagal) dan datanya sudah dimuat ulang
+function onAck(m) {
+  const done = Number((m || {}).doneSeq) || 0;
+  const before = queue.length;
+  while (queue.length && queue[0].seq <= done) queue.shift();
+  if (queue.length === before) return;
+  if (queue.length) {
+    flush();
+  } else {
+    clearTimeout(retryTimer);
+    optimistic = {};
+  }
 }
 
 function fail(input, text) {
@@ -228,11 +256,16 @@ function cellInput(key, value, opts) {
   if (opts.label) i.setAttribute('aria-label', opts.label);
   i.addEventListener('input', () => i.classList.remove('invalid'));
   if (opts.onCommit) {
-    i.addEventListener('change', () => {
+    // change + blur: nilai yang dipulihkan setelah render ulang tidak memicu change, jadi blur ikut menyimpan
+    const commit = () => {
       if (!i.isConnected) return;              // elemen sudah diganti render ulang: jangan simpan ketikan setengah jadi
       if (clean(i.value) === clean(i.dataset.orig)) return;
+      const before = seq;
       opts.onCommit(i);
-    });
+      if (seq !== before) optimistic[key] = i.value;
+    };
+    i.addEventListener('change', commit);
+    i.addEventListener('blur', commit);
   }
   if (opts.suggest) attachSuggest(i, opts.suggest);
   i.addEventListener('keydown', e => {
@@ -828,7 +861,12 @@ function render(model, keepState) {
 
   // pulihkan ketikan, fokus, scroll
   document.querySelectorAll('#tbody .cell[data-key]').forEach(i => {
-    if (dirty[i.dataset.key] !== undefined) i.value = dirty[i.dataset.key];
+    const k = i.dataset.key;
+    if (optimistic[k] !== undefined) {
+      i.value = optimistic[k];
+      i.dataset.orig = optimistic[k];
+    }
+    if (dirty[k] !== undefined) i.value = dirty[k];
     autosize(i);
   });
   if (focusKey) {
@@ -845,7 +883,7 @@ function render(model, keepState) {
 
   const n = lines.length;
   const yellow = lines.reduce((t, l) => t + (Number(l.yellow) || 0), 0);
-  $('status').textContent = (M.busy ? 'Menyimpan… · ' : '')
+  $('status').textContent = (M.busy || queue.length ? 'Menyimpan… · ' : '')
     + `${n} baris · ${arts.length} article` + (yellow ? ` · ${yellow} sel kuning` : '') + (editable ? '' : ' · hanya baca');
   $('btnSupplier').hidden = !(editable && M.canAddSupplier);
   $('btnSupplier').disabled = !!M.busy;
@@ -857,6 +895,9 @@ appsmith.onReady(() => {
   $('btnSupplier').addEventListener('click', () => send('newSupplier', {}));
   $('scroll').addEventListener('scroll', hideSuggest);
   render(appsmith.model);
-  appsmith.onModelChange(m => render(m));
+  appsmith.onModelChange(m => {
+    onAck(m);
+    render(m);
+  });
   if (typeof appsmith.onThemeChange === 'function') appsmith.onThemeChange(applyTheme);
 });

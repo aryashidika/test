@@ -1,6 +1,6 @@
 // cwArticleForm — form Tambah / Ubah Article di mdlArticle (page Model Detail). Hanya tampilan; simpan lewat
 // ModelDetailCtrl.saveArticle(). Kode dikunci kalau article sudah dipakai (codeLocked).
-// Aturan final di DB (trg_article_check: kode unik per season, maks. 5 article, kode terpakai terkunci).
+// Aturan final di DB (trg_article_check: kode unik per season, kode terpakai terkunci; tanpa batas jumlah sejak R8).
 const $ = id => document.getElementById(id);
 let lastKey = null;
 let busy = false;
@@ -35,10 +35,9 @@ function fillForm(m) {
   $('code').disabled = !!m.codeLocked;
   $('codeNote').hidden = !m.codeLocked;
   ['code', 'colorway'].forEach(id => $(id).classList.remove('invalid'));
-  const max = m.max || 5;
   $('seasonInfo').textContent = isEdit
     ? `Season ${m.season || '-'}`
-    : `Season ${m.season || '-'} · article ke-${(m.count || 0) + 1} dari maks. ${max}`;
+    : `Season ${m.season || '-'} · article ke-${(m.count || 0) + 1}`;
   (isEdit ? $('colorway') : $('code')).focus();
 }
 

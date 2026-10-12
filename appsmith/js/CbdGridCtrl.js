@@ -1,5 +1,7 @@
 export default {
 	busyCount: 0,
+	doneSeq: 0,      // seq aksi grid terakhir yang selesai -> ack ke cwCbdGrid (antrean aksi)
+	running: false,
 	message: null,   // { type, text } ditampilkan di atas grid
 
 	priceKey: 0, priceBusy: false, priceMsg: null,
@@ -87,6 +89,9 @@ export default {
 			recap: r ? this.recap() : null,
 			costItems: r ? this.costItems() : [],
 			costOkKey: this.costOkKey,
+			doneSeq: this.doneSeq,
+			canProposePrice: Auth.can('manage_price') && !!r && r.status === 'DRAFT',   // R8: ajukan harga master
+			directPrice: Auth.can('approve_price'),                                        // Manager Costing: langsung berlaku
 			canSimulate: Auth.can('simulate_margin'),
 			banners: this.banners(),
 			busy: this.busyCount > 0,
@@ -120,9 +125,24 @@ export default {
 	},
 
 	// ---- aksi dari grid (event onAction) ----
+	// Satu aksi sekali jalan. Setelah selesai (berhasil / gagal) + data dimuat ulang -> doneSeq = seq aksi (ack);
+	// cwCbdGrid baru mengirim aksi berikutnya setelah ack. Kiriman ulang dengan seq yang sudah selesai diabaikan.
 	async onAction() {
 		const a = (cwCbdGrid.model || {}).action;   // baca dulu — model di-reset saat Default model berubah
 		if (!a || !a.type) return;
+		const s = Number(a.seq) || 0;
+		if (s && s <= this.doneSeq) return;
+		if (this.running) return;                   // cwCbdGrid mengirim ulang bila belum di-ack
+		this.running = true;
+		try {
+			await this.runAction(a);
+		} finally {
+			this.running = false;
+			this.doneSeq = Math.max(this.doneSeq, s);
+		}
+	},
+
+	async runAction(a) {
 		const r = CbdCtrl.revision();
 		if (!r) return;
 		switch (a.type) {
@@ -146,6 +166,9 @@ export default {
 				break;
 			case 'editPrice':
 				this.openPrice(a.line_id, a.mode);
+				break;
+			case 'proposePrice':    // R8: harga master untuk varian × supplier baris ini
+				this.openPrice(a.line_id, 'PROPOSE');
 				break;
 			case 'clearOverride':   // a_cbd_clear_override: Request confirmation = ON
 				if (await this.exec(a_cbd_clear_override, { line_id: a.line_id })) showAlert('Override dihapus — kembali ke harga master.', 'success');
@@ -172,7 +195,7 @@ export default {
 
 	openPrice(lineId, mode) {
 		this.priceLineId = lineId || '';
-		this.priceMode = mode === 'QUOTATION' ? 'QUOTATION' : 'OVERRIDE';
+		this.priceMode = mode === 'PROPOSE' ? 'PROPOSE' : 'QUOTATION';
 		this.priceBusy = false;
 		this.priceMsg = null;
 		this.priceKey = this.priceKey + 1;
@@ -182,29 +205,34 @@ export default {
 	priceFormModel() {
 		const l = this.priceLine();
 		const q = this.priceMode === 'QUOTATION';
+		const direct = Auth.can('approve_price');
 		const fmt = (v, cur) => `${Util.fmtNum(v, cur === 'USD' ? 4 : 2)} ${cur || ''}`.trim();
 		let current = '';
 		let info = '';
 		if (l) {
 			if (l.price_original != null) {
 				const src = { MASTER: 'harga master', OVERRIDE: 'override', QUOTATION: 'quotation' }[l.price_source] || '';
-				current = `Harga sekarang: ${fmt(l.price_original, l.currency)}${src ? ' (' + src + ')' : ''}`;
+				current = `Harga di CBD ini: ${fmt(l.price_original, l.currency)}${src ? ' (' + src + ')' : ''}`;
 			} else {
-				current = 'Harga sekarang: kosong';
+				current = 'Harga di CBD ini: kosong';
 			}
-			if (!q && l.master_price != null && l.price_source !== 'MASTER') info = `Harga master berlaku: ${fmt(l.master_price, l.master_currency)}.`;
-			if (!q && l.pending) info = 'Ada usulan harga master yang menunggu persetujuan Manager Costing — setelah disetujui, klik Refresh Harga.';
+			if (!q) {
+				info = l.master_price != null ? `Harga master berlaku sekarang: ${fmt(l.master_price, l.master_currency)}.`
+					: 'Belum ada harga master berlaku untuk Material Code + supplier ini.';
+			}
 		}
 		return {
 			key: this.priceKey,
 			mode: this.priceMode,
-			title: q ? 'Harga Quotation' : 'Override Harga',
+			direct,
+			today: moment().utcOffset(7).format('YYYY-MM-DD'),
+			title: q ? 'Harga Quotation' : (direct ? 'Harga Master Baru' : 'Ajukan Harga Master'),
 			lineLabel: l ? [l.display_no, l.display_name, `${l.material_code} ${l.material_name}`, l.color, l.supplier_name]
 				.filter(x => x).join(' · ') : '',
 			current,
 			form: {
 				price: l && l.price_source === (q ? 'QUOTATION' : 'OVERRIDE') && l.price_original != null ? String(Number(l.price_original)) : '',
-				text: l ? (q ? (l.price_reference || '') : (l.price_source === 'OVERRIDE' ? l.price_override_reason || '' : '')) : '',
+				text: l && q ? (l.price_reference || '') : '',
 			},
 			info,
 			busy: this.priceBusy,
@@ -216,14 +244,16 @@ export default {
 		const f = cwCbdPriceForm.model || {};   // baca dulu
 		const l = this.priceLine();
 		if (!l) return;
-		const q = this.priceMode === 'QUOTATION';
+		const q = this.priceMode === 'QUOTATION';     // selain itu PROPOSE (R8); override dihapus F10b
 		this.priceMsg = null;
 		this.priceBusy = true;
 		try {
 			if (q) {
 				await a_cbd_set_quotation.run({ line_id: l.id, price: f.price || '', currency: f.currency || '', reference: f.text || '' });
 			} else {
-				await a_cbd_override_price.run({ line_id: l.id, price: f.price || '', currency: f.currency || '', reason: f.text || '' });
+				await a_cbd_price_propose.run({
+					line_id: l.id, price: f.price || '', currency: f.currency || '', valid_from: f.valid_from || '', reference: f.text || '',
+				});
 			}
 		} catch (e) {
 			const msg = e && e.message;
@@ -240,7 +270,9 @@ export default {
 			this.priceBusy = false;
 		}
 		closeModal('mdlCbdHarga');
-		showAlert(q ? (f.price ? 'Harga quotation disimpan.' : 'Harga quotation dikosongkan.') : 'Override harga disimpan.', 'success');
+		showAlert(q ? (f.price ? 'Harga quotation disimpan.' : 'Harga quotation dikosongkan.')
+			: Auth.can('approve_price') ? 'Harga master disimpan dan langsung berlaku. Vendor CBD perlu klik Refresh Harga dari Master.'
+				: 'Usulan harga master dikirim ke Manager Costing. Setelah disetujui, klik Refresh Harga dari Master.', 'success');
 		this.message = null;
 		await this.reload();
 	},

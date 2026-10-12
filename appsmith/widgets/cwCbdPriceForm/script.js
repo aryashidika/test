@@ -1,11 +1,13 @@
 // cwCbdPriceForm — modal harga baris CBD (mdlCbdHarga, page Cost Breakdown (CBD)). Hanya tampilan.
 // mode QUOTATION: harga quotation material proses (kosong = tidak dihargai terpisah), referensi opsional.
-// mode OVERRIDE : harga khusus baris ini untuk material katalog, alasan wajib.
-// Simpan lewat CbdGridCtrl.savePrice() -> fn_cbd_set_quotation / fn_cbd_override_price (aturan final di DB).
+// mode PROPOSE  : (R8, ganti OVERRIDE yang dihapus F10b) ajukan harga MASTER untuk Material Code + supplier baris ini:
+//   harga, currency & tanggal berlaku wajib, referensi opsional. model.direct (Manager Costing) = langsung berlaku.
+// Simpan lewat CbdGridCtrl.savePrice() -> fn_cbd_set_quotation / fn_cbd_price_propose (aturan final di DB).
 const $ = id => document.getElementById(id);
 let lastKey = null;
 let busy = false;
-let mode = 'OVERRIDE';
+let mode = 'QUOTATION';
+let direct = false;
 let currency = '';
 
 function applyTheme(t) {
@@ -62,8 +64,9 @@ function updateHint() {
 
 // Isi ulang hanya saat modal dibuka (key berubah) — busy/message tidak menghapus isian user
 function fillForm(m) {
-  mode = m.mode === 'QUOTATION' ? 'QUOTATION' : 'OVERRIDE';
-  $('title').textContent = m.title || (mode === 'QUOTATION' ? 'Harga Quotation' : 'Override Harga');
+  mode = m.mode === 'PROPOSE' ? 'PROPOSE' : 'QUOTATION';
+  direct = !!m.direct;
+  $('title').textContent = m.title || (mode === 'QUOTATION' ? 'Harga Quotation' : 'Ajukan Harga Master');
   $('lineLabel').textContent = m.lineLabel || '';
   $('current').textContent = m.current || '';
   $('current').hidden = !m.current;
@@ -72,11 +75,16 @@ function fillForm(m) {
   setCurrency('');                       // sengaja kosong: currency wajib dipilih
   $('text').value = f.text || '';
   $('priceReq').hidden = mode === 'QUOTATION';
-  $('textLabel').textContent = mode === 'QUOTATION' ? 'Referensi' : 'Alasan override';
-  $('textReq').hidden = mode === 'QUOTATION';
-  $('text').placeholder = mode === 'QUOTATION' ? 'no. quotation / penawaran (opsional)' : 'mis. harga nego khusus order ini';
+  $('validBox').hidden = mode !== 'PROPOSE';
+  $('validFrom').value = m.today || '';
+  $('validFrom').classList.remove('invalid');
+  $('textLabel').textContent = 'Referensi';
+  $('textReq').hidden = true;
+  $('text').placeholder = mode === 'QUOTATION' ? 'no. quotation / penawaran (opsional)' : 'no. penawaran supplier (opsional)';
   $('textHint').textContent = mode === 'QUOTATION' ? ''
-    : 'Harga yang berlaku untuk semua CBD (termasuk harga khusus warna) diisi di Master Material, bukan override.';
+    : direct ? 'Langsung berlaku sebagai harga master (Anda Manager Costing) untuk semua CBD yang memakai Material Code + supplier ini.'
+      : 'Masuk ke Manager Costing sebagai usulan harga master (bukan override) — setelah disetujui berlaku untuk semua CBD '
+        + 'yang memakai Material Code + supplier ini; lalu klik Refresh Harga dari Master.';
   $('textHint').hidden = mode === 'QUOTATION';
   $('info').textContent = m.info || '';
   $('info').hidden = !m.info;
@@ -90,7 +98,7 @@ function setBusy(v) {
   $('btnSave').disabled = v;
   $('btnCancel').disabled = v;
   $('btnX').disabled = v;
-  $('btnSave').textContent = v ? 'Menyimpan…' : 'Simpan';
+  $('btnSave').textContent = v ? 'Menyimpan…' : (mode === 'PROPOSE' && !direct ? 'Ajukan' : 'Simpan');
 }
 
 function render(model) {
@@ -122,11 +130,12 @@ function submit() {
   }
   const price = raw ? parsePrice(raw) : '';
   if (raw && !price) return fail('price', 'Harga harus angka (tanpa titik ribuan, maks. 4 desimal).');
-  if (mode === 'OVERRIDE' && !price) return fail('price', 'Harga override wajib diisi.');
+  if (mode === 'PROPOSE' && !price) return fail('price', 'Harga wajib diisi.');
   if (price && Number(price) <= 0) return fail('price', 'Harga harus lebih besar dari 0.');
   if (price && !currency) return fail('currency', 'Pilih currency: IDR atau USD.');
-  if (mode === 'OVERRIDE' && !text) return fail('text', 'Alasan override wajib diisi.');
-  appsmith.updateModel({ price: price || '', currency: price ? currency : '', text });
+  const validFrom = $('validFrom').value;
+  if (mode === 'PROPOSE' && !validFrom) return fail('validFrom', 'Tanggal berlaku wajib diisi.');
+  appsmith.updateModel({ price: price || '', currency: price ? currency : '', text, valid_from: mode === 'PROPOSE' ? validFrom : '' });
   appsmith.triggerEvent('onSave');
 }
 
@@ -144,6 +153,7 @@ appsmith.onReady(() => {
     updateHint();
   });
   $('text').addEventListener('input', () => $('text').classList.remove('invalid'));
+  $('validFrom').addEventListener('input', () => $('validFrom').classList.remove('invalid'));
   applyTheme(appsmith.theme);
   render(appsmith.model);
   appsmith.onModelChange(render);

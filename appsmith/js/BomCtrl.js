@@ -7,9 +7,11 @@
 export default {
 	okKey: 0,        // naik setelah tambah baris / subkomponen berhasil -> cwBomGrid mengosongkan form
 	busyCount: 0,
+	doneSeq: 0,      // seq aksi grid terakhir yang selesai -> ack ke cwBomGrid (antrean aksi)
+	running: false,
 	message: null,   // { type, text } ditampilkan di atas grid
 	// R4: modal Daftarkan varian (sel kuning) & + Supplier baru
-	varKey: 0, varBusy: false, varMsg: null, varCtx: null, varHint: null, varLookupSeq: 0,
+	varKey: 0, varBusy: false, varMsg: null, varCtx: null, varHint: null, varLookupSeq: 0, varSuggest: null, varSuggestSeq: 0,
 	supKey: 0, supBusy: false, supMsg: null, similar: [], similarFor: '', similarSeq: 0,
 	statusOptions: [
 		{ label: 'ACTIVE', value: 'ACTIVE' },
@@ -97,6 +99,7 @@ export default {
 			busy: this.busyCount > 0,
 			message: this.message,
 			okKey: this.okKey,
+			doneSeq: this.doneSeq,
 			canRegister: Auth.can('manage_master'),
 			canAddSupplier: Auth.can('manage_master'),
 			emptyText: SpecCtrl.revision() ? 'Belum ada baris BOM.' : '',
@@ -104,14 +107,19 @@ export default {
 	},
 
 	// ---- aksi dari grid (event onAction) ----
+	// Satu aksi sekali jalan. Setelah selesai (berhasil / gagal) + data dimuat ulang -> doneSeq = seq aksi (ack);
+	// cwBomGrid baru mengirim aksi berikutnya setelah ack. Kiriman ulang dengan seq yang sudah selesai diabaikan.
 	async onAction() {
 		const a = (cwBomGrid.model || {}).action;   // baca dulu — model di-reset saat Default model berubah
 		if (!a || !a.type) return;
-		if (a.type === 'registerVariant') return this.openRegister(a);
-		if (a.type === 'newSupplier') return this.openNewSupplier();
+		const s = Number(a.seq) || 0;
+		if (s && s <= this.doneSeq) return;
+		if (this.running) return;                   // cwBomGrid mengirim ulang bila belum di-ack
+		const ack = () => { this.doneSeq = Math.max(this.doneSeq, s); };
+		if (a.type === 'registerVariant') { ack(); return this.openRegister(a); }
+		if (a.type === 'newSupplier') { ack(); return this.openNewSupplier(); }
 		const r = SpecCtrl.revision();
-		if (!r) return;
-		const actions = {
+		const actions = !r ? {} : {
 			addLine: [a_bom_add_line, {
 				revision_id: r.id, component_id: a.component_id, local_no: a.local_no, local_name: a.local_name,
 				material_id: a.material_id, thickness: a.thickness || '', supplier_id: a.supplier_id, process: a.process,
@@ -131,27 +139,34 @@ export default {
 			deleteLine: [a_bom_delete_line, { line_id: a.line_id }, ['colors']],
 		};
 		const def = actions[a.type];
-		if (!def) return;
+		if (!def) { ack(); return; }
+		this.running = true;
 		this.busyCount = this.busyCount + 1;
 		try {
-			await def[0].run(def[1]);
-		} catch (e) {
-			const msg = e && e.message;
-			if (Util.isSessionError(msg)) {
-				await removeValue('token');
-				showAlert('Sesi login habis. Silakan login lagi.', 'warning');
-				navigateTo('Login');
-				return;
+			let failed = false;
+			try {
+				await def[0].run(def[1]);
+			} catch (e) {
+				const msg = e && e.message;
+				if (Util.isSessionError(msg)) {
+					await removeValue('token');
+					showAlert('Sesi login habis. Silakan login lagi.', 'warning');
+					navigateTo('Login');
+					return;
+				}
+				this.message = { type: 'error', text: Util.cleanError(msg) };
+				failed = true;
 			}
-			this.message = { type: 'error', text: Util.cleanError(msg) };
-			await this.reload([]);          // kembalikan grid ke isi DB
-			return;
+			if (!failed) {
+				this.message = null;
+				if (a.type === 'addLine' || a.type === 'addSub') this.okKey = this.okKey + 1;
+			}
+			await this.reload(failed ? [] : def[2]);   // gagal -> kembalikan grid ke isi DB
 		} finally {
 			this.busyCount = Math.max(0, this.busyCount - 1);
+			this.running = false;
+			ack();
 		}
-		this.message = null;
-		if (a.type === 'addLine' || a.type === 'addSub') this.okKey = this.okKey + 1;
-		await this.reload(def[2]);
 	},
 
 	// ---- Daftarkan varian dari sel kuning (mdlVarianBaru / cwVariantForm) ----
@@ -161,6 +176,7 @@ export default {
 			thickness: a.thickness || '', color: a.color,
 		};
 		this.varHint = null;
+		this.varSuggest = null;
 		this.varBusy = false;
 		this.varMsg = null;
 		this.varKey = this.varKey + 1;
@@ -177,6 +193,7 @@ export default {
 			fixed: { color: c.color, thickness: c.thickness },
 			statusOptions: this.statusOptions,
 			hint: this.varHint,
+			suggest: this.varSuggest,    // R9: usulan Material Code
 			busy: this.varBusy,
 			message: this.varMsg,
 		};
@@ -184,6 +201,7 @@ export default {
 
 	// cwVariantForm onLookup: arti bagian kode yang sudah tercatat di pabrik ini
 	async lookupVariantCode() {
+		if ((cwVariantForm.model || {}).lookupKind === 'suggest') return this.suggestVariantCode();
 		const code = String((cwVariantForm.model || {}).lookupCode || '');
 		const c = this.varCtx || {};
 		const seq = this.varLookupSeq + 1;
@@ -194,6 +212,23 @@ export default {
 			this.varHint = (rows && rows[0]) || null;
 		} catch (e) {
 			/* hanya bantuan — aturan final di DB */
+		}
+	},
+
+	// R9 cwVariantForm onLookup (lookupKind 'suggest'): usulan Material Code dari warna + thickness
+	async suggestVariantCode() {
+		const m = cwVariantForm.model || {};
+		const color = String(m.suggestColor || '');
+		const thickness = String(m.suggestThickness || '');
+		const seq = this.varSuggestSeq + 1;
+		this.varSuggestSeq = seq;
+		try {
+			const c = this.varCtx || {};
+			const rows = await q_code_suggest.run({ material_id: c.material_id, color, thickness });
+			if (seq !== this.varSuggestSeq) return;
+			this.varSuggest = Object.assign({ for: `${color}|${thickness}` }, (rows && rows[0]) || {});
+		} catch (e) {
+			/* hanya bantuan isi otomatis — kode tetap diketik/diperiksa user */
 		}
 	},
 
@@ -210,6 +245,7 @@ export default {
 		try {
 			await a_variant_save.run({
 				id: '', material_id: c.material_id, code, color: c.color, thickness: c.thickness, status: 'ACTIVE',
+				confirm: f.confirm === true,   // R9: konfirmasi arti kode yang menyimpang
 			});
 		} catch (e) {
 			const msg = e && e.message;

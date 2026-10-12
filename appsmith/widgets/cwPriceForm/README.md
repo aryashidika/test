@@ -3,6 +3,8 @@
 Form harga di modal `mdlHarga` (page `Material Detail`, R3). Hanya tampilan; simpan lewat
 `MaterialDetailCtrl.savePrice()` → `fn_price_propose` / `fn_price_copy`. Semua hasil = **usulan PROPOSED**
 yang baru dipakai setelah disetujui Manager Costing (page Persetujuan Harga).
+**R8:** `direct = true` (Manager Costing, izin `approve_price`) → judul *Tambah Harga*, tombol *Simpan* / *Simpan salinan*;
+harga langsung **BERLAKU** (DB `trg_price_self_approve`).
 
 - **mode `propose` (Ajukan Harga)**: supplier material (ACTIVE), **centang banyak varian** (cari, Pilih semua,
   Kosongkan; status per varian untuk supplier terpilih: berlaku / menunggu / belum ada harga — varian yang masih

@@ -45,6 +45,7 @@ Ukuran: lebar penuh, tinggi ±600 px (scroll di dalam widget).
   busy,         // ada aksi yang sedang disimpan
   message,      // null | { type, text }
   okKey,        // naik setelah tambah baris/sub berhasil
+  doneSeq,      // seq aksi terakhir yang selesai di BomCtrl (ack antrean aksi)
   emptyText     // teks bila tidak ada baris (hanya baca)
 }
 ```
@@ -64,7 +65,10 @@ Satu event **`onAction`** → `{{BomCtrl.onAction()}}`. Sebelumnya widget mengis
 | `dropArticle` | `article_id` | `a_rev_article_set` (`DROPPED`) |
 | `deleteLine` | `line_id` | `a_bom_delete_line` (F5b) |
 
-Setiap aksi juga membawa `seq` (nomor urut) supaya dua aksi berurutan yang sama tetap terbaca berbeda.
+Setiap aksi membawa `seq` (naik terus, berbasis waktu). Aksi dikirim **satu per satu**: aksi berikutnya baru dikirim
+setelah BomCtrl membalas `doneSeq >= seq` (sesudah query + muat ulang data). Tanpa balasan 5 detik, aksi dikirim ulang;
+BomCtrl mengabaikan `seq` yang sudah selesai. Nilai yang sudah dikirim tetap tampil sampai antrean kosong. Sel juga
+disimpan saat blur (nilai yang dipulihkan setelah render ulang tidak memicu `change`).
 
 ## Perubahan R3–R7 (11 Okt 2026)
 

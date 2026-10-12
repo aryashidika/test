@@ -1,12 +1,14 @@
 # cwCbdPriceForm
 
 Form **harga baris CBD** di modal `mdlCbdHarga` (page `Cost Breakdown (CBD)`). Dibuka dari tombol **Isi harga** /
-**Override…** di kolom Harga `cwCbdGrid`. Hanya tampilan; simpan lewat `CbdGridCtrl.savePrice()`.
+**Ajukan harga master** (R8) di kolom Harga `cwCbdGrid`. Hanya tampilan; simpan lewat `CbdGridCtrl.savePrice()`.
 
 - **QUOTATION** (material metode Quotation): harga + currency, referensi opsional. Harga **kosong** = baris tidak
   dihargai terpisah (cost 0) → `fn_cbd_set_quotation` mengosongkan harga.
-- **OVERRIDE** (material katalog): harga khusus baris ini, **alasan wajib** → `fn_cbd_override_price`.
-  Harga untuk semua CBD (termasuk harga khusus warna) diisi di Master Material, bukan override.
+- **PROPOSE** (R8, material katalog; mengganti OVERRIDE yang dihapus F10b): ajukan **harga master** untuk Material Code
+  + supplier baris itu — harga, currency & **berlaku mulai** (default hari ini) wajib, referensi opsional →
+  `fn_cbd_price_propose` → `fn_price_propose` (usulan PROPOSED, disetujui di page Persetujuan Harga; berlaku untuk
+  semua CBD setelah Refresh Harga). `direct = true` (Manager Costing): langsung berlaku, tombol **Simpan**.
 - **Currency tanpa nilai awal — wajib diklik IDR/USD setiap input** (keputusan user 27 Sep 2026).
 - Angka ambigu seperti `47.500` ditolak; widget menampilkan "Terbaca: …".
 
@@ -21,8 +23,10 @@ Ukuran: modal lebar ±560 px, *close on outside click* OFF; widget tinggi ±520 
 ```js
 {
   key,          // naik setiap modal dibuka -> isian direset
-  mode,         // 'QUOTATION' | 'OVERRIDE'
-  title,        // 'Harga Quotation' / 'Override Harga'
+  mode,         // 'QUOTATION' | 'PROPOSE'
+  direct,       // R8: true = Manager Costing (harga master langsung berlaku)
+  today,        // 'YYYY-MM-DD' (default berlaku mulai, mode PROPOSE)
+  title,        // 'Harga Quotation' / 'Ajukan Harga Master' / 'Harga Master Baru'
   lineLabel,    // '10 · Upper · MTR-0001 Kulit … · Black · PT Maju Jaya'
   current,      // teks harga sekarang ('' = tidak tampil)
   form,         // { price: '45000' (teks, titik desimal), text: 'referensi / alasan' } — currency tidak diisi
@@ -35,5 +39,5 @@ Ukuran: modal lebar ±560 px, *close on outside click* OFF; widget tinggi ±520 
 
 | Event | Sebelumnya widget mengisi | Action |
 |---|---|---|
-| `onSave` | `.price` (teks angka titik desimal, `''` = kosong), `.currency` (`''` bila harga kosong), `.text` (referensi / alasan, di-trim) | `{{CbdGridCtrl.savePrice()}}` |
+| `onSave` | `.price` (teks angka titik desimal, `''` = kosong), `.currency` (`''` bila harga kosong), `.text` (referensi, di-trim), `.valid_from` (PROPOSE, `''` di QUOTATION) | `{{CbdGridCtrl.savePrice()}}` |
 | `onCancel` | – | `{{closeModal('mdlCbdHarga')}}` |

@@ -10,8 +10,13 @@
 
   <label for="code">Material Code <span class="req">*</span></label>
   <input id="code" type="text" maxlength="40" autocomplete="off" placeholder="mis. 205Q404A52 (dari ERP)">
-  <div class="hint">Kode ERP 10 karakter: 4 jenis material · 3 thickness · 3 warna. Thickness &amp; warna terisi otomatis bila bagian kodenya sudah pernah dipakai.</div>
-  <div class="warn-box" id="prefixWarn" hidden></div>
+  <div class="hint">Kode ERP 10 karakter: 4 jenis material · 3 thickness · 3 warna. Terisi otomatis dari warna &amp; thickness bila bagian kodenya sudah pernah dipakai (atau sebaliknya) — tetap cocokkan dengan ERP.</div>
+  <div class="sug" id="sugBox" hidden></div>
+  <div class="conf-box" id="confBox" hidden>
+    <div id="confText"></div>
+    <label class="conf-check"><input type="checkbox" id="confChk"> Sudah saya cek, kode ini benar sesuai ERP</label>
+  </div>
+  <div class="warn-box" id="infoBox" hidden></div>
 
   <label for="color">Warna <span class="req">*</span></label>
   <input id="color" type="text" maxlength="80" autocomplete="off" placeholder="mis. WHITE">

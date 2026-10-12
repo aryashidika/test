@@ -2,12 +2,14 @@
 // MaterialDetailCtrl.savePrice() -> fn_price_propose / fn_price_copy (aturan final di DB).
 // mode 'propose': satu supplier + centang banyak varian + satu harga -> satu pengajuan (PROPOSED).
 // mode 'copy'   : harga BERLAKU varian sumber (semua supplier di daftar) disalin ke varian yang dicentang (PROPOSED).
+// R8: model.direct (Manager Costing) -> harga langsung berlaku (DB: trg_price_self_approve), teks & tombol menyesuaikan.
 // Currency tidak punya nilai awal (wajib dipilih). Varian yang masih punya usulan menunggu untuk supplier
 // terpilih tidak bisa dicentang (mode propose); di mode copy pasangan itu dilewati DB dan dilaporkan.
 const $ = id => document.getElementById(id);
 let lastKey = null;
 let busy = false;
 let mode = 'propose';
+let direct = false;
 let currency = '';
 let variants = [];
 let prices = [];
@@ -195,9 +197,12 @@ function updateInfo() {
     $('priceHint').classList.toggle('warn', amb);
     $('priceHint').textContent = amb ? 'Ambigu: jangan pakai titik ribuan.'
       : p ? `Terbaca: ${fmt(p)}${currency ? ' ' + currency : ''}` : 'Tanpa titik ribuan; desimal pakai koma atau titik.';
-    $('info').textContent = 'Disimpan sebagai usulan (PROPOSED) untuk semua varian yang dicentang — dipakai setelah '
-      + 'disetujui Manager Costing. Harga yang berlaku sekarang tetap dipakai sampai usulan disetujui, lalu ditutup '
-      + 'per tanggal berlaku harga baru.';
+    $('info').textContent = direct
+      ? 'Langsung berlaku sebagai harga master untuk semua varian yang dicentang (Anda Manager Costing — tanpa approval). '
+        + 'Harga yang berlaku sekarang ditutup per tanggal berlaku harga baru.'
+      : 'Disimpan sebagai usulan (PROPOSED) untuk semua varian yang dicentang — dipakai setelah '
+        + 'disetujui Manager Costing. Harga yang berlaku sekarang tetap dipakai sampai usulan disetujui, lalu ditutup '
+        + 'per tanggal berlaku harga baru.';
   } else {
     const src = sourcePrices();
     let total = 0;
@@ -207,8 +212,10 @@ function updateInfo() {
       else total += 1;
     }));
     $('info').textContent = src.length
-      ? `Akan diajukan ${total} harga (${src.length} supplier × ${n} varian) sebagai usulan (PROPOSED), `
-        + 'menunggu persetujuan Manager Costing.'
+      ? (direct
+        ? `Akan disimpan ${total} harga (${src.length} supplier × ${n} varian), langsung berlaku.`
+        : `Akan diajukan ${total} harga (${src.length} supplier × ${n} varian) sebagai usulan (PROPOSED), `
+          + 'menunggu persetujuan Manager Costing.')
         + (skip ? ` ${skip} pasangan dilewati karena masih ada usulan menunggu.` : '')
       : 'Pilih varian sumber yang punya harga berlaku.';
   }
@@ -217,8 +224,8 @@ function updateInfo() {
 
 function setMode(m) {
   mode = m === 'copy' ? 'copy' : 'propose';
-  $('title').textContent = mode === 'copy' ? 'Salin Harga dari Varian Lain' : 'Ajukan Harga';
-  $('btnSave').dataset.label = mode === 'copy' ? 'Ajukan salinan' : 'Ajukan';
+  $('title').textContent = mode === 'copy' ? 'Salin Harga dari Varian Lain' : (direct ? 'Tambah Harga' : 'Ajukan Harga');
+  $('btnSave').dataset.label = mode === 'copy' ? (direct ? 'Simpan salinan' : 'Ajukan salinan') : (direct ? 'Simpan' : 'Ajukan');
   $('proposeTop').hidden = mode === 'copy';
   $('priceRow').hidden = mode === 'copy';
   $('copyTop').hidden = mode !== 'copy';
@@ -231,6 +238,7 @@ function fillForm(m) {
   variants = m.variants || [];
   prices = m.prices || [];
   links = m.links || [];
+  direct = !!m.direct;
   setMode(m.mode);
   $('materialLabel').textContent = m.materialLabel || '';
   fillSelect($('link'), links, preset.link_id, '— Pilih supplier —');

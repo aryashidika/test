@@ -1,10 +1,11 @@
 -- ============================================================================
--- R_selftest — uji alur inti R3–R7 langsung di database, lalu DIBATALKAN (ROLLBACK): tidak ada data yang tersimpan.
--- Jalankan SETELAH sql/R_revisi_semua.sql, lewat z_run_sql di app "DB Tools" (Use prepared statements = OFF),
+-- R_selftest — uji alur inti R3–R10 langsung di database, lalu DIBATALKAN (ROLLBACK): tidak ada data yang tersimpan.
+-- Jalankan SETELAH sql/R_revisi_semua.sql, sql/R8_catatan_uji.sql, R9_kode_varian.sql DAN R10_hapus_varian.sql, lewat z_run_sql di app "DB Tools" (Use prepared statements = OFF),
 -- SEBELUM import app. Hasil yang diharapkan: baris terakhir "SELFTEST LOLOS". Kalau ada yang salah, query berhenti
 -- dengan pesan "SELFTEST GAGAL: ..." — kirim pesan itu ke pengembang.
--- Data uji memakai nama berawalan UJI, pabrik SELFTEST PABRIK A/B dan email @selftest.invalid (tidak bentrok dengan
--- user uji buatan Anda, mis. brand@uji.test) dan ikut dibatalkan.
+-- Aman di DB yang sudah berisi data: pabrik SELFTEST PABRIK A/B, email @selftest.invalid; master BERSAMA (supplier,
+-- komponen, pilihan Kategori) memakai nama berawalan SELFTEST dan nomor komponen = kelipatan 10 kosong pertama di
+-- kelompok 'a'; data per pabrik (material, model, article) ada di pabrik SELFTEST. Semua dibatalkan (ROLLBACK).
 -- ============================================================================
 BEGIN;
 
@@ -75,15 +76,15 @@ DECLARE
   p1 uuid; p2 uuid; p3 uuid; p4 uuid; pn uuid;
   v_cat   uuid; v_last uuid; v_lastb uuid; v_gender uuid;
   m_a uuid; m_b uuid; v_sheet uuid; a1 uuid; a2 uuid; a3 uuid; v_comp uuid;
-  v_rev uuid; v_rev2 uuid; l1 uuid; l2 uuid; v_log uuid;
+  v_rev uuid; v_rev2 uuid; l1 uuid; l2 uuid; v_log uuid; v_no integer;
   c1 uuid; c2 uuid; v_linke uuid; v_b3 uuid;
   m_c uuid; m_d uuid; v_cat2 uuid; sh_c uuid; sh_d uuid; sh_b uuid; ac1 uuid; ad1 uuid; rev_c uuid; c3 uuid;
   n integer;
   r record;
 BEGIN
   -- ===== R3: harga varian × supplier =====
-  v_sup  := fn_supplier_save(t_spec, NULL, 'PT UJI MAJU', 'ACTIVE');
-  v_sup2 := fn_supplier_save(t_spec, NULL, 'CV UJI JAYA', 'ACTIVE');
+  v_sup  := fn_supplier_save(t_spec, NULL, 'SELFTEST SUPPLIER SATU', 'ACTIVE');
+  v_sup2 := fn_supplier_save(t_spec, NULL, 'SELFTEST SUPPLIER DUA', 'ACTIVE');
   v_mat  := fn_material_add(t_spec, 'UJI MESH', 'TEXTILE', 'YD');
   v1 := fn_variant_save(t_spec, NULL, v_mat, 'MSHU120BLK', 'BLACK', '1.2MM', 'ACTIVE');
   v2 := fn_variant_save(t_spec, NULL, v_mat, 'MSHU120WHT', 'WHITE', '1.2MM', 'ACTIVE');
@@ -92,8 +93,6 @@ BEGIN
   v_link  := fn_link_save(t_spec, NULL, v_mat, v_sup, true, 'ACTIVE');
   v_link2 := fn_link_save(t_spec, NULL, v_mat, v_sup2, false, 'ACTIVE');
 
-  PERFORM pg_temp.must_fail(format('SELECT fn_price_propose(%L, %L, %L, 100, ''IDR'', NULL, NULL)',
-            t_mc, v_link, jsonb_build_array(v1)), '%tidak punya akses%', 'R3 Manager Costing tidak bisa mengajukan');
   PERFORM pg_temp.must_fail(format('SELECT fn_price_propose(%L, %L, %L, 100, ''IDR'', NULL, NULL)',
             t_cbdb, v_link, jsonb_build_array(v1)), '%pabrik lain%', 'R3 Vendor CBD pabrik B tidak bisa mengajukan harga pabrik A');
   PERFORM pg_temp.must_fail(format('SELECT fn_price_propose(%L, %L, %L, 100, NULL, NULL, NULL)',
@@ -158,7 +157,7 @@ BEGIN
                         AND state = 'BELUM ADA HARGA') = 4, 'R3 baris BELUM ADA HARGA untuk supplier kedua');
 
   -- ===== R4: model tanpa kode =====
-  v_cat    := fn_option_save(t_spec, NULL, 'KATEGORI', 'Uji Running', NULL, 'ACTIVE');
+  v_cat    := fn_option_save(t_spec, NULL, 'KATEGORI', 'Selftest Running', NULL, 'ACTIVE');
   v_last   := fn_option_save(t_spec, NULL, 'LAST', 'UJI-L01', NULL, 'ACTIVE');
   v_lastb  := fn_option_save(t_specb, NULL, 'LAST', 'UJI-LB1', NULL, 'ACTIVE');
   SELECT id INTO v_gender FROM model_option WHERE kind = 'GENDER' AND value = 'UNISEX';
@@ -186,7 +185,14 @@ BEGIN
 
   -- ===== R4: specsheet per varian =====
   v_rev  := fn_revision_create(t_spec, v_sheet, 'EMPTY', 'SMS', NULL);
-  v_comp := fn_component_add(t_spec, 'a', 10, 'UJI VAMP');
+  -- nomor komponen bersama: kelipatan 10 kosong pertama di rentang kelompok 'a' (jangan bentrok dengan data user)
+  SELECT g.n INTO v_no
+    FROM component_group cg
+    CROSS JOIN LATERAL generate_series(((cg.range_start + 9) / 10) * 10, cg.range_end, 10) AS g(n)
+   WHERE cg.code = 'a' AND NOT EXISTS (SELECT 1 FROM component c WHERE c.number = g.n)
+   ORDER BY g.n LIMIT 1;
+  PERFORM pg_temp.ok(v_no IS NOT NULL, 'R4 ada nomor komponen kosong di kelompok a untuk data uji');
+  v_comp := fn_component_add(t_spec, 'a', v_no, 'SELFTEST VAMP');
   l1 := fn_bom_add_line(t_spec, v_rev, v_comp, NULL, NULL, v_mat, '1.2mm', v_sup, NULL, 'black');
   PERFORM pg_temp.ok((SELECT count(*) FROM bom_cell WHERE bom_line_id = l1 AND color = 'BLACK' AND variant_id = v1) = 3,
                      'R4 isi warna dari kode -> 3 sel BLACK tersambung ke MSHU120BLK');
@@ -229,10 +235,10 @@ BEGIN
 
   PERFORM pg_temp.must_fail(format('SELECT fn_variant_save(%L, %L, %L, ''MSHU120BLX'', ''BLACK'', ''1.2MM'', ''ACTIVE'')',
             t_spec, v1, v_mat), '%dokumen terbit%', 'R4 kode varian terpakai di dokumen terbit dikunci');
-  PERFORM pg_temp.must_fail(format('SELECT fn_option_save(%L, %L, ''KATEGORI'', ''UJI RUN'', NULL, ''ACTIVE'')', t_spec, v_cat),
+  PERFORM pg_temp.must_fail(format('SELECT fn_option_save(%L, %L, ''KATEGORI'', ''SELFTEST RUN'', NULL, ''ACTIVE'')', t_spec, v_cat),
             '%tidak bisa diubah%', 'R4 nilai pilihan dipakai model terbit dikunci');
-  PERFORM fn_option_save(t_spec, v_cat, 'KATEGORI', 'UJI RUNNING', NULL, 'INACTIVE');
-  PERFORM pg_temp.ok((SELECT category FROM v_model WHERE id = m_a) = 'UJI RUNNING', 'R4 pilihan INACTIVE tetap tampil di model lama');
+  PERFORM fn_option_save(t_spec, v_cat, 'KATEGORI', 'SELFTEST RUNNING', NULL, 'INACTIVE');
+  PERFORM pg_temp.ok((SELECT category FROM v_model WHERE id = m_a) = 'SELFTEST RUNNING', 'R4 pilihan INACTIVE tetap tampil di model lama');
 
   PERFORM fn_variant_save(t_spec, v2, v_mat, 'MSHU120WHT', 'WHITE', '1.2MM', 'INACTIVE');
   v_rev2 := fn_revision_create(t_spec, v_sheet, 'NEXT_REVISION', NULL, NULL);
@@ -311,20 +317,20 @@ BEGIN
                      'R5 refresh dari specsheet: Yield ikut lewat baris pengganti');
 
   -- ===== R6: Tugas Saya & pabrik =====
-  PERFORM pg_temp.ok(NOT EXISTS (SELECT 1 FROM v_worklist_price_rejected WHERE code = 'MSHU120RED'),
+  PERFORM pg_temp.ok(NOT EXISTS (SELECT 1 FROM v_worklist_price_rejected WHERE material_id = v_mat AND code = 'MSHU120RED'),
                      'R6 usulan ditolak yang sudah diajukan ulang tidak muncul lagi');
   v_b3 := fn_price_propose(t_cbd, v_link, jsonb_build_array(vg), 50000, 'IDR', NULL, NULL);
   PERFORM fn_price_decide(t_mc, (SELECT jsonb_agg(id) FROM material_price WHERE batch_id = v_b3), 'REJECT', 'Terlalu mahal');
-  PERFORM pg_temp.ok((SELECT reject_reason FROM v_worklist_price_rejected WHERE code = 'MSHU120GRY') = 'Terlalu mahal',
+  PERFORM pg_temp.ok((SELECT reject_reason FROM v_worklist_price_rejected WHERE material_id = v_mat AND code = 'MSHU120GRY') = 'Terlalu mahal',
                      'R6 Tugas Saya CBD: usulan ditolak + alasan');
   PERFORM pg_temp.ok((SELECT count(*) FROM v_worklist_cbd WHERE factory_id = (SELECT id FROM factory WHERE name = 'SELFTEST PABRIK B')) = 0
                      AND (SELECT count(*) FROM v_recent_published WHERE factory_id = (SELECT id FROM factory WHERE name = 'SELFTEST PABRIK A')) >= 2,
                      'R6 worklist & terbit terbaru membawa pabrik (filter di query)');
 
   -- ===== R7: copy lintas model =====
-  PERFORM fn_option_save(t_spec, v_cat, 'KATEGORI', 'UJI RUNNING', NULL, 'ACTIVE');
+  PERFORM fn_option_save(t_spec, v_cat, 'KATEGORI', 'SELFTEST RUNNING', NULL, 'ACTIVE');
   PERFORM fn_link_save(t_spec, v_link2, v_mat, v_sup2, false, 'ACTIVE');
-  v_cat2 := fn_option_save(t_spec, NULL, 'KATEGORI', 'UJI SANDAL', NULL, 'ACTIVE');
+  v_cat2 := fn_option_save(t_spec, NULL, 'KATEGORI', 'SELFTEST SANDAL', NULL, 'ACTIVE');
   m_c := fn_model_save(t_spec, NULL, 'Uji Runner IN', v_cat, NULL, NULL, NULL, NULL, '[40]', NULL);
   m_d := fn_model_save(t_spec, NULL, 'Uji Sandal', v_cat2, NULL, NULL, NULL, NULL, '[40]', NULL);
   sh_c := fn_season_add(t_spec, m_c, 'FH26');
@@ -359,6 +365,115 @@ BEGIN
   PERFORM pg_temp.ok((SELECT amount FROM cbd_cost_item WHERE cbd_revision_id = c3 AND item_type = 'LABOUR') = 1300
                      AND (SELECT amount FROM cbd_cost_item WHERE cbd_revision_id = c3 AND item_type = 'AMORTIZATION') = 0,
                      'R7 biaya: hanya LOP ikut, Amortisasi kembali 0');
+END;
+$$;
+
+-- ---------------------------------------------------------------- R8 (catatan uji E2E-R)
+DO $$
+DECLARE
+  t_spec  text := pg_temp.tok('spec.a@selftest.invalid');
+  t_cbd   text := pg_temp.tok('cbd.a@selftest.invalid');
+  t_mc    text := pg_temp.tok('mc.a@selftest.invalid');
+  t_cbdb  text := pg_temp.tok('cbd.b@selftest.invalid');
+  t_specb text := pg_temp.tok('spec.b@selftest.invalid');
+  v_sup   uuid := (SELECT id FROM supplier WHERE name = 'SELFTEST SUPPLIER SATU');
+  v_sheet uuid := (SELECT sh.id FROM specsheet sh JOIN product_model pm ON pm.id = sh.model_id
+                    WHERE pm.name = 'UJI RUNNER X' AND pm.factory_id = (SELECT id FROM factory WHERE name = 'SELFTEST PABRIK A'));
+  c3      uuid := (SELECT cr.id FROM cbd_revision cr JOIN article a ON a.id = cr.article_id
+                     JOIN specsheet sh ON sh.id = a.specsheet_id JOIN product_model pm ON pm.id = sh.model_id
+                    WHERE a.code = 'UJI-IN1' AND cr.status = 'DRAFT'
+                      AND pm.factory_id = (SELECT id FROM factory WHERE name = 'SELFTEST PABRIK A'));
+  v_mat3 uuid; x1 uuid; x2 uuid; x3 uuid; v_link3 uuid; v_b uuid; l_eva uuid; p uuid;
+BEGIN
+  -- 1. Manager Costing mengajukan -> langsung berlaku; Vendor CBD tetap menunggu
+  v_mat3 := fn_material_add(t_spec, 'UJI LINING', 'TEXTILE', 'YD');
+  x1 := fn_variant_save(t_spec, NULL, v_mat3, 'LINU100BLK', 'BLACK', '1MM', 'ACTIVE');
+  v_link3 := fn_link_save(t_spec, NULL, v_mat3, v_sup, true, 'ACTIVE');
+  v_b := fn_price_propose(t_mc, v_link3, jsonb_build_array(x1), 10000, 'IDR', NULL, 'MC langsung');
+  PERFORM pg_temp.ok((SELECT status || '|' || decided_by FROM material_price WHERE batch_id = v_b) = 'APPROVED|mc.a@selftest.invalid',
+                     'R8 usulan Manager Costing langsung APPROVED (penyetuju = dirinya)');
+  PERFORM pg_temp.ok((SELECT price FROM fn_price_lookup(x1, v_sup)) = 10000, 'R8 harga Manager Costing langsung berlaku');
+  PERFORM pg_temp.ok((SELECT count(*) FROM v_worklist_admin WHERE ref_id = v_b) = 0, 'R8 tidak muncul di Persetujuan Harga');
+
+  -- 4. awalan Material Code (R9: peringatan saja, tidak ditolak — kasus ERP CANVAS 6 OZ)
+  PERFORM pg_temp.ok((SELECT other_prefixes FROM fn_variant_code_hint(t_spec, v_mat3, 'LINX100CRM', NULL)) = 'LINU',
+                     'R9 awalan beda diberi peringatan (hint other_prefixes)');
+  PERFORM pg_temp.ok(fn_variant_save(t_spec, NULL, v_mat3, 'LINX100CRM', 'CREAM', '1MM', 'ACTIVE') IS NOT NULL,
+                     'R9 awalan beda tetap bisa disimpan');
+  x2 := fn_variant_save(t_spec, NULL, v_mat3, 'linu100wht', 'WHITE', '1MM', 'ACTIVE');
+  PERFORM pg_temp.ok(x2 IS NOT NULL, 'R8 awalan sama diterima');
+  -- R9: usulan Material Code dari varian yang sudah tercatat
+  PERFORM pg_temp.ok((SELECT prefixes || '|' || thickness_codes || '|' || color_codes
+                        FROM fn_variant_code_suggest(t_spec, v_mat3, ' black ', '1mm')) = 'LINU,LINX|100|BLK',
+                     'R9 usulan kode: awalan material (paling sering dulu), kode thickness & warna se-pabrik');
+  PERFORM pg_temp.ok((SELECT color_codes IS NULL AND thickness_codes = '100'
+                        FROM fn_variant_code_suggest(t_spec, v_mat3, 'UNGU MUDA', '1MM')),
+                     'R9 warna baru: kode warna kosong, bagian lain tetap diusulkan');
+  PERFORM pg_temp.ok(NOT EXISTS (SELECT 1 FROM fn_variant_code_suggest(t_specb, v_mat3, 'BLACK', '1MM')),
+                     'R9 usulan kode tidak bisa dibaca pabrik lain');
+  -- R9: tiga tingkat — TOLAK (kode / varian dobel), KONFIRMASI (arti bagian kode beda), INFO (hanya di form)
+  PERFORM pg_temp.must_fail(format('SELECT fn_variant_save(%L, NULL, %L, ''LINU200WHT'', ''CREAM'', ''2MM'', ''ACTIVE'')', t_spec, v_mat3),
+            'Perlu konfirmasi: kode warna WHT%', 'R9 kode warna sudah berarti WHITE dipakai untuk CREAM -> perlu konfirmasi');
+  PERFORM pg_temp.must_fail(format('SELECT fn_variant_save(%L, NULL, %L, ''LINU100GRN'', ''GREEN'', ''2MM'', ''ACTIVE'')', t_spec, v_mat3),
+            'Perlu konfirmasi: kode thickness 100%', 'R9 kode thickness sudah berarti 1MM dipakai untuk 2MM -> perlu konfirmasi');
+  x3 := fn_variant_save(t_spec, NULL, v_mat3, 'LINU200WHT', 'CREAM', '2MM', 'ACTIVE', true);
+  PERFORM pg_temp.ok(x3 IS NOT NULL, 'R9 dengan konfirmasi tetap bisa disimpan (kode ERP yang menyimpang)');
+  PERFORM fn_variant_save(t_spec, x3, v_mat3, 'LINU200WHT', 'CREAM', '2MM', 'INACTIVE');
+  PERFORM pg_temp.ok((SELECT status FROM material_variant WHERE id = x3) = 'INACTIVE', 'R9 ubah status saja tidak ditanya konfirmasi lagi');
+  PERFORM pg_temp.must_fail(format('SELECT fn_variant_save(%L, NULL, %L, ''LINU100BLK'', ''NAVY'', ''1MM'', ''ACTIVE'', true)', t_spec, v_mat3),
+            '%sudah dipakai%', 'R9 kode lengkap dobel tetap ditolak walau dikonfirmasi');
+  PERFORM pg_temp.must_fail(format('SELECT fn_variant_save(%L, NULL, %L, ''LINU100BL2'', ''black'', ''1mm'', ''ACTIVE'', true)', t_spec, v_mat3),
+            '%sudah ada di material ini%', 'R9 material + thickness + warna dobel tetap ditolak walau dikonfirmasi');
+  PERFORM pg_temp.ok(fn_variant_save(t_spec, NULL, v_mat3, 'LINU100W10', 'IVORY', '1MM', 'ACTIVE') IS NOT NULL
+                     AND (SELECT color_codes FROM fn_variant_code_suggest(t_spec, v_mat3, 'WHITE', '1MM')) = 'WHT',
+                     'R9 kode warna baru untuk warna lain tanpa bentrok = langsung tersimpan');
+  -- R10: hapus varian yang tidak dipakai (harga berakhir / ditolak ikut terhapus)
+  PERFORM pg_temp.ok(fn_variant_delete_block(x1) LIKE '%BERLAKU%', 'R10 varian berharga berlaku tidak bisa dihapus (alasan tampil)');
+  PERFORM pg_temp.must_fail(format('SELECT fn_variant_delete(%L, %L)', t_spec, x1), '%tidak bisa dihapus%', 'R10 hapus varian berharga ditolak');
+  PERFORM pg_temp.ok(fn_variant_delete_block((SELECT id FROM material_variant WHERE code = 'MSHU120BLK'
+                       AND factory_id = (SELECT id FROM factory WHERE name = 'SELFTEST PABRIK A'))) LIKE '%specsheet%CBD%',
+                     'R10 varian dipakai specsheet & CBD tidak bisa dihapus');
+  PERFORM pg_temp.must_fail(format('SELECT fn_variant_delete(%L, %L)', t_cbd, x3), '%tidak punya akses%', 'R10 hapus varian butuh manage_master');
+  PERFORM pg_temp.must_fail(format('SELECT fn_variant_delete(%L, %L)', t_specb, x3), '%pabrik lain%', 'R10 hapus varian pabrik lain ditolak');
+  PERFORM fn_variant_save(t_spec, x3, v_mat3, 'LINU200WHT', 'CREAM', '2MM', 'ACTIVE');
+  v_b := fn_price_propose(t_cbd, v_link3, jsonb_build_array(x3), 500, 'IDR', NULL, NULL);
+  PERFORM fn_price_decide(t_mc, (SELECT jsonb_agg(id) FROM material_price WHERE batch_id = v_b), 'REJECT', 'uji hapus');
+  PERFORM pg_temp.ok(fn_variant_delete_block(x3) IS NULL, 'R10 varian tanpa pemakaian (harga ditolak saja) boleh dihapus');
+  PERFORM pg_temp.ok(fn_variant_delete(t_spec, x3) = 'LINU200WHT', 'R10 hapus varian mengembalikan kodenya');
+  PERFORM pg_temp.ok(NOT EXISTS (SELECT 1 FROM material_variant WHERE id = x3)
+                     AND NOT EXISTS (SELECT 1 FROM material_price WHERE variant_id = x3)
+                     AND EXISTS (SELECT 1 FROM audit_log WHERE entity_id = x3::text AND action = 'DELETE'),
+                     'R10 varian & harga ditolaknya terhapus, tercatat di audit log');
+  SELECT * INTO v_b FROM fn_price_copy(t_mc, x1, jsonb_build_array(x2), NULL, NULL);
+  PERFORM pg_temp.ok((SELECT price FROM fn_price_lookup(x2, v_sup)) = 10000, 'R8 salin harga oleh Manager Costing langsung berlaku');
+  PERFORM fn_variant_save(t_spec, x2, v_mat3, 'LINU100WHT', 'WHITE', '1MM', 'INACTIVE');
+  PERFORM pg_temp.ok((SELECT status FROM material_variant WHERE id = x2) = 'INACTIVE', 'R8 ubah status varian tanpa ubah kode tetap bisa');
+
+  -- 3. article tanpa batas 5
+  PERFORM fn_article_save(t_spec, NULL, v_sheet, 'UJI-0' || g, 'WARNA ' || g) FROM generate_series(4, 7) g;
+  PERFORM pg_temp.ok((SELECT count(*) FROM article WHERE specsheet_id = v_sheet) = 7, 'R8 7 article dalam satu season');
+  PERFORM pg_temp.must_fail(format('SELECT fn_article_save(%L, NULL, %L, ''uji-07'', ''X'')', t_spec, v_sheet),
+            '%sudah ada%', 'R8 kode article tetap unik per season');
+
+  -- 5. ajukan harga master dari baris CBD
+  SELECT l.id INTO l_eva FROM cbd_line l JOIN material m ON m.id = l.material_id
+   WHERE l.cbd_revision_id = c3 AND m.name = 'UJI EVA' AND l.status = 'ACTIVE';
+  PERFORM pg_temp.must_fail(format('SELECT fn_cbd_price_propose(%L, %L, 3, ''USD'', NULL, NULL)', t_cbdb, l_eva),
+            '%pabrik lain%', 'R8 ajukan dari CBD: pabrik lain ditolak');
+  PERFORM pg_temp.must_fail(format('SELECT fn_cbd_price_propose(%L, %L, 3, NULL, NULL, NULL)', t_cbd, l_eva),
+            '%Currency%', 'R8 ajukan dari CBD: currency wajib');
+  v_b := fn_cbd_price_propose(t_cbd, l_eva, 3, 'USD', NULL, 'Q-CBD');
+  SELECT id INTO p FROM material_price WHERE batch_id = v_b;
+  PERFORM pg_temp.ok((SELECT status FROM material_price WHERE id = p) = 'PROPOSED'
+                     AND (SELECT variant_id FROM material_price WHERE id = p) = (SELECT variant_id FROM cbd_line WHERE id = l_eva),
+                     'R8 ajukan dari CBD = usulan harga master varian × supplier baris itu');
+  PERFORM pg_temp.ok((SELECT pending FROM v_cbd_price_check WHERE line_id = l_eva), 'R8 baris CBD langsung bertanda menunggu');
+  PERFORM pg_temp.must_fail(format('SELECT fn_cbd_price_propose(%L, %L, 3.1, ''USD'', NULL, NULL)', t_mc, l_eva),
+            '%menunggu approval%', 'R8 usulan ganda dari CBD ditolak');
+  PERFORM fn_price_decide(t_mc, jsonb_build_array(p), 'APPROVE', NULL);
+  v_b := fn_cbd_price_propose(t_mc, l_eva, 3.2, 'USD', fn_today() + 3, 'MC dari CBD');
+  PERFORM pg_temp.ok((SELECT status FROM material_price WHERE batch_id = v_b) = 'APPROVED',
+                     'R8 Manager Costing ajukan dari CBD langsung berlaku');
 END;
 $$;
 

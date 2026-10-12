@@ -2,7 +2,7 @@
 // Form: cwModelForm (mdlModel), cwSeasonForm (mdlSeason), cwArticleForm (mdlArticle).
 // Lampiran article: modal mdlLampiran (FilePicker + tabel + pratinjau gambar).
 // Izin: lihat = view_model · ubah model, season, article, lampiran = edit_model. Semua dicek lagi di DB
-// (maks. 5 article per season, kode article yang sudah dipakai terkunci, jenis & ukuran lampiran).
+// (kode article unik per season — tanpa batas jumlah sejak R8, kode yang sudah dipakai terkunci, jenis & ukuran lampiran).
 // Query q_articles & q_attachments selalu dijalankan lewat loadArticles() / loadAttachments() (pakai params).
 // R4: form model = dropdown Master Pilihan + grid ukuran (q_model_options).
 export default {
@@ -15,7 +15,6 @@ export default {
 	seasonKey: 0, seasonBusy: false, seasonMsg: null,
 	articleKey: 0, articleBusy: false, articleMsg: null, articleIsNew: true, articleForm: {},
 
-	MAX_ARTICLES: 5,
 	MAX_BYTES: 5 * 1024 * 1024,
 
 	// ---- data ----
@@ -42,7 +41,7 @@ export default {
 	// ---- izin (tampilan saja) ----
 	canEdit() { return Auth.can('edit_model'); },
 	canViewCbd() { return Auth.can('view_cbd'); },
-	canAddArticle() { return this.canEdit() && !!this.seasonId && this.articles().length < this.MAX_ARTICLES; },
+	canAddArticle() { return this.canEdit() && !!this.seasonId; },
 
 	// ---- label & teks ----
 	esc(v) {
@@ -88,7 +87,7 @@ export default {
 				: 'Belum ada season.');
 		}
 		const n = this.articles().length;
-		let t = `${n} dari maks. ${this.MAX_ARTICLES} article di season ${this.season() ? this.season().season : ''}.`;
+		let t = `${n} article di season ${this.season() ? this.season().season : ''}.`;
 		if (this.canEdit() && n) {
 			t += ' Article yang sudah dipakai di specsheet/CBD tidak bisa dihapus dan kodenya tidak bisa diubah — hentikan pemakaiannya dengan drop di specsheet.';
 		}
@@ -322,7 +321,6 @@ export default {
 			mode: this.articleIsNew ? 'add' : 'edit',
 			season: s ? s.season : '',
 			count: this.articles().length,
-			max: this.MAX_ARTICLES,
 			form: { code: this.articleForm.code, colorway: this.articleForm.colorway },
 			codeLocked: !!this.articleForm.is_used,
 			busy: this.articleBusy,

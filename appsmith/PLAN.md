@@ -40,8 +40,11 @@ Legenda status: ⬜ belum · 🟡 dibuat (belum diverifikasi dari export) · ✅
 | R4 | Model tanpa kode (dropdown, ukuran ala kalender, gender) + Specsheet per varian (sel kuning, ketik kode, shortcut daftar) + F10d | `build_r4.json` (base R5) | 🟡 dibuat 11 Okt 2026 · SQL dijalankan di PostgreSQL 16 lokal + self-test 55 cek lolos · 132 query app lolos EXPLAIN · harness widget & JSObject |
 | R5 | CBD per varian, blokir harga menunggu, PO SMS × 1,25, Selling price & Margin keluar dari CBD (simulasi Brand) | `build_r5.json` (base R6) | 🟡 dibuat 11 Okt 2026 · SQL di PostgreSQL lokal + self-test (R3–R5) lolos · 132 query EXPLAIN · harness |
 | R6 | Tugas Saya per role baru, Brand lintas pabrik, export Excel (Material Code, PO SMS), sapu bersih filter pabrik | `build_r6.json` (base R7) | 🟡 dibuat 11 Okt 2026 · self-test R3–R6 lolos · 134 query EXPLAIN |
-| R7 | Copy lintas model (specsheet & CBD, pabrik + kategori sama) | **`build_r7.json` (di-import)** → `export_r7.json` | 🟡 dibuat 11 Okt 2026 · self-test R3–R7 87 cek lolos · 135 query EXPLAIN + dijalankan dengan token per role |
-| E2E-R | Uji end-to-end ulang dari DB kosong dengan **2 pabrik** — panduan `steps/E2E_R_uji.md` (pasang: `RESET_data_bisnis` → `R_revisi_semua` → `R_selftest` → import `build_r7.json`) | – | ⬜ menunggu user |
+| R7 | Copy lintas model (specsheet & CBD, pabrik + kategori sama) | `build_r7.json` → **`export_r7.json`** (file user `export_v12.json`, 12 Okt 2026) | ✅ lolos E2E-R |
+| E2E-R | Uji end-to-end ulang dari DB kosong dengan **2 pabrik** — panduan `steps/E2E_R_uji.md` (pasang: `RESET_data_bisnis` → `R_revisi_semua` → `R_selftest` → import `build_r7.json`) | – | ✅ lolos semua (laporan user 12 Okt 2026) setelah perbaikan manual: antrean aksi `cwBomGrid`/`cwCbdGrid` (warna/Yield hilang saat ketik cepat), `a_cbd_override_price` tak terdefinisi; 5 catatan → R8 |
+| R10 | Hapus varian yang tidak dipakai (manual, tanpa build) | – (tempel manual: SQL R10, `q_variants`, `a_variant_delete`, `MaterialDetailCtrl.deleteVariant`, kolom Hapus `tblVariants`) | 🟡 dibuat 12 Okt 2026 · self-test 121 cek lolos |
+| R9 | Material Code: isi otomatis (usulan) + kamus kode tiga tingkat (tolak / konfirmasi / info); awalan kembali info — panduan `steps/R9_uji.md` | **`build_r9.json` (di-import)** (base `build_r8.json`) | 🟡 dibuat 12 Okt 2026 · self-test 113 cek lolos (DB bersih & DB tiruan data user) · 845 kode ERP: 844 masuk, 1 ditolak (T-160 WHITE dobel) · 139 query EXPLAIN · harness |
+| R8 | Catatan uji E2E-R: Manager Costing langsung berlaku, riwayat harga, article tanpa batas, awalan Material Code wajib sama, ajukan harga master dari CBD — panduan `steps/R8_uji.md` | **`build_r8.json` (di-import)** | 🟡 dibuat 12 Okt 2026 · R8 2× tanpa error · self-test 102 cek lolos · 137 query EXPLAIN · harness widget & JSObject |
 | F11 | Dokumentasi & handover (`appsmith/README.md`) | – | ⬜ dikerjakan **setelah UAT & go-live** (keputusan user 6 Okt 2026) |
 | Opsional | Where-used, histori harga, diff revisi, harga referensi brand | – | ⬜ |
 
@@ -259,7 +262,7 @@ Pola query:
 | `view_cbd`, `view_price` | | ✓ | ✓ | ✓ | |
 | `view_drafts` (lihat DRAFT) | ✓ | ✓ | ✓ | | |
 | `manage_master` (supplier, komponen, material, varian, link, pilihan model — tanpa approval) | ✓ | | | | |
-| `manage_price` (ajukan & salin harga, metode harga) | | ✓ | | | |
+| `manage_price` (ajukan & salin harga, metode harga; R8: Manager Costing juga → langsung berlaku) | | ✓ | ✓ | | |
 | `approve_price` (setujui / tolak / akhiri harga) | | | ✓ | | |
 | `edit_model`, `edit_specsheet` | ✓ | | | | |
 | `edit_cbd` | | ✓ | | | |
@@ -558,6 +561,37 @@ SQL `sql/R7_copy_model.sql`. Build `tools/build_r7.py` → **`exports/build_r7.j
 - [ ] 2 pabrik, 1 user per role per pabrik + Brand + System Admin; data dari contoh Excel FH26 (SMS, GTM)
 - [ ] Alur lengkap: master → harga (ajukan, tolak sebagian, setujui) → model → specsheet (sel kuning, daftar varian) → terbit → CBD (menunggu harga → blokir → approve → refresh) → terbit → PO SMS → Brand simulasi → export
 - [ ] Silang pabrik: setiap role pabrik B tidak melihat data pabrik A
+
+### Perbaikan manual setelah E2E-R (12 Okt 2026, ditempel user; sudah ada di `export_r7.json`)
+- **Antrean aksi + ack** di `cwBomGrid` + `BomCtrl` dan `cwCbdGrid` + `CbdGridCtrl`: aksi sel dikirim satu per satu, berikutnya setelah `doneSeq` (ack) — sebelumnya aksi tertimpa saat ketik cepat dan nilai yang dipulihkan setelah render ulang tidak pernah dikirim (warna/Yield "tersimpan" di layar, hilang setelah refresh). Sel juga disimpan saat blur; nilai terkirim tampil sampai antrean kosong; kirim ulang bila tanpa ack 5 detik.
+- `CbdGridCtrl.savePrice()`: cabang override (query `a_cbd_override_price` sudah dihapus F10b) dibuang. Sisa bug `q is not defined` setelah simpan quotation diperbaiki di R8.
+- `R_selftest.sql`: data uji memakai `@selftest.invalid` / `SELFTEST PABRIK A/B` (bentrok dengan `brand@uji.test` buatan user).
+- `R_selftest.sql` aman di DB berisi data (laporan user 12 Okt 2026: nomor komponen 10 sudah dipakai): master bersama memakai nama berawalan SELFTEST (supplier, komponen, Kategori), nomor komponen = kelipatan 10 kosong pertama kelompok 'a', cek view lintas pabrik dibatasi material/pabrik uji. Diuji di DB tiruan (komponen 10/20/30, supplier & kategori bernama sama/mirip, data pabrik user dengan kode & article sama): lolos 2×, jumlah baris semua tabel sama sebelum/sesudah.
+
+### R8 — Catatan uji E2E-R (12 Okt 2026)
+SQL `sql/R8_catatan_uji.sql` (setelah `R_revisi_semua`; aman diulang). Build `tools/build_r8.py` → **`exports/build_r8.json`** (base `export_r7.json`). Panduan `steps/R8_uji.md`.
+- [x] **1. Manager Costing mengajukan harga = langsung berlaku**: izin `manage_price` untuk Manager Costing; `trg_price_self_approve` (AFTER INSERT `material_price`): pengaju yang punya `approve_price` → `fn_price_activate` (penyetuju = dirinya). Berlaku untuk Ajukan, Salin Harga, dan ajukan dari CBD. Usulan Vendor CBD tetap PROPOSED. UI: tombol *+ Tambah Harga*, form *Simpan*, pesan "langsung berlaku".
+- [x] **2. Switch Tampilkan riwayat** (keputusan user): OFF = sembunyikan harga yang sudah berakhir **dan** DITOLAK yang sudah diganti (ada usulan/harga baru untuk varian × supplier yang sama sesudah ditolak — aturan sama dengan kartu Beranda) atau lebih dari 30 hari (`MaterialDetailCtrl.pricesShown`).
+- [x] **3. Article per season tanpa batas**: `fn_article_check` tanpa batas 5; tombol *+ Article (n)*, teks Model Detail & `cwArticleForm` tanpa "maks. 5". Export Excel specsheet sudah dinamis.
+- [x] **4. Awalan Material Code wajib sama** (keputusan user: blokir): `trg_material_variant_prefix` — kode 10 karakter dengan 4 karakter depan berbeda dari varian lain di material yang sama ditolak (hanya saat varian baru / kode diubah, jadi data lama tetap bisa diubah statusnya); `cwVariantForm` memblokir sebelum simpan. Pengecekan lain tetap: kode unik per pabrik, warna + thickness unik per material, kode thickness (5–7) & warna (8–10) konsisten se-pabrik.
+- [x] **5. Ajukan harga master dari CBD** (keputusan user: modal di halaman CBD): tombol *Ajukan harga master* (Manager Costing: *Harga master baru*) di kolom Harga baris katalog yang punya Material Code + supplier dan tidak sedang menunggu (revisi DRAFT, izin `manage_price`) → `cwCbdPriceForm` mode `PROPOSE` (harga, currency, berlaku mulai, referensi) → `a_cbd_price_propose` → `fn_cbd_price_propose` → `fn_price_propose` (bukan override; approval sama; banner "menunggu" langsung muncul; setelah disetujui → Refresh Harga dari Master).
+
+**Verifikasi:** PostgreSQL lokal: R8 2× tanpa error di atas skema R7; `R_selftest.sql` **102 cek** lolos (+15 cek R8, +1 cek nomor komponen kosong; cek lama "Manager Costing tidak bisa mengajukan" dihapus); 137 query `EXPLAIN` (1 error = `Query1` buatan user berisi `ROLLBACK;`, aman); validator tanpa error baru; harness `cwCbdPriceForm`, `cwCbdGrid`, `cwVariantForm`, `cwPriceForm` + uji logika `MaterialDetailCtrl.pricesShown` & `CbdGridCtrl.savePrice/priceFormModel`.
+
+### R10 — Hapus varian (12 Okt 2026, permintaan user; dipasang manual)
+SQL `sql/R10_hapus_varian.sql`: `fn_variant_delete_block(varian)` = alasan tidak bisa dihapus (dipakai sel specsheet / baris CBD mana pun, atau masih punya harga MENUNGGU APPROVAL / BERLAKU / AKAN BERLAKU); `fn_variant_delete(token, varian)` (izin `manage_master`, cek pabrik) menghapus varian + harga berakhir/ditolaknya; tercatat di `audit_log`. App: `q_variants` + kolom `delete_block`, query `a_variant_delete` (Request confirmation ON), `MaterialDetailCtrl.deleteVariant(row)` (alasan ditampilkan sebagai peringatan), kolom tombol **Hapus** di `tblVariants`. Self-test +7 cek (121 total).
+
+### R9 — Material Code: isi otomatis + kamus kode (12 Okt 2026)
+SQL `sql/R9_kode_varian.sql` (setelah R8). Build `tools/build_r9.py` → **`exports/build_r9.json`** (base `build_r8.json` — R8 lolos uji, app tidak diubah). Panduan `steps/R9_uji.md`.
+Analisis `MATERIAL CODE.xlsx` (845 kode ERP): awalan per material konsisten 457/458 (CANVAS 6 OZ = 209B & 2100); kode tengah → thickness 1:1; thickness kosong punya beberapa kode (K00/C00/800); kode akhir → warna 1:1 kecuali W10 (WHITE & WHITE C); WHITE/DOVE/PALE KHAKI punya >1 kode; T-160 WHITE 44" punya 2 kode (W01, W10). Usulan kode (uji leave-one-out): lengkap & benar 270/844, 7 karakter pertama benar 478; bila hanya satu pilihan, thickness benar 612/612, warna 555/558.
+Keputusan user — **tiga tingkat**:
+- [x] **Tolak**: kode dobel; material + thickness + warna dobel (sel specsheet harus menunjuk satu kode; pesan menyarankan bedakan nama warna sesuai ERP, mis. WHITE C).
+- [x] **Konfirmasi**: kode thickness / warna sudah berarti lain di pabrik ini (W01 = WHITE diisi CREAM) — `fn_material_variant_check` menolak dengan pesan `Perlu konfirmasi: …` kecuali `fn_variant_save(…, p_confirm = true)` (setelan transaksi `app.variant_confirm`); hanya dicek saat varian baru / kode-warna-thickness berubah. Form: kotak merah + centang "Sudah saya cek, kode ini benar sesuai ERP".
+- [x] **Info**: warna / thickness biasanya berkode lain, awalan beda (trigger R8 `trg_material_variant_prefix` dihapus), kode bukan 10 karakter — kotak kuning, tetap bisa simpan.
+- [x] **Isi otomatis**: `fn_variant_code_suggest` (awalan dari varian material ini; kode thickness & warna dari varian se-pabrik; paling sering dipakai, seri = paling awal dicatat) → kode langsung terisi di Daftarkan (sel kuning) dan di + Varian setelah warna/thickness diketik; bagian yang belum diketahui dikosongkan; "kode lain: …" ditampilkan; tidak ada tombol pilihan (keputusan user). Arah kode → warna/thickness tetap, isian tidak dikunci lagi.
+- Catatan skalabilitas: kamus dibentuk dari data varian per pabrik (tanpa tabel baru); kode pertama menentukan arti (koreksi: ubah varian salah bila belum terbit, atau simpan yang benar dengan konfirmasi). Bila nanti beberapa pabrik berbagi kamus ERP → pertimbangkan master kamus kode eksplisit.
+
+**Verifikasi:** R9 2× tanpa error di DB bersih & DB tiruan data user; `R_selftest.sql` 113 cek (+12 R9); 845 kode ERP dimasukkan lewat trigger: 844 masuk, 1 ditolak (benar); 139 query EXPLAIN; validator tanpa error baru; harness `cwVariantForm` skenario A1–A7, B9–B10, konfirmasi (blokir tanpa centang, `confirm: true` dengan centang), pesan DB `Perlu konfirmasi`. Konten terpanjang form 687 px → modal 760 px.
 
 ### Opsional (setelah F10, bila diminta)
 - [ ] Tab Material: **Dipakai di** (where-used) & **Histori Harga**

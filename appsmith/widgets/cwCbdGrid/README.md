@@ -48,6 +48,7 @@ Ukuran: lebar penuh, tinggi ±800 px (F8b: tabel Cost recapitulation & Harga jua
   recap,          // baris q_cbd_recap (v_cbd_recap, + group_costs { a: subtotal, … }) atau null
   costItems,      // baris q_cbd_cost_items [{ id, item_type, name, amount, remarks, is_default }] (F8b)
   costOkKey,      // naik setelah tambah biaya berhasil -> form tambah dikosongkan (F8b)
+  doneSeq,        // seq aksi terakhir yang selesai di CbdGridCtrl (ack antrean aksi)
   banners,        // [{ tone: 'danger'|'warn'|'info', text, action?: 'refreshSpec'|'refreshPrices', actionLabel? }]
   busy,           // ada aksi yang sedang disimpan
   message,        // null | { type, text }
@@ -72,7 +73,10 @@ Satu event **`onAction`** → `{{CbdGridCtrl.onAction()}}`. Sebelumnya widget me
 | `refreshPrices` | – | `a_cbd_refresh_prices` |
 | `refreshSpec` | – | `a_cbd_refresh_spec` (konfirmasi ON) |
 
-Setiap aksi juga membawa `seq` (nomor urut) supaya dua aksi berurutan yang sama tetap terbaca berbeda.
+Setiap aksi membawa `seq` (naik terus, berbasis waktu). Aksi dikirim **satu per satu**: berikutnya baru dikirim setelah
+CbdGridCtrl membalas `doneSeq >= seq` (sesudah query + muat ulang data). Tanpa balasan 5 detik, aksi dikirim ulang;
+CbdGridCtrl mengabaikan `seq` yang sudah selesai. Nilai yang sudah dikirim tetap tampil sampai antrean kosong. Sel juga
+disimpan saat blur (nilai yang dipulihkan setelah render ulang tidak memicu `change`).
 
 ## Perubahan R3–R7 (11 Okt 2026)
 
