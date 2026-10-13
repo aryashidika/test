@@ -172,7 +172,9 @@ export default {
 				},
 				{
 					key: 'to-revise', title: 'CBD Terbit Perlu Revisi', empty: 'Semua CBD terbit masih sesuai specsheet.',
-					items: of('TO_REVISE').map(r => this.cbdItem(r, { text: 'PERLU REVISI', tone: 'warn' })),
+					items: of('TO_REVISE').map(r => this.cbdItem(r, r.refresh_reason === 'STAGE'          // R13
+						? { text: 'Specsheet sudah stage berikutnya — buat CBD-nya', tone: 'warn' }
+						: { text: 'PERLU REVISI', tone: 'warn' })),
 				},
 				{
 					key: 'in-progress', title: 'Draft CBD Berjalan', hideWhenEmpty: true, empty: '',

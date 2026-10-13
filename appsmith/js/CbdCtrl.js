@@ -20,8 +20,6 @@ export default {
 	createKey: 0, createBusy: false, createMsg: null,
 	pubKey: 0, pubBusy: false, pubMsg: null,
 
-	STAGES: ['PULL', 'SMS', 'GTM', 'PROD'],
-
 	// Kategori change log CBD (sama dengan Python; DB menerima semuanya)
 	CATEGORIES: [
 		{ value: 'MATERIAL', label: 'Material / harga material' },
@@ -302,6 +300,8 @@ export default {
 	chip(a) {
 		if (a.spec_status === 'DROPPED') return { badge: a.pub_label ? `DI-DROP · ${a.pub_label}` : 'DI-DROP', tone: 'muted' };
 		if (a.draft_id) return { badge: `DRAFT ${a.draft_label}${a.draft_stale ? ' · specsheet baru' : ''}`, tone: 'draft' };
+		// R13: CBD terbit terakhir tertinggal stage specsheet (mis. CBD SMS terbit, specsheet sudah GTM)
+		if (a.pub_id && a.pub_behind) return { badge: `PERLU CBD ${a.spec_pub_stage} · ${a.pub_label}`, tone: 'danger' };
 		if (a.pub_id && a.pub_sync === 'NEEDS_REVISION') return { badge: `PERLU REVISI · ${a.pub_label}`, tone: 'danger' };
 		if (a.pub_id) return { badge: `TERBIT ${a.pub_label}`, tone: 'ok' };
 		if (a.spec_status === 'NOT_PUBLISHED') return { badge: 'SPECSHEET BELUM TERBIT', tone: 'muted' };
@@ -346,7 +346,9 @@ export default {
 		}
 		t += ` · acuan specsheet ${e(r.spec_label)}`;
 		if (r.source_label) t += ` · sumber: ${e(r.source_season)} / ${e(r.source_article)} / ${e(r.source_label)}`;
-		if (r.status === 'PUBLISHED' && r.sync_status === 'NEEDS_REVISION') {
+		if (r.id === a.pub_id && a.pub_behind) {
+			t += `<br><span style="color:#dc2626">Specsheet sudah terbit ${e(a.spec_pub_label)} — buat CBD ${e(a.spec_pub_stage)} lewat "+ Buat CBD".</span>`;
+		} else if (r.status === 'PUBLISHED' && r.sync_status === 'NEEDS_REVISION') {
 			t += `<br><span style="color:#dc2626">Specsheet terbit ${e(a.spec_pub_label)} mengubah baris / supplier / warna article ini — buat revisi CBD berikutnya.</span>`;
 		}
 		const log = r.status === 'PUBLISHED' ? this.logFor(r.id) : null;
@@ -384,13 +386,12 @@ export default {
 	async openCreate() {
 		const a = this.article();
 		if (!a) return;
-		if (!this.revisions().length) {
-			try {
-				await q_cbd_sources.run({ model_id: this.modelId || '', article_id: a.id });
-			} catch (e) {
-				showAlert(Util.cleanError(e && e.message), 'error');
-				return;
-			}
+		try {
+			await q_cbd_stages.run({ article_id: a.id });      // R13: pilihan stage
+			if (!this.revisions().length) await q_cbd_sources.run({ model_id: this.modelId || '', article_id: a.id });
+		} catch (e) {
+			showAlert(Util.cleanError(e && e.message), 'error');
+			return;
 		}
 		this.createBusy = false;
 		this.createMsg = null;
@@ -398,13 +399,20 @@ export default {
 		showModal('mdlCbdBaru');
 	},
 
+	// R13: stage dipilih di form (cwCbdForm mengganti {spec} / {next} di judul & keterangan sesuai stage terpilih)
 	createFormModel() {
 		const a = this.article();
 		const latest = this.latestPublished();
-		const specLabel = a && a.spec_pub_label ? a.spec_pub_label : '';
+		const specLabel = '{spec}';
+		const stages = (a ? (q_cbd_stages.data || []) : []).map(s => ({
+			v: s.stage, spec: s.spec_label, next: s.next_label, disabled: !s.available, note: s.note || '',
+			isDefault: !!s.is_default,
+		}));
 		let options = [];
 		let sources = [];
-		if (a && !this.revisions().length) {
+		if (a && !stages.some(s => !s.disabled)) {
+			options = [];
+		} else if (a && !this.revisions().length) {
 			sources = (q_cbd_sources.data || []).map(s => ({
 				id: s.id,
 				label: `${s.is_cross ? s.model_name + ' (model asal) · ' : ''}${s.code} · ${s.season} · ${s.label} terbit${s.dropped ? ' · di-drop' : ''}`,
@@ -420,10 +428,8 @@ export default {
 				},
 			];
 		} else if (a && latest) {
-			const revs = this.revisions().filter(r => r.stage === a.spec_pub_stage);
-			const no = revs.length ? Math.max(...revs.map(r => r.revision_no)) + 1 : 0;
 			options = [{
-				v: 'NEXT', title: `Revisi berikutnya: ${a.spec_pub_stage} r${no}`,
+				v: 'NEXT', title: 'Revisi berikutnya: {next}',
 				desc: `Baris dari specsheet ${specLabel}; Yield, Loss %, harga input & rekap dari ${this.label(latest)}. `
 					+ 'Baris yang tidak ada lagi di specsheet ditandai MISSING_IN_SPEC.',
 			}];
@@ -431,10 +437,12 @@ export default {
 		return {
 			key: this.createKey,
 			title: a ? `Buat CBD — ${a.code} · ${a.colorway}` : 'Buat CBD',
-			note: specLabel ? `Acuan: specsheet ${this.season() ? this.season().season + ' ' : ''}${specLabel} (terbit terakhir).` : '',
+			note: `Acuan: specsheet ${this.season() ? this.season().season + ' ' : ''}{spec} (terbit terakhir di stage itu).`,
+			stages,
 			options,
 			sources,
-			emptyText: 'Terbitkan atau hapus draft yang ada dulu sebelum membuat revisi baru.',
+			emptyText: this.draft() ? 'Terbitkan atau hapus draft yang ada dulu sebelum membuat revisi baru.'
+				: 'Tidak ada stage yang bisa dibuat CBD-nya (article tidak aktif di specsheet terbit).',
 			busy: this.createBusy,
 			message: this.createMsg,
 		};
@@ -447,7 +455,8 @@ export default {
 		this.createMsg = null;
 		this.createBusy = true;
 		try {
-			await a_cbd_create.run({ article_id: a.id, mode: f.mode || '', source_article_id: f.source_article_id || '' });
+			await a_cbd_create.run({ article_id: a.id, mode: f.mode || '', source_article_id: f.source_article_id || '',
+				stage: f.stage || '' });
 		} catch (e) {
 			const msg = e && e.message;
 			if (Util.isSessionError(msg)) {
@@ -497,7 +506,7 @@ export default {
 		const a = this.article();
 		const c = (q_cbd_checklist.data && q_cbd_checklist.data[0]) || null;
 		const checks = !c ? [] : [
-			{ label: 'Specsheet acuan = terbit terakhir', ok: !c.spec_stale, blocking: true,
+			{ label: `Specsheet acuan = terbit terakhir di stage ${c.stage}`, ok: !c.spec_stale, blocking: true,
 				detail: c.spec_stale ? 'Klik "Refresh dari Specsheet" di atas grid' : '' },
 			{ label: 'Exchange rate terisi', ok: !!c.rate_ok, blocking: true,
 				detail: c.rate_ok ? '' : 'Isi Exchange rate di rekap' },

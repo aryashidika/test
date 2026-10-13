@@ -97,7 +97,7 @@ def refs_in(text, pg, where):
         if m.group(1) not in build.names[pg]: err(f'{pg} {where}: widget {m.group(1)} tidak ada')
 for c in d['actionCollectionList']:
     u = c['unpublishedCollection']
-    refs_in(u['body'], u['pageId'], u['name'])
+    refs_in(re.sub(r'(?m)^\s*//.*$', '', u['body']), u['pageId'], u['name'])   # komentar baris penuh tidak dicek
 def walk_str(o):
     if isinstance(o, dict):
         for k, v in o.items():

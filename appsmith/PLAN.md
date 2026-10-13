@@ -45,6 +45,7 @@ Legenda status: ⬜ belum · 🟡 dibuat (belum diverifikasi dari export) · ✅
 | R10 | Hapus varian yang tidak dipakai (manual, tanpa build) | – (tempel manual: SQL R10, `q_variants`, `a_variant_delete`, `MaterialDetailCtrl.deleteVariant`, kolom Hapus `tblVariants`) | 🟡 dibuat 12 Okt 2026 · self-test 121 cek lolos |
 | R9 | Material Code: isi otomatis (usulan) + kamus kode tiga tingkat (tolak / konfirmasi / info); awalan kembali info — panduan `steps/R9_uji.md` | **`build_r9.json` (di-import)** (base `build_r8.json`) | 🟡 dibuat 12 Okt 2026 · self-test 113 cek lolos (DB bersih & DB tiruan data user) · 845 kode ERP: 844 masuk, 1 ditolak (T-160 WHITE dobel) · 139 query EXPLAIN · harness |
 | R8 | Catatan uji E2E-R: Manager Costing langsung berlaku, riwayat harga, article tanpa batas, awalan Material Code wajib sama, ajukan harga master dari CBD — panduan `steps/R8_uji.md` | **`build_r8.json` (di-import)** | 🟡 dibuat 12 Okt 2026 · R8 2× tanpa error · self-test 102 cek lolos · 137 query EXPLAIN · harness widget & JSObject |
+| R13 | CBD per stage (laporan user 13 Okt 2026: draft CBD SMS r0 pindah jadi GTM r0 saat *Refresh dari Specsheet* setelah specsheet GTM terbit → CBD & PO SMS hilang): acuan CBD = specsheet terbit terakhir **di stage CBD itu**, stage dipilih saat Buat CBD, tidak boleh mundur, chip/Tugas Saya *perlu CBD <stage>*, sinkron hanya stage sama, perbaikan data acuan lintas stage + **bersih-bersih** hasil scan (lihat §6 R13) — panduan `steps/R13_uji.md` | `sql/R13_cbd_stage.sql` + **`exports/build_r13.json`** (base `export_r12.json` = export user "Product Management R12", sama dengan build R12 kecuali tata letak kecil) | ✅ lolos uji user 13 Okt 2026 · dibuat 13 Okt 2026 · R13 2× tanpa error (DB bersih & DB data uji) · self-test **190 cek** · bug lama direproduksi dengan kode R12 lalu acuan dipulihkan R13 · 143 query EXPLAIN · query baru/diubah per role 12/12 · data 5 tahun: Tugas Saya CBD ±0,6–1 dtk (sama), chip article 2–4 ms, checklist ±30 ms · harness (CbdCtrl/CbdGridCtrl/BerandaCtrl asli + `cwCbdForm` asli) 17/17 · validator **LOLOS** (0 error) |
 | R12 | Perbaikan pra-UAT dari review go-live per halaman (13 Okt 2026): gambar/lampiran vs batas respons Appsmith (gambar terbit diperkecil, galeri satu per satu, lampiran 3,5 MB), index harga di `cbd_line`, antrean pemuatan Specsheet/CBD (klik cepat), sesi habis di tombol Cari, override & ExcelJS dihapus, jam WIB, keseragaman modal/tabel — lihat §9 T60–T70, panduan `steps/R12_uji.md` | `sql/R12_golive.sql` + **`exports/build_r12.json`** (base `export_r11b.json` = export user "Product Management R11 (1)", identik dengan build R11b) | ✅ lolos uji user 13 Okt 2026 · dibuat 13 Okt 2026 · R12 2× tanpa error · self-test **171 cek** · 142 query EXPLAIN · query baru per role 20/20 · index diukur di data 5 tahun (1,1 s → 5 ms) · harness JSObject asli: antrean CBD 15/15, Specsheet 4/4, galeri 12/12, Util/Auth/WIB 8/8 (kode lama gagal di skenario klik cepat yang sama) · harness `cwPublishForm` (PNG 16 MB → JPEG 1,3 MB) |
 | R11b | Temuan uji C: harga AKAN BERLAKU yang diakhiri tampil **DIBATALKAN** (bukan AKAN BERLAKU) & tidak dipakai form Tambah Harga — lihat §9 T54 | `sql/R11b_harga_batal.sql` + **`exports/build_r11b.json`** (base `export_r11.json` = export user "Product Management R11", identik dengan build R11) | 🟡 dibuat 13 Okt 2026 · skenario user direproduksi (sebelum: AKAN BERLAKU 13-11→13-11; sesudah: DIBATALKAN, harga lama BERLAKU) · bug kedua (harga dibatalkan hidup lagi) direproduksi & diperbaiki + pemulihan data dari audit (uji: dipulihkan 1) · R11b 2× tanpa error · instal bersih R11 → R11b · self-test **166 cek** · uji `MaterialDetailCtrl` dengan data `q_prices` asli |
 | R11 | Skalabilitas (S1–S10), bug (T54–T59), alur CBD: Tanpa biaya + peringatan baris belum berharga (A1/T56, tidak memblokir — keputusan 13 Okt 2026), rincian perubahan / cost bridge (A4) — panduan `steps/R11_uji.md` | `sql/R11_perbaikan.sql` + **`exports/build_r11.json`** (base `export_r10.json` = export user "Product Management R9" + tempelan R10) | 🟡 dibuat 12 Okt 2026 · R11 2× tanpa error · self-test **163 cek** lolos · 141 query EXPLAIN + 18 query baru dijalankan per role · harness widget (cwCbdGrid, cwPublishForm CBD & Specsheet, cwBomGrid) + uji JSObject · uji balapan T55 · data 5 tahun diukur ulang |
@@ -142,7 +143,7 @@ Pemicu: **Material Code dari ERP pabrik ternyata unik per warna dan thickness**,
 |---|---|
 | Login pilih role bebas | Login email + password di dalam app; role dari tabel `app_user` |
 | 4 cara buat revisi specsheet (kosong, carryover, lintas model, stage sama/berikut) | Satu function `fn_revision_create(mode)`; **Copy dari season lain** = carryover dari **model yang sama** saja (development NC / New Color), sumber hanya revisi **terbit**, baris BOM di-copy, article = article season tujuan, warna per article kosong. Copy **lintas model tidak dibawa** (keputusan user 30 Sep 2026) — *dibuka kembali 7 Okt 2026, dijadwalkan sebagai **R7** (8 Okt 2026)* |
-| 5 cara buat CBD | Satu function `fn_cbd_create(article, source)`. Stage CBD **selalu mengikuti stage specsheet terbit terakhir**; nomor revisi = terakhir di stage itu + 1 |
+| 5 cara buat CBD | Satu function `fn_cbd_create(article, source, stage)`. ~~Stage CBD selalu mengikuti stage specsheet terbit terakhir~~ → **R13 (13 Okt 2026): stage dipilih** (default stage specsheet terbit terbaru); acuan = specsheet terbit terakhir **di stage itu**; tidak boleh membuat/menerbitkan CBD stage lebih rendah dari CBD terbit terakhir; nomor revisi = terakhir di stage itu + 1 |
 | `is_used` sel BOM dihitung di Python | Kolom generated di DB |
 | Usage = 1/Yield dihitung di Python | Kolom generated di DB |
 | Diff BOM/CBD saat terbit (JSON) | MVP: change log kategori + alasan saja; diff masuk fase Opsional (kolom `diff` sudah disiapkan) |
@@ -620,6 +621,34 @@ Urutan patah (tanpa perbaikan): **S1 di ±3 tahun** (Tugas Saya Vendor CBD koson
 **Dibuat (12 Okt 2026):** `sql/R11_perbaikan.sql` (setelah R10, aman diulang, satu transaksi) + `exports/build_r11.json` (`tools/build_r11.py`, base `exports/export_r10.json`) + panduan `steps/R11_uji.md`.
 **Verifikasi:** R11 2× tanpa error di DB bersih; `R_selftest.sql` **163 cek** lolos (+42 cek R11: audit ramping, T54, T55, T57, S2, T58 + grid, A1/T56, A4 jumlah rincian = selisih FOB persis, kategori/uraian vendor tersimpan, Brand membaca rincian terbit); uji balapan 2 sesi (setujui+tolak, setujui+batal) → sesi kedua ditolak, harga tetap; 141 query build `EXPLAIN` tanpa error; 18 query baru/diubah dijalankan per role dengan parameter seperti app; harness (query asli build + JSObject asli): `cwCbdGrid` Tanpa biaya (validasi, Enter/Esc, antrean aksi), `cwPublishForm` CBD (rincian, ubah kategori/uraian, uraian kosong ditolak) & Specsheet (tidak berubah), `cwBomGrid` Batal ganti; uji `limitNote`, `systemModel`, `endPrice`; validator: tidak ada error baru (26 error lama = contoh di komentar `Util`).
 **Data 5 tahun setelah R11 (ms, query build R11):** `q_worklist_gap` 1.385 · cari audit tanpa hasil 1.159 · `q_worklist_cbd` 781 · `q_season_colors` 584 · `q_worklist_spec` 424 · `q_variants` 54 · `q_cbd_bridge` 82–120 · `q_worklist_system` 12 · semua query lain < 200 (dulu: timeout >120.000, 52.000, 88.900, 13.000, 8.600). Hasil: `tools/beban/hasil/log_5th_r11.txt`.
+
+### R13 — CBD per stage + bersih-bersih (13 Okt 2026)
+
+Pemicu (laporan user): CBD SMS r0 masih draft, specsheet GTM r0 terbit, klik *Refresh dari Specsheet* → draft pindah jadi
+GTM r0; CBD SMS (dan PO SMS ×1,25) tidak pernah ada, dan tidak bisa dibuat lagi (Buat CBD selalu memakai stage specsheet
+terbaru; checklist memblokir terbit selama specsheet lebih baru ada). Keputusan user: CBD adalah catatan biaya **per tahap**.
+
+- [x] (dibuat) `fn_spec_latest_pub_stage(specsheet, stage)`, `fn_cbd_stage_spec_status(article, stage)`
+- [x] (dibuat) `fn_cbd_draft`: article juga harus ACTIVE di specsheet terbit terakhir stage draft (DROPPED di specsheet terbaru tetap memblokir)
+- [x] (dibuat) `fn_cbd_stage_options(token, article)` → `q_cbd_stages` (form Buat CBD): stage yang specsheet-nya terbit; tersedia bila article aktif di specsheet terbaru & stage itu dan stage ≥ CBD terbit terakhir; default = tertinggi
+- [x] (dibuat) `fn_cbd_create` + `p_stage` (versi 4 argumen DROP); `fn_cbd_refresh_from_spec` tidak memindah stage; `fn_cbd_publish` menolak bila sudah ada CBD terbit stage lebih tinggi; `fn_cbd_sync_spec` hanya specsheet stage sama (CBD tidak dipindah acuannya ke stage lain)
+- [x] (dibuat) `v_cbd_checklist` (spec_stale & spec_status per stage), `v_cbd_article` (+ `draft_spec_label`, `pub_behind`), `v_worklist_cbd` (TO_REFRESH per stage draft; TO_REVISE + `refresh_reason = 'STAGE'` bila CBD terbit tertinggal stage)
+- [x] (dibuat) Data: CBD terbit dengan acuan specsheet stage lain (aturan lama) → acuan specsheet terbit terakhir stage-nya sendiri
+- [x] (dibuat) UI: `cwCbdForm` baris **Stage CBD** (tombol per stage, nonaktif + alasan; `{spec}`/`{next}` di teks), `CbdCtrl` (chip **PERLU CBD <stage>**, teks bawah stepper, kirim `stage`), banner `CbdGridCtrl` per stage, `BerandaCtrl` (keterangan STAGE)
+
+**Bersih-bersih (scan 13 Okt 2026, permintaan user):** app — query tak dirujuk 0, modal tak dibuka 0; dihapus `Util.fmtRp`,
+`Util.prettyJson` (13 page), `ModelDetailCtrl.attachments`, `CbdCtrl.STAGES`, switch tersembunyi `swMaterialBelumHarga` /
+`swMaterialHargaPending` (sisa F3, tanpa onChange). Fungsi Util lain dipakai di sebagian page (salinan sama di semua page —
+tetap). `Auth.onPageLoad` / `LoginCtrl.onPageLoad` dipanggil lewat *Run on page load* (tetap). DB — fungsi/view yang tidak
+dirujuk app, view, fungsi lain, trigger, atau default/constraint: hanya `fn_setup_table` (alat pasang audit tabel baru —
+tetap); kolom tabel tak dirujuk: 0. Repo — semua `js/` & `widgets/` ada di app; log `tools/*_err.txt`, `build_out.txt`
+dihapus & masuk `.gitignore`; validator tidak lagi membaca komentar baris penuh di JSObject (26 error palsu `Util` hilang).
+
+**Keputusan user 13 Okt 2026:** naik stage tanpa perubahan tetap wajib alasan (tidak diisi otomatis). Kategori model
+**tidak dikunci** setelah copy / terbit: syarat kategori sama hanya dicek saat copy specsheet lintas model; copy CBD lintas
+model mengikuti model asal specsheet (bukan kategori); header & export membaca kategori terkini (beda dengan nama model, T57).
+
+**Selesai bila:** draft CBD SMS bisa diterbitkan setelah specsheet GTM terbit; CBD SMS bisa dibuat setelah GTM terbit (bila belum ada CBD GTM terbit); refresh tidak mengubah stage; setelah CBD GTM terbit, SMS tertutup.
 
 ### Opsional (setelah F10, bila diminta)
 - [ ] Tab Material: **Dipakai di** (where-used) & **Histori Harga**
@@ -1151,6 +1180,7 @@ Diperbarui setiap fase selesai direview. Kolom **Dibuat** = Anda sudah menjalank
 | `fn_change_log_attach` (+ cek pabrik), `v_worklist_price_rejected` | view/function | R6 | ⬜ | ⬜ |
 | `product_model.parent_model_id`, `fn_sheet_origin_model`, `fn_revision_create` (COPY lintas model), `fn_cbd_populate(…, p_cross)`, `fn_cbd_create` (COPY dari model asal) | tabel/function | R7 | ⬜ | ⬜ |
 | `ix_cbd_line_material_price`; `fn_attachment_add` & `fn_change_log_attach` maks. 3,5 MB; `fn_cbd_override_price` & `fn_cbd_clear_override` **dihapus** | index/function | R12 | ⬜ | ⬜ |
+| `fn_spec_latest_pub_stage`, `fn_cbd_stage_spec_status`, `fn_cbd_stage_options` (baru); `fn_cbd_create` (+ `p_stage`, versi 4 argumen DROP), `fn_cbd_draft`, `fn_cbd_refresh_from_spec`, `fn_cbd_sync_spec`, `fn_cbd_publish` diganti; `v_cbd_checklist`, `v_cbd_article` (+ kolom akhir), `v_worklist_cbd` dibuat ulang | function/view | R13 | 🟡 | ⬜ |
 | `cbd_line.loss_pct` boleh NULL, `change_log_attachment`, `trg_aa_upper` (6 tabel), `fn_upper_names`, `fn_change_log_attach`; `v_revision_checklist` (+ `proposed_items`) & `v_worklist_spec` dibuat ulang; `fn_cbd_revision_lock`, `fn_material_check`, `fn_cbd_line_set`, `fn_cbd_populate`, `fn_cbd_override_price` (ditolak), `fn_cbd_header_set`, `fn_revision_publish`, `v_bom_grid` (+ `supplier_status`), `v_cbd_line`, `v_cbd_checklist`, `v_worklist_admin` diperbarui | tabel/view/function | F10b | ⬜ | ⬜ |
 | Hapus `material.width` + `width_key`; `uq_material_identity` kembali (nama + thickness + UoM); `fn_material_add/update` kembali ke parameter F3; `v_material_list`, `v_bom_grid`, `v_cbd_line` + view turunannya dibuat ulang | tabel/view/function | F10c | ⬜ | ⬜ |
 
@@ -1199,6 +1229,7 @@ ORDER BY 1, 2;
 | `cwCbdGrid` (PO SMS, status menunggu, simulasi harga jual) | `CBD` | R5 | 🟡 build_r5 (harness) | ⬜ |
 | `cwRevisionForm` (+ Copy dari model lain) | `Specsheet` | R7 | 🟡 build_r7 (harness) | ⬜ |
 | `cwPublishForm` (gambar > 1 MB diperkecil, maks. 3,5 MB) · `cwCbdGrid` (tanpa *Hapus override*) | `Specsheet`, `CBD` | R12 | 🟡 build_r12 (harness) | ⬜ |
+| `cwCbdForm` (+ baris Stage CBD) | `CBD` (modal `mdlCbdBaru`) | R13 | 🟡 build_r13 (harness) | ⬜ |
 
 ---
 

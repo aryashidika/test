@@ -2,12 +2,17 @@
 // disusun CbdCtrl.createFormModel(), simpan lewat CbdCtrl.saveCreate() -> fn_cbd_create.
 //   article belum punya CBD -> NEW (dari specsheet) / COPY (dari CBD terbit article lain model sama)
 //   article sudah punya CBD terbit -> NEXT (revisi berikutnya)
+// R13: stage dipilih (stages dari fn_cbd_stage_options); {spec} / {next} di judul, keterangan & catatan diganti
+// dengan specsheet acuan / nomor revisi CBD stage terpilih.
 // Aturan final di DB (satu draft per article, article ACTIVE di specsheet terbit, sumber model sama).
 const $ = id => document.getElementById(id);
 let lastKey = null;
 let busy = false;
 let mode = '';
 let options = [];
+let stages = [];
+let stage = '';
+let noteTpl = '';
 
 function applyTheme(t) {
   t = t || {};
@@ -31,6 +36,62 @@ function showMessage(m) {
 
 function current() {
   return options.find(o => o.v === mode) || null;
+}
+
+function curStage() {
+  return stages.find(s => s.v === stage) || null;
+}
+
+function fill(t) {
+  const s = curStage();
+  return String(t || '').replace(/\{spec\}/g, s ? s.spec : '').replace(/\{next\}/g, s ? s.next : '');
+}
+
+function renderTexts() {
+  document.querySelectorAll('.opt').forEach(el => {
+    const o = options.find(x => x.v === el.dataset.v);
+    if (!o) return;
+    el.querySelector('strong').textContent = fill(o.title);
+    el.querySelector('.desc').textContent = fill(o.desc);
+  });
+  if (options.length) {
+    const note = fill(noteTpl);
+    $('note').textContent = note;
+    $('note').hidden = !note;
+  }
+}
+
+function setStage(v) {
+  stage = v;
+  document.querySelectorAll('#stages button').forEach(el => {
+    const on = el.dataset.v === v;
+    el.classList.toggle('on', on);
+    el.setAttribute('aria-checked', on ? 'true' : 'false');
+  });
+  const off = stages.filter(s => s.disabled && s.note).map(s => `${s.v}: ${s.note}`);
+  $('stageHint').textContent = off.join(' · ');
+  $('stageHint').hidden = !off.length;
+  renderTexts();
+}
+
+function fillStages(list) {
+  stages = list || [];
+  const box = $('stages');
+  box.innerHTML = '';
+  stages.forEach(s => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.dataset.v = s.v;
+    b.disabled = !!s.disabled;
+    b.setAttribute('role', 'radio');
+    b.textContent = s.v;
+    b.title = s.disabled ? (s.note || '') : `${s.next} · acuan specsheet ${s.spec}`;
+    b.addEventListener('click', () => setStage(s.v));
+    box.appendChild(b);
+  });
+  $('stageBox').hidden = !stages.length || !options.length;
+  const def = stages.find(s => s.isDefault && !s.disabled) || stages.find(s => !s.disabled);
+  setStage(def ? def.v : '');
 }
 
 function setMode(v) {
@@ -57,8 +118,8 @@ function fillForm(m) {
     b.disabled = !!o.disabled;
     b.setAttribute('role', 'radio');
     b.innerHTML = '<span class="dot"></span><span class="txt"><strong></strong><span class="desc"></span></span>';
-    b.querySelector('strong').textContent = o.title;
-    b.querySelector('.desc').textContent = o.desc || '';
+    b.querySelector('strong').textContent = fill(o.title);
+    b.querySelector('.desc').textContent = fill(o.desc);
     b.addEventListener('click', () => setMode(o.v));
     box.appendChild(b);
   });
@@ -74,10 +135,12 @@ function fillForm(m) {
   src.classList.remove('invalid');
   const first = options.find(o => !o.disabled);
   setMode(first ? first.v : '');
-  const note = options.length ? (m.note || '') : (m.emptyText || '');
+  noteTpl = m.note || '';
+  const note = options.length ? '' : (m.emptyText || '');
   $('note').textContent = note;
   $('note').hidden = !note;
   $('btnSave').hidden = options.length === 0;
+  fillStages(m.stages);
 }
 
 function setBusy(v) {
@@ -111,8 +174,12 @@ function submit() {
     showMessage({ type: 'error', text: 'Pilih article sumber.' });
     return;
   }
+  if (stages.length && !curStage()) {
+    showMessage({ type: 'error', text: 'Pilih stage CBD.' });
+    return;
+  }
   $('source').classList.remove('invalid');
-  appsmith.updateModel({ mode, source_article_id: o.needsSource ? $('source').value : '' });
+  appsmith.updateModel({ mode, source_article_id: o.needsSource ? $('source').value : '', stage });
   appsmith.triggerEvent('onSave');
 }
 

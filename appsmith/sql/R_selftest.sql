@@ -1,6 +1,6 @@
 -- ============================================================================
--- R_selftest — uji alur inti R3–R12 langsung di database, lalu DIBATALKAN (ROLLBACK): tidak ada data yang tersimpan.
--- Jalankan SETELAH sql/R_revisi_semua.sql, sql/R8_catatan_uji.sql, R9_kode_varian.sql R10_hapus_varian.sql, R11_perbaikan.sql, R11b_harga_batal.sql DAN R12_golive.sql, lewat z_run_sql di app "DB Tools" (Use prepared statements = OFF),
+-- R_selftest — uji alur inti R3–R13 langsung di database, lalu DIBATALKAN (ROLLBACK): tidak ada data yang tersimpan.
+-- Jalankan SETELAH sql/R_revisi_semua.sql, sql/R8_catatan_uji.sql, R9_kode_varian.sql R10_hapus_varian.sql, R11_perbaikan.sql, R11b_harga_batal.sql, R12_golive.sql DAN R13_cbd_stage.sql, lewat z_run_sql di app "DB Tools" (Use prepared statements = OFF),
 -- SEBELUM import app. Hasil yang diharapkan: baris terakhir "SELFTEST LOLOS". Kalau ada yang salah, query berhenti
 -- dengan pesan "SELFTEST GAGAL: ..." — kirim pesan itu ke pengembang.
 -- Aman di DB yang sudah berisi data: pabrik SELFTEST PABRIK A/B, email @selftest.invalid; master BERSAMA (supplier,
@@ -719,6 +719,117 @@ BEGIN
   PERFORM pg_temp.ok(to_regprocedure('fn_cbd_clear_override(text,uuid)') IS NULL
                      AND to_regprocedure('fn_cbd_override_price(text,uuid,numeric,text,text)') IS NULL,
                      'R12/T65 fungsi override sudah dihapus');
+END;
+$$;
+
+-- ---------------------------------------------------------------- R13: CBD per stage
+DO $$
+DECLARE
+  t_spec text := pg_temp.tok('spec.a@selftest.invalid');
+  t_cbd  text := pg_temp.tok('cbd.a@selftest.invalid');
+  t_mc   text := pg_temp.tok('mc.a@selftest.invalid');
+  v_cat uuid; v_sup uuid; v_comp uuid; v_mat uuid; v_var uuid; v_link uuid; v_b uuid;
+  m uuid; sh uuid; x1 uuid; x2 uuid; rs0 uuid; rs1 uuid; rg0 uuid; rg1 uuid; rg2 uuid;
+  cs uuid; cg uuid; cx uuid; n integer;
+BEGIN
+  SELECT pm.category_id INTO v_cat FROM product_model pm JOIN factory f ON f.id = pm.factory_id
+   WHERE f.name = 'SELFTEST PABRIK A' LIMIT 1;
+  SELECT id INTO v_sup FROM supplier WHERE name = 'SELFTEST SUPPLIER SATU';
+  SELECT id INTO v_comp FROM component WHERE name = 'SELFTEST VAMP';
+  v_mat  := fn_material_add(t_spec, 'UJI STAGE MESH', 'TEXTILE', 'YD');
+  v_var  := fn_variant_save(t_spec, NULL, v_mat, 'MSTU100BLK', 'BLACK', '1MM', 'ACTIVE');
+  v_link := fn_link_save(t_spec, NULL, v_mat, v_sup, true, 'ACTIVE');
+  v_b    := fn_price_propose(t_cbd, v_link, jsonb_build_array(v_var), 30000, 'IDR', fn_today(), 'Q-STAGE');
+  PERFORM fn_price_decide(t_mc, (SELECT jsonb_agg(id) FROM material_price WHERE batch_id = v_b), 'APPROVE', NULL);
+
+  m  := fn_model_save(t_spec, NULL, 'Uji Stage', v_cat, NULL, NULL, NULL, NULL, '[40]', NULL);
+  sh := fn_season_add(t_spec, m, 'FH27');
+  x1 := fn_article_save(t_spec, NULL, sh, 'UJI-S1', 'BLACK');
+  x2 := fn_article_save(t_spec, NULL, sh, 'UJI-S2', 'BLACK');
+  rs0 := fn_revision_create(t_spec, sh, 'EMPTY', 'SMS', NULL);
+  PERFORM fn_bom_add_line(t_spec, rs0, v_comp, NULL, NULL, v_mat, '1MM', v_sup, NULL, 'black');
+  PERFORM fn_revision_publish(t_spec, rs0, 'OTHER', NULL);
+
+  cs := fn_cbd_create(t_cbd, x1, 'NEW', NULL);
+  PERFORM fn_cbd_header_set(t_cbd, cs, 'RATE', 16300);
+  PERFORM fn_cbd_line_set(t_cbd, l.id, 'YIELD', 2) FROM cbd_line l WHERE l.cbd_revision_id = cs;
+
+  -- specsheet SMS r1 (stage sama) -> draft SMS wajib refresh, stage & nomor tetap
+  rs1 := fn_revision_create(t_spec, sh, 'NEXT_REVISION', NULL, NULL);
+  PERFORM fn_revision_publish(t_spec, rs1, 'OTHER', 'uji');
+  PERFORM pg_temp.ok((SELECT draft_stale AND draft_spec_label = 'SMS r1' FROM v_cbd_article WHERE id = x1)
+                     AND (SELECT kind || '|' || refresh_reason FROM v_worklist_cbd WHERE article_id = x1) = 'TO_REFRESH|SPEC',
+                     'R13 specsheet SMS r1 terbit -> draft SMS perlu refresh');
+  PERFORM pg_temp.must_fail(format('SELECT fn_cbd_publish(%L, %L, ''OTHER'', NULL)', t_cbd, cs),
+            '%Specsheet SMS acuan%Refresh%', 'R13 draft SMS tertinggal SMS r1 tidak bisa terbit');
+  n := fn_cbd_refresh_from_spec(t_cbd, cs);
+  PERFORM pg_temp.ok((SELECT stage || ' r' || revision_no FROM cbd_revision WHERE id = cs) = 'SMS r0'
+                     AND (SELECT specsheet_revision_id FROM cbd_revision WHERE id = cs) = rs1,
+                     'R13 refresh: acuan SMS r1, CBD tetap SMS r0');
+
+  -- specsheet GTM r0 terbit saat CBD SMS masih draft (kasus user) -> CBD SMS tetap bisa diterbitkan
+  rg0 := fn_revision_create(t_spec, sh, 'NEXT_STAGE', NULL, NULL);
+  PERFORM fn_revision_publish(t_spec, rg0, 'OTHER', 'uji');
+  PERFORM pg_temp.ok(NOT (SELECT draft_stale FROM v_cbd_article WHERE id = x1)
+                     AND NOT (SELECT spec_stale OR blocked FROM v_cbd_checklist WHERE cbd_revision_id = cs)
+                     AND (SELECT kind FROM v_worklist_cbd WHERE article_id = x1) = 'IN_PROGRESS',
+                     'R13 specsheet GTM terbit tidak membuat draft SMS tertinggal');
+  PERFORM pg_temp.must_fail(format('SELECT fn_cbd_refresh_from_spec(%L, %L)', t_cbd, cs),
+            '%sudah memakai specsheet SMS terbit terakhir%', 'R13 refresh tidak memindahkan draft SMS ke GTM');
+  PERFORM fn_cbd_publish(t_cbd, cs, 'OTHER', NULL);
+  PERFORM pg_temp.ok((SELECT stage || ' r' || revision_no || '|' || po_factor FROM cbd_revision WHERE id = cs) = 'SMS r0|1.2500',
+                     'R13 CBD SMS r0 terbit dengan PO SMS walau specsheet sudah GTM');
+  PERFORM pg_temp.ok((SELECT pub_behind FROM v_cbd_article WHERE id = x1)
+                     AND (SELECT kind || '|' || refresh_reason FROM v_worklist_cbd WHERE article_id = x1) = 'TO_REVISE|STAGE',
+                     'R13 CBD terbit tertinggal stage -> perlu CBD GTM (chip & Tugas Saya)');
+
+  -- specsheet GTM r1 tanpa perubahan: CBD SMS tidak dipindah acuannya ke GTM
+  rg1 := fn_revision_create(t_spec, sh, 'NEXT_REVISION', NULL, NULL);
+  PERFORM fn_revision_publish(t_spec, rg1, 'OTHER', 'uji');
+  PERFORM pg_temp.ok((SELECT specsheet_revision_id = rs1 AND sync_status = 'IN_SYNC' FROM cbd_revision WHERE id = cs),
+                     'R13 sinkron hanya di stage yang sama (acuan CBD SMS tetap SMS r1)');
+
+  -- pilihan stage
+  PERFORM pg_temp.ok((SELECT string_agg(stage || ':' || available || ':' || is_default || ':' || next_label, ',' ORDER BY stage_order)
+                        FROM fn_cbd_stage_options(t_cbd, x1)) = 'SMS:true:false:SMS r1,GTM:true:true:GTM r0',
+                     'R13 pilihan stage x1: SMS r1 / GTM r0 (default GTM)');
+  PERFORM pg_temp.ok((SELECT string_agg(stage || ':' || available || ':' || is_default, ',' ORDER BY stage_order)
+                        FROM fn_cbd_stage_options(t_cbd, x2)) = 'SMS:true:false,GTM:true:true',
+                     'R13 pilihan stage x2 (belum ada CBD): SMS & GTM');
+  cx := fn_cbd_create(t_cbd, x2, 'NEW', NULL, 'SMS');
+  PERFORM pg_temp.ok((SELECT stage || ' r' || revision_no FROM cbd_revision WHERE id = cx) = 'SMS r0'
+                     AND (SELECT specsheet_revision_id FROM cbd_revision WHERE id = cx) = rs1
+                     AND (SELECT NOT draft_stale AND draft_spec_label = 'SMS r1' FROM v_cbd_article WHERE id = x2),
+                     'R13 CBD SMS bisa dibuat setelah specsheet GTM terbit (acuan SMS r1)');
+  PERFORM pg_temp.must_fail(format('SELECT fn_cbd_create(%L, %L, ''NEXT'', NULL, ''PROD'')', t_cbd, x1),
+            '%belum ada yang terbit%', 'R13 stage tanpa specsheet terbit ditolak');
+
+  -- revisi berikutnya ke GTM, lalu tidak boleh mundur ke SMS
+  cg := fn_cbd_create(t_cbd, x1, 'NEXT', NULL);
+  PERFORM pg_temp.ok((SELECT stage || ' r' || revision_no FROM cbd_revision WHERE id = cg) = 'GTM r0'
+                     AND (SELECT specsheet_revision_id FROM cbd_revision WHERE id = cg) = rg1
+                     AND (SELECT count(*) FROM cbd_line WHERE cbd_revision_id = cg AND yield_value = 2) = 1,
+                     'R13 tanpa pilihan stage = stage specsheet terbaru (GTM r0, Yield dibawa)');
+  PERFORM fn_cbd_publish(t_cbd, cg, 'OTHER', 'uji', NULL);
+  PERFORM pg_temp.ok(NOT (SELECT pub_behind FROM v_cbd_article WHERE id = x1)
+                     AND NOT EXISTS (SELECT 1 FROM v_worklist_cbd WHERE article_id = x1),
+                     'R13 CBD GTM terbit -> tidak ada tugas lagi');
+  PERFORM pg_temp.ok((SELECT available::text || ':' || note FROM fn_cbd_stage_options(t_cbd, x1) WHERE stage = 'SMS')
+                     = 'false:Sudah ada CBD GTM terbit', 'R13 pilihan SMS tertutup setelah CBD GTM terbit');
+  PERFORM pg_temp.must_fail(format('SELECT fn_cbd_create(%L, %L, ''NEXT'', NULL, ''SMS'')', t_cbd, x1),
+            '%stage sebelumnya%', 'R13 tidak bisa membuat CBD SMS setelah CBD GTM terbit');
+
+  -- specsheet GTM r2 men-drop x2 -> draft SMS x2 hanya bisa dihapus
+  rg2 := fn_revision_create(t_spec, sh, 'NEXT_REVISION', NULL, NULL);
+  PERFORM fn_rev_article_set(t_spec, rg2, x2, 'DROPPED');
+  PERFORM fn_revision_publish(t_spec, rg2, 'OTHER', 'uji');
+  PERFORM pg_temp.must_fail(format('SELECT fn_cbd_header_set(%L, %L, ''RATE'', 17000)', t_cbd, cx),
+            '%di-drop%', 'R13 article di-drop di specsheet terbaru -> draft SMS terkunci');
+  PERFORM pg_temp.ok(NOT EXISTS (SELECT 1 FROM fn_cbd_stage_options(t_cbd, x2) WHERE available)
+                     AND (SELECT note FROM fn_cbd_stage_options(t_cbd, x2) WHERE stage = 'SMS') LIKE '%di-drop%',
+                     'R13 article di-drop di specsheet terbaru -> tidak ada stage yang bisa dipilih');
+  PERFORM fn_cbd_delete_draft(t_cbd, cx);
+  PERFORM pg_temp.ok(NOT EXISTS (SELECT 1 FROM cbd_revision WHERE id = cx), 'R13 draft SMS article di-drop bisa dihapus');
 END;
 $$;
 

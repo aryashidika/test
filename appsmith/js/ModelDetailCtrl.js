@@ -34,10 +34,6 @@ export default {
 		return q_articles.data || [];
 	},
 
-	attachments() {
-		return q_attachments.data || [];
-	},
-
 	// ---- izin (tampilan saja) ----
 	canEdit() { return Auth.can('edit_model'); },
 	canViewCbd() { return Auth.can('view_cbd'); },

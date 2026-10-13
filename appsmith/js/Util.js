@@ -12,12 +12,6 @@ export default {
 		return Number(v).toLocaleString('id-ID', { minimumFractionDigits: dec, maximumFractionDigits: dec });
 	},
 
-	// Rupiah tanpa desimal: 45000 -> "Rp 45.000"
-	fmtRp(v, dec = 0) {
-		const s = this.fmtNum(v, dec);
-		return s === '-' ? s : `Rp ${s}`;
-	},
-
 	// R12 (T67): jam selalu WIB, tidak ikut zona waktu PC. Kolom date ('YYYY-MM-DD') tidak digeser.
 	fmtDate(v) {
 		if (!v) return '-';
@@ -27,16 +21,6 @@ export default {
 
 	fmtDateTime(v) {
 		return v ? moment(v).utcOffset(7).format('DD MMM YYYY HH:mm') : '-';
-	},
-
-	// jsonb bisa datang sebagai objek atau teks
-	prettyJson(v) {
-		if (v === null || v === undefined || v === '') return '-';
-		let obj = v;
-		if (typeof v === 'string') {
-			try { obj = JSON.parse(v); } catch (e) { return v; }
-		}
-		return JSON.stringify(obj, null, 2);
 	},
 
 	// Ambil pesan inti dari error Postgres (RAISE EXCEPTION / constraint)
