@@ -68,7 +68,7 @@ function setStage(v) {
     el.classList.toggle('on', on);
     el.setAttribute('aria-checked', on ? 'true' : 'false');
   });
-  const off = stages.filter(s => s.disabled && s.note).map(s => `${s.v}: ${s.note}`);
+  const off = stages.filter(s => s.disabled && s.note).map(s => `${s.label || s.v}: ${s.note}`);
   $('stageHint').textContent = off.join(' · ');
   $('stageHint').hidden = !off.length;
   renderTexts();
@@ -84,7 +84,7 @@ function fillStages(list) {
     b.dataset.v = s.v;
     b.disabled = !!s.disabled;
     b.setAttribute('role', 'radio');
-    b.textContent = s.v;
+    b.textContent = s.label || s.v;
     b.title = s.disabled ? (s.note || '') : `${s.next} · acuan specsheet ${s.spec}`;
     b.addEventListener('click', () => setStage(s.v));
     box.appendChild(b);

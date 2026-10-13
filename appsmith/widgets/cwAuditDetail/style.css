@@ -1,0 +1,182 @@
+:root {
+  --primary: #122A52;
+  --surface: #FFFFFF;
+  --surface-alt: #EEF1F7;
+  --text: #1B2333;
+  --muted: #6B7280;
+  --border: #D6DCE8;
+  --old: #B42318;
+  --old-bg: #FDECEC;
+  --new: #1E7A42;
+  --new-bg: #DDF3E4;
+  --radius: 8px;
+  --font: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
+  --mono: Consolas, "Cascadia Mono", "Courier New", monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  height: 100%;
+}
+
+body {
+  font-family: var(--font);
+  font-size: 13px;
+  color: var(--text);
+  background: var(--surface);
+}
+
+[hidden] {
+  display: none !important;
+}
+
+.wrap {
+  height: 100%;
+  overflow-y: auto;
+  padding: 14px 16px;
+}
+
+.empty {
+  color: var(--muted);
+  padding: 24px 0;
+  text-align: center;
+}
+
+.head {
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.line1 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.badge {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .3px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--surface-alt);
+  color: var(--primary);
+}
+
+.badge.INSERT, .badge.LOGIN {
+  background: var(--new-bg);
+  color: var(--new);
+}
+
+.badge.DELETE, .badge.LOGIN_FAILED, .badge.PASSWORD_RESET {
+  background: var(--old-bg);
+  color: var(--old);
+}
+
+.entity {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.meta {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 12px;
+  word-break: break-all;
+}
+
+.mono {
+  font-family: var(--mono);
+  color: var(--text);
+  user-select: all;
+}
+
+.sec {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin: 12px 0 6px;
+}
+
+.sec h3 {
+  margin: 0;
+  font-size: 13px;
+}
+
+.count {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.note {
+  color: var(--muted);
+  font-style: italic;
+  padding: 4px 0 8px;
+}
+
+.row {
+  padding: 6px 0;
+  border-bottom: 1px solid var(--surface-alt);
+}
+
+.field {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.vals {
+  margin-top: 2px;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+.v {
+  padding: 0 4px;
+  border-radius: 4px;
+}
+
+.v.old {
+  background: var(--old-bg);
+  color: var(--old);
+  text-decoration: line-through;
+}
+
+.v.new {
+  background: var(--new-bg);
+  color: var(--new);
+}
+
+.v.empty {
+  color: var(--muted);
+  font-style: italic;
+  background: none;
+  text-decoration: none;
+}
+
+.arrow {
+  color: var(--muted);
+  padding: 0 4px;
+}
+
+.tech-toggle {
+  margin-top: 10px;
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  color: var(--primary);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.rows.tech .field,
+.rows.tech .vals {
+  opacity: .8;
+}

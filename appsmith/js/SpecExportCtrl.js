@@ -7,8 +7,8 @@ export default {
 	busy: false,
 	step: '',      // langkah export yang sedang berjalan (untuk pesan error)
 
-	// PURPOSE dicentang otomatis dari stage
-	PURPOSES: [['Preview Sample', ['PULL']], ['Salesman Sample', ['SMS']], ['Production Process', ['GTM', 'PROD']]],
+	// PURPOSE dicentang otomatis dari stage (form asli 3 kotak; R14: Pullover & Preview = Preview Sample)
+	PURPOSES: [['Preview Sample', ['PULL', 'PREV']], ['Salesman Sample', ['SMS']], ['Production Process', ['GTM', 'PROD']]],
 
 	canExport() {
 		return !!SpecCtrl.revision() && !this.busy;
@@ -47,7 +47,7 @@ export default {
 		this.step = 'menyusun isi';
 		try {
 			const wb = this.build(m, s, r);
-			await this.save(wb, this.fileName('Specsheet', m.name, s.season, `${r.stage}-r${r.revision_no}`, r.status === 'DRAFT' ? 'DRAFT' : ''));
+			await this.save(wb, this.fileName('Specsheet', m.name, s.season, `${Util.stageLabel(r.stage)}-r${r.revision_no}`, r.status === 'DRAFT' ? 'DRAFT' : ''));
 			showAlert('File Excel specsheet diunduh.', 'success');
 		} catch (e) {
 			showAlert(`Export gagal saat ${this.step}: ` + Util.cleanError((e && e.message) || String(e)), 'error');
@@ -129,7 +129,7 @@ export default {
 				cell(5 + i, 3, `${k}  :  ${v(val)}`, { font: { size: 9 }, border: this.underline() });
 			});
 		cell(5, A0, `GENDER  :  ${v(m.gender)}`, small);
-		cell(6, A0, `STAGE ${r.stage} · REVISI ${r.revision_no} · ${r.status}`
+		cell(6, A0, `STAGE ${Util.stageLabel(r.stage).toUpperCase()} · REVISI ${r.revision_no} · ${r.status}`
 			+ (r.status === 'PUBLISHED' ? (r.published_by ? ` · terbit oleh ${r.published_by}` : '') : ' · BELUM TERBIT'),
 		{ font: { bold: true, size: 10, color: { argb: r.status === 'PUBLISHED' ? 'FF16A34A' : 'FFDC2626' } } });
 		if (log) cell(7, A0, `Perubahan (${log.category}): ${log.reason}`, { font: { size: 9, italic: true, color: { argb: 'FF6B7280' } }, alignment: { wrapText: true, vertical: 'top' } });
@@ -209,7 +209,7 @@ export default {
 
 		ws.views = [{ state: 'frozen', xSplit: 0, ySplit: 11 }];
 		ws.printTitleRows = '1:11';
-		ws.footer = `${m.name} ${s.season} ${r.stage} r${r.revision_no} — Page &P / &N`;
+		ws.footer = `${m.name} ${s.season} ${Util.revLabel(r)} · Page &P / &N`;
 		return wb;
 	},
 }

@@ -69,6 +69,6 @@ Siapkan 1 model + season baru dengan **2 article** (A, B). Specsheet: buat revis
 |---|---|---|
 | D1 | Master Material: Cari, filter, tambah material | Normal (2 switch yang dihapus memang tidak pernah tampil) |
 | D2 | Model Detail → Lampiran article: lihat, unggah, hapus | Normal |
-| D3 | Admin → Audit log; halaman lain yang menampilkan tanggal & angka | Normal (fungsi format yang dihapus tidak dipakai) |
+| D3 | Admin → Audit Log → klik satu baris UPDATE (fitur detail R14); halaman lain yang menampilkan tanggal & angka | Panel kanan menampilkan kolom yang berubah: nilai lama → nilai baru (uji lengkap: `steps/R14_uji.md` bagian A). Tanggal & angka di halaman lain normal |
 
 Kirim export app setelah uji (base build berikutnya) + catatan bila ada yang tidak sesuai.

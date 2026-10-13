@@ -2,7 +2,9 @@
 // SpecCtrl.saveRevision() -> fn_revision_create. Pilihan cara mengikuti keadaan season:
 //   belum ada revisi  -> EMPTY (kosong) / COPY (copy season lain model yang sama) /
 //                        COPY_MODEL (R7: copy dari model lain, pabrik + kategori sama; ringkasan jumlah baris), + stage awal
-//   ada revisi terbit -> NEXT_REVISION (stage sama, nomor + 1) / NEXT_STAGE (stage berikutnya r0)
+//   ada revisi terbit -> NEXT_REVISION (stage sama, nomor + 1) / NEXT_STAGE (stage lebih tinggi r0; R14: boleh
+//                        melompat, pilihan nextStages, default stage berikutnya)
+// R14: pilihan stage dari model (kode + label): stages (revisi awal), nextStages (NEXT_STAGE).
 // COPY_MODEL dikirim apa adanya; SpecCtrl.saveRevision() memanggil fn_revision_create mode COPY.
 // Aturan final di DB (satu draft per season, sumber harus terbit; lintas model: pabrik & kategori sama).
 const $ = id => document.getElementById(id);
@@ -60,7 +62,7 @@ function buildOptions(m) {
       },
       {
         v: 'NEXT_STAGE', title: m.nextStageLabel ? `Stage berikutnya: ${m.nextStageLabel}` : 'Stage berikutnya',
-        desc: m.nextStageLabel ? `Salin ${m.latestLabel} ke stage berikutnya.` : 'Sudah di stage terakhir (PROD).',
+        desc: m.nextStageLabel ? `Salin ${m.latestLabel} ke stage yang dipilih.` : 'Sudah di stage terakhir (Production).',
         disabled: !m.nextStageLabel,
       },
     ];
@@ -77,6 +79,7 @@ function setMode(v) {
   });
   $('firstBox').hidden = !(v === 'EMPTY' || v === 'COPY' || v === 'COPY_MODEL');
   $('sourceBox').hidden = v !== 'COPY' && v !== 'COPY_MODEL';
+  $('nextBox').hidden = v !== 'NEXT_STAGE';
   fillSources();
 }
 
@@ -126,12 +129,24 @@ function fillForm(m) {
     b.addEventListener('click', () => setMode(o.v));
     box.appendChild(b);
   });
-  $('stage').value = 'PULL';
+  fillSelect($('stage'), m.stages || [{ v: 'PULL', label: 'Pullover' }]);
+  fillSelect($('nextStage'), m.nextStages || []);
   const first = options.find(o => !o.disabled);
   setMode(first ? first.v : '');
   $('note').hidden = options.length > 0;
   $('note').textContent = options.length ? '' : 'Terbitkan atau hapus draft yang ada dulu sebelum membuat revisi baru.';
   $('btnSave').hidden = options.length === 0;
+}
+
+function fillSelect(sel, list) {
+  sel.innerHTML = '';
+  list.forEach(s => {
+    const opt = document.createElement('option');
+    opt.value = s.v;
+    opt.textContent = s.label;
+    sel.appendChild(opt);
+  });
+  if (list.length) sel.value = list[0].v;
 }
 
 function setBusy(v) {
@@ -169,7 +184,7 @@ function submit() {
   const first = mode === 'EMPTY' || copy;
   appsmith.updateModel({
     mode,
-    stage: first ? $('stage').value : '',
+    stage: first ? $('stage').value : mode === 'NEXT_STAGE' ? $('nextStage').value : '',
     source_specsheet_id: copy ? $('source').value : '',
   });
   appsmith.triggerEvent('onSave');

@@ -1,6 +1,6 @@
 # cwStepper
 
-Stepper stage **PULL → SMS → GTM → PROD**; di tiap stage ada chip revisi (`r0`, `r1`, …).
+Stepper stage **Pullover → Preview → SMS → GTM → Production** (R14; kode di model tetap `PULL`, `PREV`, `SMS`, `GTM`, `PROD`); di tiap stage ada chip revisi (`r0`, `r1`, …).
 Dipakai di page `Specsheet` (F5) dan `Cost Breakdown (CBD)` (F7 — dengan baris chip article di atasnya).
 
 Hanya tampilan. Chip DRAFT kuning bergaris putus, chip terpilih terisi, stage revisi terpilih bergaris bawah,

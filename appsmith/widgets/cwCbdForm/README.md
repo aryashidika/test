@@ -31,7 +31,8 @@ Ukuran: modal lebar ±560 px; widget tinggi ±520 px (R13: baris stage + kotak a
   key,          // naik setiap modal dibuka -> pilihan direset
   title,        // 'Buat CBD — A1 · Black/White'
   note,         // 'Acuan: specsheet SS27 {spec} (terbit terakhir di stage itu).'
-  stages,       // R13: [{ v: 'SMS', spec: 'SMS r1', next: 'SMS r0', disabled, note, isDefault }]
+  stages,       // R13: [{ v: 'SMS', label: 'SMS', spec: 'SMS r1', next: 'SMS r0', disabled, note, isDefault }]
+                //   R14: label = teks tombol (Pullover, Preview, SMS, GTM, Production); v = kode yang dikirim
   options,      // [{ v: 'NEW'|'COPY'|'NEXT', title, desc, disabled?, needsSource? }]  ({spec} / {next} boleh dipakai)
   sources,      // [{ id: <article id>, label }]  untuk pilihan needsSource
   emptyText,    // teks bila options kosong

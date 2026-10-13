@@ -78,7 +78,7 @@ export default {
 			}
 			this.step = 'menyusun isi';
 			const wb = this.build(m, s, a, r, withBridge);
-			await this.save(wb, this.fileName('CBD', m.name, s.season, a.code, `${r.stage}-r${r.revision_no}`, r.status === 'DRAFT' ? 'DRAFT' : ''));
+			await this.save(wb, this.fileName('CBD', m.name, s.season, a.code, `${Util.stageLabel(r.stage)}-r${r.revision_no}`, r.status === 'DRAFT' ? 'DRAFT' : ''));
 			showAlert('File Excel CBD diunduh.', 'success');
 		} catch (e) {
 			showAlert(`Export gagal saat ${this.step}: ` + Util.cleanError((e && e.message) || String(e)), 'error');
@@ -100,7 +100,7 @@ export default {
 		const wb = XlsxWriter.workbook();
 		wb.creator = (Auth.me && Auth.me.full_name) || '';
 		wb.created = new Date();
-		const ws = wb.addWorksheet(`${a.code} ${r.stage} r${r.revision_no}`.slice(0, 31), {
+		const ws = wb.addWorksheet(`${a.code} ${Util.revLabel(r)}`.slice(0, 31), {
 			pageSetup: { orientation: 'landscape', paperSize: 9, fitToPage: true, fitToWidth: 1, fitToHeight: 0 },
 		});
 		[6, 24, 34, 11, 9, 18, 10, 10, 8, 13, 15, 17, 18, 20, 16].forEach((w, i) => { ws.getColumn(i + 1).width = w; });
@@ -126,7 +126,7 @@ export default {
 			['Article #', `${a.code}`],
 			['Construction', v(m.construction)],
 			['Color', v(a.colorway)],
-			['Season / Revisi', `${s.season} · ${r.stage} r${r.revision_no} · ${r.status}`
+			['Season / Revisi', `${s.season} · ${Util.revLabel(r)} · ${r.status}`
 				+ (r.status === 'PUBLISHED' ? ` · terbit oleh ${r.published_by || '-'}` : ' · BELUM TERBIT')
 				+ ` · acuan specsheet ${r.spec_label || '-'}`],
 		];
@@ -279,7 +279,7 @@ export default {
 		// ---- R5: PO (mis. SMS = Actual FOB x 1,25). Selling price & margin tidak ada di CBD. ----
 		const factor = this.n(rc.po_factor);
 		if (factor) {
-			const pRow = recapRow(`PO ${r.stage} (Actual FOB × ${String(factor).replace('.', ',')})`,
+			const pRow = recapRow(`PO ${Util.stageLabel(r.stage)} (Actual FOB × ${String(factor).replace('.', ',')})`,
 				this.f(`ROUND(L${fobRow}*${factor},2)`, this.n(rc.po_price)), 'harga PO ke brand', true);
 			ws.getRow(pRow).getCell(12).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: this.GROUP_FILL } };
 		}
@@ -317,7 +317,7 @@ export default {
 			});
 			const lastB = firstB + bridge.length - 1;
 			const tot = ws.addRow(['', 'Selisih Actual FOB',
-				`${bridge[0].prev_label || ''}: ${Util.fmtNum(bridge[0].prev_fob, 2)} → ${r.stage} r${r.revision_no}: ${Util.fmtNum(bridge[0].fob, 2)}`]);
+				`${bridge[0].prev_label || ''}: ${Util.fmtNum(bridge[0].prev_fob, 2)} → ${Util.revLabel(r)}: ${Util.fmtNum(bridge[0].fob, 2)}`]);
 			const delta = this.n(bridge[0].fob) !== null && this.n(bridge[0].prev_fob) !== null
 				? this.n(bridge[0].fob) - this.n(bridge[0].prev_fob) : null;
 			tot.getCell(12).value = this.f(`SUM(L${firstB}:L${lastB})`, delta);

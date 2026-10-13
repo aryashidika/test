@@ -65,7 +65,7 @@ export default {
 		if (a.draft_stale) {
 			out.push({
 				tone: 'danger', action: 'refreshSpec', actionLabel: 'Refresh dari Specsheet',
-				text: `Specsheet ${r.stage} sudah terbit ${a.draft_spec_label} — baris draft ini masih dari ${r.spec_label}. `
+				text: `Specsheet ${Util.stageLabel(r.stage)} sudah terbit ${a.draft_spec_label}. Baris draft ini masih dari ${r.spec_label}. `
 					+ 'Refresh dulu sebelum terbit (Yield, Loss % & harga input dibawa; baris yang hilang jadi MISSING_IN_SPEC).',
 			});
 			return out;
@@ -208,7 +208,7 @@ export default {
 				break;
 			case 'refreshSpec':     // a_cbd_refresh_spec: Request confirmation = ON
 				if (await this.exec(a_cbd_refresh_spec, { revision_id: r.id })) {
-					showAlert(`CBD di-refresh dari specsheet ${r.stage} terbit terakhir.`, 'success');
+					showAlert(`CBD di-refresh dari specsheet ${Util.stageLabel(r.stage)} terbit terakhir.`, 'success');
 					await CbdCtrl.refresh(r.id);   // acuan & baris berubah (R13: stage tetap)
 				}
 				break;

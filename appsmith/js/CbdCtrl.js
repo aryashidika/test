@@ -86,7 +86,7 @@ export default {
 	},
 
 	label(r) {
-		return r ? `${r.stage} r${r.revision_no}` : '';
+		return Util.revLabel(r);
 	},
 
 	// ---- izin (tampilan saja) ----
@@ -301,7 +301,7 @@ export default {
 		if (a.spec_status === 'DROPPED') return { badge: a.pub_label ? `DI-DROP · ${a.pub_label}` : 'DI-DROP', tone: 'muted' };
 		if (a.draft_id) return { badge: `DRAFT ${a.draft_label}${a.draft_stale ? ' · specsheet baru' : ''}`, tone: 'draft' };
 		// R13: CBD terbit terakhir tertinggal stage specsheet (mis. CBD SMS terbit, specsheet sudah GTM)
-		if (a.pub_id && a.pub_behind) return { badge: `PERLU CBD ${a.spec_pub_stage} · ${a.pub_label}`, tone: 'danger' };
+		if (a.pub_id && a.pub_behind) return { badge: `PERLU CBD ${Util.stageLabel(a.spec_pub_stage)} · ${a.pub_label}`, tone: 'danger' };
 		if (a.pub_id && a.pub_sync === 'NEEDS_REVISION') return { badge: `PERLU REVISI · ${a.pub_label}`, tone: 'danger' };
 		if (a.pub_id) return { badge: `TERBIT ${a.pub_label}`, tone: 'ok' };
 		if (a.spec_status === 'NOT_PUBLISHED') return { badge: 'SPECSHEET BELUM TERBIT', tone: 'muted' };
@@ -347,7 +347,7 @@ export default {
 		t += ` · acuan specsheet ${e(r.spec_label)}`;
 		if (r.source_label) t += ` · sumber: ${e(r.source_season)} / ${e(r.source_article)} / ${e(r.source_label)}`;
 		if (r.id === a.pub_id && a.pub_behind) {
-			t += `<br><span style="color:#dc2626">Specsheet sudah terbit ${e(a.spec_pub_label)} — buat CBD ${e(a.spec_pub_stage)} lewat "+ Buat CBD".</span>`;
+			t += `<br><span style="color:#dc2626">Specsheet sudah terbit ${e(a.spec_pub_label)}. Buat CBD ${e(Util.stageLabel(a.spec_pub_stage))} lewat "+ Buat CBD".</span>`;
 		} else if (r.status === 'PUBLISHED' && r.sync_status === 'NEEDS_REVISION') {
 			t += `<br><span style="color:#dc2626">Specsheet terbit ${e(a.spec_pub_label)} mengubah baris / supplier / warna article ini — buat revisi CBD berikutnya.</span>`;
 		}
@@ -405,7 +405,7 @@ export default {
 		const latest = this.latestPublished();
 		const specLabel = '{spec}';
 		const stages = (a ? (q_cbd_stages.data || []) : []).map(s => ({
-			v: s.stage, spec: s.spec_label, next: s.next_label, disabled: !s.available, note: s.note || '',
+			v: s.stage, label: Util.stageLabel(s.stage), spec: s.spec_label, next: s.next_label, disabled: !s.available, note: s.note || '',
 			isDefault: !!s.is_default,
 		}));
 		let options = [];
@@ -506,7 +506,7 @@ export default {
 		const a = this.article();
 		const c = (q_cbd_checklist.data && q_cbd_checklist.data[0]) || null;
 		const checks = !c ? [] : [
-			{ label: `Specsheet acuan = terbit terakhir di stage ${c.stage}`, ok: !c.spec_stale, blocking: true,
+			{ label: `Specsheet acuan = terbit terakhir di stage ${Util.stageLabel(c.stage)}`, ok: !c.spec_stale, blocking: true,
 				detail: c.spec_stale ? 'Klik "Refresh dari Specsheet" di atas grid' : '' },
 			{ label: 'Exchange rate terisi', ok: !!c.rate_ok, blocking: true,
 				detail: c.rate_ok ? '' : 'Isi Exchange rate di rekap' },

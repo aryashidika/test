@@ -1,6 +1,6 @@
 -- ============================================================================
--- R_selftest — uji alur inti R3–R13 langsung di database, lalu DIBATALKAN (ROLLBACK): tidak ada data yang tersimpan.
--- Jalankan SETELAH sql/R_revisi_semua.sql, sql/R8_catatan_uji.sql, R9_kode_varian.sql R10_hapus_varian.sql, R11_perbaikan.sql, R11b_harga_batal.sql, R12_golive.sql DAN R13_cbd_stage.sql, lewat z_run_sql di app "DB Tools" (Use prepared statements = OFF),
+-- R_selftest: uji alur inti R3–R14 langsung di database, lalu DIBATALKAN (ROLLBACK): tidak ada data yang tersimpan.
+-- Jalankan SETELAH sql/R_revisi_semua.sql, sql/R8_catatan_uji.sql, R9_kode_varian.sql R10_hapus_varian.sql, R11_perbaikan.sql, R11b_harga_batal.sql, R12_golive.sql, R13_cbd_stage.sql DAN R14_audit_stage.sql, lewat z_run_sql di app "DB Tools" (Use prepared statements = OFF),
 -- SEBELUM import app. Hasil yang diharapkan: baris terakhir "SELFTEST LOLOS". Kalau ada yang salah, query berhenti
 -- dengan pesan "SELFTEST GAGAL: ..." — kirim pesan itu ke pengembang.
 -- Aman di DB yang sudah berisi data: pabrik SELFTEST PABRIK A/B, email @selftest.invalid; master BERSAMA (supplier,
@@ -830,6 +830,93 @@ BEGIN
                      'R13 article di-drop di specsheet terbaru -> tidak ada stage yang bisa dipilih');
   PERFORM fn_cbd_delete_draft(t_cbd, cx);
   PERFORM pg_temp.ok(NOT EXISTS (SELECT 1 FROM cbd_revision WHERE id = cx), 'R13 draft SMS article di-drop bisa dihapus');
+END;
+$$;
+
+-- ---------------------------------------------------------------- R14: 5 stage (Preview), label, stage boleh melompat
+DO $$
+DECLARE
+  t_spec text := pg_temp.tok('spec.a@selftest.invalid');
+  t_cbd  text := pg_temp.tok('cbd.a@selftest.invalid');
+  t_mc   text := pg_temp.tok('mc.a@selftest.invalid');
+  v_cat uuid; v_sup uuid; v_comp uuid; v_mat uuid; v_var uuid; v_link uuid; v_b uuid;
+  m uuid; sh uuid; x1 uuid; rp0 uuid; rv0 uuid; rg0 uuid; cv uuid;
+BEGIN
+  PERFORM pg_temp.ok(array_to_string(fn_stages(), ',') = 'PULL,PREV,SMS,GTM,PROD'
+                     AND fn_stage_order('PREV') = 2 AND fn_stage_order('PROD') = 5
+                     AND fn_rev_label('PULL', 0) = 'Pullover r0' AND fn_rev_label('PREV', 1) = 'Preview r1'
+                     AND fn_rev_label('SMS', 2) = 'SMS r2' AND fn_rev_label('PROD', 0) = 'Production r0'
+                     AND fn_rev_label(NULL, NULL) IS NULL,
+                     'R14 urutan & label stage');
+  PERFORM pg_temp.ok(NOT EXISTS (SELECT 1 FROM specsheet_revision WHERE stage_order IS DISTINCT FROM fn_stage_order(stage))
+                     AND NOT EXISTS (SELECT 1 FROM cbd_revision WHERE stage_order IS DISTINCT FROM fn_stage_order(stage)),
+                     'R14 stage_order data lama sudah dinomori ulang');
+
+  SELECT pm.category_id INTO v_cat FROM product_model pm JOIN factory f ON f.id = pm.factory_id
+   WHERE f.name = 'SELFTEST PABRIK A' LIMIT 1;
+  SELECT id INTO v_sup FROM supplier WHERE name = 'SELFTEST SUPPLIER SATU';
+  SELECT id INTO v_comp FROM component WHERE name = 'SELFTEST VAMP';
+  v_mat  := fn_material_add(t_spec, 'UJI PREVIEW MESH', 'TEXTILE', 'YD');
+  v_var  := fn_variant_save(t_spec, NULL, v_mat, 'MSTV100BLK', 'BLACK', '1MM', 'ACTIVE');
+  v_link := fn_link_save(t_spec, NULL, v_mat, v_sup, true, 'ACTIVE');
+  v_b    := fn_price_propose(t_cbd, v_link, jsonb_build_array(v_var), 20000, 'IDR', fn_today(), 'Q-PREV');
+  PERFORM fn_price_decide(t_mc, (SELECT jsonb_agg(id) FROM material_price WHERE batch_id = v_b), 'APPROVE', NULL);
+
+  m  := fn_model_save(t_spec, NULL, 'Uji Preview', v_cat, NULL, NULL, NULL, NULL, '[40]', NULL);
+  sh := fn_season_add(t_spec, m, 'FH27');
+  x1 := fn_article_save(t_spec, NULL, sh, 'UJI-P1', 'BLACK');
+  rp0 := fn_revision_create(t_spec, sh, 'EMPTY', NULL, NULL);
+  PERFORM fn_bom_add_line(t_spec, rp0, v_comp, NULL, NULL, v_mat, '1MM', v_sup, NULL, 'black');
+  PERFORM fn_revision_publish(t_spec, rp0, 'OTHER', NULL);
+  PERFORM pg_temp.ok((SELECT stage || ':' || stage_order FROM specsheet_revision WHERE id = rp0) = 'PULL:1'
+                     AND (SELECT spec_label_pub FROM v_model_list WHERE specsheet_id = sh) = 'Pullover r0 · PUBLISHED',
+                     'R14 revisi awal tanpa stage = Pullover r0 (label di Model List)');
+
+  -- stage berikutnya tanpa pilihan = Preview
+  rv0 := fn_revision_create(t_spec, sh, 'NEXT_STAGE', NULL, NULL);
+  PERFORM pg_temp.ok((SELECT stage || ':' || stage_order || ':' || revision_no FROM specsheet_revision WHERE id = rv0) = 'PREV:2:0',
+                     'R14 stage berikutnya dari Pullover = Preview r0');
+  PERFORM fn_revision_publish(t_spec, rv0, 'OTHER', 'uji');
+  PERFORM pg_temp.ok((SELECT spec_pub_label || '|' || spec_pub_stage FROM v_cbd_article WHERE id = x1) = 'Preview r0|PREV',
+                     'R14 label specsheet terbit Preview r0 di CBD');
+
+  -- CBD di stage Preview
+  PERFORM pg_temp.ok((SELECT string_agg(stage || ':' || available || ':' || is_default || ':' || spec_label || ':' || next_label, ','
+                                        ORDER BY stage_order)
+                        FROM fn_cbd_stage_options(t_cbd, x1)) = 'PULL:true:false:Pullover r0:Pullover r0,PREV:true:true:Preview r0:Preview r0',
+                     'R14 pilihan stage CBD: Pullover & Preview (default Preview)');
+  cv := fn_cbd_create(t_cbd, x1, 'NEW', NULL, 'PREV');
+  PERFORM fn_cbd_header_set(t_cbd, cv, 'RATE', 16300);
+  PERFORM fn_cbd_line_set(t_cbd, l.id, 'YIELD', 1) FROM cbd_line l WHERE l.cbd_revision_id = cv;
+  PERFORM fn_cbd_publish(t_cbd, cv, 'OTHER', NULL);
+  PERFORM pg_temp.ok((SELECT stage || ':' || stage_order || ':' || coalesce(po_factor::text, '-') FROM cbd_revision WHERE id = cv) = 'PREV:2:-'
+                     AND (SELECT pub_label FROM v_cbd_article WHERE id = x1) = 'Preview r0'
+                     AND (SELECT cbd_pub_label FROM v_article_status WHERE id = x1) = 'Preview r0',
+                     'R14 CBD Preview r0 terbit (tanpa PO), label di chip & Model Detail');
+
+  -- lompat Preview -> GTM; mundur / stage sama / kode salah ditolak
+  PERFORM pg_temp.must_fail(format('SELECT fn_revision_create(%L, %L, ''NEXT_STAGE'', ''PREV'', NULL)', t_spec, sh),
+            '%higher than the latest published stage (Preview)%', 'R14 stage berikutnya tidak boleh stage yang sama');
+  PERFORM pg_temp.must_fail(format('SELECT fn_revision_create(%L, %L, ''NEXT_STAGE'', ''PULL'', NULL)', t_spec, sh),
+            '%higher than%', 'R14 stage berikutnya tidak boleh mundur');
+  PERFORM pg_temp.must_fail(format('SELECT fn_revision_create(%L, %L, ''NEXT_STAGE'', ''XYZ'', NULL)', t_spec, sh),
+            '%Unknown stage XYZ%', 'R14 kode stage tidak dikenal ditolak');
+  rg0 := fn_revision_create(t_spec, sh, 'NEXT_STAGE', 'GTM', NULL);
+  PERFORM pg_temp.ok((SELECT stage || ':' || stage_order || ':' || revision_no || ':' || (source_revision_id = rv0)
+                        FROM specsheet_revision WHERE id = rg0) = 'GTM:4:0:true'
+                     AND (SELECT count(*) FROM bom_line WHERE revision_id = rg0) = 1,
+                     'R14 stage berikutnya boleh melompat (Preview -> GTM r0, baris BOM ikut)');
+  PERFORM fn_revision_publish(t_spec, rg0, 'OTHER', 'uji');
+  PERFORM pg_temp.ok((SELECT pub_behind FROM v_cbd_article WHERE id = x1)
+                     AND (SELECT kind || '|' || refresh_reason || '|' || rev_label FROM v_worklist_cbd WHERE article_id = x1)
+                         = 'TO_REVISE|STAGE|Preview r0',
+                     'R14 CBD Preview tertinggal -> perlu CBD GTM (label Preview r0)');
+  PERFORM pg_temp.ok((SELECT string_agg(stage || ':' || available, ',' ORDER BY stage_order) FROM fn_cbd_stage_options(t_cbd, x1))
+                       = 'PULL:false,PREV:true,GTM:true'
+                     AND (SELECT note FROM fn_cbd_stage_options(t_cbd, x1) WHERE stage = 'PULL') = 'Sudah ada CBD Preview terbit',
+                     'R14 pilihan CBD setelah lompat: Pullover tertutup (label Preview), tanpa SMS');
+  PERFORM pg_temp.must_fail(format('SELECT fn_revision_create(%L, %L, ''NEXT_STAGE'', ''SMS'', NULL)', t_spec, sh),
+            '%higher than the latest published stage (GTM)%', 'R14 tidak bisa kembali ke SMS setelah GTM terbit');
 END;
 $$;
 

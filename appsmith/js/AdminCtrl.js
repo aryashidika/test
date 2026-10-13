@@ -124,6 +124,77 @@ export default {
 		return 'Aktif';
 	},
 
+	// ---- R14: detail audit (panel cwAuditDetail di sebelah tblAudit, mengikuti baris terpilih) ----
+	// UPDATE: kolom yang berubah saja · INSERT: isi bila tersimpan (audit ramping R11 tidak menyimpan isi) ·
+	// DELETE: isi lengkap. Kolom teknis dipisah (bisa dibuka di panel); kunci rahasia tidak pernah tampil
+	// (juga dibuang di q_audit).
+	auditTechKeys: ['id', 'created_at', 'created_by', 'updated_at', 'updated_by'],
+	auditSecret: 'password|token|secret|hash',   // pola kunci rahasia (sama dengan q_audit)
+	auditMaxLen: 160,
+
+	auditModel(id) {
+		const row = (q_audit.data || []).find(r => String(r.id) === String(id));
+		if (!row) return { empty: true };
+		const before = this.auditJson(row.before_data);
+		const after = this.auditJson(row.after_data);
+		const action = String(row.action || '');
+		let keys = [...new Set([...Object.keys(before || {}), ...Object.keys(after || {})])];
+		if (action === 'UPDATE' && before && after) {
+			keys = keys.filter(k => JSON.stringify(before[k]) !== JSON.stringify(after[k]));
+		}
+		const secret = new RegExp(this.auditSecret, 'i');
+		keys = keys.filter(k => !secret.test(k)).sort();
+		const kind = action === 'UPDATE' ? 'diff' : action === 'DELETE' ? 'before' : action === 'INSERT' ? 'after' : 'diff';
+		const rows = keys.map(k => ({
+			field: k,
+			tech: this.auditTechKeys.includes(k),
+			before: kind === 'after' ? null : this.auditValue(before ? before[k] : null),
+			after: kind === 'before' ? null : this.auditValue(after ? after[k] : null),
+		}));
+		let note = '';
+		if (!rows.length) {
+			note = action === 'INSERT' ? 'Record created. New records are not copied to the audit log.'
+				: action === 'UPDATE' ? 'No changed fields recorded.'
+					: 'No data recorded for this action.';
+		}
+		return {
+			empty: false,
+			key: row.id,
+			action,
+			entity: row.entity || '-',
+			entityId: row.entity_id || '-',
+			time: row.created_at ? moment(row.created_at).utcOffset(7).format('DD MMM YYYY, HH:mm:ss') + ' WIB' : '-',
+			user: row.user_email || '-',
+			kind,
+			title: { UPDATE: 'Changed fields', DELETE: 'Deleted record', INSERT: 'Created record' }[action] || 'Data',
+			note,
+			rows,
+		};
+	},
+
+	// jsonb bisa datang sebagai objek atau teks
+	auditJson(v) {
+		if (v === null || v === undefined || v === '') return null;
+		if (typeof v === 'object') return v;
+		try { return JSON.parse(v); } catch (e) { return { value: String(v) }; }
+	},
+
+	// { text, full, empty }: uuid diringkas 8 karakter, waktu ke WIB, teks panjang dipotong (full = untuk tooltip)
+	auditValue(v) {
+		if (v === null || v === undefined || v === '') return { text: '(empty)', full: '', empty: true };
+		const s = typeof v === 'object' ? JSON.stringify(v) : String(v);
+		if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s)) {
+			return { text: s.slice(0, 8) + '…', full: s, empty: false };
+		}
+		if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(s)) {
+			return { text: moment(s).utcOffset(7).format('DD MMM YYYY, HH:mm:ss') + ' WIB', full: s, empty: false };
+		}
+		if (s.length > this.auditMaxLen) {
+			return { text: s.slice(0, this.auditMaxLen) + '…', full: s.slice(0, 2000), empty: false };
+		}
+		return { text: s, full: '', empty: false };
+	},
+
 	// ---- Pabrik (tab Pabrik, modal mdlPabrik) ----
 	factoryForm: { id: '', name: '', status: 'ACTIVE' },
 	factoryKey: 0,

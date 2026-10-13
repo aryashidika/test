@@ -21,7 +21,7 @@ export default {
 	revKey: 0, revBusy: false, revMsg: null,
 	pubKey: 0, pubBusy: false, pubMsg: null,
 
-	STAGES: ['PULL', 'SMS', 'GTM', 'PROD'],
+	STAGES: ['PULL', 'PREV', 'SMS', 'GTM', 'PROD'],   // R14: + Preview; label lewat Util.stageLabel
 
 	// Kategori change log untuk specsheet (DB juga menerima EX_RATE / LOP / AMORTIZATION / YIELD untuk CBD)
 	CATEGORIES: [
@@ -76,7 +76,7 @@ export default {
 	},
 
 	label(r) {
-		return r ? `${r.stage} r${r.revision_no}` : '';
+		return Util.revLabel(r);
 	},
 
 	// ---- izin (tampilan saja) ----
@@ -318,12 +318,13 @@ export default {
 		const latest = this.latestPublished();
 		const revs = this.revisions();
 		let nextRevision = '';
-		let nextStage = null;
+		let nextStages = [];
 		if (latest) {
 			const maxNo = Math.max(...revs.filter(r => r.stage === latest.stage).map(r => r.revision_no));
-			nextRevision = `${latest.stage} r${maxNo + 1}`;
-			const i = this.STAGES.indexOf(latest.stage);
-			nextStage = i < this.STAGES.length - 1 ? `${this.STAGES[i + 1]} r0` : null;
+			nextRevision = Util.revLabel({ stage: latest.stage, revision_no: maxNo + 1 });
+			// R14: stage berikutnya boleh melompat; pilihan = semua stage di atas stage terbit terakhir (default yang pertama)
+			nextStages = this.STAGES.slice(this.STAGES.indexOf(latest.stage) + 1)
+				.map(v => ({ v, label: Util.revLabel({ stage: v, revision_no: 0 }) }));
 		}
 		const s = this.season();
 		return {
@@ -332,7 +333,9 @@ export default {
 			hasRevisions: revs.length > 0,
 			latestLabel: latest ? this.label(latest) : null,
 			nextRevisionLabel: nextRevision,
-			nextStageLabel: nextStage,
+			nextStageLabel: nextStages.length ? nextStages[0].label : null,
+			nextStages,
+			stages: this.STAGES.map(v => ({ v, label: Util.stageLabel(v) })),
 			copySources: this.seasons().filter(x => x.id !== this.seasonId && x.latest_pub_id)
 				.map(x => ({ id: x.id, season: x.season, label: x.latest_pub_label })),
 			modelSources: (q_copy_model_sources.data || []).map(x => ({

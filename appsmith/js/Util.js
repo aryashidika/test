@@ -84,6 +84,16 @@ export default {
 		return true;
 	},
 
+	// R14: label stage (kode di DB tetap pendek: PULL, PREV, SMS, GTM, PROD). Sama dengan fn_stage_label di DB.
+	stageLabel(stage) {
+		return { PULL: 'Pullover', PREV: 'Preview', PROD: 'Production' }[stage] || stage || '';
+	},
+
+	// 'Pullover r0' dari baris revisi { stage, revision_no }
+	revLabel(r) {
+		return r ? `${this.stageLabel(r.stage)} r${r.revision_no}` : '';
+	},
+
 	statusColor(status) {
 		return {
 			APPROVED: '#16a34a', PUBLISHED: '#16a34a', ACTIVE: '#16a34a', IN_SYNC: '#16a34a',

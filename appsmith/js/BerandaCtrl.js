@@ -113,7 +113,7 @@ export default {
 				{
 					key: 'drafts', title: 'Draft Specsheet', empty: 'Tidak ada draft specsheet yang terbuka.',
 					items: drafts.map(d => Object.assign({
-						title: `${d.model_name} · ${d.season} — ${d.stage} r${d.revision_no}`,
+						title: `${d.model_name} · ${d.season} · ${Util.revLabel(d)}`,
 						meta: `${d.line_count} baris BOM · ${d.article_count} article aktif`,
 						flags: this.draftFlags(d),
 					}, this.toSpec(d))),
@@ -245,7 +245,7 @@ export default {
 					key: 'pub-spec', title: 'Specsheet Terbit Terbaru', note: 'Revisi terbit terakhir tiap season.',
 					empty: 'Belum ada specsheet terbit.',
 					items: specs.map(r => Object.assign({
-						title: `${r.model_name} · ${r.season} — ${r.stage} r${r.revision_no}`,
+						title: `${r.model_name} · ${r.season} · ${Util.revLabel(r)}`,
 						meta: `${r.factory_name} · terbit ${Util.fmtDateTime(r.published_at)}`,
 						flags: [],
 					}, this.toSpec(r))),
@@ -254,7 +254,7 @@ export default {
 					key: 'pub-cbd', title: 'CBD Terbit Terbaru', note: 'Revisi terbit terakhir tiap article.',
 					empty: 'Belum ada CBD terbit.',
 					items: cbds.map(r => Object.assign({
-						title: `${r.model_name} · ${r.article_code} — ${r.stage} r${r.revision_no}`,
+						title: `${r.model_name} · ${r.article_code} · ${Util.revLabel(r)}`,
 						meta: `${r.colorway} · terbit ${Util.fmtDateTime(r.published_at)}`,
 						flags: r.sync_status === 'NEEDS_REVISION' ? [{ text: 'PERLU REVISI', tone: 'warn' }] : [],
 					}, this.toCbd(r))),

@@ -16,12 +16,13 @@
       <div class="info" id="sourceSum" hidden></div>
     </div>
     <label for="stage">Stage awal <span class="req">*</span></label>
-    <select id="stage">
-      <option value="PULL">PULL</option>
-      <option value="SMS">SMS</option>
-      <option value="GTM">GTM</option>
-      <option value="PROD">PROD</option>
-    </select>
+    <select id="stage"></select>
+  </div>
+
+  <div id="nextBox" hidden>
+    <label for="nextStage">Target stage <span class="req">*</span></label>
+    <select id="nextStage"></select>
+    <div class="hint">Stages can be skipped. Default: the next stage.</div>
   </div>
 
   <div class="info" id="note" hidden></div>
