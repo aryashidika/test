@@ -2,7 +2,7 @@
 // MISSING_IN_SPEC, dengan panel ringkasan menempel di atas grid, banner refresh (F8), dan di bawah grid tabel
 // Cost recapitulation (baris biaya) + Harga jual (F8b).
 // Hanya tampilan & input: Yield, Loss %, dan nilai rekap diedit di sel (revisi DRAFT); harga lewat tombol
-// Isi harga (quotation) / Hapus override / Ajukan harga master (R8) (modal di luar widget). R11: Tanpa biaya
+// Isi harga (quotation) / Ajukan harga master (R8) (modal di luar widget). R11: Tanpa biaya
 // (alasan diisi di sel, cost/pair 0 — mis. printing yang harganya sudah termasuk baris lain). Setiap aksi dikirim sebagai model.action + event
 // onAction (CbdGridCtrl.onAction()); aturan final di DB. Usage, harga IDR/USD, cost/pair, dan rekap dihitung
 // di DB (v_cbd_line, v_cbd_recap) — di sini hanya diformat.
@@ -325,10 +325,6 @@ function priceCell(line, editable) {
     if (line.price_method === 'QUOTATION') {
       acts.appendChild(linkBtn(p !== null ? 'Ubah harga' : 'Isi harga', 'Harga quotation material proses',
         () => send('editPrice', { line_id: line.id, mode: 'QUOTATION' })));
-    } else if (line.price_source === 'OVERRIDE') {
-      // F10b: override tidak dipakai lagi — draft lama hanya bisa dikembalikan ke harga master
-      acts.appendChild(linkBtn('Hapus override', 'Kembali ke harga master',
-        () => send('clearOverride', { line_id: line.id }), true));
     }
     if (line.no_charge) {
       acts.appendChild(linkBtn('Batalkan tanpa biaya', 'Baris ini dihitung lagi dengan harganya',

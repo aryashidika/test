@@ -26,8 +26,8 @@ Selisih + OVER/UNDER/SESUAI hanya baca) · area scroll: grid (+ baris **Subtotal
   dihapus; baris **+** untuk menambah (isian tetap saat render ulang, dikosongkan saat `costOkKey` berubah). Lalu
   ACTUAL FOB, Target FOB (input), Selisih.
 - **Harga jual** (F8b): Selling price ⇄ Margin % saling terhubung (dihitung DB).
-- **Harga** (draft, baris ACTIVE): material Quotation → **Isi harga / Ubah harga**; material katalog → **Override…**
-  atau **Hapus override**. Harga kosong diberi keterangan (`price_gap`): material quotation belum diisi, supplier belum
+- **Harga** (draft, baris ACTIVE): material Quotation → **Isi harga / Ubah harga**; material katalog → harga master
+  (override dihapus F10b; tombol *Hapus override* dihapus R12). Harga kosong diberi keterangan (`price_gap`): material quotation belum diisi, supplier belum
   dipilih, harga master tersedia (refresh), menunggu approval, belum ada harga untuk warna ini (ada: …), belum ada
   harga master. Harga master yang berubah ditandai *harga master berubah — klik Refresh Harga*.
 - Ketikan yang belum disimpan, fokus, dan posisi scroll dipertahankan saat data dimuat ulang.
@@ -69,7 +69,6 @@ Satu event **`onAction`** → `{{CbdGridCtrl.onAction()}}`. Sebelumnya widget me
 | `setCost` | `item_id`, `field` (`NAME`/`AMOUNT`/`REMARKS`), `value` | `a_cbd_cost_set` (F8b) |
 | `deleteCost` | `item_id` | `a_cbd_cost_delete` (konfirmasi ON, F8b) |
 | `editPrice` | `line_id`, `mode` (`QUOTATION`/`OVERRIDE`) | buka modal `mdlCbdHarga` (`cwCbdPriceForm`) |
-| `clearOverride` | `line_id` | `a_cbd_clear_override` (konfirmasi ON) |
 | `refreshPrices` | – | `a_cbd_refresh_prices` |
 | `refreshSpec` | – | `a_cbd_refresh_spec` (konfirmasi ON) |
 

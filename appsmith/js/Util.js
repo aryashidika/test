@@ -18,12 +18,15 @@ export default {
 		return s === '-' ? s : `Rp ${s}`;
 	},
 
+	// R12 (T67): jam selalu WIB, tidak ikut zona waktu PC. Kolom date ('YYYY-MM-DD') tidak digeser.
 	fmtDate(v) {
-		return v ? moment(v).format('DD MMM YYYY') : '-';
+		if (!v) return '-';
+		const s = String(v);
+		return (/^\d{4}-\d{2}-\d{2}$/.test(s) ? moment(s, 'YYYY-MM-DD') : moment(v).utcOffset(7)).format('DD MMM YYYY');
 	},
 
 	fmtDateTime(v) {
-		return v ? moment(v).format('DD MMM YYYY HH:mm') : '-';
+		return v ? moment(v).utcOffset(7).format('DD MMM YYYY HH:mm') : '-';
 	},
 
 	// jsonb bisa datang sebagai objek atau teks
@@ -72,6 +75,27 @@ export default {
 		if (successMsg) showAlert(successMsg, 'success');
 		for (const q of refresh) {
 			try { await q.run(); } catch (e) { /* refresh gagal tidak membatalkan aksi */ }
+		}
+		return true;
+	},
+
+	// R12 (T64): jalankan query baca dari tombol Cari / filter. Sesi habis -> ke Login; error lain -> pesan rapi.
+	// Contoh di event onClick tombol Cari: Util.load(<query daftar>)
+	async load(...queries) {
+		for (const q of queries) {
+			try {
+				await q.run();
+			} catch (e) {
+				const msg = e && e.message;
+				if (this.isSessionError(msg)) {
+					await removeValue('token');
+					showAlert('Sesi login habis. Silakan login lagi.', 'warning');
+					navigateTo('Login');
+					return false;
+				}
+				showAlert(this.cleanError(msg), 'error');
+				return false;
+			}
 		}
 		return true;
 	},

@@ -4,9 +4,12 @@
 // Query baca dijalankan dengan params lewat load() / reload().
 // R4: kolom Material = induk × thickness; sel warna tanpa Material Code = kuning -> Daftarkan (cwVariantForm di
 // mdlVarianBaru) · + Supplier baru (cwSupplierForm di mdlSupplierBaru).
+// R12 (T62): grid hanya menampilkan baris revisi yang dibuka; pemuatan yang tersalip dimuat ulang (fetch()).
 export default {
 	okKey: 0,        // naik setelah tambah baris / subkomponen berhasil -> cwBomGrid mengosongkan form
 	busyCount: 0,
+	loadGen: 0,      // R12: nomor pemuatan grid terakhir yang dimulai
+	doneGen: 0,      // R12: nomor pemuatan grid terbaru yang sudah selesai
 	doneSeq: 0,      // seq aksi grid terakhir yang selesai -> ack ke cwBomGrid (antrean aksi)
 	running: false,
 	message: null,   // { type, text } ditampilkan di atas grid
@@ -56,40 +59,54 @@ export default {
 
 	// ---- muat ----
 	async load() {
-		const r = SpecCtrl.revision();
-		const s = SpecCtrl.season();
-		const jobs = [
-			q_rev_articles.run({ revision_id: r ? r.id : '', specsheet_id: SpecCtrl.seasonId || '' }),
-			q_bom_grid.run({ revision_id: r ? r.id : '' }),
-		];
-		if (SpecCtrl.editable()) {
-			jobs.push(q_bom_options.run());
-			jobs.push(q_season_colors.run({ season: s ? s.season : '' }));
-		}
+		const what = ['articles'];
+		if (SpecCtrl.editable()) what.push('options', 'colors');
 		try {
-			await Promise.all(jobs);
+			await this.fetch(what);
 		} catch (e) {
 			showAlert(Util.cleanError(e && e.message), 'error');
 		}
 	},
 
 	async reload(what) {
+		try { await this.fetch(what); } catch (e) { /* abaikan */ }
+	},
+
+	// Grid + query tambahan (what: 'articles' | 'options' | 'colors') untuk revisi yang dibuka. R12 (T62): data query =
+	// hasil yang SELESAI terakhir. Bila selama memuat revisi berganti, atau pemuatan yang lebih baru sudah selesai
+	// duluan (respons ini menimpa data yang lebih baru), muat ulang untuk revisi yang dibuka sekarang.
+	async fetch(what) {
+		for (let i = 0; i < 3; i++) {
+			const g = this.loadGen + 1;
+			this.loadGen = g;
+			const r = SpecCtrl.revision();
+			const s = SpecCtrl.season();
+			const rid = r ? r.id : '';
+			const jobs = [q_bom_grid.run({ revision_id: rid })];
+			if (what.includes('articles')) jobs.push(q_rev_articles.run({ revision_id: rid, specsheet_id: SpecCtrl.seasonId || '' }));
+			if (what.includes('options')) jobs.push(q_bom_options.run());
+			if (what.includes('colors')) jobs.push(q_season_colors.run({ season: s ? s.season : '' }));
+			await Promise.all(jobs);
+			const cur = SpecCtrl.revision();
+			const stale = g < this.doneGen || (cur ? cur.id : '') !== rid;
+			this.doneGen = Math.max(this.doneGen, g);
+			if (!stale) return;
+		}
+	},
+
+	// Baris grid milik revisi yang dibuka saja (R12, T62)
+	gridLines() {
 		const r = SpecCtrl.revision();
-		const s = SpecCtrl.season();
-		const jobs = [q_bom_grid.run({ revision_id: r ? r.id : '' })];
-		if (what.includes('articles')) jobs.push(q_rev_articles.run({ revision_id: r ? r.id : '', specsheet_id: SpecCtrl.seasonId || '' }));
-		if (what.includes('options')) jobs.push(q_bom_options.run());
-		if (what.includes('colors')) jobs.push(q_season_colors.run({ season: s ? s.season : '' }));
-		try { await Promise.all(jobs); } catch (e) { /* abaikan */ }
+		return r ? (q_bom_grid.data || []).filter(l => l.revision_id === r.id) : [];
 	},
 
 	// Default model cwBomGrid
 	gridModel() {
 		const o = this.options();
 		return {
-			editable: SpecCtrl.editable(),
+			editable: SpecCtrl.editable() && !SpecCtrl.navBusy,
 			articles: this.activeArticles().map(a => ({ id: a.id, code: a.code, colorway: a.colorway })),
-			lines: q_bom_grid.data || [],
+			lines: this.gridLines(),
 			components: o.components,
 			materials: o.materials,
 			variants: o.variants,
@@ -102,7 +119,7 @@ export default {
 			doneSeq: this.doneSeq,
 			canRegister: Auth.can('manage_master'),
 			canAddSupplier: Auth.can('manage_master'),
-			emptyText: SpecCtrl.revision() ? 'Belum ada baris BOM.' : '',
+			emptyText: SpecCtrl.navBusy ? 'Memuat…' : (SpecCtrl.revision() ? 'Belum ada baris BOM.' : ''),
 		};
 	},
 

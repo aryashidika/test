@@ -104,7 +104,7 @@ export default {
 		cell(2, 1, 'FACTORY', small);
 		cell(2, 2, `:  ${v(m.factory)}`, { font: { size: 9 }, border: this.underline() });
 		cell(3, 1, 'REVISION', small);
-		cell(3, 2, `:  ${revDate ? moment(revDate).format('DD/MM/YYYY') : 'belum terbit'}`,
+		cell(3, 2, `:  ${revDate ? moment(revDate).utcOffset(7).format('DD/MM/YYYY') : 'belum terbit'}`,
 			{ font: { size: 11, color: { argb: 'FF1D4ED8' } }, border: this.underline() });
 		cell(2, 3, s.season, { font: { size: 22, color: { argb: 'FF374151' } }, alignment: { horizontal: 'center', vertical: 'middle' } });
 		merge(2, 3, 4, 3);

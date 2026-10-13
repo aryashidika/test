@@ -37,3 +37,10 @@ Ukuran: modal lebar ±560 px; widget tinggi ±520 px.
 |---|---|---|
 | `onPublish` | `.category`, `.reason` (sudah di-trim) | `{{SpecCtrl.publish()}}` / `{{CbdCtrl.publish()}}` |
 | `onCancel` | – | `{{closeModal('mdlTerbit')}}` / `{{closeModal('mdlCbdTerbit')}}` |
+
+## Gambar (F10b, R12)
+
+- `.images` = `[{ name, data }]` (base64 tanpa awalan) ikut dikirim bersama `onPublish`; dilampirkan oleh
+  `<Page>Ctrl.attachImages()` setelah terbit (`fn_change_log_attach`, maks. 5 gambar, maks. **3,5 MB** per gambar).
+- R12 (T60): file asli boleh sampai 20 MB; gambar > 1 MB diperkecil di browser (sisi terpanjang maks. 2000 px,
+  JPEG 85%, latar putih) sebelum dikirim. Hasil > 3,5 MB ditolak di form.

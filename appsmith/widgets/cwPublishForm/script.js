@@ -1,7 +1,7 @@
 // cwPublishForm — modal Terbitkan revisi: Specsheet (mdlTerbit, F6) dan CBD (mdlCbdTerbit, F8). Hanya tampilan;
 // checklist dihitung di DB (v_revision_checklist / v_cbd_checklist) dan disusun <Page>Ctrl.publishFormModel().
 // Terbit lewat SpecCtrl.publish() / CbdCtrl.publish() (checklist, kategori, dan alasan dicek lagi di DB).
-// F10b: gambar opsional (tempel Ctrl+V / pilih file; PNG/JPG ≤ 5 MB, maks. model.maxImages) -> model.images
+// F10b: gambar opsional (tempel Ctrl+V / pilih file; PNG/JPG, maks. model.maxImages) -> model.images
 //   [{ name, data (base64 tanpa awalan) }]; dilampirkan ke change log oleh <Page>Ctrl setelah terbit.
 // R11 (A4, hanya CBD): model.bridge = rincian perubahan [{ key, category, description, amount }] + model.bridgeInfo
 //   { prevLabel, prevFob, fob }. Bila ada: tabel rincian (kategori & uraian boleh diubah, nilai dari DB) menggantikan
@@ -13,7 +13,12 @@ let blocked = false;
 let requiresReason = true;
 let images = [];           // { name, type, size, data, url }
 let maxImages = 5;
-const MAX_BYTES = 5 * 1024 * 1024;
+// R12 (T60): gambar > 1 MB diperkecil di browser (sisi terpanjang maks. 2000 px, JPEG 85%) sebelum dikirim.
+// Batas setelah diperkecil = 3,5 MB (sama dengan fn_change_log_attach); file asli boleh sampai 20 MB.
+const MAX_BYTES = 3.5 * 1024 * 1024;
+const MAX_INPUT = 20 * 1024 * 1024;
+const SHRINK_OVER = 1024 * 1024;
+const MAX_SIDE = 2000;
 let bridge = [];             // R11: [{ key, category, description, amount }] — isian kategori/uraian user
 let categories = [];
 
@@ -172,7 +177,7 @@ function renderImages() {
     t.appendChild(x);
     box.appendChild(t);
   });
-  $('imgHint').textContent = `PNG / JPG, maks. 5 MB per gambar, maks. ${maxImages} gambar`
+  $('imgHint').textContent = `PNG / JPG, maks. ${maxImages} gambar · gambar besar otomatis diperkecil`
     + (images.length ? ` · ${images.length} dipilih` : '') + '.';
 }
 
@@ -183,22 +188,65 @@ function addFiles(files) {
   list.forEach(f => {
     if (images.length >= maxImages) { error = `Maksimal ${maxImages} gambar.`; return; }
     if (f.type !== 'image/png' && f.type !== 'image/jpeg') { error = 'Hanya gambar PNG atau JPG.'; return; }
-    if (f.size > MAX_BYTES) { error = `${f.name || 'Gambar'} lebih dari 5 MB.`; return; }
+    if (f.size > MAX_INPUT) { error = `${f.name || 'Gambar'} lebih dari 20 MB.`; return; }
     const slot = { name: '', type: f.type, size: f.size, data: '', url: '' };
     const ext = f.type === 'image/png' ? 'png' : 'jpg';
     slot.name = f.name && f.name !== 'image.png' ? f.name : `gambar-${images.length + 1}.${ext}`;
     images.push(slot);
+    const drop = text => {
+      const n = images.indexOf(slot);
+      if (n >= 0) images.splice(n, 1);
+      renderImages();
+      showMessage({ type: 'error', text });
+    };
     const reader = new FileReader();
     reader.onload = () => {
-      slot.url = String(reader.result || '');
-      slot.data = slot.url.replace(/^data:[^,]*,/, '');
-      renderImages();
+      shrink(String(reader.result || ''), f.size).then(url => {
+        const data = url.replace(/^data:[^,]*,/, '');
+        const bytes = Math.floor(data.length * 3 / 4);
+        if (bytes > MAX_BYTES) return drop(`${slot.name} masih lebih dari 3,5 MB setelah diperkecil.`);
+        if (url.indexOf('data:image/jpeg') === 0 && slot.type !== 'image/jpeg') {
+          slot.type = 'image/jpeg';
+          slot.name = slot.name.replace(/\.[^.]*$/, '') + '.jpg';
+        }
+        slot.url = url;
+        slot.data = data;
+        slot.size = bytes;
+        renderImages();
+      }, () => drop(`${slot.name} tidak bisa dibaca sebagai gambar.`));
     };
+    reader.onerror = () => drop(`${slot.name} tidak bisa dibaca.`);
     reader.readAsDataURL(f);
   });
   renderImages();
   showMessage(error ? { type: 'error', text: error } : null);
   return true;
+}
+
+// R12 (T60): file > 1 MB -> gambar diperkecil (sisi terpanjang maks. MAX_SIDE) dan disimpan sebagai JPEG 85%
+// (latar putih untuk PNG transparan). File kecil dikirim apa adanya.
+function shrink(url, size) {
+  return new Promise((resolve, reject) => {
+    if (size <= SHRINK_OVER) { resolve(url); return; }
+    const img = new Image();
+    img.onload = () => {
+      const w = img.naturalWidth;
+      const h = img.naturalHeight;
+      if (!w || !h) { reject(new Error('kosong')); return; }
+      const k = Math.min(1, MAX_SIDE / Math.max(w, h));
+      const c = document.createElement('canvas');
+      c.width = Math.max(1, Math.round(w * k));
+      c.height = Math.max(1, Math.round(h * k));
+      const g = c.getContext('2d');
+      g.fillStyle = '#ffffff';
+      g.fillRect(0, 0, c.width, c.height);
+      g.drawImage(img, 0, 0, c.width, c.height);
+      const out = c.toDataURL('image/jpeg', 0.85);
+      resolve(out.length < url.length ? out : url);   // tidak lebih kecil -> pakai asli
+    };
+    img.onerror = () => reject(new Error('decode'));
+    img.src = url;
+  });
 }
 
 function setBusy(v) {

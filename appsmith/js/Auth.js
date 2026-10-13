@@ -58,7 +58,14 @@ export default {
 			try {
 				await q.run();
 			} catch (e) {
-				showAlert(Util.cleanError(e && e.message), 'error');
+				const msg = e && e.message;
+				if (Util.isSessionError(msg)) {          // R12 (T64)
+					await removeValue('token');
+					showAlert('Sesi login habis. Silakan login lagi.', 'warning');
+					navigateTo('Login');
+					return false;
+				}
+				showAlert(Util.cleanError(msg), 'error');
 			}
 		}
 		return true;

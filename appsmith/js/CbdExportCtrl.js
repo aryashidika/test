@@ -111,7 +111,9 @@ export default {
 		ws.getCell('A2').value = 'Confidential Information';
 		ws.getCell('A2').font = { italic: true, color: { argb: 'FF6B7280' } };
 		ws.getCell('K2').value = 'Tanggal';
-		ws.getCell('L2').value = new Date(r.status === 'PUBLISHED' && r.published_at ? r.published_at : Date.now());
+		// R12 (T67): tanggal WIB (sel Excel memakai tanggal lokal PC)
+		ws.getCell('L2').value = new Date(moment(r.status === 'PUBLISHED' && r.published_at ? r.published_at : undefined)
+			.utcOffset(7).format('YYYY-MM-DD') + 'T00:00:00');
 		ws.getCell('L2').numFmt = 'dd-mmm-yyyy';
 		ws.getCell('K3').value = '1 $ =';
 		ws.getCell('K3').alignment = { horizontal: 'right' };
@@ -289,7 +291,7 @@ export default {
 			c.getCell(2).font = { bold: true };
 			const ch = ws.addRow(['', 'Tanggal', 'Kategori', 'Oleh', '', 'Alasan']);
 			ch.font = { bold: true };
-			ws.addRow(['', moment(log.created_at).format('DD-MM-YYYY HH:mm'), log.category, log.created_by, '', log.reason]);
+			ws.addRow(['', moment(log.created_at).utcOffset(7).format('DD-MM-YYYY HH:mm'), log.category, log.created_by, '', log.reason]);
 		}
 
 		// ---- R11 (A4): rincian perubahan vs revisi terbit sebelumnya ----

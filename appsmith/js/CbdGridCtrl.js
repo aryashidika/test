@@ -7,17 +7,29 @@ export default {
 	priceKey: 0, priceBusy: false, priceMsg: null,
 	priceLineId: '', priceMode: '',
 	costOkKey: 0,    // naik setelah tambah biaya berhasil -> cwCbdGrid mengosongkan form tambah
+	loadGen: 0,      // R12: nomor pemuatan grid terakhir yang dimulai
+	doneGen: 0,      // R12: nomor pemuatan grid terbaru yang sudah selesai
+
+	// R12 (T62): hanya data milik revisi yang dibuka
+	revId() {
+		const r = CbdCtrl.revision();
+		return r ? r.id : '';
+	},
 
 	lines() {
-		return q_cbd_lines.data || [];
+		const id = this.revId();
+		return id ? (q_cbd_lines.data || []).filter(l => l.cbd_revision_id === id) : [];
 	},
 
 	recap() {
-		return (q_cbd_recap.data && q_cbd_recap.data[0]) || null;
+		const id = this.revId();
+		const rc = (q_cbd_recap.data && q_cbd_recap.data[0]) || null;
+		return id && rc && rc.cbd_revision_id === id ? rc : null;
 	},
 
 	costItems() {
-		return q_cbd_cost_items.data || [];
+		const id = this.revId();
+		return id ? (q_cbd_cost_items.data || []).filter(c => c.cbd_revision_id === id) : [];
 	},
 
 	async load() {
@@ -26,11 +38,19 @@ export default {
 	},
 
 	// Muat ulang baris + rekap revisi yang dibuka. showError: tampilkan error query sebagai toast.
+	// R12 (T62): data query = hasil yang SELESAI terakhir. Bila selama memuat revisi berganti, atau pemuatan yang lebih
+	// baru sudah selesai duluan (respons ini menimpa data yang lebih baru), muat ulang untuk revisi yang dibuka sekarang.
 	async reload(showError) {
-		const r = CbdCtrl.revision();
-		const p = { revision_id: r ? r.id : '' };
 		try {
-			await Promise.all([q_cbd_lines.run(p), q_cbd_recap.run(p), q_cbd_cost_items.run(p)]);
+			for (let i = 0; i < 3; i++) {
+				const g = this.loadGen + 1;
+				this.loadGen = g;
+				const p = { revision_id: this.revId() };
+				await Promise.all([q_cbd_lines.run(p), q_cbd_recap.run(p), q_cbd_cost_items.run(p)]);
+				const stale = g < this.doneGen || this.revId() !== p.revision_id;
+				this.doneGen = Math.max(this.doneGen, g);
+				if (!stale) return;
+			}
 		} catch (e) {
 			if (showError) showAlert(Util.cleanError(e && e.message), 'error');
 		}
@@ -89,7 +109,7 @@ export default {
 	gridModel() {
 		const r = CbdCtrl.revision();
 		return {
-			editable: CbdCtrl.editable(),
+			editable: CbdCtrl.editable() && !CbdCtrl.navBusy,
 			lines: this.lines(),
 			recap: r ? this.recap() : null,
 			costItems: r ? this.costItems() : [],
@@ -101,7 +121,7 @@ export default {
 			banners: this.banners(),
 			busy: this.busyCount > 0,
 			message: this.message,
-			emptyText: r ? 'Tidak ada baris — article ini tidak memakai baris BOM mana pun.' : '',
+			emptyText: CbdCtrl.navBusy ? 'Memuat…' : (r ? 'Tidak ada baris — article ini tidak memakai baris BOM mana pun.' : ''),
 		};
 	},
 
@@ -179,9 +199,6 @@ export default {
 				if (await this.exec(a_cbd_no_charge, { line_id: a.line_id, on: a.on ? 'true' : 'false', reason: a.reason || '' })) {
 					showAlert(a.on ? 'Baris ditandai tanpa biaya (cost 0).' : 'Tanda tanpa biaya dibatalkan.', 'success');
 				}
-				break;
-			case 'clearOverride':   // a_cbd_clear_override: Request confirmation = ON
-				if (await this.exec(a_cbd_clear_override, { line_id: a.line_id })) showAlert('Override dihapus — kembali ke harga master.', 'success');
 				break;
 			case 'refreshPrices':
 				if (await this.exec(a_cbd_refresh_prices, { revision_id: r.id })) {

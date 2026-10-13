@@ -9,6 +9,8 @@
 // isi revisi lewat BomCtrl.load().
 // R4: checklist terbit + sel kuning & supplier INACTIVE. R7: Buat Revisi bisa copy dari model lain (pabrik & kategori
 // sama, q_copy_model_sources); header menampilkan "disalin dari".
+// R12 (T62): semua pemuatan model / season / revisi lewat antrean nav() — tidak pernah dua sekaligus, jadi isi grid
+// selalu milik revisi yang dipilih walau user klik cepat. Gambar riwayat dimuat satu per satu (T60).
 export default {
 	modelId: '',       // model yang dipilih
 	from: '',          // asal halaman (?from=list | detail | home) -> tujuan tombol kembali
@@ -88,9 +90,64 @@ export default {
 		return this.canEdit() && !!this.seasonId && !this.draft();
 	},
 
+	// ---- antrean pemuatan (R12, T62) ----
+	// Pilihan yang masuk saat masih memuat disimpan di navNext; hanya yang terakhir dijalankan setelah pemuatan
+	// berjalan selesai. Muat ulang setelah buat / terbit / hapus (reload) tidak hilang: klik revisi menumpang sebagai
+	// revisi yang dipilih.
+	navBusy: false,
+	navNext: null,
+
+	async nav(req) {
+		const prev = this.navNext;
+		this.navNext = prev && prev.type === 'reload' && req.type === 'revision'
+			? Object.assign({}, prev, { pick: req.id }) : req;
+		if (this.navBusy) return;
+		this.navBusy = true;
+		try {
+			while (this.navNext) {
+				const r = this.navNext;
+				this.navNext = null;
+				try {
+					await this.runNav(r);
+				} catch (e) {
+					showAlert(Util.cleanError(e && e.message), 'error');
+				}
+			}
+		} finally {
+			this.navBusy = false;
+		}
+	},
+
+	async runNav(r) {
+		if (r.type === 'init') return this.loadInit();
+		if (r.type === 'model') {
+			this.modelId = r.id || '';
+			return this.loadModel('');
+		}
+		if (r.type === 'season') {
+			this.seasonId = r.id || '';
+			this.revisionId = '';
+			return this.loadSeason();
+		}
+		if (r.type === 'revision') {
+			if (!r.id || r.id === this.revisionId) return;
+			this.revisionId = r.id;
+			return BomCtrl.load();
+		}
+		if (r.type === 'reload') {
+			if (r.seasons) await this.refreshSeasons();
+			if (r.clear) this.revisionId = '';
+			return this.loadSeason(r.pick);
+		}
+	},
+
 	// ---- muat data ----
 	// Dipanggil Auth.pageQueries(). Model & season dari URL (dari Model List / Model Detail) kalau ada.
 	async init() {
+		return this.nav({ type: 'init' });
+	},
+
+	async loadInit() {
 		try {
 			await q_spec_models.run();
 		} catch (e) {
@@ -122,9 +179,8 @@ export default {
 		await this.loadSeason();
 	},
 
-	async pickModel(id) {
-		this.modelId = id || '';
-		await this.loadModel('');
+	pickModel(id) {
+		return this.nav({ type: 'model', id: id || '' });
 	},
 
 	// Muat revisi season ini lalu buka revisi: pickId, revisi yang sedang dibuka, draft, atau terbit terakhir.
@@ -144,18 +200,15 @@ export default {
 		await BomCtrl.load();
 	},
 
-	async pickSeason(id) {
-		this.seasonId = id || '';
-		this.revisionId = '';
-		await this.loadSeason();
+	pickSeason(id) {
+		return this.nav({ type: 'season', id: id || '' });
 	},
 
 	// cwStepper onSelect
-	async selectRevision() {
+	selectRevision() {
 		const id = (cwStepper.model || {}).selectedId;
-		if (!id || id === this.revisionId) return;
-		this.revisionId = id;
-		await BomCtrl.load();
+		if (!id) return;
+		return this.nav({ type: 'revision', id });
 	},
 
 	async refreshSeasons() {
@@ -318,8 +371,7 @@ export default {
 		closeModal('mdlRevisi');
 		const id = a_revision_create.data && a_revision_create.data[0] && a_revision_create.data[0].id;
 		showAlert('Revisi draft dibuat.', 'success');
-		await this.refreshSeasons();
-		await this.loadSeason(id);
+		await this.nav({ type: 'reload', seasons: true, pick: id });
 	},
 
 	// ---- terbitkan (F6) ----
@@ -409,8 +461,7 @@ export default {
 		showAlert(`Revisi ${this.label(r)} diterbitkan.`
 			+ (failed ? ` ${failed} gambar gagal dilampirkan.` : (images.length ? ` ${images.length} gambar dilampirkan.` : '')),
 			failed ? 'warning' : 'success');
-		await this.refreshSeasons();
-		await this.loadSeason(r.id);
+		await this.nav({ type: 'reload', seasons: true, pick: r.id });
 	},
 
 	// Mengembalikan jumlah gambar yang gagal dilampirkan
@@ -437,31 +488,56 @@ export default {
 
 	openHistory() {
 		this.galleryLogId = '';
+		this.galleryImages = [];
 		showModal('mdlRiwayat');
 	},
 
 	// ---- gambar change log (F10b): baris riwayat dipilih -> gambar tampil di cwImageGallery ----
+	// R12 (T60): q_change_log_images = daftar saja; isi gambar lewat q_change_log_image satu per satu (satu respons =
+	// satu gambar, tidak melewati batas ukuran respons Appsmith). Gambar tampil bertahap.
 	galleryLogId: '',
+	galleryImages: [],
+	galleryLoading: false,
 
 	async showImages(row) {
 		const id = row && row.id ? row.id : '';
 		this.galleryLogId = id;
+		this.galleryImages = [];
 		if (!id || !row.image_count) return;
+		this.galleryLoading = true;
+		let failed = 0;
 		try {
-			await q_change_log_images.run({ log_id: id });
+			const list = await q_change_log_images.run({ log_id: id });
+			for (const i of list || []) {
+				if (this.galleryLogId !== id) return;        // baris lain dipilih
+				try {
+					const rows = await q_change_log_image.run({ id: i.id });
+					const d = rows && rows[0];
+					if (d && this.galleryLogId === id) {
+						this.galleryImages = this.galleryImages.concat([
+							{ id: i.id, name: i.file_name, mime: i.mime_type, size: i.size_bytes, data: d.data }]);
+					}
+				} catch (e) {
+					failed += 1;
+				}
+			}
+			if (failed) showAlert(`${failed} gambar gagal dimuat.`, 'warning');
 		} catch (e) {
 			showAlert(Util.cleanError(e && e.message), 'error');
+		} finally {
+			if (this.galleryLogId === id) this.galleryLoading = false;
 		}
 	},
 
 	galleryModel() {
 		const log = this.changeLogs().find(l => l.id === this.galleryLogId) || null;
-		const rows = log && log.image_count ? (q_change_log_images.data || []) : [];
+		const images = log && log.image_count ? this.galleryImages : [];
 		return {
 			title: log ? `Gambar ${log.revision_label}` : 'Gambar',
-			emptyText: !log ? 'Pilih baris riwayat untuk melihat gambarnya.' : 'Tidak ada gambar di terbit ini.',
-			loading: !!log && !!log.image_count && q_change_log_images.isLoading,
-			images: rows.map(i => ({ id: i.id, name: i.file_name, mime: i.mime_type, size: i.size_bytes, data: i.data })),
+			emptyText: !log ? 'Pilih baris riwayat untuk melihat gambarnya.'
+				: log.image_count ? 'Gambar tidak bisa dimuat.' : 'Tidak ada gambar di terbit ini.',
+			loading: !!log && !!log.image_count && this.galleryLoading && !images.length,
+			images,
 		};
 	},
 
@@ -477,8 +553,6 @@ export default {
 		const r = this.revision();
 		if (!r || r.status !== 'DRAFT') return;
 		if (!await Util.run(a_revision_delete, { id: r.id }, `Draft ${this.label(r)} dihapus.`)) return;
-		this.revisionId = '';
-		await this.refreshSeasons();
-		await this.loadSeason();
+		await this.nav({ type: 'reload', seasons: true, clear: true });
 	},
 }

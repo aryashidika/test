@@ -15,7 +15,7 @@ export default {
 	seasonKey: 0, seasonBusy: false, seasonMsg: null,
 	articleKey: 0, articleBusy: false, articleMsg: null, articleIsNew: true, articleForm: {},
 
-	MAX_BYTES: 5 * 1024 * 1024,
+	MAX_BYTES: 3.5 * 1024 * 1024,     // R12 (T60): sama dengan fn_attachment_add
 
 	// ---- data ----
 	model() {
@@ -364,7 +364,7 @@ export default {
 		const file = fpLampiran.files && fpLampiran.files[0];
 		if (!file || !this.article) return;
 		if (file.size > this.MAX_BYTES) {
-			showAlert(`Ukuran file ${this.fmtSize(file.size)}, maksimal 5 MB.`, 'error');
+			showAlert(`Ukuran file ${this.fmtSize(file.size)}, maksimal 3,5 MB.`, 'error');
 			resetWidget('fpLampiran');
 			return;
 		}

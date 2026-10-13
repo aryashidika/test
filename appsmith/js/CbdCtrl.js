@@ -7,6 +7,8 @@
 // · ubah = edit_cbd (Vendor – CBD). Semua dicek lagi di DB.
 // CBD per article; acuan = revisi specsheet terbit terakhir season itu (article harus ACTIVE di sana).
 // R5: harga per varian × supplier; harga menunggu persetujuan memblokir terbit. R7: copy dari article model asal.
+// R12 (T62): semua pemuatan model / season / article / revisi lewat antrean nav() — tidak pernah dua sekaligus, jadi
+// isi grid selalu milik article & revisi yang dipilih walau user klik cepat. Gambar riwayat dimuat satu per satu (T60).
 export default {
 	modelId: '',       // model yang dipilih
 	from: '',          // asal halaman (?from=list | detail | home) -> tujuan tombol kembali
@@ -111,9 +113,75 @@ export default {
 		return this.editable();
 	},
 
+	// ---- antrean pemuatan (R12, T62) ----
+	// Pilihan yang masuk saat masih memuat disimpan di navNext; hanya yang terakhir dijalankan setelah pemuatan
+	// berjalan selesai. Muat ulang setelah buat / terbit / hapus (reload) tidak hilang: klik article / revisi menumpang
+	// sebagai pilihannya.
+	navBusy: false,
+	navNext: null,
+
+	async nav(req) {
+		const prev = this.navNext;
+		let next = req;
+		if (prev && prev.type === 'reload' && req.type === 'revision') next = Object.assign({}, prev, { pick: req.id });
+		if (prev && prev.type === 'reload' && req.type === 'article') next = Object.assign({}, prev, { article: req.id, pick: '' });
+		this.navNext = next;
+		if (this.navBusy) return;
+		this.navBusy = true;
+		try {
+			while (this.navNext) {
+				const r = this.navNext;
+				this.navNext = null;
+				try {
+					await this.runNav(r);
+				} catch (e) {
+					showAlert(Util.cleanError(e && e.message), 'error');
+				}
+			}
+		} finally {
+			this.navBusy = false;
+		}
+	},
+
+	async runNav(r) {
+		if (r.type === 'init') return this.loadInit();
+		if (r.type === 'model') {
+			this.modelId = r.id || '';
+			return this.loadModel('');
+		}
+		if (r.type === 'season') {
+			this.seasonId = r.id || '';
+			this.articleId = '';
+			this.revisionId = '';
+			return this.loadSeason();
+		}
+		if (r.type === 'article') {
+			if (!r.id || r.id === this.articleId) return;
+			this.articleId = r.id;
+			this.revisionId = '';
+			return this.loadArticle();
+		}
+		if (r.type === 'revision') {
+			if (!r.id || r.id === this.revisionId) return;
+			this.revisionId = r.id;
+			return CbdGridCtrl.load();
+		}
+		if (r.type === 'reload') {
+			// status chip & revisi dimuat ulang (setelah buat / terbit / hapus / refresh dari specsheet)
+			try { await q_cbd_articles.run({ specsheet_id: this.seasonId || '' }); } catch (e) { /* abaikan */ }
+			if (r.article && r.article !== this.articleId) this.articleId = r.article;
+			this.revisionId = r.pick || '';
+			return this.loadArticle(r.pick);
+		}
+	},
+
 	// ---- muat data ----
 	// Dipanggil Auth.pageQueries(). Model & season dari URL kalau ada.
 	async init() {
+		return this.nav({ type: 'init' });
+	},
+
+	async loadInit() {
 		try {
 			await q_cbd_models.run();
 		} catch (e) {
@@ -146,9 +214,8 @@ export default {
 		await this.loadSeason(wantArticle);
 	},
 
-	async pickModel(id) {
-		this.modelId = id || '';
-		await this.loadModel('');
+	pickModel(id) {
+		return this.nav({ type: 'model', id: id || '' });
 	},
 
 	// Muat article season ini lalu pilih: pickId, article yang sedang dibuka, atau article aktif pertama.
@@ -166,11 +233,8 @@ export default {
 		await this.loadArticle();
 	},
 
-	async pickSeason(id) {
-		this.seasonId = id || '';
-		this.articleId = '';
-		this.revisionId = '';
-		await this.loadSeason();
+	pickSeason(id) {
+		return this.nav({ type: 'season', id: id || '' });
 	},
 
 	// Muat revisi CBD article ini lalu buka: pickId, revisi yang sedang dibuka, draft, atau terbit terakhir.
@@ -191,27 +255,22 @@ export default {
 	},
 
 	// cwStepper onArticle
-	async selectArticle() {
+	selectArticle() {
 		const id = (cwStepper.model || {}).selectedArticleId;
-		if (!id || id === this.articleId) return;
-		this.articleId = id;
-		this.revisionId = '';
-		await this.loadArticle();
+		if (!id) return;
+		return this.nav({ type: 'article', id });
 	},
 
 	// cwStepper onSelect
-	async selectRevision() {
+	selectRevision() {
 		const id = (cwStepper.model || {}).selectedId;
-		if (!id || id === this.revisionId) return;
-		this.revisionId = id;
-		await CbdGridCtrl.load();
+		if (!id) return;
+		return this.nav({ type: 'revision', id });
 	},
 
-	// Setelah buat / hapus: status chip & revisi dimuat ulang
-	async refresh(pickRevisionId) {
-		try { await q_cbd_articles.run({ specsheet_id: this.seasonId || '' }); } catch (e) { /* abaikan */ }
-		this.revisionId = pickRevisionId || '';
-		await this.loadArticle(pickRevisionId);
+	// Setelah buat / terbit / hapus: status chip & revisi dimuat ulang
+	refresh(pickRevisionId) {
+		return this.nav({ type: 'reload', pick: pickRevisionId || '' });
 	},
 
 	// ---- tampilan ----
@@ -547,31 +606,56 @@ export default {
 
 	openHistory() {
 		this.galleryLogId = '';
+		this.galleryImages = [];
 		showModal('mdlCbdRiwayat');
 	},
 
 	// ---- gambar change log (F10b): baris riwayat dipilih -> gambar tampil di cwImageGallery ----
+	// R12 (T60): q_change_log_images = daftar saja; isi gambar lewat q_change_log_image satu per satu (satu respons =
+	// satu gambar, tidak melewati batas ukuran respons Appsmith). Gambar tampil bertahap.
 	galleryLogId: '',
+	galleryImages: [],
+	galleryLoading: false,
 
 	async showImages(row) {
 		const id = row && row.id ? row.id : '';
 		this.galleryLogId = id;
+		this.galleryImages = [];
 		if (!id || !row.image_count) return;
+		this.galleryLoading = true;
+		let failed = 0;
 		try {
-			await q_change_log_images.run({ log_id: id });
+			const list = await q_change_log_images.run({ log_id: id });
+			for (const i of list || []) {
+				if (this.galleryLogId !== id) return;        // baris lain dipilih
+				try {
+					const rows = await q_change_log_image.run({ id: i.id });
+					const d = rows && rows[0];
+					if (d && this.galleryLogId === id) {
+						this.galleryImages = this.galleryImages.concat([
+							{ id: i.id, name: i.file_name, mime: i.mime_type, size: i.size_bytes, data: d.data }]);
+					}
+				} catch (e) {
+					failed += 1;
+				}
+			}
+			if (failed) showAlert(`${failed} gambar gagal dimuat.`, 'warning');
 		} catch (e) {
 			showAlert(Util.cleanError(e && e.message), 'error');
+		} finally {
+			if (this.galleryLogId === id) this.galleryLoading = false;
 		}
 	},
 
 	galleryModel() {
 		const log = this.changeLogs().find(l => l.id === this.galleryLogId) || null;
-		const rows = log && log.image_count ? (q_change_log_images.data || []) : [];
+		const images = log && log.image_count ? this.galleryImages : [];
 		return {
 			title: log ? `Gambar ${log.revision_label}` : 'Gambar',
-			emptyText: !log ? 'Pilih baris riwayat untuk melihat gambarnya.' : 'Tidak ada gambar di terbit ini.',
-			loading: !!log && !!log.image_count && q_change_log_images.isLoading,
-			images: rows.map(i => ({ id: i.id, name: i.file_name, mime: i.mime_type, size: i.size_bytes, data: i.data })),
+			emptyText: !log ? 'Pilih baris riwayat untuk melihat gambarnya.'
+				: log.image_count ? 'Gambar tidak bisa dimuat.' : 'Tidak ada gambar di terbit ini.',
+			loading: !!log && !!log.image_count && this.galleryLoading && !images.length,
+			images,
 		};
 	},
 

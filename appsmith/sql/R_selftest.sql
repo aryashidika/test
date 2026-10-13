@@ -1,6 +1,6 @@
 -- ============================================================================
--- R_selftest — uji alur inti R3–R11 langsung di database, lalu DIBATALKAN (ROLLBACK): tidak ada data yang tersimpan.
--- Jalankan SETELAH sql/R_revisi_semua.sql, sql/R8_catatan_uji.sql, R9_kode_varian.sql R10_hapus_varian.sql, R11_perbaikan.sql DAN R11b_harga_batal.sql, lewat z_run_sql di app "DB Tools" (Use prepared statements = OFF),
+-- R_selftest — uji alur inti R3–R12 langsung di database, lalu DIBATALKAN (ROLLBACK): tidak ada data yang tersimpan.
+-- Jalankan SETELAH sql/R_revisi_semua.sql, sql/R8_catatan_uji.sql, R9_kode_varian.sql R10_hapus_varian.sql, R11_perbaikan.sql, R11b_harga_batal.sql DAN R12_golive.sql, lewat z_run_sql di app "DB Tools" (Use prepared statements = OFF),
 -- SEBELUM import app. Hasil yang diharapkan: baris terakhir "SELFTEST LOLOS". Kalau ada yang salah, query berhenti
 -- dengan pesan "SELFTEST GAGAL: ..." — kirim pesan itu ke pengembang.
 -- Aman di DB yang sudah berisi data: pabrik SELFTEST PABRIK A/B, email @selftest.invalid; master BERSAMA (supplier,
@@ -703,6 +703,22 @@ BEGIN
                        WHERE cbd_revision_id = c5 AND status = 'ACTIVE' AND material_id = v_mat2),
                      'R11/A1 tanda tanpa biaya ikut ke revisi berikutnya');
   PERFORM pg_temp.ok(NOT EXISTS (SELECT 1 FROM fn_cbd_bridge(c5)), 'R11/A4 revisi tanpa perubahan biaya = rincian kosong');
+
+  -- ---- R12 (T60/T61/T65): batas lampiran 3,5 MB, index harga di baris CBD, fungsi override dihapus
+  PERFORM pg_temp.must_fail(format('SELECT fn_attachment_add(%L, %L, %L, %L, NULL)', t_spec, a1, 'besar.pdf',
+            encode(decode('255044462d', 'hex') || convert_to(repeat('x', 3670012), 'UTF8'), 'base64')),
+            '%maksimal 3,5 MB%', 'R12/T60 lampiran article > 3,5 MB ditolak');
+  PERFORM pg_temp.ok(fn_attachment_add(t_spec, a1, 'pas.pdf',
+            encode(decode('255044462d', 'hex') || convert_to(repeat('x', 3670011), 'UTF8'), 'base64'), NULL) IS NOT NULL,
+            'R12/T60 lampiran article tepat 3,5 MB diterima');
+  PERFORM pg_temp.must_fail(format('SELECT fn_change_log_attach(%L, %L, %L, %L)', t_spec,
+            (SELECT cl.id FROM change_log cl WHERE cl.doc_type = 'SPECSHEET' AND cl.created_by = 'spec.a@selftest.invalid' ORDER BY cl.id LIMIT 1), 'besar.png',
+            encode(decode('89504e470d0a1a0a', 'hex') || convert_to(repeat('x', 3670009), 'UTF8'), 'base64')),
+            '%maksimal 3,5 MB%', 'R12/T60 gambar change log > 3,5 MB ditolak');
+  PERFORM pg_temp.ok(to_regclass('ix_cbd_line_material_price') IS NOT NULL, 'R12/T61 index cbd_line(material_price_id) ada');
+  PERFORM pg_temp.ok(to_regprocedure('fn_cbd_clear_override(text,uuid)') IS NULL
+                     AND to_regprocedure('fn_cbd_override_price(text,uuid,numeric,text,text)') IS NULL,
+                     'R12/T65 fungsi override sudah dihapus');
 END;
 $$;
 
