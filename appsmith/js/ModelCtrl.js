@@ -9,6 +9,14 @@ export default {
 	busy: false,
 	message: null,     // { type, text } ditampilkan di dalam cwModelForm
 
+	// R11 (S9): q_models dibatasi 500 baris — beri tahu bila hasil sebenarnya lebih banyak
+	limitNote() {
+		const rows = q_models.data || [];
+		const total = rows.length ? Number(rows[0].total_count) || rows.length : 0;
+		return total > rows.length
+			? `Menampilkan ${Util.fmtNum(rows.length)} dari ${Util.fmtNum(total)} model — persempit dengan pencarian / filter.` : '';
+	},
+
 	canEdit() {
 		return Auth.can('edit_model');
 	},

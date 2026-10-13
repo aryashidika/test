@@ -10,10 +10,24 @@
   <div class="blocked" id="blocked" hidden></div>
 
   <div id="formBox">
-    <label for="category">Kategori perubahan <span class="req">*</span></label>
-    <select id="category"></select>
+    <div id="bridgeBox" hidden>
+      <label>Rincian perubahan <span class="opt-label" id="bridgeHead"></span></label>
+      <div class="bridge-wrap">
+        <table class="bridge">
+          <thead><tr><th>Kategori</th><th>Uraian</th><th class="n">Nilai (Rp)</th></tr></thead>
+          <tbody id="bridgeRows"></tbody>
+          <tfoot><tr><td colspan="2" id="bridgeTotalLabel">Selisih Actual FOB</td><td class="n" id="bridgeTotal"></td></tr></tfoot>
+        </table>
+      </div>
+      <div class="hint" id="bridgeHint">Nilai dihitung sistem dari revisi terbit sebelumnya. Kategori &amp; uraian boleh diubah.</div>
+    </div>
 
-    <label for="reason">Alasan perubahan <span class="req" id="reasonReq">*</span></label>
+    <div id="catBox">
+      <label for="category">Kategori perubahan <span class="req">*</span></label>
+      <select id="category"></select>
+    </div>
+
+    <label for="reason" id="reasonLabel">Alasan perubahan <span class="req" id="reasonReq">*</span></label>
     <textarea id="reason" maxlength="500"></textarea>
     <div class="hint" id="reasonHint"></div>
 

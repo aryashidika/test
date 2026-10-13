@@ -265,19 +265,29 @@ export default {
 	systemModel() {
 		const s = (q_worklist_system.data && q_worklist_system.data[0]) || null;
 		const n = v => Util.fmtNum(s ? v : 0);
+		// R11 (S7/S8): ukuran audit log + peringatan bila > 3 GB (tidak ada penghapusan otomatis)
+		const bytes = s ? Number(s.audit_size_bytes) || 0 : 0;
+		const size = bytes >= 1073741824 ? `${Util.fmtNum(bytes / 1073741824, 1)} GB` : `${Util.fmtNum(Math.max(1, Math.round(bytes / 1048576)))} MB`;
+		const big = bytes > 3 * 1073741824;
 		return {
 			subtitle: 'Ringkasan sistem.',
 			stats: s ? [
 				{ key: 'sys', value: s.models, label: 'Model', tone: '' },
 				{ key: 'sys', value: s.specsheets, label: 'Specsheet (season)', tone: '' },
 				{ key: 'sys', value: s.cbd_revisions, label: 'Revisi CBD', tone: '' },
-				{ key: 'sys', value: s.audit_entries, label: 'Entri audit log', tone: '' },
+				{ key: 'sys', value: s.audit_entries, label: 'Entri audit log (±)', tone: '' },
 			] : [],
 			sections: [{
 				key: 'sys', title: 'Ringkasan Sistem', empty: 'Data ringkasan belum bisa dimuat.',
 				items: s ? [{
 					title: `${n(s.materials)} material · ${n(s.articles)} article · ${n(s.active_users)} user aktif`,
 					meta: `Aktivitas terakhir ${Util.fmtDateTime(s.last_audit)}. Buka menu Admin untuk user dan audit log.`,
+					target: 'Admin', params: {},
+				}, {
+					title: `Audit log ${size}`,
+					meta: big ? 'Melewati 3 GB — saatnya mengarsipkan audit log lama (hubungi pengembang).'
+						: 'Batas peringatan 3 GB. Audit log tidak dihapus otomatis.',
+					flags: big ? [{ text: 'PERLU ARSIP', tone: 'warn' }] : [],
 					target: 'Admin', params: {},
 				}] : [],
 			}],

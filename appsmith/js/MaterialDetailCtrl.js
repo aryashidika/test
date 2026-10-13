@@ -51,7 +51,9 @@ export default {
 		const recent = p => p.decided_at && moment().diff(moment(p.decided_at), 'days') <= 30;
 		const replaced = p => all.some(n => n.id && n.id !== p.id && n.variant_id === p.variant_id && n.link_id === p.link_id
 			&& n.created_at && p.decided_at && moment(n.created_at).isSameOrAfter(moment(p.decided_at)));
-		return all.filter(p => history || (p.state !== 'RIWAYAT' && (p.state !== 'DITOLAK' || (recent(p) && !replaced(p)))));
+		// R11b: harga AKAN BERLAKU yang diakhiri = DIBATALKAN, disembunyikan seperti RIWAYAT
+		return all.filter(p => history || (p.state !== 'RIWAYAT' && p.state !== 'DIBATALKAN'
+			&& (p.state !== 'DITOLAK' || (recent(p) && !replaced(p)))));
 	},
 
 	// Warna kolom Keterangan di tblPrices
@@ -64,6 +66,7 @@ export default {
 
 	stateText(row) {
 		if (row.state === 'DITOLAK') return `DITOLAK: ${row.reject_reason || '-'}`;
+		if (row.state === 'DIBATALKAN') return 'DIBATALKAN (tidak jadi berlaku)';
 		return row.state;
 	},
 
@@ -360,7 +363,7 @@ export default {
 	// Tombol Ajukan di baris tabel: varian + supplier masih aktif
 	canProposeRow(row) {
 		return this.canAddPrice() && !!row && row.state !== 'MENUNGGU APPROVAL' && row.state !== 'RIWAYAT'
-			&& this.activeLinks().some(l => l.id === row.link_id) && this.activeVariants().some(v => v.id === row.variant_id);
+			&& row.state !== 'DIBATALKAN' && this.activeLinks().some(l => l.id === row.link_id) && this.activeVariants().some(v => v.id === row.variant_id);
 	},
 
 	canEndRow(row) {
@@ -454,8 +457,12 @@ export default {
 	},
 
 	// Query a_price_end memakai "Request confirmation before running" = ON
+	// R11 (T54): harga AKAN BERLAKU yang diakhiri = dibatalkan, harga sebelumnya berlaku lagi
 	endPrice(row) {
-		return Util.run(a_price_end, { id: row.id }, 'Harga diakhiri per hari ini.', [q_prices, q_material]);
+		const future = row && row.state === 'AKAN BERLAKU';
+		return Util.run(a_price_end, { id: row.id },
+			future ? 'Harga yang akan berlaku dibatalkan — harga sebelumnya tetap berlaku.' : 'Harga diakhiri per hari ini.',
+			[q_prices, q_material]);
 	},
 
 	approvePrice(row) {

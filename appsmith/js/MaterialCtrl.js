@@ -14,6 +14,14 @@ export default {
 		{ label: 'INACTIVE', value: 'INACTIVE' },
 	],
 
+	// R11 (S9): q_materials dibatasi 500 baris — beri tahu bila hasil sebenarnya lebih banyak
+	limitNote() {
+		const rows = q_materials.data || [];
+		const total = rows.length ? Number(rows[0].total_count) || rows.length : 0;
+		return total > rows.length
+			? `Menampilkan ${Util.fmtNum(rows.length)} dari ${Util.fmtNum(total)} material — persempit dengan pencarian / filter.` : '';
+	},
+
 	canManage() {
 		return Auth.can('manage_master');
 	},

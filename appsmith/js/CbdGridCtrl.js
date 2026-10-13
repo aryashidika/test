@@ -67,12 +67,17 @@ export default {
 					+ 'Setelah disetujui, klik Refresh Harga dari Master.',
 			});
 		}
-		const gaps = lines.filter(l => l.price_gap === 'NO_PRICE').length;
-		const noSup = lines.filter(l => l.price_gap === 'NO_SUPPLIER').length;
-		const parts = [];
-		if (gaps) parts.push(`${gaps} baris belum punya harga master untuk Material Code + supplier-nya (ajukan di Material Detail) — boleh terbit dengan cost 0.`);
-		if (noSup) parts.push(`${noSup} baris belum punya supplier di specsheet.`);
-		if (parts.length) out.push({ tone: 'info', text: parts.join(' ') });
+		// R11 (T56, keputusan user 13 Okt 2026): peringatan saja, untuk baris ber-Yield yang belum berharga (kemungkinan
+		// lupa). Baris tanpa harga & tanpa Yield dianggap memang tanpa biaya — tidak diperingatkan.
+		const unpriced = lines.filter(l => l.price_original == null && l.yield_value != null && !l.no_charge);
+		if (unpriced.length) {
+			const gaps = unpriced.filter(l => l.price_gap === 'NO_PRICE').length;
+			const noSup = unpriced.filter(l => l.price_gap === 'NO_SUPPLIER').length;
+			const parts = [`${unpriced.length} baris sudah ada Yield tapi belum berharga — tetap bisa terbit dengan cost 0. Isi harganya bila terlupa.`];
+			if (gaps) parts.push(`${gaps} di antaranya belum punya harga master untuk Material Code + supplier-nya (ajukan di Material Detail).`);
+			if (noSup) parts.push(`${noSup} belum punya supplier di specsheet.`);
+			out.push({ tone: 'warn', text: parts.join(' ') });
+		}
 		const rc = this.recap();
 		if (rc && rc.usd_no_rate_count) {
 			out.push({ tone: 'warn', text: `${rc.usd_no_rate_count} baris berharga USD belum terhitung — isi Exchange rate di rekap.` });
@@ -169,6 +174,11 @@ export default {
 				break;
 			case 'proposePrice':    // R8: harga master untuk varian × supplier baris ini
 				this.openPrice(a.line_id, 'PROPOSE');
+				break;
+			case 'setNoCharge':     // R11: tanpa biaya (alasan wajib) / batalkan
+				if (await this.exec(a_cbd_no_charge, { line_id: a.line_id, on: a.on ? 'true' : 'false', reason: a.reason || '' })) {
+					showAlert(a.on ? 'Baris ditandai tanpa biaya (cost 0).' : 'Tanda tanpa biaya dibatalkan.', 'success');
+				}
 				break;
 			case 'clearOverride':   // a_cbd_clear_override: Request confirmation = ON
 				if (await this.exec(a_cbd_clear_override, { line_id: a.line_id })) showAlert('Override dihapus — kembali ke harga master.', 'success');

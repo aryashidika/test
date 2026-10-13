@@ -3,6 +3,9 @@
 // Terbit lewat SpecCtrl.publish() / CbdCtrl.publish() (checklist, kategori, dan alasan dicek lagi di DB).
 // F10b: gambar opsional (tempel Ctrl+V / pilih file; PNG/JPG ≤ 5 MB, maks. model.maxImages) -> model.images
 //   [{ name, data (base64 tanpa awalan) }]; dilampirkan ke change log oleh <Page>Ctrl setelah terbit.
+// R11 (A4, hanya CBD): model.bridge = rincian perubahan [{ key, category, description, amount }] + model.bridgeInfo
+//   { prevLabel, prevFob, fob }. Bila ada: tabel rincian (kategori & uraian boleh diubah, nilai dari DB) menggantikan
+//   pilihan kategori, alasan jadi opsional; hasil -> model.bridge [{ key, category, description }].
 const $ = id => document.getElementById(id);
 let lastKey = null;
 let busy = false;
@@ -11,6 +14,8 @@ let requiresReason = true;
 let images = [];           // { name, type, size, data, url }
 let maxImages = 5;
 const MAX_BYTES = 5 * 1024 * 1024;
+let bridge = [];             // R11: [{ key, category, description, amount }] — isian kategori/uraian user
+let categories = [];
 
 function applyTheme(t) {
   t = t || {};
@@ -58,9 +63,10 @@ function renderChecks(m) {
 // Isi ulang hanya saat modal dibuka (key berubah) — busy/message tidak menghapus isian user
 function fillForm(m) {
   $('title').textContent = m.title || 'Terbitkan Revisi';
+  categories = m.categories || [];
   const sel = $('category');
   sel.innerHTML = '<option value="">— pilih kategori —</option>';
-  (m.categories || []).forEach(c => {
+  categories.forEach(c => {
     const opt = document.createElement('option');
     opt.value = c.value;
     opt.textContent = c.label;
@@ -68,16 +74,79 @@ function fillForm(m) {
   });
   sel.value = m.defaultCategory || '';
   sel.classList.remove('invalid');
-  requiresReason = m.requiresReason !== false;
+  bridge = (Array.isArray(m.bridge) ? m.bridge : []).map(r => ({
+    key: r.key, category: r.category || '', description: r.description || '', amount: Number(r.amount) || 0,
+  }));
+  const hasBridge = bridge.length > 0;
+  $('catBox').hidden = hasBridge;
+  requiresReason = !hasBridge && m.requiresReason !== false;
+  $('reasonLabel').firstChild.textContent = hasBridge ? 'Ringkasan ' : 'Alasan perubahan ';
   $('reasonReq').hidden = !requiresReason;
   $('reason').value = '';
   $('reason').classList.remove('invalid');
-  $('reason').placeholder = requiresReason ? 'Apa yang berubah dibanding revisi sebelumnya?' : 'Kosongkan = "Revisi awal."';
-  $('reasonHint').textContent = requiresReason ? '' : 'Opsional untuk revisi awal.';
+  $('reason').placeholder = hasBridge ? 'Kosongkan = ringkasan otomatis per kategori'
+    : requiresReason ? 'Apa yang berubah dibanding revisi sebelumnya?' : 'Kosongkan = "Revisi awal."';
+  $('reasonHint').textContent = hasBridge ? 'Opsional — rincian di atas ikut tersimpan.' : requiresReason ? '' : 'Opsional untuk revisi awal.';
   $('reasonHint').hidden = requiresReason;
+  renderBridge(m.bridgeInfo || {});
   maxImages = Number(m.maxImages) || 5;
   images = [];
   renderImages();
+}
+
+// ---------------------------------------------------------------- R11: rincian perubahan (cost bridge)
+function money(v) {
+  const n = Number(v);
+  if (!Number.isFinite(n)) return '-';
+  return (n > 0 ? '+' : '') + n.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function plain(v) {
+  const n = Number(v);
+  return Number.isFinite(n) ? n.toLocaleString('id-ID', { maximumFractionDigits: 2 }) : '-';
+}
+
+function renderBridge(info) {
+  const box = $('bridgeBox');
+  box.hidden = !bridge.length;
+  const body = $('bridgeRows');
+  body.innerHTML = '';
+  if (!bridge.length) return;
+  $('bridgeHead').textContent = info.prevLabel ? `(dibanding ${info.prevLabel} terbit)` : '';
+  bridge.forEach((r, n) => {
+    const tr = document.createElement('tr');
+    const sel = document.createElement('select');
+    sel.setAttribute('aria-label', `Kategori baris ${n + 1}`);
+    categories.forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c.value;
+      opt.textContent = c.label;
+      sel.appendChild(opt);
+    });
+    sel.value = r.category;
+    sel.addEventListener('change', () => { r.category = sel.value; });
+    const inp = document.createElement('input');
+    inp.type = 'text';
+    inp.maxLength = 300;
+    inp.value = r.description;
+    inp.setAttribute('aria-label', `Uraian baris ${n + 1}`);
+    inp.addEventListener('input', () => { r.description = inp.value; inp.classList.remove('invalid'); });
+    const c1 = document.createElement('td');
+    c1.appendChild(sel);
+    const c2 = document.createElement('td');
+    c2.appendChild(inp);
+    const c3 = document.createElement('td');
+    c3.className = 'n' + (r.amount < 0 ? ' neg' : '');
+    c3.textContent = money(r.amount);
+    tr.appendChild(c1);
+    tr.appendChild(c2);
+    tr.appendChild(c3);
+    body.appendChild(tr);
+  });
+  const total = bridge.reduce((t, r) => t + r.amount, 0);
+  const known = info.fob !== null && info.fob !== undefined && info.prevFob !== null && info.prevFob !== undefined;
+  $('bridgeTotal').textContent = money(total);
+  $('bridgeTotalLabel').textContent = 'Selisih Actual FOB' + (known ? ` (${plain(info.prevFob)} → ${plain(info.fob)})` : '');
 }
 
 // ---------------------------------------------------------------- gambar
@@ -155,7 +224,15 @@ function submit() {
   if (busy || blocked) return;
   const category = $('category').value;
   const reason = $('reason').value.trim();
-  if (!category) {
+  if (bridge.length) {
+    const empty = bridge.findIndex(r => !String(r.description || '').trim());
+    if (empty >= 0) {
+      const inp = $('bridgeRows').querySelectorAll('input')[empty];
+      if (inp) { inp.classList.add('invalid'); inp.focus(); }
+      showMessage({ type: 'error', text: 'Uraian rincian perubahan tidak boleh kosong.' });
+      return;
+    }
+  } else if (!category) {
     $('category').classList.add('invalid');
     $('category').focus();
     showMessage({ type: 'error', text: 'Pilih kategori perubahan.' });
@@ -172,7 +249,11 @@ function submit() {
     return;
   }
   showMessage(null);
-  appsmith.updateModel({ category, reason, images: images.map(i => ({ name: i.name, data: i.data })) });
+  appsmith.updateModel({
+    category: bridge.length ? '' : category, reason,
+    bridge: bridge.map(r => ({ key: r.key, category: r.category, description: String(r.description || '').trim() })),
+    images: images.map(i => ({ name: i.name, data: i.data })),
+  });
   appsmith.triggerEvent('onPublish');
 }
 

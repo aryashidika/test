@@ -410,12 +410,12 @@ export default {
 	},
 
 	// ---- terbitkan (F8) ----
-	// Checklist dimuat ulang setiap modal dibuka (isi grid & harga master bisa berubah).
+	// Checklist + rincian perubahan (R11, A4) dimuat ulang setiap modal dibuka (isi grid & harga master bisa berubah).
 	async openPublish() {
 		const r = this.revision();
 		if (!r || r.status !== 'DRAFT') return;
 		try {
-			await q_cbd_checklist.run({ revision_id: r.id });
+			await Promise.all([q_cbd_checklist.run({ revision_id: r.id }), q_cbd_bridge.run({ revision_id: r.id })]);
 		} catch (e) {
 			const msg = e && e.message;
 			if (Util.isSessionError(msg)) {
@@ -448,14 +448,22 @@ export default {
 				detail: c.stale_prices ? `${c.stale_prices} baris berubah — klik "Refresh Harga dari Master"` : '' },
 			{ label: 'Baris berharga punya Yield', ok: c.no_yield_count === 0, blocking: true,
 				detail: c.no_yield_count ? `${c.no_yield_count} baris belum diisi Yield (kotak kuning)` : '' },
-			{ label: 'Semua baris berharga', ok: c.unpriced_count === 0, blocking: false,
-				detail: c.unpriced_count ? `${c.unpriced_count} baris tanpa harga akan terbit dengan cost 0` : '' },
+			// R11 (T56, keputusan user 13 Okt 2026): peringatan saja — baris ber-Yield yang belum berharga didaftar
+			// (kemungkinan lupa); baris tanpa harga & tanpa Yield tidak didaftar (memang tanpa biaya)
+			{ label: 'Baris ber-Yield sudah berharga', ok: c.unpriced_count === 0, blocking: false,
+				detail: c.unpriced_count ? `${c.unpriced_count} baris akan terbit dengan cost 0: ${c.unpriced_list || ''} — isi harganya bila terlupa` : '' },
 		];
+		if (c && c.no_charge_count) {
+			checks.push({ label: `${c.no_charge_count} baris tanpa biaya (cost 0)`, ok: true, blocking: false,
+				detail: 'Alasannya tampil di grid & export Excel.' });
+		}
 		if (c && c.spec_status !== 'ACTIVE') {
 			checks.unshift({ label: 'Article aktif di specsheet terbit', ok: false, blocking: true,
 				detail: 'Article di-drop / belum terbit — CBD ini tidak bisa diterbitkan' });
 		}
 		const requiresReason = c ? !!c.requires_reason : true;
+		const rows = this.bridgeRows();
+		const b = rows[0] || null;
 		return {
 			key: this.pubKey,
 			title: `Terbitkan CBD ${a ? a.code + ' · ' : ''}${this.label(r)}`,
@@ -465,6 +473,9 @@ export default {
 			requiresReason,
 			categories: this.CATEGORIES,
 			defaultCategory: requiresReason ? '' : 'OTHER',
+			// R11 (A4): rincian perubahan vs revisi terbit sebelumnya — nilai dari DB, kategori & uraian boleh diubah
+			bridge: rows.map(x => ({ key: x.key, category: x.category, description: x.description, amount: Number(x.amount) })),
+			bridgeInfo: b ? { prevLabel: b.prev_label, prevFob: b.prev_fob, fob: b.fob } : null,
 			maxImages: 5,
 			busy: this.pubBusy,
 			message: this.pubMsg,
@@ -480,7 +491,10 @@ export default {
 		this.pubMsg = null;
 		this.pubBusy = true;
 		try {
-			await a_cbd_publish.run({ revision_id: r.id, category: f.category || '', reason: f.reason || '' });
+			await a_cbd_publish.run({
+				revision_id: r.id, category: f.category || '', reason: f.reason || '',
+				bridge: JSON.stringify(Array.isArray(f.bridge) ? f.bridge : []),
+			});
 		} catch (e) {
 			const msg = e && e.message;
 			if (Util.isSessionError(msg)) {
@@ -518,6 +532,11 @@ export default {
 		}
 		this.pubBusy = false;
 		return failed;
+	},
+
+	// R11 (A4): rincian perubahan revisi yang terakhir dimuat q_cbd_bridge (form terbit & export)
+	bridgeRows() {
+		return q_cbd_bridge.data || [];
 	},
 
 	// ---- riwayat (F8) ----

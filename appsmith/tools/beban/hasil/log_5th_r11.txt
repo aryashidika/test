@@ -1,0 +1,65 @@
+     424.1      65      30.4  Beranda / q_worklist_spec
+     781.0     241     105.2  Beranda / q_worklist_cbd
+    1384.5      82      40.4  Beranda / q_worklist_gap
+       9.3      64      21.4  Beranda / q_worklist_admin
+      65.2      10       4.7  Beranda / q_worklist_pub_spec
+     104.8      10       5.2  Beranda / q_worklist_pub_cbd
+      12.5       1       0.2  Beranda / q_worklist_system
+      10.8       0       0.0  Beranda / q_worklist_rejected
+       2.7       5       1.6  Admin / q_users
+       3.4       6       0.1  Admin / q_audit_entities
+       3.8     200     240.6  Admin / q_audit
+    1158.9       0       0.0  Admin / q_audit [inpAuditCari=zzz]
+       3.1       1       0.2  Admin / q_factories
+       4.4     150      22.3  Master Supplier / q_suppliers
+      17.4       8       0.8  Master Supplier / q_similar
+       4.1       4       0.4  Master Komponen / q_component_groups
+       3.0     110      22.1  Master Komponen / q_components
+       6.5       1       0.1  Master Material / q_material_meta
+      28.9     450     166.8  Master Material / q_materials
+      13.5      56      20.6  Master Material / q_materials [inpMaterialCari=leather]
+       3.3       1       0.4  Material Detail / q_material
+       4.4       3       0.8  Material Detail / q_links
+       3.3     147       9.6  Material Detail / q_link_supplier_options
+       8.4     179     103.3  Material Detail / q_prices
+      54.1      12       3.8  Material Detail / q_variants
+       7.8       1       0.2  Material Detail / q_code_hint
+      10.4       1       0.1  Material Detail / q_code_suggest
+       5.5      10       2.2  Master Pilihan / q_options
+      11.6      64      33.3  Persetujuan Harga / q_price_pending
+     160.2      10       0.3  Model List / q_known_seasons
+     123.6     500     221.7  Model List / q_models
+     110.7     100      44.3  Model List / q_models [inpModelCari=model 01]
+       4.7     164      16.6  Model List / q_model_options
+       2.8       1       0.1  Model List / q_model_factories
+       4.4       1       0.1  Model Detail / q_seasons
+       6.4       1       0.6  Model Detail / q_model
+       ERR                    Model Detail / q_attachment_file  !! ERROR:  invalid input syntax for type uuid: ""
+      18.0       5       2.0  Model Detail / q_articles
+       3.9       0       0.0  Model Detail / q_attachments
+      16.0     650      60.3  Specsheet / q_spec_models
+       8.7       1       0.3  Specsheet / q_spec_model
+       6.1       1       0.2  Specsheet / q_spec_seasons
+      13.4       6       2.0  Specsheet / q_revisions
+       6.8       5       0.5  Specsheet / q_rev_articles
+      17.5      60      76.3  Specsheet / q_bom_grid
+      38.9       1     872.5  Specsheet / q_bom_options
+     584.0      12       0.2  Specsheet / q_season_colors
+      18.2       1       0.5  Specsheet / q_publish_checklist
+      12.3       4       1.1  Specsheet / q_change_log
+       1.0       0       0.0  Specsheet / q_change_log_images
+     136.1     199      29.9  Specsheet / q_copy_model_sources
+      12.0     650      60.3  Cost Breakdown (CBD) / q_cbd_models
+       6.0       1       0.3  Cost Breakdown (CBD) / q_cbd_model
+       6.5       1       0.1  Cost Breakdown (CBD) / q_cbd_seasons
+      10.2       5       1.8  Cost Breakdown (CBD) / q_cbd_articles
+       4.6       5       2.2  Cost Breakdown (CBD) / q_cbd_revisions
+      32.1      60      78.5  Cost Breakdown (CBD) / q_cbd_lines
+      10.2       3       0.5  Cost Breakdown (CBD) / q_cbd_sources
+      18.7       1       0.7  Cost Breakdown (CBD) / q_cbd_recap
+      27.4       1       0.4  Cost Breakdown (CBD) / q_cbd_checklist
+       4.8       3       0.7  Cost Breakdown (CBD) / q_cbd_change_log
+       5.7       3       0.4  Cost Breakdown (CBD) / q_cbd_cost_items
+       1.0       0       0.0  Cost Breakdown (CBD) / q_change_log_images
+       ERR                    Cost Breakdown (CBD) / q_cbd_bridge  !! ERROR:  Role Vendor - Specsheet tidak punya akses untuk aksi ini.
+tabel: { "product_model" : 650, "specsheet" : 2000, "material_variant" : 3375, "article" : 8018, "specsheet_revision" : 10047, "material_price" : 30465, "cbd_revision" : 32241, "bom_line" : 602820, "cbd_line" : 1934460, "audit_log" : 7090020, "bom_cell" : 2411280 } | ukuran DB: 8003 MB

@@ -463,14 +463,14 @@ function armDelete(btn, line, hasSubs) {
   }
   delArmed = line.id;
   btn.classList.add('confirm');
-  btn.textContent = hasSubs ? 'Hapus + sub?' : 'Yakin?';
+  btn.textContent = line.undo_replace ? 'Yakin?' : hasSubs ? 'Hapus + sub?' : 'Yakin?';
   clearTimeout(delTimer);
   delTimer = setTimeout(() => {
     delArmed = null;
     const b = document.querySelector(`#tbody .link.danger[data-line="${line.id}"]`);
     if (b) {
       b.classList.remove('confirm');
-      b.textContent = 'Hapus';
+      b.textContent = line.undo_replace ? 'Batal ganti' : 'Hapus';
     }
   }, 3000);
 }
@@ -676,11 +676,15 @@ function lineRow(line, arts, editable, hasSubs) {
       });
       act.appendChild(b);
     }
-    const del = el('button', 'link danger', delArmed === line.id ? (hasSubs ? 'Hapus + sub?' : 'Yakin?') : 'Hapus');
+    // R11 (T58): baris hasil Ganti material -> "Batal ganti" (baris ini dihapus, material sebelumnya aktif lagi)
+    const undo = !!line.undo_replace;
+    const del = el('button', 'link danger', delArmed === line.id ? (undo ? 'Yakin?' : hasSubs ? 'Hapus + sub?' : 'Yakin?')
+      : (undo ? 'Batal ganti' : 'Hapus'));
     if (delArmed === line.id) del.classList.add('confirm');
     del.type = 'button';
     del.dataset.line = line.id;
-    del.title = hasSubs ? 'Hapus baris ini beserta subkomponennya (klik dua kali)' : 'Hapus baris ini (klik dua kali)';
+    del.title = undo ? `Batalkan ganti material: kembali ke ${line.undo_material || 'material sebelumnya'}${hasSubs ? ' (subkomponen ikut pindah)' : ''} (klik dua kali)`
+      : hasSubs ? 'Hapus baris ini beserta subkomponennya (klik dua kali)' : 'Hapus baris ini (klik dua kali)';
     del.addEventListener('click', () => armDelete(del, line, hasSubs));
     act.appendChild(del);
     tr.appendChild(act);

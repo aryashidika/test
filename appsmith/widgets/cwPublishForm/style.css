@@ -488,3 +488,65 @@ textarea.invalid {
   cursor: pointer;
   padding: 0;
 }
+
+/* R11: rincian perubahan (cost bridge) di form terbit CBD */
+.bridge-wrap {
+  max-height: 230px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+table.bridge {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 12.5px;
+}
+
+table.bridge th:nth-child(1) { width: 168px; }
+table.bridge th:nth-child(3) { width: 118px; }
+
+table.bridge th, table.bridge td {
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: middle;
+}
+
+table.bridge thead th {
+  position: sticky;
+  top: 0;
+  background: var(--surface-alt);
+  font-weight: 600;
+  z-index: 1;
+}
+
+table.bridge tfoot td {
+  position: sticky;
+  bottom: 0;
+  background: var(--surface-alt);
+  font-weight: 600;
+  border-bottom: none;
+}
+
+table.bridge .n {
+  text-align: right;
+  white-space: nowrap;
+}
+
+table.bridge td.neg {
+  color: var(--danger);
+}
+
+table.bridge select {
+  width: 100%;
+  height: 30px;
+  font-size: 12.5px;
+}
+
+table.bridge input[type=text] {
+  width: 100%;
+  height: 30px;
+  font-size: 12.5px;
+}

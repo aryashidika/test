@@ -3,7 +3,8 @@
 // grup + subtotal, baris MISSING_IN_SPEC (tidak dihitung), Cost recapitulation, Target FOB, baris PO (R5, ganti blok Harga jual), change log.
 // Sel hitungan berisi RUMUS Excel (Usage = 1/Yield, IDR = USD × kurs, Cost/pr, SUM, selisih) beserta hasilnya dari DB,
 // jadi file tetap hidup bila diubah di Excel dan langsung tampil benar. File ditulis JSObject XlsxWriter (tanpa library).
-// Data = query yang sudah dimuat page ini (Brand hanya revisi terbit). Tidak ada query baru (q_cbd_model + 3 kolom).
+// Data = query yang sudah dimuat page ini (Brand hanya revisi terbit) + R11: q_cbd_bridge (rincian perubahan vs revisi
+// terbit sebelumnya, dimuat saat export). Baris "tanpa biaya" ditulis cost 0 + alasannya.
 export default {
 	busy: false,
 	step: '',      // langkah export yang sedang berjalan (untuk pesan error)
@@ -67,9 +68,16 @@ export default {
 		const r = CbdCtrl.revision();
 		if (!m || !s || !a || !r) return showAlert('Buka revisi CBD dulu.', 'warning');
 		this.busy = true;
-		this.step = 'menyusun isi';
+		this.step = 'memuat rincian perubahan';
 		try {
-			const wb = this.build(m, s, a, r);
+			let withBridge = true;           // gagal dimuat -> export tetap jalan tanpa blok rincian
+			try {
+				await q_cbd_bridge.run({ revision_id: r.id });
+			} catch (e) {
+				withBridge = false;
+			}
+			this.step = 'menyusun isi';
+			const wb = this.build(m, s, a, r, withBridge);
 			await this.save(wb, this.fileName('CBD', m.name, s.season, a.code, `${r.stage}-r${r.revision_no}`, r.status === 'DRAFT' ? 'DRAFT' : ''));
 			showAlert('File Excel CBD diunduh.', 'success');
 		} catch (e) {
@@ -81,7 +89,7 @@ export default {
 
 	// Kolom: A No · B Component Name · C Material description · D Thickness · E Unit · F Color · G Yield · H Usage ·
 	// I Loss % · J Unit price USD · K Unit price IDR · L Cost/pr (Rp) · M Supplier · N Remarks · O Asal harga / nilai
-	build(m, s, a, r) {
+	build(m, s, a, r, withBridge) {
 		const N = 15;
 		const lines = CbdGridCtrl.lines();
 		const rc = CbdGridCtrl.recap() || {};
@@ -166,14 +174,17 @@ export default {
 			} else if (p !== null) {
 				row.getCell(11).value = p;
 			}
-			if (counted && y && p !== null && (l.currency === 'IDR' || rate)) {
+			if (counted && l.no_charge) {
+				row.getCell(12).value = 0;          // R11: tanpa biaya — harga termasuk baris lain
+			} else if (counted && y && p !== null && (l.currency === 'IDR' || rate)) {
 				row.getCell(12).value = this.f(`H${i}*(1+I${i}/100)*K${i}`, this.n(l.cost_per_pair));
 			}
 			row.getCell(13).value = l.supplier_name || '';
 			row.getCell(14).value = l.remarks || '';
 			const src = { MASTER: 'harga master', OVERRIDE: 'override', QUOTATION: 'quotation' }[l.price_source] || 'tanpa harga';
 			const org = { INPUT: '', COPIED: ' · copy', CARRIED_FROM_REPLACED: ' · ganti material' }[l.value_origin] || '';
-			row.getCell(15).value = src + org + (l.price_source === 'OVERRIDE' && l.price_override_reason ? `: ${l.price_override_reason}` : '');
+			row.getCell(15).value = l.no_charge ? `tanpa biaya: ${l.no_charge_reason || '-'}`
+				: src + org + (l.price_source === 'OVERRIDE' && l.price_override_reason ? `: ${l.price_override_reason}` : '');
 			row.getCell(7).numFmt = '#,##0.00####';
 			row.getCell(8).numFmt = '0.000000';
 			row.getCell(9).numFmt = '0.00';
@@ -279,6 +290,39 @@ export default {
 			const ch = ws.addRow(['', 'Tanggal', 'Kategori', 'Oleh', '', 'Alasan']);
 			ch.font = { bold: true };
 			ws.addRow(['', moment(log.created_at).format('DD-MM-YYYY HH:mm'), log.category, log.created_by, '', log.reason]);
+		}
+
+		// ---- R11 (A4): rincian perubahan vs revisi terbit sebelumnya ----
+		const bridge = withBridge ? CbdCtrl.bridgeRows() : [];
+		if (bridge.length) {
+			ws.addRow([]);
+			const bt = ws.addRow(['', `Rincian perubahan dibanding ${bridge[0].prev_label || 'revisi sebelumnya'}`]);
+			bt.getCell(2).font = { bold: true, color: { argb: this.NAVY } };
+			const bh = ws.addRow(['', 'Kategori', 'Uraian']);
+			bh.getCell(12).value = 'Nilai (Rp)';
+			ws.mergeCells(bh.number, 3, bh.number, 11);
+			this.fill(bh, 2, 12, this.GROUP_FILL);
+			this.box(bh, 2, 12);
+			bh.font = { bold: true };
+			const firstB = bh.number + 1;
+			bridge.forEach(x => {
+				const row = ws.addRow(['', x.category_label || x.category, x.description || '']);
+				row.getCell(12).value = this.n(x.amount);
+				row.getCell(12).numFmt = this.RP;
+				ws.mergeCells(row.number, 3, row.number, 11);
+				row.getCell(3).alignment = { wrapText: true, vertical: 'top' };
+				this.box(row, 2, 12);
+			});
+			const lastB = firstB + bridge.length - 1;
+			const tot = ws.addRow(['', 'Selisih Actual FOB',
+				`${bridge[0].prev_label || ''}: ${Util.fmtNum(bridge[0].prev_fob, 2)} → ${r.stage} r${r.revision_no}: ${Util.fmtNum(bridge[0].fob, 2)}`]);
+			const delta = this.n(bridge[0].fob) !== null && this.n(bridge[0].prev_fob) !== null
+				? this.n(bridge[0].fob) - this.n(bridge[0].prev_fob) : null;
+			tot.getCell(12).value = this.f(`SUM(L${firstB}:L${lastB})`, delta);
+			tot.getCell(12).numFmt = this.RP;
+			ws.mergeCells(tot.number, 3, tot.number, 11);
+			this.box(tot, 2, 12);
+			tot.font = { bold: true };
 		}
 
 		ws.views = [{ state: 'frozen', xSplit: 3, ySplit: 11 }];

@@ -1,6 +1,6 @@
 -- ============================================================================
--- R_selftest — uji alur inti R3–R10 langsung di database, lalu DIBATALKAN (ROLLBACK): tidak ada data yang tersimpan.
--- Jalankan SETELAH sql/R_revisi_semua.sql, sql/R8_catatan_uji.sql, R9_kode_varian.sql DAN R10_hapus_varian.sql, lewat z_run_sql di app "DB Tools" (Use prepared statements = OFF),
+-- R_selftest — uji alur inti R3–R11 langsung di database, lalu DIBATALKAN (ROLLBACK): tidak ada data yang tersimpan.
+-- Jalankan SETELAH sql/R_revisi_semua.sql, sql/R8_catatan_uji.sql, R9_kode_varian.sql R10_hapus_varian.sql, R11_perbaikan.sql DAN R11b_harga_batal.sql, lewat z_run_sql di app "DB Tools" (Use prepared statements = OFF),
 -- SEBELUM import app. Hasil yang diharapkan: baris terakhir "SELFTEST LOLOS". Kalau ada yang salah, query berhenti
 -- dengan pesan "SELFTEST GAGAL: ..." — kirim pesan itu ke pengembang.
 -- Aman di DB yang sudah berisi data: pabrik SELFTEST PABRIK A/B, email @selftest.invalid; master BERSAMA (supplier,
@@ -474,6 +474,235 @@ BEGIN
   v_b := fn_cbd_price_propose(t_mc, l_eva, 3.2, 'USD', fn_today() + 3, 'MC dari CBD');
   PERFORM pg_temp.ok((SELECT status FROM material_price WHERE batch_id = v_b) = 'APPROVED',
                      'R8 Manager Costing ajukan dari CBD langsung berlaku');
+END;
+$$;
+
+-- ---------------------------------------------------------------- R11 (skalabilitas, bug, alur)
+DO $$
+DECLARE
+  t_spec  text := pg_temp.tok('spec.a@selftest.invalid');
+  t_cbd   text := pg_temp.tok('cbd.a@selftest.invalid');
+  t_mc    text := pg_temp.tok('mc.a@selftest.invalid');
+  t_brand text := pg_temp.tok('brand@selftest.invalid');
+  f_a     uuid := (SELECT id FROM factory WHERE name = 'SELFTEST PABRIK A');
+  v_sup   uuid := (SELECT id FROM supplier WHERE name = 'SELFTEST SUPPLIER SATU');
+  v_sup2  uuid := (SELECT id FROM supplier WHERE name = 'SELFTEST SUPPLIER DUA');
+  v_mat   uuid := (SELECT id FROM material WHERE name = 'UJI MESH' AND factory_id = (SELECT id FROM factory WHERE name = 'SELFTEST PABRIK A'));
+  v_mat2  uuid := (SELECT id FROM material WHERE name = 'UJI EVA' AND factory_id = (SELECT id FROM factory WHERE name = 'SELFTEST PABRIK A'));
+  m_a     uuid := (SELECT id FROM product_model WHERE name = 'UJI RUNNER X' AND factory_id = (SELECT id FROM factory WHERE name = 'SELFTEST PABRIK A'));
+  v_cat   uuid := (SELECT category_id FROM product_model WHERE name = 'UJI RUNNER X' AND factory_id = (SELECT id FROM factory WHERE name = 'SELFTEST PABRIK A'));
+  v_sheet uuid; a1 uuid; c2 uuid; c4 uuid; c5 uuid; v_log uuid; v_link uuid; v_b uuid; p_old uuid; p_new uuid;
+  v_s uuid; v_m uuid; v_mold uuid; sh_old uuid; sh_new uuid; ao uuid; an uuid; r_old uuid; r_new uuid; vp uuid; vp2 uuid; vq uuid;
+  v_rev3 uuid; lx uuid; ly uuid; ls uuid; l_eva uuid; l_mesh uuid;
+  n integer; d numeric; r record; v_diff jsonb;
+BEGIN
+  SELECT sh.id INTO v_sheet FROM specsheet sh WHERE sh.model_id = m_a AND sh.season = 'FH26';
+  SELECT id INTO a1 FROM article WHERE specsheet_id = v_sheet AND code = 'UJI-01';
+  SELECT id INTO c2 FROM cbd_revision WHERE article_id = a1 AND status = 'DRAFT';
+  PERFORM pg_temp.ok(c2 IS NOT NULL, 'R11 data uji: draft CBD UJI-01 dari blok R5 ada');
+
+  -- ===== S7: audit ramping =====
+  v_s := fn_supplier_save(t_spec, NULL, 'SELFTEST SUP AUDIT', 'ACTIVE');
+  PERFORM pg_temp.ok((SELECT before_data IS NULL AND after_data IS NULL FROM audit_log
+                       WHERE entity = 'supplier' AND entity_id = v_s::text AND action = 'INSERT'),
+                     'R11/S7 INSERT tercatat tanpa salinan isi');
+  PERFORM fn_supplier_save(t_spec, v_s, 'SELFTEST SUP AUDIT DUA', 'ACTIVE');
+  PERFORM pg_temp.ok((SELECT before_data ->> 'name' = 'SELFTEST SUP AUDIT' AND after_data ->> 'name' = 'SELFTEST SUP AUDIT DUA'
+                             AND NOT before_data ? 'status' AND NOT after_data ? 'updated_at'
+                        FROM audit_log WHERE entity = 'supplier' AND entity_id = v_s::text AND action = 'UPDATE'
+                       ORDER BY id DESC LIMIT 1),
+                     'R11/S7 UPDATE hanya mencatat kolom yang berubah (lama -> baru)');
+  PERFORM fn_supplier_save(t_spec, v_s, 'SELFTEST SUP AUDIT DUA', 'ACTIVE');
+  PERFORM pg_temp.ok((SELECT count(*) FROM audit_log WHERE entity = 'supplier' AND entity_id = v_s::text AND action = 'UPDATE') = 1,
+                     'R11/S7 simpan tanpa perubahan tidak dicatat');
+  PERFORM pg_temp.ok((SELECT audit_size_bytes > 0 AND audit_entries >= 0 FROM v_system_summary),
+                     'R11/S8 ringkasan System Admin: ukuran audit log tersedia');
+
+  -- ===== T54: akhiri harga AKAN BERLAKU = batal, harga sebelumnya berlaku lagi =====
+  SELECT ms.id INTO v_link FROM material_supplier ms WHERE ms.material_id = v_mat AND ms.supplier_id = v_sup;
+  vp := fn_variant_save(t_spec, NULL, v_mat, 'MSHU120PNK', 'PINK', '1.2MM', 'ACTIVE');
+  v_b := fn_price_propose(t_mc, v_link, jsonb_build_array(vp), 10000, 'IDR', fn_today() - 5, 'LAMA');
+  SELECT id INTO p_old FROM material_price WHERE batch_id = v_b;
+  v_b := fn_price_propose(t_mc, v_link, jsonb_build_array(vp), 12000, 'IDR', fn_today() + 30, 'BARU');
+  SELECT id INTO p_new FROM material_price WHERE batch_id = v_b;
+  PERFORM pg_temp.ok((SELECT valid_to FROM material_price WHERE id = p_old) = fn_today() + 30,
+                     'R11/T54 harga baru (akan berlaku) menutup harga lama per tanggal mulainya');
+  PERFORM fn_price_end(t_mc, p_new, NULL);
+  PERFORM pg_temp.ok((SELECT valid_to FROM material_price WHERE id = p_old) IS NULL
+                     AND (SELECT price FROM fn_price_lookup(vp, v_sup, fn_today() + 40)) = 10000,
+                     'R11/T54 akhiri harga AKAN BERLAKU -> harga lama dibuka lagi, tidak ada celah tanpa harga');
+  PERFORM pg_temp.ok((SELECT valid_to = valid_from FROM material_price WHERE id = p_new), 'R11/T54 harga yang dibatalkan jadi 0 hari');
+  PERFORM pg_temp.ok((SELECT state FROM v_material_price WHERE id = p_new) = 'DIBATALKAN'
+                     AND (SELECT state FROM v_material_price WHERE id = p_old) = 'BERLAKU'
+                     AND NOT EXISTS (SELECT 1 FROM v_material_price WHERE variant_id = vp AND link_id = v_link AND state = 'AKAN BERLAKU'),
+                     'R11b keterangan: harga dibatalkan = DIBATALKAN, harga lama BERLAKU lagi (form Tambah Harga memakai ini)');
+  -- tambah lagi dengan tanggal mulai sama -> akhiri lagi: harga pertama yang sudah dibatalkan TIDAK boleh hidup lagi
+  v_b := fn_price_propose(t_mc, v_link, jsonb_build_array(vp), 12500, 'IDR', fn_today() + 30, 'BARU 2');
+  PERFORM fn_price_end(t_mc, (SELECT id FROM material_price WHERE batch_id = v_b), NULL);
+  PERFORM pg_temp.ok((SELECT state FROM v_material_price WHERE id = p_new) = 'DIBATALKAN'
+                     AND (SELECT valid_to FROM material_price WHERE id = p_old) IS NULL
+                     AND (SELECT count(*) FROM v_material_price WHERE variant_id = vp AND link_id = v_link AND state = 'DIBATALKAN') = 2
+                     AND NOT EXISTS (SELECT 1 FROM v_material_price WHERE variant_id = vp AND link_id = v_link AND state = 'AKAN BERLAKU')
+                     AND (SELECT price FROM fn_price_lookup(vp, v_sup, fn_today() + 40)) = 10000,
+                     'R11b tambah -> akhiri -> tambah lagi (tanggal sama) -> akhiri: harga yang dibatalkan tidak hidup lagi');
+  PERFORM fn_price_end(t_mc, p_old, NULL);
+  PERFORM pg_temp.ok(NOT EXISTS (SELECT 1 FROM fn_price_lookup(vp, v_sup)), 'R11/T54 harga BERLAKU tetap diakhiri per hari ini');
+  vp2 := fn_variant_save(t_spec, NULL, v_mat, 'MSHU120TEL', 'TEAL', '1.2MM', 'ACTIVE');
+  v_b := fn_price_propose(t_mc, v_link, jsonb_build_array(vp2), 9000, 'IDR', fn_today() + 30, 'BARU SAJA');
+  PERFORM fn_price_end(t_mc, (SELECT id FROM material_price WHERE batch_id = v_b), NULL);
+  PERFORM pg_temp.ok((SELECT string_agg(state, ',' ORDER BY state) FROM v_material_price WHERE variant_id = vp2 AND link_id = v_link)
+                     = 'BELUM ADA HARGA,DIBATALKAN',
+                     'R11b varian yang hanya punya harga dibatalkan tetap BELUM ADA HARGA');
+  -- T55: usulan yang sudah diproses tidak bisa dibatalkan / diproses lagi
+  v_b := fn_price_propose(t_cbd, v_link, jsonb_build_array(vp), 11000, 'IDR', NULL, 'T55');
+  SELECT id INTO p_new FROM material_price WHERE batch_id = v_b;
+  PERFORM fn_price_decide(t_mc, jsonb_build_array(p_new), 'APPROVE', NULL);
+  PERFORM pg_temp.must_fail(format('SELECT fn_price_cancel(%L, %L)', t_cbd, p_new), '%belum diproses%',
+            'R11/T55 batal setelah disetujui ditolak (harga yang disetujui tidak terhapus)');
+  PERFORM pg_temp.must_fail(format('SELECT fn_price_decide(%L, %L, ''REJECT'', ''x'')', t_mc, jsonb_build_array(p_new)),
+            '%sudah diproses%', 'R11/T55 tolak usulan yang sudah disetujui ditolak');
+
+  -- ===== T57: material & model dikunci setelah dipakai dokumen terbit =====
+  PERFORM pg_temp.must_fail(format('SELECT fn_material_update(%L, %L, ''UJI MESH BARU'', ''TEXTILE'', ''YD'', ''ACTIVE'', ''CATALOG'')',
+            t_spec, v_mat), '%tidak bisa diubah%terbit%', 'R11/T57 nama material terpakai di dokumen terbit dikunci');
+  PERFORM pg_temp.must_fail(format('SELECT fn_material_update(%L, %L, ''UJI MESH'', ''TEXTILE'', ''M'', ''ACTIVE'', ''CATALOG'')',
+            t_spec, v_mat), '%tidak bisa diubah%terbit%', 'R11/T57 UoM material terpakai dikunci');
+  PERFORM fn_material_update(t_spec, v_mat, 'uji mesh', 'textile', 'yd', 'ACTIVE', 'CATALOG');
+  PERFORM pg_temp.ok((SELECT name FROM material WHERE id = v_mat) = 'UJI MESH', 'R11/T57 simpan ulang tanpa perubahan tetap bisa');
+  v_m := fn_material_add(t_spec, 'UJI BELUM DIPAKAI', 'TEXTILE', 'YD');
+  PERFORM fn_material_update(t_spec, v_m, 'UJI BELUM DIPAKAI 2', 'TEXTILE', 'M', 'ACTIVE', 'CATALOG');
+  PERFORM pg_temp.ok((SELECT name || '|' || uom FROM material WHERE id = v_m) = 'UJI BELUM DIPAKAI 2|M',
+                     'R11/T57 material belum dipakai dokumen terbit tetap bisa diubah');
+  PERFORM pg_temp.must_fail(format('SELECT fn_model_save(%L, %L, ''Uji Runner Z'', %L, NULL, NULL, NULL, NULL, ''[40]'', NULL)',
+            t_spec, m_a, v_cat), '%tidak bisa diubah%terbit%', 'R11/T57 nama model dengan specsheet terbit dikunci');
+
+  -- ===== S2: material belum ada harga = 2 season terakhir (yang punya specsheet terbit) per pabrik =====
+  vq := fn_variant_save(t_spec, NULL, v_mat, 'MSHU120ORG', 'ORANGE', '1.2MM', 'ACTIVE');
+  v_mold := fn_model_save(t_spec, NULL, 'Uji Lama', v_cat, NULL, NULL, NULL, NULL, '[40]', NULL);
+  sh_old := fn_season_add(t_spec, v_mold, 'SS20');
+  sh_new := fn_season_add(t_spec, v_mold, 'SS26');
+  ao := fn_article_save(t_spec, NULL, sh_old, 'UJI-L1', 'PINK');
+  an := fn_article_save(t_spec, NULL, sh_new, 'UJI-L2', 'ORANGE');
+  r_old := fn_revision_create(t_spec, sh_old, 'EMPTY', 'SMS', NULL);
+  PERFORM fn_bom_add_line(t_spec, r_old, (SELECT id FROM component WHERE name = 'SELFTEST VAMP'), NULL, NULL, v_mat, '1.2MM', v_sup, NULL, 'PINK');
+  PERFORM fn_revision_publish(t_spec, r_old, 'OTHER', NULL);
+  r_new := fn_revision_create(t_spec, sh_new, 'EMPTY', 'SMS', NULL);
+  PERFORM fn_bom_add_line(t_spec, r_new, (SELECT id FROM component WHERE name = 'SELFTEST VAMP'), NULL, NULL, v_mat, '1.2MM', v_sup, NULL, 'ORANGE');
+  PERFORM fn_revision_publish(t_spec, r_new, 'OTHER', NULL);
+  PERFORM pg_temp.ok((SELECT codes FROM v_worklist_price_gap WHERE material_id = v_mat AND supplier_id = v_sup) LIKE '%MSHU120ORG%'
+                     AND (SELECT codes FROM v_worklist_price_gap WHERE material_id = v_mat AND supplier_id = v_sup) NOT LIKE '%MSHU120PNK%',
+                     'R11/S2 price gap: season SS26 dihitung, season lama SS20 (di luar 2 season terakhir) tidak');
+
+  -- ===== T58: hapus baris hasil Ganti material = batalkan penggantian =====
+  v_rev3 := fn_revision_create(t_spec, v_sheet, 'NEXT_REVISION', NULL, NULL);
+  SELECT id INTO lx FROM bom_line WHERE revision_id = v_rev3 AND is_active AND material_id = v_mat AND parent_line_key IS NULL;
+  ls := fn_bom_add_sub(t_spec, lx, 'sub uji', v_mat2, '3mm', v_sup2, NULL);
+  ly := fn_bom_replace_material(t_spec, lx, v_mat, '1.5MM');
+  PERFORM pg_temp.ok((SELECT parent_line_key FROM bom_line WHERE id = ls) = (SELECT line_key FROM bom_line WHERE id = ly),
+                     'R11/T58 (awal) subkomponen pindah ke baris pengganti');
+  PERFORM pg_temp.ok((SELECT undo_replace AND undo_material = 'UJI MESH 1.2MM' FROM v_bom_grid WHERE id = ly)
+                     AND NOT (SELECT undo_replace FROM v_bom_grid WHERE id = ls),
+                     'R11/T58 grid: baris pengganti bertanda bisa dibatalkan (material lama tampil), baris biasa tidak');
+  n := fn_bom_delete_line(t_spec, ly);
+  PERFORM pg_temp.ok(n = 0 AND NOT EXISTS (SELECT 1 FROM bom_line WHERE id = ly)
+                     AND (SELECT is_active FROM bom_line WHERE id = lx)
+                     AND (SELECT parent_line_key FROM bom_line WHERE id = ls) = (SELECT line_key FROM bom_line WHERE id = lx),
+                     'R11/T58 hapus baris pengganti -> baris lama aktif lagi beserta subkomponennya');
+  PERFORM pg_temp.ok((SELECT yellow FROM v_bom_grid WHERE id = lx) = 0, 'R11/T58 Material Code baris lama tersambung lagi');
+  n := fn_bom_delete_line(t_spec, ls);
+  PERFORM pg_temp.ok(n = 1 AND NOT EXISTS (SELECT 1 FROM bom_line WHERE id = ls), 'R11/T58 hapus baris biasa tetap menghapus');
+  PERFORM fn_revision_delete_draft(t_spec, v_rev3);
+
+  -- ===== A4: rincian perubahan (cost bridge) =====
+  IF (SELECT stale_prices FROM v_cbd_checklist WHERE cbd_revision_id = c2) > 0 THEN
+    PERFORM fn_cbd_refresh_prices(t_cbd, c2);
+  END IF;
+  SELECT id INTO l_mesh FROM cbd_line WHERE cbd_revision_id = c2 AND status = 'ACTIVE' AND material_id = v_mat;
+  SELECT id INTO l_eva FROM cbd_line WHERE cbd_revision_id = c2 AND status = 'ACTIVE' AND material_id = v_mat2;
+  PERFORM fn_cbd_header_set(t_cbd, c2, 'RATE', 17000);
+  PERFORM fn_cbd_line_set(t_cbd, l_mesh, 'YIELD', 2.5);
+  PERFORM fn_cbd_line_set(t_cbd, l_eva, 'LOSS', 3);
+  PERFORM fn_cbd_cost_set(t_cbd, (SELECT id FROM cbd_cost_item WHERE cbd_revision_id = c2 AND item_type = 'LABOUR'), 'AMOUNT', '1500');
+  PERFORM fn_cbd_cost_add(t_cbd, c2, 'OTHER', 'Assembling', 7550, NULL);
+  d := (SELECT actual_fob FROM v_cbd_recap WHERE cbd_revision_id = c2)
+     - (SELECT actual_fob FROM v_cbd_recap WHERE cbd_revision_id = fn_cbd_prev_published(c2));
+  PERFORM pg_temp.ok((SELECT sum(amount) FROM fn_cbd_bridge(c2)) = d, 'R11/A4 jumlah rincian = selisih Actual FOB (persis)');
+  PERFORM pg_temp.ok((SELECT string_agg(DISTINCT category, ',' ORDER BY category) FROM fn_cbd_bridge(c2))
+                     = 'EX_RATE,LOP,MATERIAL,OTHER,YIELD',
+                     'R11/A4 kategori otomatis: kurs, LOP, harga material, biaya lain, yield/loss');
+  PERFORM pg_temp.ok((SELECT description FROM fn_cbd_bridge(c2) WHERE category = 'EX_RATE') = 'Exchange rate 16.300 → 17.000',
+                     'R11/A4 uraian kurs berformat Indonesia');
+  PERFORM pg_temp.ok((SELECT count(*) FROM fn_cbd_bridge(c2) WHERE category = 'COMPONENT') = 0,
+                     'R11/A4 baris hasil ganti material dicocokkan lewat identitas (bukan hapus + tambah)');
+  PERFORM pg_temp.ok((SELECT count(*) FROM fn_cbd_bridge_view(t_cbd, c2)) = (SELECT count(*) FROM fn_cbd_bridge(c2))
+                     AND NOT EXISTS (SELECT 1 FROM fn_cbd_bridge_view(t_brand, c2)),
+                     'R11/A4 rincian draft: Vendor CBD melihat, Brand tidak');
+  SELECT key INTO r FROM fn_cbd_bridge(c2) WHERE category = 'YIELD' LIMIT 1;
+  v_log := fn_cbd_publish(t_cbd, c2, NULL, NULL,
+                          jsonb_build_array(jsonb_build_object('key', r.key, 'category', 'COMPONENT', 'description', 'Yield vamp dikoreksi')));
+  SELECT diff INTO v_diff FROM change_log WHERE id = v_log;
+  PERFORM pg_temp.ok((SELECT count(*) FROM jsonb_array_elements(v_diff -> 'rows') x
+                       WHERE x ->> 'key' = r.key AND x ->> 'category' = 'COMPONENT' AND x ->> 'description' = 'Yield vamp dikoreksi'
+                         AND x ->> 'auto_category' = 'YIELD') = 1,
+                     'R11/A4 kategori & uraian yang diubah vendor tersimpan (nilai tetap dari sistem)');
+  PERFORM pg_temp.ok((SELECT (v_diff ->> 'fob')::numeric - (v_diff ->> 'prev_fob')::numeric) = d
+                     AND (SELECT reason FROM change_log WHERE id = v_log) LIKE 'Exchange rate +%',
+                     'R11/A4 change log: selisih FOB tersimpan, alasan kosong = ringkasan per kategori');
+  PERFORM pg_temp.ok((SELECT count(*) FROM fn_cbd_bridge_view(t_brand, c2)) = jsonb_array_length(v_diff -> 'rows'),
+                     'R11/A4 rincian revisi terbit dibaca dari change log (Brand juga bisa melihat)');
+  PERFORM pg_temp.must_fail(format('SELECT fn_cbd_publish(%L, %L, NULL, NULL, %L)', t_cbd, c2,
+            jsonb_build_array(jsonb_build_object('key', 'x', 'category', 'NGAWUR'))), '%sudah diterbitkan%',
+            'R11/A4 revisi terbit tidak bisa diterbitkan ulang');
+
+  -- ===== A1/T56: baris belum berharga = peringatan (tidak memblokir); Tanpa biaya (alasan wajib) =====
+  c4 := fn_cbd_create(t_cbd, a1, 'NEXT', NULL);
+  PERFORM fn_material_update(t_cbd, v_mat2, 'UJI EVA', 'FOAM', 'SHT', 'ACTIVE', 'QUOTATION');
+  n := fn_cbd_refresh_prices(t_cbd, c4);
+  SELECT id INTO l_eva FROM cbd_line WHERE cbd_revision_id = c4 AND status = 'ACTIVE' AND material_id = v_mat2;
+  PERFORM pg_temp.ok((SELECT yield_value IS NOT NULL AND price_original IS NULL FROM v_cbd_line WHERE id = l_eva)
+                     AND (SELECT unpriced_count = 1 AND blank_count = 0 AND NOT blocked AND unpriced_list LIKE '%UJI EVA%'
+                            FROM v_cbd_checklist WHERE cbd_revision_id = c4),
+                     'R11/T56 baris ber-Yield belum berharga: peringatan + daftar baris, tidak memblokir');
+  BEGIN                                   -- terbit lolos (lalu dibatalkan lewat exception)
+    PERFORM fn_cbd_publish(t_cbd, c4, 'OTHER', 'uji', NULL);
+    RAISE EXCEPTION 'uji_batal';
+  EXCEPTION WHEN OTHERS THEN
+    PERFORM pg_temp.ok(SQLERRM = 'uji_batal', 'R11/T56 terbit tetap bisa dengan baris belum berharga (cost 0) — ' || SQLERRM);
+  END;
+  BEGIN                                   -- Yield dikosongkan sementara (dibatalkan lewat exception)
+    UPDATE cbd_line SET yield_value = NULL WHERE id = l_eva;
+    PERFORM pg_temp.ok((SELECT unpriced_count = 0 AND blank_count = 1 AND NOT blocked AND unpriced_list IS NULL
+                          FROM v_cbd_checklist WHERE cbd_revision_id = c4)
+                       AND (SELECT unpriced_count = 1 AND no_yield_count = 0 FROM v_cbd_recap WHERE cbd_revision_id = c4),
+                       'R11/T56 baris tanpa harga & tanpa Yield tidak didaftar (blank_count saja)');
+    RAISE EXCEPTION 'uji_batal';
+  EXCEPTION WHEN OTHERS THEN
+    IF SQLERRM <> 'uji_batal' THEN RAISE; END IF;
+  END;
+  PERFORM pg_temp.must_fail(format('SELECT fn_cbd_set_no_charge(%L, %L, true, ''  '')', t_cbd, l_eva), '%alasan%',
+            'R11/A1 tanpa biaya wajib alasan');
+  PERFORM pg_temp.must_fail(format('SELECT fn_cbd_set_no_charge(%L, %L, true, ''x'')', t_mc, l_eva), '%tidak punya akses%',
+            'R11/A1 Manager Costing tidak bisa menandai tanpa biaya');
+  PERFORM fn_cbd_set_no_charge(t_cbd, l_eva, true, 'harga termasuk baris vamp');
+  PERFORM pg_temp.ok((SELECT unpriced_count = 0 AND no_charge_count = 1 AND NOT blocked FROM v_cbd_checklist WHERE cbd_revision_id = c4)
+                     AND (SELECT cost_per_pair FROM v_cbd_line WHERE id = l_eva) = 0,
+                     'R11/A1 tanpa biaya: tidak memblokir, cost 0');
+  PERFORM fn_cbd_set_quotation(t_cbd, l_eva, 5, 'USD', 'Q-UJI');
+  PERFORM pg_temp.ok((SELECT NOT no_charge AND no_charge_reason IS NULL FROM cbd_line WHERE id = l_eva),
+                     'R11/A1 isi harga quotation membatalkan tanpa biaya');
+  PERFORM fn_cbd_set_no_charge(t_cbd, l_eva, true, 'harga termasuk baris vamp');
+  PERFORM pg_temp.ok((SELECT description FROM fn_cbd_bridge(c4) WHERE category = 'MATERIAL') LIKE '%dijadikan tanpa biaya (harga termasuk baris vamp)%'
+                     AND (SELECT sum(amount) FROM fn_cbd_bridge(c4))
+                         = (SELECT actual_fob FROM v_cbd_recap WHERE cbd_revision_id = c4) - (SELECT actual_fob FROM v_cbd_recap WHERE cbd_revision_id = c2),
+                     'R11/A1+A4 rincian: baris dijadikan tanpa biaya, jumlah tetap = selisih FOB');
+  PERFORM fn_cbd_publish(t_cbd, c4, NULL, 'Eva termasuk vamp', NULL);
+  PERFORM pg_temp.ok((SELECT reason FROM change_log WHERE doc_type = 'CBD' AND revision_id = c4) = 'Eva termasuk vamp',
+                     'R11/A4 alasan yang diisi vendor dipakai');
+  c5 := fn_cbd_create(t_cbd, a1, 'NEXT', NULL);
+  PERFORM pg_temp.ok((SELECT no_charge AND no_charge_reason = 'harga termasuk baris vamp' FROM cbd_line
+                       WHERE cbd_revision_id = c5 AND status = 'ACTIVE' AND material_id = v_mat2),
+                     'R11/A1 tanda tanpa biaya ikut ke revisi berikutnya');
+  PERFORM pg_temp.ok(NOT EXISTS (SELECT 1 FROM fn_cbd_bridge(c5)), 'R11/A4 revisi tanpa perubahan biaya = rincian kosong');
 END;
 $$;
 

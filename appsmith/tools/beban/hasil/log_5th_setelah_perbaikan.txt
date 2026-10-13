@@ -1,0 +1,64 @@
+     296.0      65      30.4  Beranda / q_worklist_spec
+     926.1     241     105.2  Beranda / q_worklist_cbd
+   14026.2      82      67.7  Beranda / q_worklist_gap
+       8.9      64      21.4  Beranda / q_worklist_admin
+      69.0      10       4.7  Beranda / q_worklist_pub_spec
+     119.4      10       5.2  Beranda / q_worklist_pub_cbd
+     691.8       1       0.2  Beranda / q_worklist_system
+       8.7       0       0.0  Beranda / q_worklist_rejected
+       4.5       5       1.6  Admin / q_users
+    2371.4       6       0.1  Admin / q_audit_entities
+       3.1     200     240.6  Admin / q_audit
+       5.1       0       0.0  Admin / q_audit [inpAuditCari=zzz]
+       6.5       1       0.2  Admin / q_factories
+       3.6     150      22.3  Master Supplier / q_suppliers
+       7.9       8       0.8  Master Supplier / q_similar
+       2.8       4       0.4  Master Komponen / q_component_groups
+       2.7     110      22.1  Master Komponen / q_components
+       9.8       1       0.1  Master Material / q_material_meta
+      24.2     450     158.9  Master Material / q_materials
+      11.2      56      19.7  Master Material / q_materials [inpMaterialCari=leather]
+       3.9       1       0.4  Material Detail / q_material
+       4.0       3       0.8  Material Detail / q_links
+       3.9     147       9.6  Material Detail / q_link_supplier_options
+       8.9     179     103.3  Material Detail / q_prices
+      38.2      12       3.8  Material Detail / q_variants
+       8.2       1       0.2  Material Detail / q_code_hint
+       7.7       1       0.1  Material Detail / q_code_suggest
+       2.7      10       2.2  Master Pilihan / q_options
+      10.7      64      33.3  Persetujuan Harga / q_price_pending
+     131.6      10       0.3  Model List / q_known_seasons
+     106.8     500     212.9  Model List / q_models
+     103.3     100      42.6  Model List / q_models [inpModelCari=model 01]
+       4.0     164      16.6  Model List / q_model_options
+       5.1       1       0.1  Model List / q_model_factories
+       9.9       1       0.1  Model Detail / q_seasons
+       4.4       1       0.6  Model Detail / q_model
+       ERR                    Model Detail / q_attachment_file  !! ERROR:  invalid input syntax for type uuid: ""
+       7.7       5       2.0  Model Detail / q_articles
+       1.0       0       0.0  Model Detail / q_attachments
+       8.8     650      60.3  Specsheet / q_spec_models
+       5.3       1       0.3  Specsheet / q_spec_model
+       4.3       1       0.2  Specsheet / q_spec_seasons
+       6.9       6       2.0  Specsheet / q_revisions
+       8.2       5       0.5  Specsheet / q_rev_articles
+      15.6      60      73.9  Specsheet / q_bom_grid
+      37.1       1     872.5  Specsheet / q_bom_options
+     501.4      12       0.2  Specsheet / q_season_colors
+      21.2       1       0.5  Specsheet / q_publish_checklist
+       7.8       4       1.1  Specsheet / q_change_log
+       1.1       0       0.0  Specsheet / q_change_log_images
+     128.4     199      29.9  Specsheet / q_copy_model_sources
+       8.8     650      60.3  Cost Breakdown (CBD) / q_cbd_models
+       5.0       1       0.3  Cost Breakdown (CBD) / q_cbd_model
+       5.6       1       0.1  Cost Breakdown (CBD) / q_cbd_seasons
+      11.0       5       1.8  Cost Breakdown (CBD) / q_cbd_articles
+       7.1       5       2.2  Cost Breakdown (CBD) / q_cbd_revisions
+      50.7      60      74.6  Cost Breakdown (CBD) / q_cbd_lines
+       9.7       3       0.5  Cost Breakdown (CBD) / q_cbd_sources
+      17.8       1       0.7  Cost Breakdown (CBD) / q_cbd_recap
+      22.7       1       0.4  Cost Breakdown (CBD) / q_cbd_checklist
+       7.1       3       0.7  Cost Breakdown (CBD) / q_cbd_change_log
+       9.0       3       0.4  Cost Breakdown (CBD) / q_cbd_cost_items
+       1.2       0       0.0  Cost Breakdown (CBD) / q_change_log_images
+tabel: { "product_model" : 650, "specsheet" : 2000, "material_variant" : 3375, "article" : 8018, "specsheet_revision" : 10047, "material_price" : 30465, "cbd_revision" : 32241, "bom_line" : 602820, "cbd_line" : 1934460, "audit_log" : 7090020, "bom_cell" : 2411280 } | ukuran DB: 8911 MB

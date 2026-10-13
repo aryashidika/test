@@ -2,7 +2,8 @@
 // MISSING_IN_SPEC, dengan panel ringkasan menempel di atas grid, banner refresh (F8), dan di bawah grid tabel
 // Cost recapitulation (baris biaya) + Harga jual (F8b).
 // Hanya tampilan & input: Yield, Loss %, dan nilai rekap diedit di sel (revisi DRAFT); harga lewat tombol
-// Isi harga (quotation) / Hapus override / Ajukan harga master (R8) (modal di luar widget). Setiap aksi dikirim sebagai model.action + event
+// Isi harga (quotation) / Hapus override / Ajukan harga master (R8) (modal di luar widget). R11: Tanpa biaya
+// (alasan diisi di sel, cost/pair 0 — mis. printing yang harganya sudah termasuk baris lain). Setiap aksi dikirim sebagai model.action + event
 // onAction (CbdGridCtrl.onAction()); aturan final di DB. Usage, harga IDR/USD, cost/pair, dan rekap dihitung
 // di DB (v_cbd_line, v_cbd_recap) — di sini hanya diformat.
 // Antrean aksi (sama dengan cwBomGrid): aksi dikirim SATU PER SATU; berikutnya baru dikirim setelah CbdGridCtrl
@@ -16,6 +17,8 @@ let retryTimer = null;
 let optimistic = {};        // key input -> nilai yang sudah dikirim tapi belum kembali dari DB
 let lastMsg = null;
 let localMsg = null;
+let ncOpen = null;           // R11: id baris yang form "Tanpa biaya"-nya terbuka
+let ncText = '';
 
 const COLS = [
   ['c-no', 'No'], ['c-comp', 'Komponen'], ['c-mat', 'Material'], ['c-thk', 'Thickness'], ['c-col', 'Color'],
@@ -242,7 +245,7 @@ function lineInput(line, field, value, max) {
   return numInput({
     key: `${field}:${line.id}`, col: field, value, max,
     label: `${yieldCol ? 'Yield' : 'Loss %'} ${line.display_no || ''} ${line.display_name || ''}`,
-    need: yieldCol && num(line.price_original) !== null && num(value) === null,
+    need: yieldCol && num(line.price_original) !== null && num(value) === null && !line.no_charge,
     needTitle: 'Baris berharga tanpa yield — wajib diisi sebelum terbit',
     check: n => yieldCol ? (n !== null && n <= 0 ? 'Yield harus lebih besar dari 0.' : null)
       : (n !== null && n >= 100 ? 'Loss % harus 0 sampai kurang dari 100.' : null),
@@ -289,7 +292,13 @@ function priceCell(line, editable) {
   const box = el('div');
   const p = num(line.price_original);
   const missing = line.status !== 'ACTIVE';
-  if (p !== null) {
+  if (line.no_charge) {                        // R11: biaya 0, harga (bila ada) tetap terlihat
+    if (p !== null) box.appendChild(el('span', 'ro none', fmt(p, line.currency === 'USD' ? 4 : 2)));
+    const b = el('span', 'badge nocharge', 'tanpa biaya');
+    b.title = `Alasan: ${line.no_charge_reason || '-'}`;
+    box.appendChild(b);
+    box.appendChild(el('span', 'hint', line.no_charge_reason || ''));
+  } else if (p !== null) {
     box.appendChild(el('span', 'ro', fmt(p, line.currency === 'USD' ? 4 : 2)));
     const src = { MASTER: 'master', OVERRIDE: 'override', QUOTATION: 'quotation' }[line.price_source] || '';
     if (src) {
@@ -307,7 +316,7 @@ function priceCell(line, editable) {
     const [t, tone] = gapText(line);
     box.appendChild(el('span', 'hint' + (tone ? ' ' + tone : ''), t));
   }
-  if (!missing && line.master_stale) {
+  if (!missing && !line.no_charge && line.master_stale) {
     box.appendChild(el('span', 'hint warn', line.price_source === 'QUOTATION'
       ? 'material sekarang katalog — klik Refresh Harga' : 'harga master berubah — klik Refresh Harga'));
   }
@@ -321,15 +330,79 @@ function priceCell(line, editable) {
       acts.appendChild(linkBtn('Hapus override', 'Kembali ke harga master',
         () => send('clearOverride', { line_id: line.id }), true));
     }
+    if (line.no_charge) {
+      acts.appendChild(linkBtn('Batalkan tanpa biaya', 'Baris ini dihitung lagi dengan harganya',
+        () => send('setNoCharge', { line_id: line.id, on: false, reason: '' }), true));
+    } else if (ncOpen !== line.id) {
+      acts.appendChild(linkBtn('Tanpa biaya', 'Biaya baris ini 0 — harganya sudah termasuk baris lain / tidak dikenakan biaya',
+        () => openNoCharge(line.id)));
+    }
   }
   // R8: ajukan harga MASTER untuk Material Code + supplier baris ini (alur approval biasa; Manager Costing langsung berlaku)
-  if (M.canProposePrice && !missing && line.price_method === 'CATALOG' && line.variant_id && line.supplier_id && !line.pending) {
+  if (M.canProposePrice && !missing && !line.no_charge && line.price_method === 'CATALOG' && line.variant_id && line.supplier_id && !line.pending) {
     acts.appendChild(linkBtn(M.directPrice ? 'Harga master baru' : 'Ajukan harga master',
       `Harga master ${line.material_code || ''} · ${line.supplier_name || ''} — berlaku untuk semua CBD`,
       () => send('proposePrice', { line_id: line.id })));
   }
   if (acts.childNodes.length) box.appendChild(acts);
+  if (editable && !missing && !line.no_charge && ncOpen === line.id) box.appendChild(noChargeForm(line));
   return box;
+}
+
+// R11: form alasan "Tanpa biaya" di dalam sel Harga (isian disimpan di ncText supaya tidak hilang saat render ulang)
+function openNoCharge(id) {
+  ncOpen = id;
+  ncText = '';
+  render(M);
+  setTimeout(() => {
+    const i = document.querySelector(`input.cell[data-key="nc:${id}"]`);
+    if (i) i.focus();
+  }, 0);
+}
+
+function closeNoCharge() {
+  ncOpen = null;
+  ncText = '';
+  render(M);
+}
+
+function noChargeForm(line) {
+  const f = el('div', 'ncform');
+  const i = el('input', 'cell txt');
+  i.type = 'text';
+  i.maxLength = 200;
+  i.autocomplete = 'off';
+  i.placeholder = 'Alasan, mis. termasuk harga baris 10';
+  i.value = ncText;
+  i.dataset.key = `nc:${line.id}`;
+  i.dataset.kind = 'text';
+  i.dataset.orig = '';
+  i.setAttribute('aria-label', `Alasan tanpa biaya ${line.display_no || ''} ${line.display_name || ''}`);
+  const save = () => {
+    const v = i.value.trim().replace(/\s+/g, ' ');
+    if (!v) return invalid(i, 'Isi alasan tanpa biaya (mis. "harga termasuk baris 10").');
+    ncOpen = null;
+    ncText = '';
+    send('setNoCharge', { line_id: line.id, on: true, reason: v });
+    render(M);                                   // tutup form sekarang; grid dimuat ulang setelah DB menyimpan
+  };
+  i.addEventListener('input', () => { ncText = i.value; i.classList.remove('invalid'); });
+  i.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); save(); }
+    else if (e.key === 'Escape') closeNoCharge();
+  });
+  const ok = el('button', 'bbtn sm', 'Simpan');
+  ok.type = 'button';
+  ok.disabled = !!M.busy;
+  ok.addEventListener('click', save);
+  const no = linkBtn('Batal', 'Tutup tanpa menyimpan', closeNoCharge);
+  no.disabled = false;
+  f.appendChild(i);
+  const b = el('div', 'ncbtns');
+  b.appendChild(no);
+  b.appendChild(ok);
+  f.appendChild(b);
+  return f;
 }
 
 function originText(line) {
@@ -736,11 +809,13 @@ function render(model) {
   scroll.scrollLeft = pos[0];
   scroll.scrollTop = pos[1];
 
-  const noPrice = active_.filter(l => num(l.price_original) === null).length;
-  const noYield = active_.filter(l => num(l.price_original) !== null && num(l.yield_value) === null).length;
+  const noPrice = active_.filter(l => num(l.price_original) === null && num(l.yield_value) !== null && !l.no_charge).length;
+  const noYield = active_.filter(l => num(l.price_original) !== null && num(l.yield_value) === null && !l.no_charge).length;
+  const noCharge = active_.filter(l => l.no_charge).length;
   const parts = [`${active_.length} baris`];
   if (noYield) parts.push(`${noYield} berharga tanpa yield`);
-  if (noPrice) parts.push(`${noPrice} tanpa harga`);
+  if (noPrice) parts.push(`${noPrice} belum berharga`);
+  if (noCharge) parts.push(`${noCharge} tanpa biaya`);
   if (!editable) parts.push('hanya baca');
   $('status').textContent = (M.busy || queue.length ? 'Menyimpan… · ' : '') + parts.join(' · ');
   showMessage();
