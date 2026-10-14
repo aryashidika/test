@@ -1,6 +1,6 @@
 # cwPriceApproval
 
-Page **Persetujuan Harga** (R3, Manager Costing — izin `approve_price`). Usulan harga material yang menunggu,
+Page **Persetujuan Harga** (R3, Manager Costing - izin `approve_price`). Usulan harga material yang menunggu,
 dikelompokkan per **pengajuan** (satu kali Ajukan / Salin harga oleh Vendor CBD). Per pengajuan: tabel varian ×
 supplier dengan harga berlaku sekarang, usulan, selisih %, tombol **Setujui semua / Setujui terpilih / Tolak terpilih**.
 
@@ -21,7 +21,7 @@ Ukuran: lebar penuh (kolom 0–64), tinggi ±860 px (isi lebih panjang → scrol
 ```js
 {
   loaded, loading, busy,
-  message,          // { type: 'success' | 'error' | 'info', text } — hasil keputusan terakhir
+  message,          // { type: 'success' | 'error' | 'info', text } - hasil keputusan terakhir
   focusBatch,       // batch_id dari URL ?batch= (Beranda) -> kartu itu paling atas + disorot
   batches: [{
     batch_id, material_id, material_name, uom, proposed_by, proposed_at,

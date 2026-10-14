@@ -1,7 +1,7 @@
 <div class="wrap">
   <div class="head">
-    <h2 id="title">Harga Baris CBD</h2>
-    <button type="button" class="x" id="btnX" aria-label="Tutup">✕</button>
+    <h2 id="title">CBD Line Price</h2>
+    <button type="button" class="x" id="btnX" aria-label="Close">✕</button>
   </div>
 
   <div id="msg" class="msg" role="alert" hidden></div>
@@ -11,9 +11,9 @@
 
   <div class="row">
     <div>
-      <label for="price">Harga <span class="req" id="priceReq">*</span></label>
-      <input id="price" type="text" inputmode="decimal" maxlength="20" autocomplete="off" placeholder="mis. 45000 atau 3,25">
-      <div class="hint" id="priceHint">Tanpa titik ribuan; desimal pakai koma atau titik.</div>
+      <label for="price">Price <span class="req" id="priceReq">*</span></label>
+      <input id="price" type="text" inputmode="decimal" maxlength="20" autocomplete="off" placeholder="e.g. 45000 or 3,25">
+      <div class="hint" id="priceHint">No thousand separators; use a comma or dot for decimals.</div>
     </div>
     <div>
       <label>Currency <span class="req">*</span></label>
@@ -21,24 +21,24 @@
         <button type="button" data-v="IDR">IDR</button>
         <button type="button" data-v="USD">USD</button>
       </div>
-      <div class="hint">Wajib dipilih setiap input.</div>
+      <div class="hint">Required for every entry.</div>
     </div>
   </div>
 
   <div class="field" id="validBox" hidden>
-    <label for="validFrom">Berlaku mulai <span class="req">*</span></label>
+    <label for="validFrom">Valid from <span class="req">*</span></label>
     <input id="validFrom" type="date">
-    <div class="hint">Harga master yang berlaku sekarang ditutup per tanggal ini.</div>
+    <div class="hint">The current master price ends on this date.</div>
   </div>
 
-  <label for="text"><span id="textLabel">Referensi</span> <span class="req" id="textReq">*</span></label>
+  <label for="text"><span id="textLabel">Reference</span> <span class="req" id="textReq">*</span></label>
   <textarea id="text" maxlength="300"></textarea>
   <div class="hint" id="textHint"></div>
 
   <div class="info" id="info" hidden></div>
 
   <div class="actions">
-    <button type="button" class="btn-secondary" id="btnCancel">Batal</button>
-    <button type="button" class="btn-primary" id="btnSave">Simpan</button>
+    <button type="button" class="btn-secondary" id="btnCancel">Cancel</button>
+    <button type="button" class="btn-primary" id="btnSave">Save</button>
   </div>
 </div>

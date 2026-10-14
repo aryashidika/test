@@ -1,4 +1,4 @@
-// cwPriceApproval — page Persetujuan Harga (R3, Manager Costing). Hanya tampilan; keputusan lewat
+// cwPriceApproval - page Persetujuan Harga (R3, Manager Costing). Hanya tampilan; keputusan lewat
 // ApprovalCtrl.decide() -> fn_price_decide (semua atau tidak sama sekali, aturan final di DB).
 // Model masuk: { loaded, loading, busy, message, focusBatch,
 //   batches: [{ batch_id, material_id, material_name, uom, proposed_by, proposed_at,
@@ -6,7 +6,7 @@
 //               cur_price, cur_currency, cur_valid_from, problem }] }] }
 // Event keluar: onDecide (setelah updateModel({ action: { decision: 'APPROVE'|'REJECT', ids, reason, batch_id } })),
 //   onOpenMaterial (setelah updateModel({ material_id })), onRefresh.
-// Usulan ber-"problem" tidak bisa disetujui (DB menolak) — hanya bisa ditolak.
+// Usulan ber-"problem" tidak bisa disetujui (DB menolak) - hanya bisa ditolak.
 
 const $ = id => document.getElementById(id);
 const selected = new Map();   // batch_id -> Set(id)
@@ -57,7 +57,7 @@ function diffCell(it) {
     return td;
   }
   if (it.cur_currency !== it.currency) {
-    td.textContent = 'beda currency';
+    td.textContent = 'different currency';
     return td;
   }
   const pct = (Number(it.price) - Number(it.cur_price)) / Number(it.cur_price) * 100;
@@ -108,8 +108,8 @@ function batchCard(b, focus) {
   left.appendChild(el('h3', '', `${b.material_name}${b.uom ? ' (' + b.uom + ')' : ''}`));
   const suppliers = [...new Set(items.map(it => it.supplier_name))].join(', ');
   left.appendChild(el('div', 'meta',
-    `Diajukan ${b.proposed_by || '-'} · ${fmtDateTime(b.proposed_at)} · ${items.length} harga · Supplier ${suppliers}`));
-  const openBtn = el('button', 'link', 'Buka material →');
+    `Proposed by ${b.proposed_by || '-'} · ${fmtDateTime(b.proposed_at)} · ${items.length} price(s) · Supplier ${suppliers}`));
+  const openBtn = el('button', 'link', 'Open material →');
   openBtn.type = 'button';
   openBtn.addEventListener('click', () => {
     appsmith.updateModel({ material_id: b.material_id });
@@ -125,7 +125,7 @@ function batchCard(b, focus) {
   const thAll = el('th');
   const all = document.createElement('input');
   all.type = 'checkbox';
-  all.title = 'Pilih semua';
+  all.title = 'Select all';
   all.checked = items.length > 0 && chosen.length === items.length;
   all.disabled = busy;
   all.addEventListener('change', () => {
@@ -134,8 +134,8 @@ function batchCard(b, focus) {
   });
   thAll.appendChild(all);
   hr.appendChild(thAll);
-  [['Material Code'], ['Warna'], ['Thickness'], ['Supplier'], ['Harga berlaku', 'num'], ['Usulan', 'num'],
-   ['Selisih', 'num'], ['Berlaku mulai'], ['Referensi'], ['']].forEach(([t, c]) => hr.appendChild(el('th', c || '', t)));
+  [['Material Code'], ['Color'], ['Thickness'], ['Supplier'], ['Active price', 'num'], ['Proposal', 'num'],
+   ['Difference', 'num'], ['Valid from'], ['Reference'], ['']].forEach(([t, c]) => hr.appendChild(el('th', c || '', t)));
   thead.appendChild(hr);
   table.appendChild(thead);
   const tbody = el('tbody');
@@ -179,25 +179,25 @@ function batchCard(b, focus) {
   const acts = el('div', 'actions');
   const bad = items.length - okIds.length;
   acts.appendChild(el('span', 'hint', bad
-    ? `${bad} usulan tidak bisa disetujui (lihat keterangan merah) — tolak usulan itu.`
-    : 'Harga lama tetap berlaku sampai usulan disetujui.'));
+    ? `${bad} proposal(s) cannot be approved (see the red note). Reject them.`
+    : 'The old price stays active until the proposal is approved.'));
 
   const isArmed = kind => armed && armed.batch === b.batch_id && armed.kind === kind;
   const btnAll = el('button', 'btn primary' + (isArmed('all') ? ' armed' : ''),
-    isArmed('all') ? `Klik lagi: setujui ${okIds.length} harga` : (bad ? `Setujui yang valid (${okIds.length})` : `Setujui semua (${okIds.length})`));
+    isArmed('all') ? `Click again: approve ${okIds.length} price(s)` : (bad ? `Approve valid ones (${okIds.length})` : `Approve all (${okIds.length})`));
   btnAll.type = 'button';
   btnAll.disabled = busy || okIds.length === 0;
   btnAll.addEventListener('click', () => armOrRun(b, 'all', () => decide(b, 'APPROVE', okIds)));
 
   const selIds = chosen.map(it => it.id);
   const btnSel = el('button', 'btn' + (isArmed('sel') ? ' armed' : ''),
-    isArmed('sel') ? `Klik lagi: setujui ${selIds.length} harga` : `Setujui terpilih (${selIds.length})`);
+    isArmed('sel') ? `Click again: approve ${selIds.length} price(s)` : `Approve selected (${selIds.length})`);
   btnSel.type = 'button';
   btnSel.disabled = busy || selIds.length === 0 || chosenBad;
-  if (chosenBad) btnSel.title = 'Pilihan berisi usulan yang tidak bisa disetujui.';
+  if (chosenBad) btnSel.title = 'The selection has proposals that cannot be approved.';
   btnSel.addEventListener('click', () => armOrRun(b, 'sel', () => decide(b, 'APPROVE', selIds)));
 
-  const btnRej = el('button', 'btn danger', `Tolak terpilih (${selIds.length})`);
+  const btnRej = el('button', 'btn danger', `Reject selected (${selIds.length})`);
   btnRej.type = 'button';
   btnRej.disabled = busy || selIds.length === 0;
   btnRej.addEventListener('click', () => {
@@ -212,23 +212,23 @@ function batchCard(b, focus) {
 
   if (rejectOpen.has(b.batch_id)) {
     const box = el('div', 'reject');
-    const lbl = el('label', '', `Alasan penolakan untuk ${selIds.length} harga terpilih (wajib)`);
+    const lbl = el('label', '', `Reject reason for ${selIds.length} selected price(s) (required)`);
     lbl.htmlFor = 'r-' + b.batch_id;
     const ta = document.createElement('textarea');
     ta.id = 'r-' + b.batch_id;
     ta.maxLength = 300;
-    ta.placeholder = 'mis. Harga tidak sesuai quotation terbaru';
+    ta.placeholder = 'e.g. Price does not match the latest quotation';
     ta.value = rejectOpen.get(b.batch_id);
     ta.disabled = busy;
     const ra = el('div', 'actions');
-    const cancel = el('button', 'btn', 'Batal');
+    const cancel = el('button', 'btn', 'Cancel');
     cancel.type = 'button';
     cancel.disabled = busy;
     cancel.addEventListener('click', () => {
       rejectOpen.delete(b.batch_id);
       renderBatches(lastModel);
     });
-    const ok = el('button', 'btn danger solid', `Tolak ${selIds.length} harga`);
+    const ok = el('button', 'btn danger solid', `Reject ${selIds.length} price(s)`);
     ok.type = 'button';
     const sync = () => {
       ok.disabled = busy || selIds.length === 0 || ta.value.trim() === '';
@@ -269,10 +269,10 @@ function render(model) {
   const batches = m.batches || [];
   const total = batches.reduce((n, b) => n + (b.items || []).length, 0);
   $('subtitle').textContent = m.loaded
-    ? (batches.length ? `${batches.length} pengajuan · ${total} harga menunggu persetujuan Anda.` : '')
-    : 'Memuat…';
+    ? (batches.length ? `${batches.length} submission(s) · ${total} price(s) waiting for your approval.` : '')
+    : 'Loading…';
   $('refresh').disabled = !!m.loading || busy;
-  $('refresh').textContent = m.loading ? 'Memuat…' : '↻ Muat ulang';
+  $('refresh').textContent = m.loading ? 'Loading…' : '↻ Reload';
   const msg = $('msg');
   if (m.message && m.message.text) {
     msg.className = `msg ${m.message.type || 'info'}`;

@@ -1,4 +1,4 @@
-// cwRevisionForm — modal Buat Revisi di page Specsheet (mdlRevisi). Hanya tampilan; simpan lewat
+// cwRevisionForm - modal Buat Revisi di page Specsheet (mdlRevisi). Hanya tampilan; simpan lewat
 // SpecCtrl.saveRevision() -> fn_revision_create. Pilihan cara mengikuti keadaan season:
 //   belum ada revisi  -> EMPTY (kosong) / COPY (copy season lain model yang sama) /
 //                        COPY_MODEL (R7: copy dari model lain, pabrik + kategori sama; ringkasan jumlah baris), + stage awal
@@ -38,18 +38,18 @@ function buildOptions(m) {
   const sources = m.copySources || [];
   if (!m.hasRevisions) {
     return [
-      { v: 'EMPTY', title: 'Mulai kosong', desc: 'BOM kosong; semua article season ini langsung dimuat.' },
+      { v: 'EMPTY', title: 'Start empty', desc: 'Empty BOM; all articles of this season are loaded.' },
       {
-        v: 'COPY', title: 'Copy dari season lain (model sama)',
-        desc: sources.length ? 'Ambil struktur BOM specsheet season lain supaya tidak mulai dari 0.'
-          : 'Belum ada season lain model ini yang punya revisi terbit.',
+        v: 'COPY', title: 'Copy from another season (same model)',
+        desc: sources.length ? 'Reuse the BOM of another season so you do not start from zero.'
+          : 'No other season of this model has a published revision.',
         disabled: !sources.length,
       },
       {
-        v: 'COPY_MODEL', title: 'Copy dari model lain (pabrik & kategori sama)',
+        v: 'COPY_MODEL', title: 'Copy from another model (same factory & category)',
         desc: (m.modelSources || []).length
-          ? 'Untuk model turunan (mis. beda outsole). Baris BOM model sumber di-copy; warna kosong; model sumber jadi model induk.'
-          : 'Belum ada model lain dengan kategori sama yang punya specsheet terbit.',
+          ? 'For derived models (e.g. a different outsole). BOM lines of the source model are copied; colors are empty; the source model becomes the parent model.'
+          : 'No other model with the same category has a published specsheet.',
         disabled: !(m.modelSources || []).length,
       },
     ];
@@ -57,12 +57,12 @@ function buildOptions(m) {
   if (m.latestLabel) {
     return [
       {
-        v: 'NEXT_REVISION', title: `Revisi berikutnya: ${m.nextRevisionLabel || ''}`,
-        desc: `Salin ${m.latestLabel} (baris BOM, article, warna), nomor revisi + 1.`,
+        v: 'NEXT_REVISION', title: `Next revision: ${m.nextRevisionLabel || ''}`,
+        desc: `Copy ${m.latestLabel} (BOM lines, articles, colors), revision number + 1.`,
       },
       {
-        v: 'NEXT_STAGE', title: m.nextStageLabel ? `Stage berikutnya: ${m.nextStageLabel}` : 'Stage berikutnya',
-        desc: m.nextStageLabel ? `Salin ${m.latestLabel} ke stage yang dipilih.` : 'Sudah di stage terakhir (Production).',
+        v: 'NEXT_STAGE', title: m.nextStageLabel ? `Next stage: ${m.nextStageLabel}` : 'Next stage',
+        desc: m.nextStageLabel ? `Copy ${m.latestLabel} to the selected stage.` : 'Already at the last stage (Production).',
         disabled: !m.nextStageLabel,
       },
     ];
@@ -88,19 +88,19 @@ function fillSources() {
   const cross = mode === 'COPY_MODEL';
   const list = cross ? (M.modelSources || []) : (M.copySources || []);
   const src = $('source');
-  src.innerHTML = `<option value="">${cross ? '— pilih model & season —' : '— pilih season —'}</option>`;
+  src.innerHTML = `<option value="">${cross ? 'Select model & season' : 'Select season'}</option>`;
   list.forEach(s => {
     const opt = document.createElement('option');
     opt.value = s.id;
-    opt.textContent = cross ? s.label : `${s.season} — ${s.label} terbit`;
+    opt.textContent = cross ? s.label : `${s.season} · ${s.label} published`;
     src.appendChild(opt);
   });
   if (list.length === 1) src.value = list[0].id;
   src.classList.remove('invalid');
-  $('sourceLabel').innerHTML = `${cross ? 'Model & season sumber' : 'Season sumber'} <span class="req">*</span>`;
+  $('sourceLabel').innerHTML = `${cross ? 'Source model & season' : 'Source season'} <span class="req">*</span>`;
   $('sourceHint').textContent = cross
-    ? 'Baris BOM revisi terbit terakhir model sumber di-copy (material, thickness, supplier). Article season ini dimuat dengan warna kosong.'
-    : 'Baris BOM revisi terbit terakhir season sumber di-copy. Article season ini dimuat dengan warna kosong.';
+    ? 'BOM lines of the latest published revision of the source model are copied (material, thickness, supplier). This season\'s articles are loaded with empty colors.'
+    : 'BOM lines of the latest published revision of the source season are copied. This season\'s articles are loaded with empty colors.';
   showSummary();
 }
 
@@ -112,7 +112,7 @@ function showSummary() {
 
 function fillForm(m) {
   M = m;
-  $('title').textContent = `Buat Revisi — ${m.season || ''}`;
+  $('title').textContent = `Create Revision: ${m.season || ''}`;
   options = buildOptions(m);
   const box = $('opts');
   box.innerHTML = '';
@@ -134,7 +134,7 @@ function fillForm(m) {
   const first = options.find(o => !o.disabled);
   setMode(first ? first.v : '');
   $('note').hidden = options.length > 0;
-  $('note').textContent = options.length ? '' : 'Terbitkan atau hapus draft yang ada dulu sebelum membuat revisi baru.';
+  $('note').textContent = options.length ? '' : 'Publish or delete the current draft before creating a new revision.';
   $('btnSave').hidden = options.length === 0;
 }
 
@@ -154,7 +154,7 @@ function setBusy(v) {
   $('btnSave').disabled = v;
   $('btnCancel').disabled = v;
   $('btnX').disabled = v;
-  $('btnSave').textContent = v ? 'Membuat…' : 'Buat';
+  $('btnSave').textContent = v ? 'Creating…' : 'Create';
 }
 
 function render(model) {
@@ -170,14 +170,14 @@ function render(model) {
 function submit() {
   if (busy) return;
   if (!mode) {
-    showMessage({ type: 'error', text: 'Pilih cara membuat revisi.' });
+    showMessage({ type: 'error', text: 'Choose how to create the revision.' });
     return;
   }
   const copy = mode === 'COPY' || mode === 'COPY_MODEL';
   if (copy && !$('source').value) {
     $('source').classList.add('invalid');
     $('source').focus();
-    showMessage({ type: 'error', text: mode === 'COPY' ? 'Pilih season sumber.' : 'Pilih model & season sumber.' });
+    showMessage({ type: 'error', text: mode === 'COPY' ? 'Select a source season.' : 'Select a source model & season.' });
     return;
   }
   $('source').classList.remove('invalid');

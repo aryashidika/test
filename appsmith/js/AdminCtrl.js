@@ -26,7 +26,7 @@ export default {
 		const current = this.form.factory_id;
 		return (q_factories.data || [])
 			.filter(f => f.status === 'ACTIVE' || f.id === current)
-			.map(f => ({ label: f.status === 'ACTIVE' ? f.name : `${f.name} (nonaktif)`, value: f.id }));
+			.map(f => ({ label: f.status === 'ACTIVE' ? f.name : `${f.name} (inactive)`, value: f.id }));
 	},
 
 	openForm(isNew, form) {
@@ -50,7 +50,7 @@ export default {
 	},
 
 	async save() {
-		// Baca model dulu — model di-reset saat state (Default model) berubah
+		// Baca model dulu - model di-reset saat state (Default model) berubah
 		const m = cwUserForm.model || {};
 		const needsFactory = this.factoryRoles.includes(m.role);
 		const data = {
@@ -62,11 +62,11 @@ export default {
 			factory_id: needsFactory ? (m.factory_id || '') : '',
 		};
 		if (!data.email || !data.full_name || !data.role) {
-			this.message = { type: 'error', text: 'Lengkapi email, nama, dan role.' };
+			this.message = { type: 'error', text: 'Fill in email, name, and role.' };
 			return;
 		}
 		if (needsFactory && !data.factory_id) {
-			this.message = { type: 'error', text: 'Role ini wajib memilih pabrik.' };
+			this.message = { type: 'error', text: 'This role needs a factory.' };
 			return;
 		}
 		this.message = null;
@@ -78,7 +78,7 @@ export default {
 			if (Util.isSessionError(msg)) {
 				closeModal('mdlUser');
 				await removeValue('token');
-				showAlert('Sesi login habis. Silakan login lagi.', 'warning');
+				showAlert('Session expired. Please log in again.', 'warning');
 				navigateTo('Login');
 				return;
 			}
@@ -88,7 +88,7 @@ export default {
 			this.busy = false;
 		}
 		closeModal('mdlUser');
-		showAlert('User disimpan.', 'success');
+		showAlert('User saved.', 'success');
 		for (const q of [q_users, q_factories, q_audit, q_audit_entities]) {
 			try { await q.run(); } catch (e) { /* abaikan */ }
 		}
@@ -98,7 +98,7 @@ export default {
 
 	// Query a_user_reset_password memakai "Request confirmation before running" = ON
 	async resetPassword(row) {
-		const ok = await Util.run(a_user_reset_password, { email: row.email }, 'Password direset.', [q_users, q_audit]);
+		const ok = await Util.run(a_user_reset_password, { email: row.email }, 'Password reset.', [q_users, q_audit]);
 		if (!ok) return;
 		const pass = a_user_reset_password.data && a_user_reset_password.data[0]
 			&& a_user_reset_password.data[0].temp_password;
@@ -118,10 +118,10 @@ export default {
 	},
 
 	userStatus(row) {
-		if (!row.is_active) return 'Nonaktif';
-		if (row.locked_until && moment(row.locked_until).isAfter(moment())) return 'Terkunci';
-		if (row.must_change_password) return 'Belum ganti password';
-		return 'Aktif';
+		if (!row.is_active) return 'Inactive';
+		if (row.locked_until && moment(row.locked_until).isAfter(moment())) return 'Locked';
+		if (row.must_change_password) return 'Must change password';
+		return 'Active';
 	},
 
 	// ---- R14: detail audit (panel cwAuditDetail di sebelah tblAudit, mengikuti baris terpilih) ----
@@ -225,7 +225,7 @@ export default {
 			status: m.status || 'ACTIVE',
 		};
 		if (!data.name) {
-			this.factoryMessage = { type: 'error', text: 'Nama pabrik wajib diisi.' };
+			this.factoryMessage = { type: 'error', text: 'Factory name is required.' };
 			return;
 		}
 		this.factoryMessage = null;
@@ -237,7 +237,7 @@ export default {
 			if (Util.isSessionError(msg)) {
 				closeModal('mdlPabrik');
 				await removeValue('token');
-				showAlert('Sesi login habis. Silakan login lagi.', 'warning');
+				showAlert('Session expired. Please log in again.', 'warning');
 				navigateTo('Login');
 				return;
 			}
@@ -247,7 +247,7 @@ export default {
 			this.factoryBusy = false;
 		}
 		closeModal('mdlPabrik');
-		showAlert('Pabrik disimpan.', 'success');
+		showAlert('Factory saved.', 'success');
 		for (const q of [q_factories, q_users, q_audit, q_audit_entities]) {
 			try { await q.run(); } catch (e) { /* abaikan */ }
 		}

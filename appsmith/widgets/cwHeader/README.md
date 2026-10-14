@@ -8,7 +8,7 @@ Header aplikasi di atas setiap page (kecuali Login): nama app, judul page, nama 
 |---|---|
 | `index.html` / `style.css` / `script.js` | HTML / Style / JavaScript |
 
-## Model masuk (Default model) — yang berbeda per page hanya `pageTitle` dan `showHome`
+## Model masuk (Default model) - yang berbeda per page hanya `pageTitle` dan `showHome`
 
 ```js
 {{ {

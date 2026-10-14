@@ -1,11 +1,11 @@
-# F8 — CBD: harga, rekap, refresh, terbit, sinkron: langkah di Appsmith
+# F8 - CBD: harga, rekap, refresh, terbit, sinkron: langkah di Appsmith
 
 Urutan: **1** SQL → **2** page CBD (JSObject, query, desain & langkah widget §2d–2i) → **3** Specsheet (kecil) → **4** uji →
 **5** export `export_v8.json`.
 
 Setelan untuk **semua query baru** (datasource `Prestasi`): *Use prepared statements* **ON**, *Run behaviour* **Manual**
-(⚠️ termasuk **3 query baca** baru `q_cbd_recap`, `q_cbd_checklist`, `q_cbd_change_log` — jangan dibiarkan
-*Automatic*, lihat T22/T28). Jangan membuat query uji (`Query1`) di app ini — pakai DB Tools (T21/T34).
+(⚠️ termasuk **3 query baca** baru `q_cbd_recap`, `q_cbd_checklist`, `q_cbd_change_log` - jangan dibiarkan
+*Automatic*, lihat T22/T28). Jangan membuat query uji (`Query1`) di app ini - pakai DB Tools (T21/T34).
 Modal baru disalin dari pola lama boleh, tapi **event handler selalu ditempel dari panduan ini** (jangan membawa
 handler page lain).
 
@@ -38,7 +38,7 @@ Aturan F8 (= Python `cbd_service.py` / `cbd_calc.py`):
 Penyederhanaan (bisa diubah kalau tidak setuju):
 - **Riwayat** CBD = tombol **Riwayat (n)** + modal (sama dengan Specsheet F6), bukan tab.
 - Harga quotation diisi lewat modal (bukan input langsung di sel seperti Python) supaya currency bisa wajib diklik.
-- Sinkron dibandingkan dengan **acuan CBD itu sendiri** (Python: dengan specsheet terbit sebelumnya) — CBD yang sudah
+- Sinkron dibandingkan dengan **acuan CBD itu sendiri** (Python: dengan specsheet terbit sebelumnya) - CBD yang sudah
   *perlu revisi* tidak kembali *sinkron* tanpa sebab (P5).
 
 ---
@@ -67,7 +67,7 @@ Penyederhanaan (bisa diubah kalau tidak setuju):
 
 ### 2b. Query baca (semua **Manual**)
 
-**`q_cbd_lines`** — ganti seluruhnya (tambah kolom cek harga dari `v_cbd_price_check`):
+**`q_cbd_lines`** - ganti seluruhnya (tambah kolom cek harga dari `v_cbd_price_check`):
 ```sql
 SELECT g.*, coalesce(pc.master_stale, false) AS master_stale, pc.price_gap, pc.other_colors,
        pc.master_price, pc.master_currency
@@ -134,7 +134,7 @@ SELECT fn_cbd_override_price({{appsmith.store.token}}, {{this.params.line_id}}::
                              {{this.params.reason}}) AS id;
 ```
 
-**`a_cbd_clear_override`** — *Request confirmation before running* = **ON**
+**`a_cbd_clear_override`** - *Request confirmation before running* = **ON**
 ```sql
 SELECT fn_cbd_clear_override({{appsmith.store.token}}, {{this.params.line_id}}::uuid) AS id;
 ```
@@ -144,12 +144,12 @@ SELECT fn_cbd_clear_override({{appsmith.store.token}}, {{this.params.line_id}}::
 SELECT fn_cbd_refresh_prices({{appsmith.store.token}}, {{this.params.revision_id}}::uuid) AS n;
 ```
 
-**`a_cbd_refresh_spec`** — *Request confirmation before running* = **ON**
+**`a_cbd_refresh_spec`** - *Request confirmation before running* = **ON**
 ```sql
 SELECT fn_cbd_refresh_from_spec({{appsmith.store.token}}, {{this.params.revision_id}}::uuid) AS n;
 ```
 
-**`a_cbd_publish`** — konfirmasi **OFF** (modal Terbitkan sudah menjadi konfirmasi)
+**`a_cbd_publish`** - konfirmasi **OFF** (modal Terbitkan sudah menjadi konfirmasi)
 ```sql
 SELECT fn_cbd_publish({{appsmith.store.token}}, {{this.params.revision_id}}::uuid,
                       {{this.params.category}}, {{this.params.reason}}) AS id;
@@ -164,7 +164,7 @@ widget sampai angka di panel mendekati; tidak harus persis). ★ = baru di F8, �
 kolom:   0                                                   48     53        59    64
          ┌──────────────────────────────────────────────────────────────────────────┐
   0–  8  │ cwHeader   Cost Breakdown (CBD) · nama user · Keluar                      │
-  8– 17  │ cntHeader  [← Model List]  ILZ-02 — Illuzion …           [Buka Specsheet →]│
+  8– 17  │ cntHeader  [← Model List]  ILZ-02 - Illuzion …           [Buka Specsheet →]│
  17– 24  │ [Model ▾ selCbdModel]  [Season ▾ selCbdSeason]  [+ Buat CBD]              │
  24– 36  │ cwStepper  (A1 · TERBIT PULL r0) (A2 · DRAFT PULL r0)                     │
          │            PULL ── r0 ── r1   │ SMS │ GTM │ PROD                          │
@@ -182,10 +182,10 @@ kolom:   0                                                   48     53        59
          │ │ A · Upper                                                            │ │
          │ │ 10│Vamp    │Mesh …  │   │Black│PT Maju │M  │       │[12,5]│0,08│[3] │45.000 master│IDR│ … │
          │ │   │        │        │   │     │        │   │       │      │    │    │Override…    │   │   │
-         │ │ 35│Heel badge lokal │ … │Gold │   -    │PCS│       │[    ]│ -  │[0] │quotation —  │   │   │
+         │ │ 35│Heel badge lokal │ … │Gold │   -    │PCS│       │[    ]│ -  │[0] │quotation -  │   │   │
          │ │   │        │        │   │     │        │   │       │      │    │    │belum diisi  │   │   │
          │ │   │        │        │   │     │        │   │       │      │    │    │Isi harga    │   │   │
-         │ │ Hilang dari specsheet (MISSING_IN_SPEC) — 1 baris, tidak dihitung     │ │
+         │ │ Hilang dari specsheet (MISSING_IN_SPEC) - 1 baris, tidak dihitung     │ │
          │ └──────────────────────────────────────────────────────────────────────┘ │
          └──────────────────────────────────────────────────────────────────────────┘
 Modal (tidak terlihat di canvas): mdlCbdBaru (F7) · ★mdlCbdHarga · ★mdlCbdTerbit · ★mdlCbdRiwayat
@@ -200,7 +200,7 @@ Modal (tidak terlihat di canvas): mdlCbdBaru (F7) · ★mdlCbdHarga · ★mdlCbd
 │ Harga *          Currency *   │  │ ✓ Harga master sama …         │  │ PULL r0│OTHER   │Revisi awal│vcbd │30 Sep│
 │ [47000      ]    [IDR] [USD]  │  │ ✕ Baris berharga punya Yield  │  │                                         │
 │ Terbaca: 47.000 IDR           │  │ ! Semua baris berharga        │  │                                         │
-│ Alasan override *             │  │ Kategori * [— pilih — ▾]      │  │                                         │
+│ Alasan override *             │  │ Kategori * [- pilih - ▾]      │  │                                         │
 │ [harga nego order ini       ] │  │ Alasan *   [              ]   │  │                                         │
 │              [Batal] [Simpan] │  │          [Batal] [Terbitkan]  │  │                                         │
 └───────────────────────────────┘  └───────────────────────────────┘  └─────────────────────────────────────────┘
@@ -216,15 +216,15 @@ bawah = *Referensi* (opsional).
 Buka page **Cost Breakdown (CBD)** di editor. Pola tombol mengikuti page Specsheet Anda: tombol tetap tampil,
 **Disabled** bila tidak boleh dipakai.
 
-**Langkah 1 — ✎ `txtCbdRevisi`**
+**Langkah 1 - ✎ `txtCbdRevisi`**
 1. Klik `txtCbdRevisi` → tarik sisi kanan sampai kolom **48** (sekarang 59).
 2. Properti tetap: Text `{{CbdCtrl.revisionText()}}` · *Height* **Auto height** · Font size **M**.
 
-**Langkah 2 — `btnCbdHapusDraft`**: tetap di baris 36–40 · kolom **59–64**, properti tidak berubah
+**Langkah 2 - `btnCbdHapusDraft`**: tetap di baris 36–40 · kolom **59–64**, properti tidak berubah
 (Label `Hapus Draft`, variant Secondary, warna `#dc2626`, Disabled `{{!CbdCtrl.canDeleteDraft()}}`,
 onClick `{{CbdCtrl.deleteDraft()}}`).
 
-**Langkah 3 — ★ `btnCbdTerbitkan`** (klik `btnCbdHapusDraft` → Ctrl+C → Ctrl+V, lalu ubah)
+**Langkah 3 - ★ `btnCbdTerbitkan`** (klik `btnCbdHapusDraft` → Ctrl+C → Ctrl+V, lalu ubah)
 
 | Bagian panel | Properti | Nilai |
 |---|---|---|
@@ -237,7 +237,7 @@ onClick `{{CbdCtrl.deleteDraft()}}`).
 | Style | Button variant | **Primary** |
 | Style | Button color | `{{appsmith.theme.colors.primaryColor}}` (ganti merah hasil salin) |
 
-**Langkah 4 — ★ `btnCbdRiwayat`** (salin lagi, ubah)
+**Langkah 4 - ★ `btnCbdRiwayat`** (salin lagi, ubah)
 
 | Bagian panel | Properti | Nilai |
 |---|---|---|
@@ -249,7 +249,7 @@ onClick `{{CbdCtrl.deleteDraft()}}`).
 | General | Disabled | OFF (hapus binding hasil salin) |
 | Style | Button variant | **Secondary** · Button color `{{appsmith.theme.colors.primaryColor}}` |
 
-**Langkah 5 — ✎ `cwCbdGrid`**
+**Langkah 5 - ✎ `cwCbdGrid`**
 1. Klik `cwCbdGrid` → **Edit source** → tab **HTML**: hapus semua, tempel `widgets/cwCbdGrid/index.html`; tab
    **Style**: tempel `style.css`; tab **JavaScript**: tempel `script.js` → tutup editor.
 2. Tarik tepi bawah sampai tinggi **±680 px** (baris 41–109). Kalau `txtCbdRevisi` jadi 2–3 baris, grid ikut turun.
@@ -257,7 +257,7 @@ onClick `{{CbdCtrl.deleteDraft()}}`).
    *Height* **Fixed** · event **onAction** `{{CbdGridCtrl.onAction()}}`. Tidak ada event baru (semua aksi F8 lewat
    `onAction`).
 
-### 2f. ★ Modal `mdlCbdHarga` — Custom Widget `cwCbdPriceForm`
+### 2f. ★ Modal `mdlCbdHarga` - Custom Widget `cwCbdPriceForm`
 
 1. Panel widget → seret **Modal** ke canvas → rename `mdlCbdHarga`.
 2. Hapus isi bawaan modal: teks judul, tombol ikon ✕, tombol **Close** dan **Confirm** (judul & tombol sudah ada di
@@ -282,7 +282,7 @@ onClick `{{CbdCtrl.deleteDraft()}}`).
    | Height | **Fixed** |
    | Visible | ON |
 
-### 2g. ★ Modal `mdlCbdTerbit` — Custom Widget `cwPublishForm`
+### 2g. ★ Modal `mdlCbdTerbit` - Custom Widget `cwPublishForm`
 
 1. Page **Specsheet** → Explorer → Widgets → klik `mdlTerbit` → Ctrl+C → page **CBD** → klik canvas kosong → Ctrl+V.
    (Atau buat Modal baru seperti 2f langkah 1–3 lalu seret Custom widget ke dalamnya.)
@@ -314,7 +314,7 @@ onClick `{{CbdCtrl.deleteDraft()}}`).
    | Search & filters | Allow filtering · Allow download | OFF |
    | Pagination | Show pagination | ON |
 
-4. Kolom (dari salinan Specsheet: **hapus** kolom `source_label` / *Sumber* — CBD tidak punya kolom itu):
+4. Kolom (dari salinan Specsheet: **hapus** kolom `source_label` / *Sumber* - CBD tidak punya kolom itu):
 
    | Kolom | Label | Column type | Computed value | Lainnya |
    |---|---|---|---|---|
@@ -369,18 +369,18 @@ WHERE m.code = 'ILZ-02'
 ORDER BY a.code, r.stage_order, r.revision_no;
 ```
 
-### A. Harga (Vendor – CBD, draft A1 — buat baru bila belum ada)
+### A. Harga (Vendor – CBD, draft A1 - buat baru bila belum ada)
 
 | # | Langkah | Hasil yang diharapkan |
 |---|---|---|
 | A1 | Buka CBD A1 draft | Di atas grid: panel rekap (Exchange rate kotak kuning), banner info baris tanpa harga (bila ada) |
 | A2 | Baris Quotation → **Isi harga** → isi `125000` tanpa klik currency → Simpan | Pesan *Pilih currency…*; klik **IDR** → Simpan → toast *Harga quotation disimpan.*; badge **quotation** (hover: referensi) |
-| A3 | Baris Quotation → **Ubah harga** → kosongkan harga → Simpan | *Harga quotation dikosongkan.*; keterangan *material quotation — belum diisi (cost 0)* |
+| A3 | Baris Quotation → **Ubah harga** → kosongkan harga → Simpan | *Harga quotation dikosongkan.*; keterangan *material quotation - belum diisi (cost 0)* |
 | A4 | Baris katalog `10` → **Override…** → `47.500` | Pesan *ambigu*; `47000`, klik **IDR**, alasan kosong → *Alasan override wajib diisi.*; isi alasan → Simpan → badge **override** (hover: alasan) |
 | A5 | Baris `10` → **Hapus override** → Cancel lalu Confirm | Kembali ke harga master `45.000` badge **master** |
-| A6 | Master Admin: Master Material `M-IDR` → **Ganti harga** jadi `46000 IDR` berlaku hari ini. Vendor – CBD reload CBD A1 | Baris `10`: *harga master berubah — klik Refresh Harga*; banner kuning **Refresh Harga dari Master** |
+| A6 | Master Admin: Master Material `M-IDR` → **Ganti harga** jadi `46000 IDR` berlaku hari ini. Vendor – CBD reload CBD A1 | Baris `10`: *harga master berubah - klik Refresh Harga*; banner kuning **Refresh Harga dari Master** |
 | A7 | Klik **Refresh Harga dari Master** | Toast *Harga 1 baris disamakan…*; baris `10` = `46.000`, banner hilang |
-| A8 | Vendor – CBD usulkan harga untuk material/supplier yang belum punya harga (F3b, PROPOSED). CBD | Keterangan *harga master menunggu approval Master Admin*. Master Admin **Approve** → reload CBD → *harga master tersedia — klik Refresh Harga* + banner → Refresh → berharga |
+| A8 | Vendor – CBD usulkan harga untuk material/supplier yang belum punya harga (F3b, PROPOSED). CBD | Keterangan *harga master menunggu approval Master Admin*. Master Admin **Approve** → reload CBD → *harga master tersedia - klik Refresh Harga* + banner → Refresh → berharga |
 | A9 | Harga khusus warna lain (mis. `Red`) di material yang baris CBD-nya `Black` tanpa harga semua warna | Keterangan *belum ada harga untuk warna ini (ada: Red)* |
 | A10 | DB Tools: `SELECT fn_cbd_override_price('salah', gen_random_uuid(), 1, 'IDR', 'x');` | Error *SESI_HABIS…* |
 
@@ -438,7 +438,7 @@ atau Yield kosong. (Harga `M-IDR` sudah `46000` sejak A6 → pakai **Override…
 ## 5. Export & cek skema
 
 1. Export app → simpan sebagai `appsmith/exports/export_v8.json`.
-2. Jalankan query cek skema (`PLAN.md` §8) di DB Tools, tempel hasilnya ke chat — harus ada view `v_cbd_price_check`,
+2. Jalankan query cek skema (`PLAN.md` §8) di DB Tools, tempel hasilnya ke chat - harus ada view `v_cbd_price_check`,
    `v_cbd_recap`, `v_cbd_checklist`, function `fn_cbd_populate`, `fn_cbd_price_line`, `fn_cbd_check_price`,
    `fn_cbd_set_quotation`, `fn_cbd_override_price`, `fn_cbd_clear_override`, `fn_cbd_refresh_prices`,
    `fn_cbd_refresh_from_spec`, `fn_cbd_header_set`, `fn_cbd_publish`, `fn_cbd_sync_spec`, `fn_revision_publish`.

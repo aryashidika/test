@@ -1,4 +1,4 @@
-// cwPublishForm — modal Terbitkan revisi: Specsheet (mdlTerbit, F6) dan CBD (mdlCbdTerbit, F8). Hanya tampilan;
+// cwPublishForm - modal Terbitkan revisi: Specsheet (mdlTerbit, F6) dan CBD (mdlCbdTerbit, F8). Hanya tampilan;
 // checklist dihitung di DB (v_revision_checklist / v_cbd_checklist) dan disusun <Page>Ctrl.publishFormModel().
 // Terbit lewat SpecCtrl.publish() / CbdCtrl.publish() (checklist, kategori, dan alasan dicek lagi di DB).
 // F10b: gambar opsional (tempel Ctrl+V / pilih file; PNG/JPG, maks. model.maxImages) -> model.images
@@ -19,7 +19,7 @@ const MAX_BYTES = 3.5 * 1024 * 1024;
 const MAX_INPUT = 20 * 1024 * 1024;
 const SHRINK_OVER = 1024 * 1024;
 const MAX_SIDE = 2000;
-let bridge = [];             // R11: [{ key, category, description, amount }] — isian kategori/uraian user
+let bridge = [];             // R11: [{ key, category, description, amount }] - isian kategori/uraian user
 let categories = [];
 
 function applyTheme(t) {
@@ -58,19 +58,19 @@ function renderChecks(m) {
   });
   const failed = checks.filter(c => c.blocking && !c.ok).length;
   blocked = !!m.blocked || failed > 0 || !checks.length;
-  $('blocked').textContent = !checks.length ? 'Checklist belum termuat. Tutup lalu buka lagi.'
-    : `Perbaiki ${failed} hal di atas ${m.blockedWhere || 'di grid BOM'} sebelum terbit.`;
+  $('blocked').textContent = !checks.length ? 'The checklist is not loaded. Close and open it again.'
+    : `Fix ${failed} item(s) above ${m.blockedWhere || 'in the BOM grid'} before publishing.`;
   $('blocked').hidden = !blocked;
   $('formBox').hidden = blocked;
   $('btnSave').hidden = blocked;
 }
 
-// Isi ulang hanya saat modal dibuka (key berubah) — busy/message tidak menghapus isian user
+// Isi ulang hanya saat modal dibuka (key berubah) - busy/message tidak menghapus isian user
 function fillForm(m) {
-  $('title').textContent = m.title || 'Terbitkan Revisi';
+  $('title').textContent = m.title || 'Publish Revision';
   categories = m.categories || [];
   const sel = $('category');
-  sel.innerHTML = '<option value="">— pilih kategori —</option>';
+  sel.innerHTML = '<option value="">Select category</option>';
   categories.forEach(c => {
     const opt = document.createElement('option');
     opt.value = c.value;
@@ -85,13 +85,13 @@ function fillForm(m) {
   const hasBridge = bridge.length > 0;
   $('catBox').hidden = hasBridge;
   requiresReason = !hasBridge && m.requiresReason !== false;
-  $('reasonLabel').firstChild.textContent = hasBridge ? 'Ringkasan ' : 'Alasan perubahan ';
+  $('reasonLabel').firstChild.textContent = hasBridge ? 'Summary ' : 'Change reason ';
   $('reasonReq').hidden = !requiresReason;
   $('reason').value = '';
   $('reason').classList.remove('invalid');
-  $('reason').placeholder = hasBridge ? 'Kosongkan = ringkasan otomatis per kategori'
-    : requiresReason ? 'Apa yang berubah dibanding revisi sebelumnya?' : 'Kosongkan = "Revisi awal."';
-  $('reasonHint').textContent = hasBridge ? 'Opsional — rincian di atas ikut tersimpan.' : requiresReason ? '' : 'Opsional untuk revisi awal.';
+  $('reason').placeholder = hasBridge ? 'Empty = automatic summary per category'
+    : requiresReason ? 'What changed compared to the previous revision?' : 'Empty = "Initial revision."';
+  $('reasonHint').textContent = hasBridge ? 'Optional. The breakdown above is saved too.' : requiresReason ? '' : 'Optional for the initial revision.';
   $('reasonHint').hidden = requiresReason;
   renderBridge(m.bridgeInfo || {});
   maxImages = Number(m.maxImages) || 5;
@@ -117,11 +117,11 @@ function renderBridge(info) {
   const body = $('bridgeRows');
   body.innerHTML = '';
   if (!bridge.length) return;
-  $('bridgeHead').textContent = info.prevLabel ? `(dibanding ${info.prevLabel} terbit)` : '';
+  $('bridgeHead').textContent = info.prevLabel ? `(vs ${info.prevLabel} published)` : '';
   bridge.forEach((r, n) => {
     const tr = document.createElement('tr');
     const sel = document.createElement('select');
-    sel.setAttribute('aria-label', `Kategori baris ${n + 1}`);
+    sel.setAttribute('aria-label', `Category of line ${n + 1}`);
     categories.forEach(c => {
       const opt = document.createElement('option');
       opt.value = c.value;
@@ -134,7 +134,7 @@ function renderBridge(info) {
     inp.type = 'text';
     inp.maxLength = 300;
     inp.value = r.description;
-    inp.setAttribute('aria-label', `Uraian baris ${n + 1}`);
+    inp.setAttribute('aria-label', `Description of line ${n + 1}`);
     inp.addEventListener('input', () => { r.description = inp.value; inp.classList.remove('invalid'); });
     const c1 = document.createElement('td');
     c1.appendChild(sel);
@@ -151,7 +151,7 @@ function renderBridge(info) {
   const total = bridge.reduce((t, r) => t + r.amount, 0);
   const known = info.fob !== null && info.fob !== undefined && info.prevFob !== null && info.prevFob !== undefined;
   $('bridgeTotal').textContent = money(total);
-  $('bridgeTotalLabel').textContent = 'Selisih Actual FOB' + (known ? ` (${plain(info.prevFob)} → ${plain(info.fob)})` : '');
+  $('bridgeTotalLabel').textContent = 'Actual FOB difference' + (known ? ` (${plain(info.prevFob)} → ${plain(info.fob)})` : '');
 }
 
 // ---------------------------------------------------------------- gambar
@@ -168,7 +168,7 @@ function renderImages() {
     const x = document.createElement('button');
     x.type = 'button';
     x.textContent = '✕';
-    x.title = 'Hapus gambar ini';
+    x.title = 'Remove this image';
     x.addEventListener('click', () => {
       images.splice(n, 1);
       renderImages();
@@ -177,8 +177,8 @@ function renderImages() {
     t.appendChild(x);
     box.appendChild(t);
   });
-  $('imgHint').textContent = `PNG / JPG, maks. ${maxImages} gambar · gambar besar otomatis diperkecil`
-    + (images.length ? ` · ${images.length} dipilih` : '') + '.';
+  $('imgHint').textContent = `PNG / JPG, max ${maxImages} images · large images are resized automatically`
+    + (images.length ? ` · ${images.length} selected` : '') + '.';
 }
 
 function addFiles(files) {
@@ -186,12 +186,12 @@ function addFiles(files) {
   if (!list.length) return false;
   let error = '';
   list.forEach(f => {
-    if (images.length >= maxImages) { error = `Maksimal ${maxImages} gambar.`; return; }
-    if (f.type !== 'image/png' && f.type !== 'image/jpeg') { error = 'Hanya gambar PNG atau JPG.'; return; }
-    if (f.size > MAX_INPUT) { error = `${f.name || 'Gambar'} lebih dari 20 MB.`; return; }
+    if (images.length >= maxImages) { error = `Max ${maxImages} images.`; return; }
+    if (f.type !== 'image/png' && f.type !== 'image/jpeg') { error = 'Only PNG or JPG images.'; return; }
+    if (f.size > MAX_INPUT) { error = `${f.name || 'Image'} is over 20 MB.`; return; }
     const slot = { name: '', type: f.type, size: f.size, data: '', url: '' };
     const ext = f.type === 'image/png' ? 'png' : 'jpg';
-    slot.name = f.name && f.name !== 'image.png' ? f.name : `gambar-${images.length + 1}.${ext}`;
+    slot.name = f.name && f.name !== 'image.png' ? f.name : `image-${images.length + 1}.${ext}`;
     images.push(slot);
     const drop = text => {
       const n = images.indexOf(slot);
@@ -204,7 +204,7 @@ function addFiles(files) {
       shrink(String(reader.result || ''), f.size).then(url => {
         const data = url.replace(/^data:[^,]*,/, '');
         const bytes = Math.floor(data.length * 3 / 4);
-        if (bytes > MAX_BYTES) return drop(`${slot.name} masih lebih dari 3,5 MB setelah diperkecil.`);
+        if (bytes > MAX_BYTES) return drop(`${slot.name} is still over 3.5 MB after resizing.`);
         if (url.indexOf('data:image/jpeg') === 0 && slot.type !== 'image/jpeg') {
           slot.type = 'image/jpeg';
           slot.name = slot.name.replace(/\.[^.]*$/, '') + '.jpg';
@@ -213,9 +213,9 @@ function addFiles(files) {
         slot.data = data;
         slot.size = bytes;
         renderImages();
-      }, () => drop(`${slot.name} tidak bisa dibaca sebagai gambar.`));
+      }, () => drop(`${slot.name} cannot be read as an image.`));
     };
-    reader.onerror = () => drop(`${slot.name} tidak bisa dibaca.`);
+    reader.onerror = () => drop(`${slot.name} cannot be read.`);
     reader.readAsDataURL(f);
   });
   renderImages();
@@ -232,7 +232,7 @@ function shrink(url, size) {
     img.onload = () => {
       const w = img.naturalWidth;
       const h = img.naturalHeight;
-      if (!w || !h) { reject(new Error('kosong')); return; }
+      if (!w || !h) { reject(new Error('empty')); return; }
       const k = Math.min(1, MAX_SIDE / Math.max(w, h));
       const c = document.createElement('canvas');
       c.width = Math.max(1, Math.round(w * k));
@@ -254,7 +254,7 @@ function setBusy(v) {
   $('btnSave').disabled = v;
   $('btnCancel').disabled = v;
   $('btnX').disabled = v;
-  $('btnSave').textContent = v ? 'Menerbitkan…' : 'Terbitkan';
+  $('btnSave').textContent = v ? 'Publishing…' : 'Publish';
 }
 
 function render(model) {
@@ -277,23 +277,23 @@ function submit() {
     if (empty >= 0) {
       const inp = $('bridgeRows').querySelectorAll('input')[empty];
       if (inp) { inp.classList.add('invalid'); inp.focus(); }
-      showMessage({ type: 'error', text: 'Uraian rincian perubahan tidak boleh kosong.' });
+      showMessage({ type: 'error', text: 'Change breakdown descriptions cannot be empty.' });
       return;
     }
   } else if (!category) {
     $('category').classList.add('invalid');
     $('category').focus();
-    showMessage({ type: 'error', text: 'Pilih kategori perubahan.' });
+    showMessage({ type: 'error', text: 'Select a change category.' });
     return;
   }
   if (requiresReason && !reason) {
     $('reason').classList.add('invalid');
     $('reason').focus();
-    showMessage({ type: 'error', text: 'Alasan perubahan wajib diisi untuk revisi ini.' });
+    showMessage({ type: 'error', text: 'A change reason is required for this revision.' });
     return;
   }
   if (images.some(i => !i.data)) {
-    showMessage({ type: 'error', text: 'Gambar masih dimuat, coba lagi sebentar.' });
+    showMessage({ type: 'error', text: 'Images are still loading. Try again in a moment.' });
     return;
   }
   showMessage(null);

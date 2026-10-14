@@ -1,11 +1,11 @@
-# F7 — CBD: buat revisi & grid baris: langkah di Appsmith
+# F7 - CBD: buat revisi & grid baris: langkah di Appsmith
 
 Urutan: **0** sisa F6 → **1** SQL → **2** Model Detail (kolom CBD) → **3** Specsheet (kecil) → **4** page CBD →
 **5** uji → **6** export `export_v7.json`.
 
 Setelan untuk **semua query baru** (datasource `Prestasi`): *Use prepared statements* **ON**, *Run behaviour* **Manual**
-(⚠️ termasuk **7 query baca** page CBD — jangan dibiarkan *Automatic*, lihat T22/T28).
-`cwHeader`: **salin dari Specsheet**, ganti `pageTitle` saja. Jangan membuat query uji (`Query1`) di app ini — pakai DB Tools (T21).
+(⚠️ termasuk **7 query baca** page CBD - jangan dibiarkan *Automatic*, lihat T22/T28).
+`cwHeader`: **salin dari Specsheet**, ganti `pageTitle` saja. Jangan membuat query uji (`Query1`) di app ini - pakai DB Tools (T21).
 
 Aturan CBD (= Python `cbd_service.py`, disederhanakan sesuai PLAN §2):
 - CBD dibuat **per article**. Acuan = revisi specsheet **terbit terakhir** season itu; article harus **ACTIVE** di
@@ -49,10 +49,10 @@ Aturan CBD (= Python `cbd_service.py`, disederhanakan sesuai PLAN §2):
 
 ---
 
-## 2. Model Detail — kolom CBD per article
+## 2. Model Detail - kolom CBD per article
 
 1. JSObject `ModelDetailCtrl` → tempel ulang `js/ModelDetailCtrl.js` (baru: `cbdText()`, `cbdColor()`).
-2. Query **`q_articles`** — ganti seluruhnya (kolom CBD dikosongkan untuk role tanpa `view_cbd`; draft CBD hanya untuk `view_drafts`):
+2. Query **`q_articles`** - ganti seluruhnya (kolom CBD dikosongkan untuk role tanpa `view_cbd`; draft CBD hanya untuk `view_drafts`):
    ```sql
    SELECT v.id, v.specsheet_id, v.code, v.colorway, v.attachment_count::int AS attachment_count, v.is_used,
           v.updated_at, v.updated_by, v.pub_label, v.pub_status, v.draft_label, v.draft_status,
@@ -193,7 +193,7 @@ SELECT fn_cbd_create({{appsmith.store.token}}, {{this.params.article_id}}::uuid,
                      nullif({{this.params.source_article_id}}, '')::uuid) AS id;
 ```
 
-**`a_cbd_delete`** — *Request confirmation before running* = **ON**
+**`a_cbd_delete`** - *Request confirmation before running* = **ON**
 ```sql
 SELECT fn_cbd_delete_draft({{appsmith.store.token}}, {{this.params.id}}::uuid) AS id;
 ```
@@ -223,7 +223,7 @@ SELECT fn_cbd_line_set({{appsmith.store.token}}, {{this.params.line_id}}::uuid, 
 Event Custom Widget ditambahkan di panel properti widget (**Events → + Add event**) dengan nama persis `onSelect`,
 `onArticle`, `onAction`.
 
-### 4e. Modal `mdlCbdBaru` — Custom Widget `cwCbdForm`
+### 4e. Modal `mdlCbdBaru` - Custom Widget `cwCbdForm`
 
 Modal lebar ±560 px, *close on outside click* **OFF**; widget tinggi ±420 px (kode `widgets/cwCbdForm/`).
 
@@ -242,9 +242,9 @@ Persiapan (pakai data uji F6, mis. `ILZ-02` / `SS27`, article `A1`, `A2`):
 - Specsheet `SS27` punya revisi **terbit** terakhir dengan: baris `10` (material CATALOG + supplier yang **punya harga
   APPROVED**), subkomponen `10-1`, baris lokal `35`, satu baris tanpa supplier; A1 memakai semua baris, A2 **tidak**
   memakai baris `35` (warna A2 kosong).
-- Satu material QUOTATION di salah satu baris (harganya kosong di CBD — diisi di F8).
+- Satu material QUOTATION di salah satu baris (harganya kosong di CBD - diisi di F8).
 
-**Q-cbd** — query bantu di DB Tools (dipakai berulang):
+**Q-cbd** - query bantu di DB Tools (dipakai berulang):
 ```sql
 SELECT a.code, r.stage, r.revision_no, r.status, r.exchange_rate,
        (SELECT count(*) FROM cbd_line l WHERE l.cbd_revision_id = r.id AND l.status = 'ACTIVE') AS aktif,
@@ -271,14 +271,14 @@ ORDER BY a.code, r.stage_order, r.revision_no;
 | # | Langkah | Hasil yang diharapkan |
 |---|---|---|
 | B1 | **+ Buat CBD** | Modal: *Acuan: specsheet SS27 … (terbit terakhir)*; **CBD baru dari specsheet** terpilih; **Copy dari article lain** nonaktif (*Belum ada article lain … CBD terbit*) → **Buat** |
-| B2 | — | Toast *CBD draft dibuat.*; chip A1 **DRAFT PULL r0** (kuning); stepper chip `r0` kuning di stage specsheet; `txtCbdRevisi` *A1 · … · DRAFT · acuan specsheet …* |
+| B2 | - | Toast *CBD draft dibuat.*; chip A1 **DRAFT PULL r0** (kuning); stepper chip `r0` kuning di stage specsheet; `txtCbdRevisi` *A1 · … · DRAFT · acuan specsheet …* |
 | B3 | Grid | Grup **A · Upper** berisi `10`, `10-1` (↳, nomor induk), `35` **lokal**; grup lain sesuai komponen. Thickness/Color/Supplier/UoM/Remarks sesuai specsheet |
 | B4 | Kolom Harga | Baris `10`: harga master + badge **master** (hover: berlaku sejak …); baris tanpa supplier: *baris tanpa supplier di specsheet*; material QUOTATION: *material quotation …*; material tanpa harga: *belum ada harga master* |
 | B5 | Yield baris `10` → `12,5` Enter | Tersimpan; fokus pindah ke Yield baris berikutnya; Usage `0,08`; Cost/pr = 0,08 × IDR × (1 + loss/100) |
 | B6 | Loss % baris `10` → `3` | Cost/pr naik 3 %; Asal tetap *input* |
 | B7 | Yield `0`, `abc`, `1.250,5`; Loss `100` | Pesan merah di bar grid, tidak tersimpan (Esc mengembalikan) |
 | B8 | Kosongkan Yield baris `10` | Usage & Cost/pr `-`; kotak Yield kuning (baris berharga tanpa yield) |
-| B9 | Baris harga USD | USD = harga asli; IDR & Cost/pr `-` (rate belum diisi — rekap F8); status bar *rate belum diisi* |
+| B9 | Baris harga USD | USD = harga asli; IDR & Cost/pr `-` (rate belum diisi - rekap F8); status bar *rate belum diisi* |
 | B10 | **+ Buat CBD** tidak tampil selama ada draft; **Hapus Draft** → Cancel → Confirm | Draft terhapus, chip A1 kembali **BELUM ADA CBD**; buat lagi (B1) dan isi Yield beberapa baris |
 
 ### C. Hak akses
@@ -317,7 +317,7 @@ UPDATE cbd_revision SET status = 'PUBLISHED', published_at = now(), published_by
 ## 6. Export & cek skema
 
 1. Export app → simpan sebagai `appsmith/exports/export_v7.json`.
-2. Jalankan query cek skema (`PLAN.md` §8) di DB Tools, tempel hasilnya ke chat — harus ada `cbd_revision`, `cbd_line`
+2. Jalankan query cek skema (`PLAN.md` §8) di DB Tools, tempel hasilnya ke chat - harus ada `cbd_revision`, `cbd_line`
    (table), `v_cbd_line`, `v_cbd_article` (view), `fn_spec_latest_pub`, `fn_cbd_article_spec_status`, `fn_cbd_draft`,
    `fn_cbd_group_code`, `fn_cbd_identity`, `fn_cbd_expected_lines`, `fn_cbd_populate`, `fn_cbd_create`,
    `fn_cbd_delete_draft`, `fn_cbd_line_set`, `fn_cbd_revision_lock`, `fn_cbd_line_lock` (function), trigger

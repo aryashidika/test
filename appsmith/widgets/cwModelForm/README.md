@@ -1,6 +1,6 @@
 # cwModelForm
 
-Form **Tambah / Ubah Model** — dipakai di dua page:
+Form **Tambah / Ubah Model** - dipakai di dua page:
 - `Model List` (modal `mdlModel`, mode `add`) → `ModelCtrl.save()` → `a_model_add`
 - `Model Detail` (modal `mdlModel`, mode `edit`) → `ModelDetailCtrl.saveModel()` → `a_model_update`
 

@@ -1,4 +1,4 @@
-// cwSupplierForm — form Tambah/Ubah Supplier di mdlSupplier. Hanya tampilan; simpan lewat SupplierCtrl.save().
+// cwSupplierForm - form Tambah/Ubah Supplier di mdlSupplier. Hanya tampilan; simpan lewat SupplierCtrl.save().
 // R2: tanpa usulan/approval (status ACTIVE/INACTIVE), daftar nama mirip saat mengetik (event onSearch).
 const $ = id => document.getElementById(id);
 let lastKey = null;
@@ -71,11 +71,11 @@ function querySimilar() {
   }, 350);
 }
 
-// Isi ulang field hanya saat modal dibuka (key berubah) — busy/message tidak menghapus ketikan user
+// Isi ulang field hanya saat modal dibuka (key berubah) - busy/message tidak menghapus ketikan user
 function fillForm(m) {
   const f = m.form || {};
   const isEdit = m.mode === 'edit';
-  $('title').textContent = isEdit ? 'Ubah Supplier' : 'Tambah Supplier';
+  $('title').textContent = isEdit ? 'Edit Supplier' : 'Add Supplier';
   $('name').value = f.name || '';
   $('name').classList.remove('invalid');
   fillSelect($('status'), m.statusOptions, f.status || 'ACTIVE');
@@ -91,7 +91,7 @@ function setBusy(v) {
   $('btnSave').disabled = v;
   $('btnCancel').disabled = v;
   $('btnX').disabled = v;
-  $('btnSave').textContent = v ? 'Menyimpan…' : 'Simpan';
+  $('btnSave').textContent = v ? 'Saving…' : 'Save';
 }
 
 function render(model) {
@@ -110,7 +110,7 @@ function submit() {
   const name = $('name').value.trim().replace(/\s+/g, ' ');
   $('name').classList.toggle('invalid', !name);
   if (!name) {
-    showMessage({ type: 'error', text: 'Nama supplier wajib diisi.' });
+    showMessage({ type: 'error', text: 'Supplier name is required.' });
     return;
   }
   appsmith.updateModel({

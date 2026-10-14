@@ -403,7 +403,7 @@ input.cell.need {
 
 .vl.over { background: var(--danger-bg); color: var(--danger); }
 .vl.under { background: #E3F4EA; color: #1E7B45; }
-.vl.sesuai { background: var(--info-bg); color: var(--primary); }
+.vl.match { background: var(--info-bg); color: var(--primary); }
 
 /* ---------------------------------------------------------------- F8b: subtotal, tabel bawah */
 tr.subtotal td {

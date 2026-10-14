@@ -1,17 +1,17 @@
 <div class="wrap">
   <div class="head">
-    <h2 id="title">Tambah Model</h2>
-    <button type="button" class="x" id="btnX" aria-label="Tutup">✕</button>
+    <h2 id="title">Add Model</h2>
+    <button type="button" class="x" id="btnX" aria-label="Close">✕</button>
   </div>
 
   <div id="msg" class="msg" role="alert" hidden></div>
 
-  <label for="name">Nama Model <span class="req">*</span></label>
+  <label for="name">Model Name <span class="req">*</span></label>
   <input id="name" type="text" maxlength="200" autocomplete="off">
 
   <div class="row">
     <div>
-      <label for="category_id">Kategori <span class="req">*</span></label>
+      <label for="category_id">Category <span class="req">*</span></label>
       <select id="category_id"></select>
     </div>
     <div>
@@ -35,20 +35,20 @@
   <select id="outsole_mold_id"></select>
 
   <div class="size-head">
-    <label>Ukuran</label>
-    <span class="size-sum" id="sizeSum">Belum dipilih</span>
-    <button type="button" class="link" id="btnSizeClear">Kosongkan</button>
+    <label>Size</label>
+    <span class="size-sum" id="sizeSum">None selected</span>
+    <button type="button" class="link" id="btnSizeClear">Clear</button>
   </div>
-  <div class="sizes" id="sizes" role="group" aria-label="Pilih ukuran"></div>
-  <div class="hint">Klik ukuran awal lalu ukuran akhir untuk memilih rentang. Klik ukuran terpilih untuk membuangnya.</div>
+  <div class="sizes" id="sizes" role="group" aria-label="Select sizes"></div>
+  <div class="hint">Click the first size, then the last size to select a range. Click a selected size to remove it.</div>
 
   <label for="sample_size">Sample Size</label>
   <select id="sample_size"></select>
 
-  <div class="hint">Nama model unik di pabrik Anda. Pilihan dropdown baru ditambah di Master Pilihan.</div>
+  <div class="hint">The model name is unique in your factory. New dropdown options are added in Master Options.</div>
 
   <div class="actions">
-    <button type="button" class="btn-secondary" id="btnCancel">Batal</button>
-    <button type="button" class="btn-primary" id="btnSave">Simpan</button>
+    <button type="button" class="btn-secondary" id="btnCancel">Cancel</button>
+    <button type="button" class="btn-primary" id="btnSave">Save</button>
   </div>
 </div>

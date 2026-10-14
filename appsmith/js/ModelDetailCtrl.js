@@ -1,8 +1,8 @@
-// JSObject "ModelDetailCtrl" — page Model Detail (?id=<model id>&season=<specsheet id, opsional>).
+// JSObject "ModelDetailCtrl" - page Model Detail (?id=<model id>&season=<specsheet id, opsional>).
 // Form: cwModelForm (mdlModel), cwSeasonForm (mdlSeason), cwArticleForm (mdlArticle).
 // Lampiran article: modal mdlLampiran (FilePicker + tabel + pratinjau gambar).
 // Izin: lihat = view_model · ubah model, season, article, lampiran = edit_model. Semua dicek lagi di DB
-// (kode article unik per season — tanpa batas jumlah sejak R8, kode yang sudah dipakai terkunci, jenis & ukuran lampiran).
+// (kode article unik per season - tanpa batas jumlah sejak R8, kode yang sudah dipakai terkunci, jenis & ukuran lampiran).
 // Query q_articles & q_attachments selalu dijalankan lewat loadArticles() / loadAttachments() (pakai params).
 // R4: form model = dropdown Master Pilihan + grid ukuran (q_model_options).
 export default {
@@ -51,41 +51,41 @@ export default {
 	},
 
 	seasonOptions() {
-		return this.seasons().map(s => ({ label: `${this.seasonLabel(s.season)} (${s.article_count} article)`, value: s.id }));
+		return this.seasons().map(s => ({ label: `${this.seasonLabel(s.season)} (${s.article_count} article(s))`, value: s.id }));
 	},
 
 	headerText() {
 		const m = this.model();
-		if (!m) return q_model.isLoading ? 'Memuat…' : 'Model tidak ditemukan. Buka dari Model List.';
+		if (!m) return q_model.isLoading ? 'Loading…' : 'Model not found. Open it from Model List.';
 		const e = v => this.esc(v);
 		return `<b style="font-size:18px">${e(m.name)}</b> <span style="color:#6b7280">· ${e(m.factory_name)}</span><br>`
-			+ `Kategori: ${e(m.category || '-')} · Gender: ${e(m.gender || '-')} · ${this.seasons().length} season`;
+			+ `Category: ${e(m.category || '-')} · Gender: ${e(m.gender || '-')} · ${this.seasons().length} season(s)`;
 	},
 
 	infoText() {
 		const m = this.model();
 		if (!m) return '';
 		const rows = [
-			['Nama Model', m.name], ['Pabrik', m.factory_name], ['Kategori', m.category], ['Gender', m.gender],
+			['Model Name', m.name], ['Factory', m.factory_name], ['Category', m.category], ['Gender', m.gender],
 			['Outsole Mould', m.outsole_mold], ['Last No.', m.last_no], ['Construction', m.construction],
-			['Ukuran', m.size_range], ['Sample Size', m.sample_size],
+			['Size', m.size_range], ['Sample Size', m.sample_size],
 		];
 		return '<table style="border-collapse:collapse">' + rows.map(([k, v]) =>
 			`<tr><td style="padding:4px 24px 4px 0;color:#6b7280">${k}</td><td style="padding:4px 0"><b>${this.esc(v || '-')}</b></td></tr>`
 		).join('') + '</table>'
-			+ `<div style="margin-top:12px;color:#6b7280;font-size:12px">Diubah ${Util.fmtDateTime(m.updated_at)} oleh ${this.esc(m.updated_by || '-')}</div>`;
+			+ `<div style="margin-top:12px;color:#6b7280;font-size:12px">Changed ${Util.fmtDateTime(m.updated_at)} by ${this.esc(m.updated_by || '-')}</div>`;
 	},
 
 	articleNote() {
 		if (!this.seasonId) {
 			return this.seasons().length ? '' : (this.canEdit()
-				? 'Belum ada season. Klik "+ Season Baru", lalu isi article/colorway-nya di sini sebelum membuat specsheet.'
-				: 'Belum ada season.');
+				? 'No seasons yet. Click "+ New Season", then add its articles/colorways here before creating the specsheet.'
+				: 'No seasons yet.');
 		}
 		const n = this.articles().length;
-		let t = `${n} article di season ${this.season() ? this.season().season : ''}.`;
+		let t = `${n} article(s) in season ${this.season() ? this.season().season : ''}.`;
 		if (this.canEdit() && n) {
-			t += ' Article yang sudah dipakai di specsheet/CBD tidak bisa dihapus dan kodenya tidak bisa diubah — hentikan pemakaiannya dengan drop di specsheet.';
+			t += ' Articles used in a specsheet/CBD cannot be deleted and their code cannot be changed. Stop using them by dropping them in the specsheet.';
 		}
 		return t;
 	},
@@ -93,9 +93,9 @@ export default {
 	// Kolom "Specsheet" di tblArticles: status article di revisi terbit terakhir, atau di draft.
 	// Role tanpa view_drafts (Brand) hanya melihat revisi terbit.
 	specText(row) {
-		if (row.pub_status) return `${row.pub_status === 'ACTIVE' ? 'AKTIF' : 'DI-DROP'} · ${row.pub_label} terbit`;
-		if (Auth.can('view_drafts') && row.draft_status) return `DI DRAFT · ${row.draft_label}`;
-		return 'BELUM MASUK SPECSHEET';
+		if (row.pub_status) return `${row.pub_status === 'ACTIVE' ? 'ACTIVE' : 'DROPPED'} · ${row.pub_label} published`;
+		if (Auth.can('view_drafts') && row.draft_status) return `IN DRAFT · ${row.draft_label}`;
+		return 'NOT IN SPECSHEET';
 	},
 
 	specColor(row) {
@@ -109,9 +109,9 @@ export default {
 	cbdText(row) {
 		if (!this.canViewCbd()) return '';
 		const parts = [];
-		if (row.cbd_pub_label) parts.push(`${row.cbd_pub_sync === 'NEEDS_REVISION' ? 'PERLU REVISI' : 'TERBIT'} · ${row.cbd_pub_label}`);
+		if (row.cbd_pub_label) parts.push(`${row.cbd_pub_sync === 'NEEDS_REVISION' ? 'NEEDS REVISION' : 'PUBLISHED'} · ${row.cbd_pub_label}`);
 		if (row.cbd_draft_label) parts.push(`DRAFT · ${row.cbd_draft_label}`);
-		return parts.length ? parts.join(' · ') : 'BELUM ADA CBD';
+		return parts.length ? parts.join(' · ') : 'NO CBD YET';
 	},
 
 	cbdColor(row) {
@@ -122,7 +122,7 @@ export default {
 
 	attachmentTitle() {
 		const a = this.article;
-		return a ? `Lampiran — ${this.esc(a.code)} · ${this.esc(a.colorway)}` : 'Lampiran';
+		return a ? `Attachments: ${this.esc(a.code)} · ${this.esc(a.colorway)}` : 'Attachments';
 	},
 
 	fmtSize(bytes) {
@@ -183,7 +183,7 @@ export default {
 			if (Util.isSessionError(msg)) {
 				closeModal(modal);
 				await removeValue('token');
-				showAlert('Sesi login habis. Silakan login lagi.', 'warning');
+				showAlert('Session expired. Please log in again.', 'warning');
 				navigateTo('Login');
 				return false;
 			}
@@ -228,7 +228,7 @@ export default {
 	},
 
 	// ---- pilihan model (R4, q_model_options) ----
-	// { KATEGORI: [{ value, label }], ... } — ACTIVE + nilai lama form (ditandai INACTIVE); sizes = UKURAN ACTIVE
+	// { KATEGORI: [{ value, label }], ... } - ACTIVE + nilai lama form (ditandai INACTIVE); sizes = UKURAN ACTIVE
 	optionModel(form) {
 		const rows = q_model_options.data || [];
 		const cur = new Set(Object.values(form || {}).filter(v => typeof v === 'string' && v));
@@ -258,7 +258,7 @@ export default {
 			v => { this.modelMsg = v; }, v => { this.modelBusy = v; }, 'mdlModel');
 		if (!ok) return;
 		closeModal('mdlModel');
-		showAlert('Model disimpan.', 'success');
+		showAlert('Model saved.', 'success');
 		await this.refresh([q_model]);
 	},
 
@@ -286,7 +286,7 @@ export default {
 		if (!ok) return;
 		closeModal('mdlSeason');
 		const id = a_season_add.data && a_season_add.data[0] && a_season_add.data[0].id;
-		showAlert(`Season ${f.season} ditambahkan.`, 'success');
+		showAlert(`Season ${f.season} added.`, 'success');
 		await this.refresh([q_seasons]);
 		await this.pickSeason(id || this.seasonId);
 	},
@@ -335,13 +335,13 @@ export default {
 			v => { this.articleMsg = v; }, v => { this.articleBusy = v; }, 'mdlArticle');
 		if (!ok) return;
 		closeModal('mdlArticle');
-		showAlert(isNew ? `Article ${f.code} ditambahkan.` : 'Article disimpan.', 'success');
+		showAlert(isNew ? `Article ${f.code} added.` : 'Article saved.', 'success');
 		await this.loadArticles();
 		await this.refresh([q_seasons]);
 	},
 
 	async deleteArticle(row) {
-		if (!await Util.run(a_article_delete, { id: row.id }, `Article ${row.code} dihapus.`)) return;
+		if (!await Util.run(a_article_delete, { id: row.id }, `Article ${row.code} deleted.`)) return;
 		await this.loadArticles();
 		await this.refresh([q_seasons]);
 	},
@@ -360,14 +360,14 @@ export default {
 		const file = fpLampiran.files && fpLampiran.files[0];
 		if (!file || !this.article) return;
 		if (file.size > this.MAX_BYTES) {
-			showAlert(`Ukuran file ${this.fmtSize(file.size)}, maksimal 3,5 MB.`, 'error');
+			showAlert(`File size ${this.fmtSize(file.size)}, max 3.5 MB.`, 'error');
 			resetWidget('fpLampiran');
 			return;
 		}
 		this.fileBusy = true;
 		const ok = await Util.run(a_attachment_add, {
 			article_id: this.article.id, file_name: file.name, b64: file.data, note: inpLampiranCatatan.text || '',
-		}, `Lampiran ${file.name} diunggah.`);
+		}, `Attachment ${file.name} uploaded.`);
 		this.fileBusy = false;
 		resetWidget('fpLampiran');
 		if (!ok) return;
@@ -400,7 +400,7 @@ export default {
 	},
 
 	async deleteAttachment(row) {
-		if (!await Util.run(a_attachment_delete, { id: row.id }, `Lampiran ${row.file_name} dihapus.`)) return;
+		if (!await Util.run(a_attachment_delete, { id: row.id }, `Attachment ${row.file_name} deleted.`)) return;
 		if (this.preview && this.preview.id === row.id) this.preview = null;
 		await this.loadAttachments();
 		await this.loadArticles();

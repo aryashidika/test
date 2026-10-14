@@ -1,4 +1,4 @@
-// cwMenu — kartu menu Beranda. Hanya tampilan.
+// cwMenu - kartu menu Beranda. Hanya tampilan.
 // Model masuk: { loaded, title, subtitle, items: [{ key, title, desc, target, icon, badge }] }
 // Event keluar: onOpen (setelah appsmith.updateModel({ target, key })).
 
@@ -56,7 +56,7 @@ function render(model) {
       <div class="icon">${svg(item.icon)}</div>
       <h3>${esc(item.title)}</h3>
       <p class="desc">${esc(item.desc)}</p>
-      <span class="open">Buka <span aria-hidden="true">→</span></span>`;
+      <span class="open">Open <span aria-hidden="true">→</span></span>`;
     card.addEventListener('click', () => open(item));
     grid.appendChild(card);
   });

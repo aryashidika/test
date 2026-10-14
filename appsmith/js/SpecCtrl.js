@@ -1,15 +1,15 @@
-// JSObject "SpecCtrl" — page Specsheet (?model_id=<model id>&season=<specsheet id>&from=list|detail|home, semua opsional).
+// JSObject "SpecCtrl" - page Specsheet (?model_id=<model id>&season=<specsheet id>&from=list|detail|home, semua opsional).
 // Dibuka dari Model List / Model Detail / Beranda (Tugas Saya, F10) -> model & season langsung terpilih; dari sidebar -> pilih dulu
 // di selSpecModel lalu selSpecSeason. Stepper revisi (cwStepper), Buat Revisi (cwRevisionForm di mdlRevisi), Hapus Draft.
 // Terbitkan (cwPublishForm di mdlTerbit, F6) & Riwayat (tblRiwayat di mdlRiwayat, F6).
-// Grid BOM & article revisi ada di BomCtrl. Izin: lihat = view_specsheet (Brand hanya revisi terbit — difilter
+// Grid BOM & article revisi ada di BomCtrl. Izin: lihat = view_specsheet (Brand hanya revisi terbit - difilter
 // query) · ubah = edit_specsheet (Vendor – Specsheet). Semua dicek lagi di DB.
 // Query q_spec_model, q_spec_seasons, q_revisions, q_change_log dijalankan dengan params (loadModel / loadSeason),
 // q_publish_checklist saat modal Terbitkan dibuka;
 // isi revisi lewat BomCtrl.load().
 // R4: checklist terbit + sel kuning & supplier INACTIVE. R7: Buat Revisi bisa copy dari model lain (pabrik & kategori
 // sama, q_copy_model_sources); header menampilkan "disalin dari".
-// R12 (T62): semua pemuatan model / season / revisi lewat antrean nav() — tidak pernah dua sekaligus, jadi isi grid
+// R12 (T62): semua pemuatan model / season / revisi lewat antrean nav() - tidak pernah dua sekaligus, jadi isi grid
 // selalu milik revisi yang dipilih walau user klik cepat. Gambar riwayat dimuat satu per satu (T60).
 export default {
 	modelId: '',       // model yang dipilih
@@ -25,10 +25,10 @@ export default {
 
 	// Kategori change log untuk specsheet (DB juga menerima EX_RATE / LOP / AMORTIZATION / YIELD untuk CBD)
 	CATEGORIES: [
-		{ value: 'MATERIAL', label: 'Material (ganti / tambah material, warna)' },
-		{ value: 'COMPONENT', label: 'Komponen (tambah / hapus baris)' },
-		{ value: 'TREATMENT', label: 'Treatment / proses' },
-		{ value: 'OTHER', label: 'Lainnya' },
+		{ value: 'MATERIAL', label: 'Material (replace / add material, color)' },
+		{ value: 'COMPONENT', label: 'Component (add / delete lines)' },
+		{ value: 'TREATMENT', label: 'Treatment / process' },
+		{ value: 'OTHER', label: 'Other' },
 	],
 
 	// ---- data ----
@@ -157,7 +157,7 @@ export default {
 		if (this.firstLoad) this.from = url.from || '';
 		const want = this.modelId || (this.firstLoad ? url.model_id : '');
 		this.modelId = this.models().some(m => m.id === want) ? want : '';
-		if (want && !this.modelId) showAlert('Model tidak ditemukan. Pilih model di atas.', 'warning');
+		if (want && !this.modelId) showAlert('Model not found. Select a model above.', 'warning');
 		await this.loadModel(this.firstLoad ? url.season : this.seasonId);
 		this.firstLoad = false;
 	},
@@ -226,15 +226,15 @@ export default {
 	},
 
 	seasonOptions() {
-		return this.seasons().map(s => ({ label: `${s.season} (${s.revision_count} revisi)`, value: s.id }));
+		return this.seasons().map(s => ({ label: `${s.season} (${s.revision_count} revisions)`, value: s.id }));
 	},
 
 	headerText() {
 		const m = this.model();
-		if (!m) return this.modelId && q_spec_model.isLoading ? 'Memuat…' : 'Pilih model dan season dahulu.';
+		if (!m) return this.modelId && q_spec_model.isLoading ? 'Loading…' : 'Select a model and season first.';
 		const e = v => this.esc(v || '-');
 		return `<b style="font-size:18px">${e(m.name)}</b> <span style="color:#6b7280">· ${e(m.factory_name)}</span><br>`
-			+ `<span style="color:#6b7280">Kategori: ${e(m.category)} · Gender: ${e(m.gender)} · Outsole Mould: ${e(m.outsole_mold)}`
+			+ `<span style="color:#6b7280">Category: ${e(m.category)} · Gender: ${e(m.gender)} · Outsole Mould: ${e(m.outsole_mold)}`
 			+ ` · Last No.: ${e(m.last_no)} · Construction: ${e(m.construction)} · Size Range: ${e(m.size_range)}`
 			+ ` · Sample Size: ${e(m.sample_size)}</span>`;
 	},
@@ -243,9 +243,9 @@ export default {
 		return {
 			revisions: this.revisions().map(r => ({ id: r.id, stage: r.stage, revision_no: r.revision_no, status: r.status })),
 			selectedId: this.revisionId,
-			emptyText: !this.modelId ? 'Pilih model dulu.'
-				: !this.seasonId ? 'Model ini belum punya season.'
-				: (this.canEdit() ? 'Belum ada revisi. Klik "+ Buat Revisi".' : 'Belum ada revisi yang terbit.'),
+			emptyText: !this.modelId ? 'Select a model first.'
+				: !this.seasonId ? 'This model has no seasons yet.'
+				: (this.canEdit() ? 'No revisions yet. Click "+ Create Revision".' : 'No published revisions yet.'),
 		};
 	},
 
@@ -254,22 +254,22 @@ export default {
 		const s = this.season();
 		if (!this.modelId) return '';
 		if (!this.seasonId) {
-			return 'Model ini belum punya season. Tambahkan season & article di halaman Model Detail.';
+			return 'This model has no seasons yet. Add seasons & articles on the Model Detail page.';
 		}
 		if (!r) return '';
 		const e = v => this.esc(v);
 		let t = `<b>${e(s ? s.season : '')} · ${e(this.label(r))}</b> · `
 			+ `<b style="color:${Util.statusColor(r.status)}">${r.status}</b>`;
-		if (r.status === 'PUBLISHED') t += ` · terbit ${Util.fmtDateTime(r.published_at)} oleh ${e(r.published_by || '-')}`;
-		else t += ` · dibuat ${Util.fmtDateTime(r.created_at)} oleh ${e(r.created_by || '-')}`;
+		if (r.status === 'PUBLISHED') t += ` · published ${Util.fmtDateTime(r.published_at)} by ${e(r.published_by || '-')}`;
+		else t += ` · created ${Util.fmtDateTime(r.created_at)} by ${e(r.created_by || '-')}`;
 		if (r.source_label) {
-			t += r.source_model ? ` · disalin dari ${e(r.source_model)} · ${e(r.source_season)} · ${e(r.source_label)}`
-				: ` · sumber: ${e(r.source_season)} ${e(r.source_label)}`;
+			t += r.source_model ? ` · copied from ${e(r.source_model)} · ${e(r.source_season)} · ${e(r.source_label)}`
+				: ` · source: ${e(r.source_season)} ${e(r.source_label)}`;
 		}
 		const log = r.status === 'PUBLISHED' ? this.logFor(r.id) : null;
-		if (log) t += `<br><span style="color:#6b7280">Perubahan (${e(log.category)}): ${e(log.reason)}</span>`;
+		if (log) t += `<br><span style="color:#6b7280">Change (${e(log.category)}): ${e(log.reason)}</span>`;
 		if (this.canEdit() && r.status === 'PUBLISHED' && this.draft()) {
-			t += ` · <span style="color:#d97706">ada draft ${e(this.label(this.draft()))}</span>`;
+			t += ` · <span style="color:#d97706">draft ${e(this.label(this.draft()))}</span>`;
 		}
 		return t;
 	},
@@ -282,12 +282,12 @@ export default {
 	},
 
 	backLabel() {
-		if (this.from === 'home') return '← Beranda';
+		if (this.from === 'home') return '← Home';
 		return this.backToList() ? '← Model List' : '← Model Detail';
 	},
 
 	openModel() {
-		if (this.from === 'home') return navigateTo('Beranda');
+		if (this.from === 'home') return navigateTo('Home');
 		const m = this.model();
 		if (this.backToList()) return navigateTo('Model List');
 		navigateTo('Model Detail', this.seasonId ? { id: m.id, season: this.seasonId } : { id: m.id });
@@ -340,8 +340,8 @@ export default {
 				.map(x => ({ id: x.id, season: x.season, label: x.latest_pub_label })),
 			modelSources: (q_copy_model_sources.data || []).map(x => ({
 				id: x.id,
-				label: `${x.model_name} · ${x.season} — ${x.label} terbit${x.outsole_mold ? ' · Mold ' + x.outsole_mold : ''}`,
-				summary: `Akan menyalin ${x.line_count} baris BOM dari ${x.model_name} · ${x.season} · ${x.label}.`,
+				label: `${x.model_name} · ${x.season} · ${x.label} published${x.outsole_mold ? ' · Mold ' + x.outsole_mold : ''}`,
+				summary: `Will copy ${x.line_count} BOM lines from ${x.model_name} · ${x.season} · ${x.label}.`,
 			})),
 			busy: this.revBusy,
 			message: this.revMsg,
@@ -362,7 +362,7 @@ export default {
 			if (Util.isSessionError(msg)) {
 				closeModal('mdlRevisi');
 				await removeValue('token');
-				showAlert('Sesi login habis. Silakan login lagi.', 'warning');
+				showAlert('Session expired. Please log in again.', 'warning');
 				navigateTo('Login');
 				return;
 			}
@@ -373,7 +373,7 @@ export default {
 		}
 		closeModal('mdlRevisi');
 		const id = a_revision_create.data && a_revision_create.data[0] && a_revision_create.data[0].id;
-		showAlert('Revisi draft dibuat.', 'success');
+		showAlert('Draft revision created.', 'success');
 		await this.nav({ type: 'reload', seasons: true, pick: id });
 	},
 
@@ -388,7 +388,7 @@ export default {
 			const msg = e && e.message;
 			if (Util.isSessionError(msg)) {
 				await removeValue('token');
-				showAlert('Sesi login habis. Silakan login lagi.', 'warning');
+				showAlert('Session expired. Please log in again.', 'warning');
 				navigateTo('Login');
 				return;
 			}
@@ -406,23 +406,23 @@ export default {
 		const s = this.season();
 		const c = (q_publish_checklist.data && q_publish_checklist.data[0]) || null;
 		const checks = !c ? [] : [
-			{ label: 'Minimal satu article aktif', ok: c.active_articles > 0, blocking: true,
-				detail: `${c.active_articles} article aktif` },
-			{ label: 'Setiap article aktif dipakai di BOM', ok: !c.unused_articles, blocking: true,
-				detail: c.unused_articles ? `Belum dipakai (belum ada warna di baris mana pun): ${c.unused_articles}` : '' },
-			{ label: 'Tidak ada material INACTIVE', ok: !c.inactive_materials, blocking: true,
+			{ label: 'At least one active article', ok: c.active_articles > 0, blocking: true,
+				detail: `${c.active_articles} active article(s)` },
+			{ label: 'Every active article is used in the BOM', ok: !c.unused_articles, blocking: true,
+				detail: c.unused_articles ? `Not used (no color in any line): ${c.unused_articles}` : '' },
+			{ label: 'No INACTIVE materials', ok: !c.inactive_materials, blocking: true,
 				detail: c.inactive_materials || '' },
-			{ label: 'Semua baris punya supplier', ok: c.no_supplier_lines === 0, blocking: true,
-				detail: c.no_supplier_lines ? `${c.no_supplier_lines} baris tanpa supplier — isi supplier di grid BOM` : '' },
-			{ label: 'Semua warna punya Material Code (tidak ada sel kuning)', ok: !c.yellow_cells, blocking: true,
-				detail: c.yellow_cells ? `${c.yellow_cells} sel kuning: ${c.yellow_list || ''} — klik Daftarkan di sel itu` : '' },
-			{ label: 'Tidak ada supplier nonaktif', ok: !c.inactive_suppliers, blocking: true,
-				detail: c.inactive_suppliers ? `${c.inactive_suppliers} — ganti suppliernya di grid BOM` : '' },
+			{ label: 'All lines have a supplier', ok: c.no_supplier_lines === 0, blocking: true,
+				detail: c.no_supplier_lines ? `${c.no_supplier_lines} lines without supplier. Fill in the supplier in the BOM grid` : '' },
+			{ label: 'All colors have a Material Code (no yellow cells)', ok: !c.yellow_cells, blocking: true,
+				detail: c.yellow_cells ? `${c.yellow_cells} yellow cells: ${c.yellow_list || ''}. Click Register in that cell` : '' },
+			{ label: 'No inactive suppliers', ok: !c.inactive_suppliers, blocking: true,
+				detail: c.inactive_suppliers ? `${c.inactive_suppliers}. Change the supplier in the BOM grid` : '' },
 		];
 		const requiresReason = c ? !!c.requires_reason : true;
 		return {
 			key: this.pubKey,
-			title: `Terbitkan ${s ? s.season + ' · ' : ''}${this.label(r)}`,
+			title: `Publish ${s ? s.season + ' · ' : ''}${this.label(r)}`,
 			checks,
 			blocked: !c || !!c.blocked,
 			requiresReason,
@@ -449,7 +449,7 @@ export default {
 			if (Util.isSessionError(msg)) {
 				closeModal('mdlTerbit');
 				await removeValue('token');
-				showAlert('Sesi login habis. Silakan login lagi.', 'warning');
+				showAlert('Session expired. Please log in again.', 'warning');
 				navigateTo('Login');
 				return;
 			}
@@ -461,8 +461,8 @@ export default {
 		const logId = ((a_revision_publish.data || [])[0] || {}).id;
 		const failed = await this.attachImages(logId, images);
 		closeModal('mdlTerbit');
-		showAlert(`Revisi ${this.label(r)} diterbitkan.`
-			+ (failed ? ` ${failed} gambar gagal dilampirkan.` : (images.length ? ` ${images.length} gambar dilampirkan.` : '')),
+		showAlert(`Revision ${this.label(r)} published.`
+			+ (failed ? ` ${failed} image(s) could not be attached.` : (images.length ? ` ${images.length} image(s) attached.` : '')),
 			failed ? 'warning' : 'success');
 		await this.nav({ type: 'reload', seasons: true, pick: r.id });
 	},
@@ -474,7 +474,7 @@ export default {
 		this.pubBusy = true;
 		for (const img of images) {
 			try {
-				await a_change_log_attach.run({ log_id: logId, file_name: img.name || 'gambar', data: img.data || '' });
+				await a_change_log_attach.run({ log_id: logId, file_name: img.name || 'image', data: img.data || '' });
 			} catch (e) {
 				failed += 1;
 			}
@@ -486,7 +486,7 @@ export default {
 	// ---- riwayat (F6) ----
 	historyLabel() {
 		const n = this.changeLogs().length;
-		return n ? `Riwayat (${n})` : 'Riwayat';
+		return n ? `History (${n})` : 'History';
 	},
 
 	openHistory() {
@@ -524,7 +524,7 @@ export default {
 					failed += 1;
 				}
 			}
-			if (failed) showAlert(`${failed} gambar gagal dimuat.`, 'warning');
+			if (failed) showAlert(`${failed} image(s) could not be loaded.`, 'warning');
 		} catch (e) {
 			showAlert(Util.cleanError(e && e.message), 'error');
 		} finally {
@@ -536,9 +536,9 @@ export default {
 		const log = this.changeLogs().find(l => l.id === this.galleryLogId) || null;
 		const images = log && log.image_count ? this.galleryImages : [];
 		return {
-			title: log ? `Gambar ${log.revision_label}` : 'Gambar',
-			emptyText: !log ? 'Pilih baris riwayat untuk melihat gambarnya.'
-				: log.image_count ? 'Gambar tidak bisa dimuat.' : 'Tidak ada gambar di terbit ini.',
+			title: log ? `Images: ${log.revision_label}` : 'Images',
+			emptyText: !log ? 'Select a history row to see its images.'
+				: log.image_count ? 'Images could not be loaded.' : 'No images in this publish.',
 			loading: !!log && !!log.image_count && this.galleryLoading && !images.length,
 			images,
 		};
@@ -555,7 +555,7 @@ export default {
 	async deleteDraft() {
 		const r = this.revision();
 		if (!r || r.status !== 'DRAFT') return;
-		if (!await Util.run(a_revision_delete, { id: r.id }, `Draft ${this.label(r)} dihapus.`)) return;
+		if (!await Util.run(a_revision_delete, { id: r.id }, `Draft ${this.label(r)} deleted.`)) return;
 		await this.nav({ type: 'reload', seasons: true, clear: true });
 	},
 }

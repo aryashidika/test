@@ -1,4 +1,4 @@
-# R12 — Perbaikan pra-UAT dari review go-live (13 Okt 2026)
+# R12 - Perbaikan pra-UAT dari review go-live (13 Okt 2026)
 
 Lanjut dari data yang ada (tanpa reset). Base build = `exports/export_r11b.json` (= export app Anda "Product Management
 R11 (1)", identik dengan `build_r11b.json`). Rincian temuan & keputusan: `PLAN.md` §9 T60–T70.
@@ -55,7 +55,7 @@ sisi app (T60); menaikkan `APPSMITH_PLUGIN_MAX_RESPONSE_SIZE_MB` tetap disaranka
 
 ## C. Sesi habis (T64)
 
-Cara cepat memaksa sesi habis: buka app di 2 tab (login sekali), lalu di tab ke-2 klik **Keluar** — sesi di DB dihapus,
+Cara cepat memaksa sesi habis: buka app di 2 tab (login sekali), lalu di tab ke-2 klik **Keluar** - sesi di DB dihapus,
 tab pertama masih menampilkan halaman tetapi sesinya sudah tidak berlaku. (Atau: System Admin **Reset password** user itu.)
 
 | # | Langkah (di tab pertama) | Hasil |

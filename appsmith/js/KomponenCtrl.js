@@ -27,10 +27,10 @@ export default {
 		return q_component_groups.data || [];
 	},
 
-	// Opsi filter kelompok di atas tabel: "a — Upper (0–3990)"
+	// Opsi filter kelompok di atas tabel: "a - Upper (0–3990)"
 	groupOptions() {
 		return this.groups().map(g => ({
-			label: `${g.code} — ${g.name} (${g.range_start}–${g.range_end})`,
+			label: `${g.code} · ${g.name} (${g.range_start}–${g.range_end})`,
 			value: g.code,
 		}));
 	},
@@ -79,12 +79,12 @@ export default {
 			this.similar = rows || [];
 			this.similarFor = text;
 		} catch (e) {
-			/* daftar mirip hanya bantuan — abaikan */
+			/* daftar mirip hanya bantuan - abaikan */
 		}
 	},
 
 	async save() {
-		// Baca model dulu — model di-reset saat state (Default model) berubah
+		// Baca model dulu - model di-reset saat state (Default model) berubah
 		const m = cwKomponenForm.model || {};
 		const data = {
 			id: this.form.id,
@@ -94,7 +94,7 @@ export default {
 			status: this.isNew ? 'ACTIVE' : m.status,
 		};
 		if (!data.group_code || !data.name || !Number.isInteger(data.number)) {
-			this.message = { type: 'error', text: 'Lengkapi kelompok, nomor, dan nama komponen.' };
+			this.message = { type: 'error', text: 'Fill in group, number, and component name.' };
 			return;
 		}
 		this.message = null;
@@ -106,7 +106,7 @@ export default {
 			if (Util.isSessionError(msg)) {
 				closeModal('mdlKomponen');
 				await removeValue('token');
-				showAlert('Sesi login habis. Silakan login lagi.', 'warning');
+				showAlert('Session expired. Please log in again.', 'warning');
 				navigateTo('Login');
 				return;
 			}
@@ -116,7 +116,7 @@ export default {
 			this.busy = false;
 		}
 		closeModal('mdlKomponen');
-		showAlert(this.isNew ? 'Komponen ditambahkan.' : 'Komponen disimpan.', 'success');
+		showAlert(this.isNew ? 'Component added.' : 'Component saved.', 'success');
 		for (const q of [q_components, q_component_groups]) {
 			try { await q.run(); } catch (e) { /* abaikan */ }
 		}

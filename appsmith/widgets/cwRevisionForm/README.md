@@ -1,13 +1,13 @@
 # cwRevisionForm
 
-Form **Buat Revisi** — page `Specsheet`, modal `mdlRevisi` → `SpecCtrl.saveRevision()` → `a_revision_create`
+Form **Buat Revisi** - page `Specsheet`, modal `mdlRevisi` → `SpecCtrl.saveRevision()` → `a_revision_create`
 (`fn_revision_create`).
 
 Hanya tampilan. Pilihan cara mengikuti keadaan season (dari model):
 
 | Keadaan | Pilihan |
 |---|---|
-| Season belum punya revisi | **Mulai kosong** (`EMPTY`) · **Copy dari season lain (model sama)** (`COPY`, pilih season sumber — revisi terbit terakhirnya) · + stage awal |
+| Season belum punya revisi | **Mulai kosong** (`EMPTY`) · **Copy dari season lain (model sama)** (`COPY`, pilih season sumber - revisi terbit terakhirnya) · + stage awal |
 | Ada revisi terbit | **Revisi berikutnya** (`NEXT_REVISION`, stage sama, nomor + 1) · **Stage berikutnya** (`NEXT_STAGE`, pilih stage tujuan yang lebih tinggi, boleh melompat; nonaktif kalau sudah Production) |
 | Ada draft | Tidak ada pilihan (tombol Buat Revisi disembunyikan; teks info kalau tetap terbuka) |
 

@@ -1,4 +1,4 @@
-// cwLogin — form Masuk & Ganti Password. Kontrak model/event: lihat README.md.
+// cwLogin - form Masuk & Ganti Password. Kontrak model/event: lihat README.md.
 // Widget ini hanya tampilan: validasi ringan di sini, semua keputusan di LoginCtrl + DB.
 
 const $ = (id) => document.getElementById(id);
@@ -39,8 +39,8 @@ function setBusy(value) {
   $('btnLogin').disabled = busy;
   $('btnChange').disabled = busy;
   $('btnCancel').disabled = busy;
-  $('btnLogin').textContent = busy ? 'Memproses…' : 'Masuk';
-  $('btnChange').textContent = busy ? 'Menyimpan…' : 'Simpan';
+  $('btnLogin').textContent = busy ? 'Processing…' : 'Log in';
+  $('btnChange').textContent = busy ? 'Saving…' : 'Save';
   // Selesai diproses (berhasil atau gagal): password tidak dibiarkan di layar
   if (wasBusy && !busy) clearPasswords();
 }
@@ -64,10 +64,10 @@ function render(model) {
     }
   }
 
-  $('btnCancel').textContent = m.forced ? 'Keluar' : 'Batal';
+  $('btnCancel').textContent = m.forced ? 'Log out' : 'Cancel';
   $('changeHint').textContent = m.forced
-    ? 'Anda masuk dengan password sementara. Buat password baru (minimal 8 karakter) sebelum melanjutkan.'
-    : 'Minimal 8 karakter.';
+    ? 'You logged in with a temporary password. Create a new password (at least 8 characters) to continue.'
+    : 'At least 8 characters.';
 
   showMessage(m.message);
   setBusy(!!m.busy);
@@ -78,7 +78,7 @@ function submitLogin() {
   const email = $('email').value.trim().toLowerCase();
   const password = $('password').value;
   if (!email || !password) {
-    showMessage({ type: 'error', text: 'Isi email dan password.' });
+    showMessage({ type: 'error', text: 'Enter email and password.' });
     return;
   }
   appsmith.updateModel({ email, password });
@@ -91,10 +91,10 @@ function submitChange() {
   const newPass = $('newPass').value;
   const newPass2 = $('newPass2').value;
   let error = '';
-  if (!oldPass || !newPass) error = 'Isi password lama dan password baru.';
-  else if (newPass.length < 8) error = 'Password baru minimal 8 karakter.';
-  else if (newPass !== newPass2) error = 'Konfirmasi password baru tidak sama.';
-  else if (newPass === oldPass) error = 'Password baru harus berbeda dari password lama.';
+  if (!oldPass || !newPass) error = 'Enter the old and new password.';
+  else if (newPass.length < 8) error = 'New password must be at least 8 characters.';
+  else if (newPass !== newPass2) error = 'New password confirmation does not match.';
+  else if (newPass === oldPass) error = 'New password must differ from the old one.';
   if (error) {
     showMessage({ type: 'error', text: error });
     return;
@@ -125,7 +125,7 @@ function bindEvents() {
       const input = $(btn.dataset.for);
       const show = input.type === 'password';
       input.type = show ? 'text' : 'password';
-      btn.textContent = show ? 'Sembunyikan' : 'Lihat';
+      btn.textContent = show ? 'Hide' : 'Show';
     });
   });
 }

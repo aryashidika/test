@@ -1,4 +1,4 @@
-# R8 — Uji lanjutan dari data E2E-R (12 Okt 2026)
+# R8 - Uji lanjutan dari data E2E-R (12 Okt 2026)
 
 **Tanpa reset**: memakai data yang sudah ada dari E2E-R (`steps/E2E_R_uji.md`): PABRIK A & B, user per role, material
 **MESH** + varian, model **RUNNER X** & **RUNNER IN** (FH26), CBD article RUNNER X & RUNNER IN. Nama di bawah mengikuti
@@ -18,7 +18,7 @@ PostgreSQL 16 lokal (2× tanpa error, self-test 102 cek lolos, 137 query lolos E
 | 0.5 | Editor, page CBD: modal `mdlCbdHarga` (sekarang ada isian tanggal, tinggi 520 px) | Tombol Simpan tidak terpotong |
 | 0.6 | Siapkan CBD **draft**: Vendor CBD A → CBD article **RUNNER IN** (dari uji 8.4). Kalau sudah terbit → **Buat CBD** revisi berikutnya | Ada 1 CBD draft untuk bagian 5 |
 
-## 1. Manager Costing — harga langsung berlaku (material MESH)
+## 1. Manager Costing - harga langsung berlaku (material MESH)
 
 | # | Langkah | Hasil |
 |---|---|---|
@@ -35,7 +35,7 @@ PostgreSQL 16 lokal (2× tanpa error, self-test 102 cek lolos, 137 query lolos E
 |---|---|---|
 | 2.1 | MC A **tolak** usulan 1.5 (alasan bebas) | Baris DITOLAK tampil (switch *Tampilkan riwayat* OFF) |
 | 2.2 | Vendor CBD A ajukan lagi varian + supplier yang sama → MC A setujui | Switch OFF: baris DITOLAK **hilang**; ON: muncul lagi. Beranda Vendor CBD: kartu Usulan Ditolak untuk varian itu juga hilang |
-| 2.3 | Penolakan lama dari uji E2E-R 4.4 (varian yang belum diajukan ulang) | Masih tampil (switch OFF) — hilang otomatis setelah 30 hari |
+| 2.3 | Penolakan lama dari uji E2E-R 4.4 (varian yang belum diajukan ulang) | Masih tampil (switch OFF) - hilang otomatis setelah 30 hari |
 
 ## 3. Article tanpa batas (RUNNER X · FH26)
 

@@ -1,8 +1,8 @@
-# E2E-R — Pasang revisi R3–R7 sekaligus + uji end-to-end (2 pabrik)
+# E2E-R - Pasang revisi R3–R7 sekaligus + uji end-to-end (2 pabrik)
 
 Keputusan 11 Okt 2026: satu file SQL + satu import. Semua sudah saya uji di PostgreSQL 16 lokal (file gabungan dijalankan dari
 skema R2b, 2× tanpa error, self-test 87 cek lolos, 135 query app lolos EXPLAIN). Yang belum bisa saya uji: tampilan & klik di
-Appsmith sungguhan — itu bagian Anda di bawah.
+Appsmith sungguhan - itu bagian Anda di bawah.
 
 ## 0. Pasang
 
@@ -10,7 +10,7 @@ Appsmith sungguhan — itu bagian Anda di bawah.
 |---|---|---|
 | 0.1 | **Jangan ubah app** sampai build di-import (base = `export_r2.json`). | – |
 | 0.2 | DB Tools → jalankan `sql/RESET_data_bisnis.sql` | Tabel material/supplier = 0; user & pabrik tetap |
-| 0.3 | DB Tools → jalankan `sql/R_revisi_semua.sql` (Use prepared statements = OFF) | Baris terakhir `R3–R7 terpasang` · `variant_id harga: 1 · model tanpa kode: true · sel varian: 1 · PO SMS: 1.2500 · model induk: 1`. Kalau error: tidak ada yang tersimpan — kirim pesannya ke saya |
+| 0.3 | DB Tools → jalankan `sql/R_revisi_semua.sql` (Use prepared statements = OFF) | Baris terakhir `R3–R7 terpasang` · `variant_id harga: 1 · model tanpa kode: true · sel varian: 1 · PO SMS: 1.2500 · model induk: 1`. Kalau error: tidak ada yang tersimpan - kirim pesannya ke saya |
 | 0.4 | DB Tools → jalankan `sql/R_selftest.sql` | Hasil **`SELFTEST LOLOS`** (data uji otomatis dibatalkan). Kalau `SELFTEST GAGAL: …` kirim pesannya |
 | 0.5 | Import `exports/build_r7.json` sebagai **app baru** → hubungkan datasource `Prestasi` bila diminta → cek akses publik → **Deploy** | 13 page, termasuk page baru **Persetujuan Harga** |
 | 0.6 | Login sebagai System Admin → **Keluar** | Kembali ke form login (bukan Beranda) |

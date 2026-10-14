@@ -1,4 +1,4 @@
-# F3 — Master Material, supplier material, harga: langkah di Appsmith
+# F3 - Master Material, supplier material, harga: langkah di Appsmith
 
 Urutan: **0** T9 → **1** SQL → **2** Master Material → **3** Material Detail → **4** uji → **5** export `export_v3.json`.
 
@@ -8,7 +8,7 @@ Custom Widget mengisi modal, tempel HTML/CSS/JS dari `widgets/<cw>/`, isi Defaul
 
 ---
 
-## 0. T9 (bug F2) — kerjakan dulu
+## 0. T9 (bug F2) - kerjakan dulu
 
 Di `Master Supplier` dan `Master Komponen`, event `onLogout` pada `cwHeader`:
 ```
@@ -97,7 +97,7 @@ RETURNING id;
 | `btnMaterialTambah` | Label: `{{MaterialCtrl.canManage() ? '+ Tambah Material' : '+ Usulkan Material'}}` · Visible: `{{MaterialCtrl.canAdd()}}` · onClick: `{{MaterialCtrl.openAdd()}}` |
 | `tblMaterials` | Table data: `{{q_materials.data}}` |
 
-Kolom `tblMaterials` — sembunyikan `id`, `proposed_links`, `priced_links`, `preferred_supplier`, `missing_price`, `updated_by`:
+Kolom `tblMaterials` - sembunyikan `id`, `proposed_links`, `priced_links`, `preferred_supplier`, `missing_price`, `updated_by`:
 
 | Kolom | Label | Setelan |
 |---|---|---|
@@ -113,7 +113,7 @@ Kolom `tblMaterials` — sembunyikan `id`, `proposed_links`, `priced_links`, `pr
 | *(baru)* Button `Approve` | – | onClick: `{{MaterialCtrl.approve(currentRow)}}` · Visible (kolom): `{{MaterialCtrl.canManage()}}` · Cell visible: `{{currentRow.status === 'PROPOSED'}}` |
 | *(baru)* Button `Buka` | – | onClick: `{{MaterialCtrl.open(currentRow)}}` |
 
-### 2d. Modal `mdlMaterial` — Custom Widget `cwMaterialForm`
+### 2d. Modal `mdlMaterial` - Custom Widget `cwMaterialForm`
 
 Modal lebar ±560 px; `cwMaterialForm` tinggi ±650 px. Kode: `widgets/cwMaterialForm/`.
 
@@ -167,7 +167,7 @@ WHERE (SELECT fn_auth({{appsmith.store.token}}, 'view_master')) IS NOT NULL
   AND id::text = {{appsmith.URL.queryParams.id || ''}};
 ```
 
-**`q_material_meta`** — sama persis dengan di page Master Material (salin).
+**`q_material_meta`** - sama persis dengan di page Master Material (salin).
 
 **`q_links`**
 ```sql
@@ -236,7 +236,7 @@ SELECT fn_price_add({{appsmith.store.token}}, {{this.params.link_id}}::uuid, {{t
                     {{this.params.valid_from}}::date, {{this.params.reference}}) AS id;
 ```
 
-**`a_price_end`** — *Request confirmation before running* = **ON**
+**`a_price_end`** - *Request confirmation before running* = **ON**
 ```sql
 SELECT fn_price_end({{appsmith.store.token}}, {{this.params.id}}::uuid, NULL) AS id;
 ```
@@ -258,7 +258,7 @@ SELECT fn_price_end({{appsmith.store.token}}, {{this.params.id}}::uuid, NULL) AS
 | ↳ `btnHargaTambah` | Label `+ Tambah Harga` · Visible: `{{MaterialDetailCtrl.canAddPrice()}}` · onClick: `{{MaterialDetailCtrl.openAddPrice()}}` |
 | ↳ `tblPrices` | Table data: `{{MaterialDetailCtrl.pricesForSelected()}}` |
 
-Kolom `tblLinks` — sembunyikan `id`, `supplier_id`, `updated_by`:
+Kolom `tblLinks` - sembunyikan `id`, `supplier_id`, `updated_by`:
 
 | Kolom | Label | Setelan |
 |---|---|---|
@@ -271,7 +271,7 @@ Kolom `tblLinks` — sembunyikan `id`, `supplier_id`, `updated_by`:
 | *(baru)* Button `Approve` | – | onClick: `{{MaterialDetailCtrl.approveLink(currentRow)}}` · Visible (kolom): `{{MaterialDetailCtrl.canManageMaster()}}` · Cell visible: `{{currentRow.status === 'PROPOSED'}}` |
 | *(baru)* Button `Ubah` | – | onClick: `{{MaterialDetailCtrl.openEditLink(currentRow)}}` · Visible (kolom): `{{MaterialDetailCtrl.canLink() \|\| MaterialDetailCtrl.canManageMaster()}}` |
 
-Kolom `tblPrices` — sembunyikan `id`, `link_id`, `supplier_name`, `created_at`:
+Kolom `tblPrices` - sembunyikan `id`, `link_id`, `supplier_name`, `created_at`:
 
 | Kolom | Label | Setelan |
 |---|---|---|
@@ -306,7 +306,7 @@ Akun: **Master Admin**, **Vendor – Specsheet**, **Vendor – CBD**, **Brand Vi
 
 Material (Master Material)
 - [ ] Admin: Tambah → kode terisi `MTR-0001`; isi `Nappa Leather`, kategori `Leather`, thickness `1.2mm`, UoM `yd`, metode Catalog → APPROVED, UoM tersimpan `YD`
-- [ ] Tambah lagi `nappa  LEATHER`, `1,2mm`, `YD` → ditolak di form: *…sudah ada: MTR-0001 — Nappa Leather.*
+- [ ] Tambah lagi `nappa  LEATHER`, `1,2mm`, `YD` → ditolak di form: *…sudah ada: MTR-0001 - Nappa Leather.*
 - [ ] Kode `MTR-0001` dipakai lagi → ditolak: *Material Code MTR-0001 sudah dipakai…*
 - [ ] Tambah material Quotation (mis. `Printing Logo`, kategori `Process`, UoM `PCS`) → saran kode `MTR-0002`, kategori `Leather` muncul sebagai saran isian
 - [ ] Vendor Spec: tombol **Usulkan Material** → PROPOSED; kolom Metode Harga & switch *Belum ada harga* tidak tampil; tidak ada tombol Approve
@@ -332,7 +332,7 @@ Harga (Vendor CBD atau Admin, material Catalog)
 - [ ] Brand Viewer: bisa lihat material, supplier, harga; tidak ada tombol ubah
 - [ ] Admin → Audit Log: entri `material`, `material_supplier`, `material_price`
 
-Cek DB (opsional, di DB Tools) — lookup harga dipakai CBD nanti:
+Cek DB (opsional, di DB Tools) - lookup harga dipakai CBD nanti:
 ```sql
 SELECT * FROM fn_price_lookup(
   (SELECT id FROM material WHERE material_code = 'MTR-0001'),

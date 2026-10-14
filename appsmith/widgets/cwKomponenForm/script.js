@@ -1,4 +1,4 @@
-// cwKomponenForm — form Tambah/Ubah Komponen di mdlKomponen. Hanya tampilan; simpan lewat
+// cwKomponenForm - form Tambah/Ubah Komponen di mdlKomponen. Hanya tampilan; simpan lewat
 // KomponenCtrl.save(). Aturan nomor dicek ringan di sini untuk umpan balik cepat; aturan final di DB
 // (trg_component_check).
 const $ = id => document.getElementById(id);
@@ -60,25 +60,25 @@ function updateHint() {
   hint.classList.remove('warn');
   btn.hidden = true;
   if (!g) {
-    hint.textContent = 'Pilih kelompok dulu.';
+    hint.textContent = 'Select a group first.';
     return;
   }
-  const range = `Rentang ${g.range_start}–${g.range_end}, kelipatan 10.`;
+  const range = `Range ${g.range_start}–${g.range_end}, multiples of 10.`;
   if (isEdit) {
     hint.textContent = range;
     return;
   }
   const s = suggestionOf(g);
   if (s === null) {
-    hint.textContent = `${range} Rentang kelompok ini sudah penuh.`;
+    hint.textContent = `${range} This group range is full.`;
     hint.classList.add('warn');
     return;
   }
-  hint.textContent = `${range} Saran nomor berikutnya: ${s}.`;
+  hint.textContent = `${range} Suggested next number: ${s}.`;
   btn.hidden = $('number').value === String(s);
 }
 
-// Tambah: saat kelompok diganti, nomor ikut saran baru — kecuali user sudah mengetik nomor sendiri
+// Tambah: saat kelompok diganti, nomor ikut saran baru - kecuali user sudah mengetik nomor sendiri
 function onGroupChange() {
   const next = suggestionOf(currentGroup());
   if (!isEdit) {
@@ -128,16 +128,16 @@ function querySimilar() {
   }, 350);
 }
 
-// Isi ulang field hanya saat modal dibuka (key berubah) — busy/message tidak menghapus ketikan user
+// Isi ulang field hanya saat modal dibuka (key berubah) - busy/message tidak menghapus ketikan user
 function fillForm(m) {
   const f = m.form || {};
   isEdit = m.mode === 'edit';
   groups = m.groups || [];
-  $('title').textContent = isEdit ? 'Ubah Komponen' : 'Tambah Komponen';
+  $('title').textContent = isEdit ? 'Edit Component' : 'Add Component';
   fillSelect($('group'), groups.map(g => ({
     value: g.code,
-    label: `${g.code} — ${g.name} (${g.range_start}–${g.range_end})`,
-  })), f.group_code, '— Pilih kelompok —');
+    label: `${g.code} · ${g.name} (${g.range_start}–${g.range_end})`,
+  })), f.group_code, 'Select group');
   lastSuggest = suggestionOf(currentGroup());
   $('number').value = f.number === null || f.number === undefined ? '' : String(f.number);
   $('name').value = f.name || '';
@@ -145,7 +145,7 @@ function fillForm(m) {
   $('statusBox').hidden = !isEdit;
   $('addInfo').hidden = isEdit;
   $('editNote').hidden = !isEdit;
-  $('btnSave').dataset.label = 'Simpan';
+  $('btnSave').dataset.label = 'Save';
   lastQuery = isEdit ? $('name').value.trim() : null;
   ['group', 'number', 'name'].forEach(id => $(id).classList.remove('invalid'));
   updateHint();
@@ -157,7 +157,7 @@ function setBusy(v) {
   $('btnSave').disabled = v;
   $('btnCancel').disabled = v;
   $('btnX').disabled = v;
-  $('btnSave').textContent = v ? 'Menyimpan…' : ($('btnSave').dataset.label || 'Simpan');
+  $('btnSave').textContent = v ? 'Saving…' : ($('btnSave').dataset.label || 'Save');
 }
 
 function render(model) {
@@ -172,14 +172,14 @@ function render(model) {
 }
 
 function validate(g, numText, name) {
-  if (!g) return ['group', 'Kelompok wajib dipilih.'];
-  if (!/^\d+$/.test(numText)) return ['number', 'Nomor wajib diisi dengan angka bulat.'];
+  if (!g) return ['group', 'Group is required.'];
+  if (!/^\d+$/.test(numText)) return ['number', 'Number must be a whole number.'];
   const n = Number(numText);
-  if (n % 10 !== 0) return ['number', 'Nomor komponen harus kelipatan 10.'];
+  if (n % 10 !== 0) return ['number', 'Component number must be a multiple of 10.'];
   if (n < g.range_start || n > g.range_end) {
-    return ['number', `Nomor harus berada di rentang ${g.range_start}–${g.range_end} untuk kelompok ${g.name}.`];
+    return ['number', `Number must be in the range ${g.range_start}–${g.range_end} for group ${g.name}.`];
   }
-  if (!name) return ['name', 'Nama komponen wajib diisi.'];
+  if (!name) return ['name', 'Component name is required.'];
   return null;
 }
 

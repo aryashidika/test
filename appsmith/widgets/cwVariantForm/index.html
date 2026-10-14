@@ -1,7 +1,7 @@
 <div class="wrap">
   <div class="head">
-    <h2 id="title">Tambah Varian</h2>
-    <button type="button" class="x" id="btnX" aria-label="Tutup">✕</button>
+    <h2 id="title">Add Variant</h2>
+    <button type="button" class="x" id="btnX" aria-label="Close">✕</button>
   </div>
 
   <div id="msg" class="msg" role="alert" hidden></div>
@@ -9,21 +9,21 @@
   <div class="hint" id="materialLabel"></div>
 
   <label for="code">Material Code <span class="req">*</span></label>
-  <input id="code" type="text" maxlength="40" autocomplete="off" placeholder="mis. 205Q404A52 (dari ERP)">
-  <div class="hint">Kode ERP 10 karakter: 4 jenis material · 3 thickness · 3 warna. Terisi otomatis dari warna &amp; thickness bila bagian kodenya sudah pernah dipakai (atau sebaliknya) — tetap cocokkan dengan ERP.</div>
+  <input id="code" type="text" maxlength="40" autocomplete="off" placeholder="e.g. 205Q404A52 (from ERP)">
+  <div class="hint">10-character ERP code: 4 material type · 3 thickness · 3 color. Filled in from color &amp; thickness when those code parts were used before (or the other way round). Still check against ERP.</div>
   <div class="sug" id="sugBox" hidden></div>
   <div class="conf-box" id="confBox" hidden>
     <div id="confText"></div>
-    <label class="conf-check"><input type="checkbox" id="confChk"> Sudah saya cek, kode ini benar sesuai ERP</label>
+    <label class="conf-check"><input type="checkbox" id="confChk"> I checked it. This code matches ERP</label>
   </div>
   <div class="warn-box" id="infoBox" hidden></div>
 
-  <label for="color">Warna <span class="req">*</span></label>
-  <input id="color" type="text" maxlength="80" autocomplete="off" placeholder="mis. WHITE">
+  <label for="color">Color <span class="req">*</span></label>
+  <input id="color" type="text" maxlength="80" autocomplete="off" placeholder="e.g. WHITE">
   <div class="hint" id="colorNote" hidden></div>
 
   <label for="thickness">Thickness</label>
-  <input id="thickness" type="text" maxlength="60" autocomplete="off" placeholder="persis ERP, mis. 44&quot; atau 1.2MMX54&quot; — kosong / . = tidak ada">
+  <input id="thickness" type="text" maxlength="60" autocomplete="off" placeholder="exactly as ERP, e.g. 44&quot; or 1.2MMX54&quot;. Empty / . = none">
   <div class="hint" id="thicknessNote" hidden></div>
 
   <div id="statusBox">
@@ -32,8 +32,8 @@
   </div>
 
   <div class="actions">
-    <button type="button" class="btn-secondary" id="btnCancel">Batal</button>
-    <button type="button" class="btn-secondary" id="btnAgain">Simpan &amp; tambah lagi</button>
-    <button type="button" class="btn-primary" id="btnSave">Simpan</button>
+    <button type="button" class="btn-secondary" id="btnCancel">Cancel</button>
+    <button type="button" class="btn-secondary" id="btnAgain">Save &amp; add another</button>
+    <button type="button" class="btn-primary" id="btnSave">Save</button>
   </div>
 </div>

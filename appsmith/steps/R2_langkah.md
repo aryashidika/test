@@ -1,13 +1,13 @@
-# R2 — Master tanpa approval, Material Induk + Varian, Master Pilihan
+# R2 - Master tanpa approval, Material Induk + Varian, Master Pilihan
 
 > **Revisi R2b (8 Okt 2026)** setelah melihat `MATERIAL CODE.xlsx`: varian ditambah **satu per satu** seperti ERP (Material Code, warna, thickness teks), tanpa kombinasi. Bila R2 sudah terpasang: jalankan **`sql/R2b_varian.sql`** lalu import **`exports/build_r2b.json`** (salinan `export_r2a.json` = R2 yang sudah Anda rapikan). Uji B5–B8 di bawah sudah versi R2b.
 
 File: `sql/RESET_data_bisnis.sql`, `sql/R2_master.sql`, `sql/R2b_varian.sql`, `exports/build_r2b.json` (`tools/build_r2.py` → `tools/build_r2b.py`).
 
-> Sejak `export_r1.json` dijadikan base, app R1 jangan diubah lagi. Kalau terlanjur ada perubahan, kirim export terbaru — build diulang dari situ.
+> Sejak `export_r1.json` dijadikan base, app R1 jangan diubah lagi. Kalau terlanjur ada perubahan, kirim export terbaru - build diulang dari situ.
 
 ## 1. Database (DB Tools)
-1. Jalankan **`sql/RESET_data_bisnis.sql`** — ⚠️ menghapus data master & dokumen uji R1 (supplier, komponen, material, harga, model, specsheet, CBD, audit). **User, password, dan pabrik tetap ada.**
+1. Jalankan **`sql/RESET_data_bisnis.sql`** - ⚠️ menghapus data master & dokumen uji R1 (supplier, komponen, material, harga, model, specsheet, CBD, audit). **User, password, dan pabrik tetap ada.**
 2. Jalankan **`sql/R2_master.sql`**. Hasil akhir 7 baris cek:
    | cek | hasil |
    |---|---|
@@ -44,7 +44,7 @@ File: `sql/RESET_data_bisnis.sql`, `sql/R2_master.sql`, `sql/R2b_varian.sql`, `e
 
 **Belum bisa dipakai (masa transisi):** Specsheet & CBD untuk material baru (R4/R5), harga material (R3), dropdown model (R4). Jangan uji page itu di R2.
 
-**Rapikan di UI bila perlu:** tinggi `mdlVarian` (sekarang 560 px, lebar sama dengan modal lain). Catatan: `mdlSupplier` 314 px & `mdlKomponen` 464 px (hasil rapikan Anda) — bila daftar nama mirip muncul, form bisa perlu di-scroll; tinggikan ±120 px bila mengganggu.
+**Rapikan di UI bila perlu:** tinggi `mdlVarian` (sekarang 560 px, lebar sama dengan modal lain). Catatan: `mdlSupplier` 314 px & `mdlKomponen` 464 px (hasil rapikan Anda) - bila daftar nama mirip muncul, form bisa perlu di-scroll; tinggikan ±120 px bila mengganggu.
 
 ## 4. Uji
 Pakai user R1: Vendor Spec A, Vendor CBD A, Manager Costing A (PABRIK A), Vendor Spec B (PABRIK B), Brand Viewer.

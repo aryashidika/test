@@ -93,8 +93,8 @@ function render(model) {
       b.className = 'chip' + (r.status === 'DRAFT' ? ' draft' : '') + (r.needsRevision ? ' needs' : '')
         + (r.id === selected ? ' active' : '');
       b.textContent = `r${r.revision_no}`;
-      b.title = `${stageLabel(r.stage)} r${r.revision_no} · ${r.status === 'DRAFT' ? 'DRAFT (belum terbit)' : 'PUBLISHED'}`
-        + (r.needsRevision ? ' · perlu revisi' : '');
+      b.title = `${stageLabel(r.stage)} r${r.revision_no} · ${r.status === 'DRAFT' ? 'DRAFT (not published)' : 'PUBLISHED'}`
+        + (r.needsRevision ? ' · needs revision' : '');
       b.setAttribute('aria-pressed', r.id === selected ? 'true' : 'false');
       b.addEventListener('click', () => {
         if (r.id === selected) return;

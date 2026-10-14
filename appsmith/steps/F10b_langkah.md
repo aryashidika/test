@@ -1,4 +1,4 @@
-# F10b — Revisi dari uji end-to-end (laporan user 5 Okt 2026): langkah di Appsmith
+# F10b - Revisi dari uji end-to-end (laporan user 5 Okt 2026): langkah di Appsmith
 
 Urutan: **1** SQL (F10b lalu **F10c**) → **2** page per page (query, JSObject, widget) → **3** Deploy → **4** uji lanjut mulai **G8**
 → **5** export `export_v11.json`.
@@ -22,8 +22,8 @@ Custom Widget yang berubah: tempel ulang **ketiga tab** (HTML / Style / JavaScri
 | 10 | Rate dikosongkan tetap bisa terbit | Rate boleh dikosongkan → checklist memblokir terbit |
 | 11 | Revisi awal tidak bisa untuk article lain di model yang sama | Alasan tidak wajib selama article (CBD) / season (specsheet) belum punya revisi terbit |
 | 12 | Tolak usulan harga: "harga NaN USD" | Ringkasan memakai angka asli dari query |
-| 13 | Huruf kapital otomatis | Nama & kategori material, nama komponen, nama supplier, kode & nama model, kode article & colorway, nama komponen lokal & subkomponen BOM — data lama ikut diubah |
-| 14 | Terbit GTM ditolak: "Revisi CBD SMS r0 sudah diterbitkan…" | **Bug trigger** kunci CBD (kolom generated `stage_order`) — diperbaiki |
+| 13 | Huruf kapital otomatis | Nama & kategori material, nama komponen, nama supplier, kode & nama model, kode article & colorway, nama komponen lokal & subkomponen BOM - data lama ikut diubah |
+| 14 | Terbit GTM ditolak: "Revisi CBD SMS r0 sudah diterbitkan…" | **Bug trigger** kunci CBD (kolom generated `stage_order`) - diperbaiki |
 | T46 | Keluar → muncul ganti password | `LoginCtrl.onPageLoad` = **On page load** + `LoginCtrl` baru (bila belum dikerjakan) |
 
 ---
@@ -31,8 +31,8 @@ Custom Widget yang berubah: tempel ulang **ketiga tab** (HTML / Style / JavaScri
 ## 1. SQL
 
 1. DB Tools → `z_run_sql` → tempel seluruh `sql/F10b_revisi_uji.sql` → Run. Aman diulang.
-   *(Sudah dijalankan 6 Okt — versi lama yang masih berisi Width; tidak perlu diulang.)*
-2. **F10c** — tempel seluruh `sql/F10c_hapus_width.sql` → Run. Menghapus kolom Width material, mengembalikan
+   *(Sudah dijalankan 6 Okt - versi lama yang masih berisi Width; tidak perlu diulang.)*
+2. **F10c** - tempel seluruh `sql/F10c_hapus_width.sql` → Run. Menghapus kolom Width material, mengembalikan
    `fn_material_add` / `fn_material_update` ke parameter lama, dan membuat ulang view yang bergantung.
    Baris terakhir menampilkan hasil cek, harus: `kolom_width 0 · fungsi_lama 0 · arg_add 7 · arg_update 9 · view_ok true`.
    Bila muncul error "Ada material yang hanya beda Width", tempel pesannya di chat.
@@ -50,11 +50,11 @@ Hasil: `YES · 6 · true · 0`.
 
 ## 2. Appsmith
 
-### 2a. Page `Login` (T46 — lewati bila sudah)
+### 2a. Page `Login` (T46 - lewati bila sudah)
 - JSObject `LoginCtrl` → tempel `js/LoginCtrl.js`; fungsi `onPageLoad` → *Run behaviour* **On page load**.
 
 ### 2b. Page `Master Supplier`
-1. **`a_supplier_insert`** — ganti seluruhnya:
+1. **`a_supplier_insert`** - ganti seluruhnya:
    ```sql
    INSERT INTO supplier (name, status, updated_by)
    SELECT {{this.params.name}},
@@ -69,7 +69,7 @@ Hasil: `YES · 6 · true · 0`.
    `canManage: SupplierCtrl.canManage(),`
 
 ### 2c. Page `Master Material`
-1. **`a_material_add`** — **kembalikan** ke versi F3 (tanpa width; langkah lama 2c-1 dibatalkan):
+1. **`a_material_add`** - **kembalikan** ke versi F3 (tanpa width; langkah lama 2c-1 dibatalkan):
    ```sql
    SELECT fn_material_add({{appsmith.store.token}}, {{this.params.code}}, {{this.params.name}},
                           {{this.params.category}}, {{this.params.thickness}}, {{this.params.uom}},
@@ -82,8 +82,8 @@ Hasil: `YES · 6 · true · 0`.
    `a_material_update`, `q_material`, `cwMaterialForm` **tidak diubah**.
 
 ### 2e. Page `Specsheet`
-   *(`q_bom_options` tidak diubah — thickness sudah ada.)*
-2. **`q_season_colors`** — ganti seluruhnya (saran warna hanya dari revisi draft & terbit terakhir, baris aktif, article aktif):
+   *(`q_bom_options` tidak diubah - thickness sudah ada.)*
+2. **`q_season_colors`** - ganti seluruhnya (saran warna hanya dari revisi draft & terbit terakhir, baris aktif, article aktif):
    ```sql
    SELECT min(btrim(regexp_replace(bc.color, '\s+', ' ', 'g'))) AS color
    FROM bom_cell bc
@@ -97,7 +97,7 @@ Hasil: `YES · 6 · true · 0`.
    GROUP BY fn_normalize(bc.color)
    ORDER BY 1;
    ```
-3. **`q_change_log`** — tambah kolom jumlah gambar: ganti `cl.category, cl.reason, cl.created_by, cl.created_at` menjadi
+3. **`q_change_log`** - tambah kolom jumlah gambar: ganti `cl.category, cl.reason, cl.created_by, cl.created_at` menjadi
    `cl.category, cl.reason, cl.created_by, cl.created_at,`
    `(SELECT count(*)::int FROM change_log_attachment a WHERE a.change_log_id = cl.id) AS image_count`
 4. Query baru **`q_change_log_images`** (Manual):
@@ -111,7 +111,7 @@ Hasil: `YES · 6 · true · 0`.
      AND cl.id::text = {{this.params.log_id || ''}}
    ORDER BY a.created_at;
    ```
-5. Query baru **`a_change_log_attach`** — Settings → *Query timeout* **30000**:
+5. Query baru **`a_change_log_attach`** - Settings → *Query timeout* **30000**:
    ```sql
    SELECT fn_change_log_attach({{appsmith.store.token}}, {{this.params.log_id}}::uuid,
                                {{this.params.file_name}}, {{this.params.data}}) AS id;
@@ -124,16 +124,16 @@ Hasil: `YES · 6 · true · 0`.
    - `tblRiwayat`: kolom baru dari data `image_count`, label **Gambar**, tipe Text, Computed value
      `{{currentRow.image_count ? currentRow.image_count + ' gambar' : '-'}}`; event **onRowSelected**
      `{{SpecCtrl.showImages(tblRiwayat.selectedRow)}}`.
-   - Tambah **Custom Widget `cwImageGallery`** di bawah tabel (lebar penuh, tinggi ±220 px; modal ditinggikan) —
+   - Tambah **Custom Widget `cwImageGallery`** di bawah tabel (lebar penuh, tinggi ±220 px; modal ditinggikan) -
      kode `widgets/cwImageGallery/`, Default model `{{SpecCtrl.galleryModel()}}`, event **`onDownload`**
      `{{SpecCtrl.downloadImage()}}`.
 
 ### 2f. Page `Cost Breakdown (CBD)`
-1. **`q_cbd_change_log`** — ganti `cl.category, cl.reason, cl.created_by, cl.created_at` menjadi
+1. **`q_cbd_change_log`** - ganti `cl.category, cl.reason, cl.created_by, cl.created_at` menjadi
    `cl.category, cl.reason, cl.created_by, cl.created_at,`
    `(SELECT count(*)::int FROM change_log_attachment a WHERE a.change_log_id = cl.id) AS image_count`
-2. Query baru **`q_change_log_images`** (Manual) — sama dengan 2e.4, tetapi `'view_cbd'` dan `cl.doc_type = 'CBD'`.
-3. Query baru **`a_change_log_attach`** — sama persis dengan 2e.5 (timeout 30000).
+2. Query baru **`q_change_log_images`** (Manual) - sama dengan 2e.4, tetapi `'view_cbd'` dan `cl.doc_type = 'CBD'`.
+3. Query baru **`a_change_log_attach`** - sama persis dengan 2e.5 (timeout 30000).
 4. JSObject `CbdCtrl` → tempel `js/CbdCtrl.js`; `CbdGridCtrl` → tempel `js/CbdGridCtrl.js`.
 5. `cwCbdGrid` → tempel tab JavaScript (`widgets/cwCbdGrid/script.js`).
 6. `cwPublishForm` (di `mdlCbdTerbit`) → tempel ketiga tab; tinggi +160 px.
@@ -142,7 +142,7 @@ Hasil: `YES · 6 · true · 0`.
 8. (Opsional) Query `a_cbd_override_price` boleh dihapus (tidak dipanggil lagi).
 
 ### 2g. Page `Beranda`
-1. **`q_worklist_proposals`** — ganti `kind IN ('MATERIAL', 'COMPONENT', 'LINK')` menjadi
+1. **`q_worklist_proposals`** - ganti `kind IN ('MATERIAL', 'COMPONENT', 'LINK')` menjadi
    `kind IN ('SUPPLIER', 'MATERIAL', 'COMPONENT', 'LINK')`.
 2. JSObject `BerandaCtrl` → tempel `js/BerandaCtrl.js`.
 
@@ -159,11 +159,11 @@ sekaligus menguji usulan supplier, blokir terbit, dan gambar.
 |---|---|---|---|---|
 | G8a | Vendor – Spec | Master Supplier → **Usulkan Supplier** `nanpao` | Tersimpan **NANPAO** (kapital), status PROPOSED; toast *Usulan supplier terkirim…* | |
 | G8b | Vendor – Spec | Specsheet GTM r0 (draft) → baris 8015 Cement → Supplier **NANPAO** | Lencana **supplier usulan** di sel supplier | |
-| G8c | Vendor – Spec | **Terbitkan** | Diblokir: *Tidak ada usulan yang belum di-approve* — *supplier NANPAO, supplier material MTR-… / NANPAO*; Beranda draft: lencana *Usulan belum di-approve* | |
+| G8c | Vendor – Spec | **Terbitkan** | Diblokir: *Tidak ada usulan yang belum di-approve* - *supplier NANPAO, supplier material MTR-… / NANPAO*; Beranda draft: lencana *Usulan belum di-approve* | |
 | G8d | Master Admin | Beranda | Bagian **Supplier Menunggu Persetujuan** (NANPAO) + supplier material Cement Upper / NANPAO | |
 | G8e | Master Admin | Master Supplier → NANPAO → Ubah → status APPROVED · Material Detail Cement Upper → approve NANPAO → **tambah harga IDR 2.600** | Beranda admin kosong lagi (Muat ulang) | |
 | G8f | Vendor – Spec | Terbitkan GTM r0: kategori Material, alasan sesuai E2E G8, **tempel 1 screenshot (Ctrl+V)** + pilih 1 file jpg | Terbit **tanpa error** (bug #14); toast *… 2 gambar dilampirkan*; Riwayat (2) → baris GTM r0 kolom *2 gambar* → klik baris → gambar tampil, klik → besar, **Unduh** | |
-| G8g | Vendor – CBD | Beranda | SPE1010566 & SPE1010567 di **CBD Terbit Perlu Revisi** (CBD SMS jadi NEEDS_REVISION — sebelumnya gagal karena bug #14) | |
+| G8g | Vendor – CBD | Beranda | SPE1010566 & SPE1010567 di **CBD Terbit Perlu Revisi** (CBD SMS jadi NEEDS_REVISION - sebelumnya gagal karena bug #14) | |
 
 Lanjutkan **H1–H13** di `steps/E2E_uji.md` dengan catatan:
 - H3: baris **8015 Cement** sekarang harga **master IDR 2.600** (bukan override); Loss/Yield tetap dibawa dari SMS.
@@ -185,7 +185,7 @@ Lanjutkan **H1–H13** di `steps/E2E_uji.md` dengan catatan:
 | R11 | Vendor – CBD | (Bila ada article yang belum punya CBD terbit) buat CBD lewat **Copy dari article lain** → Terbitkan tanpa alasan | Terbit dengan *Revisi awal.* | |
 | R12 | Vendor – CBD + Master Admin | Usulkan harga, lalu Master Admin **Tolak** | Ringkasan di form tolak menampilkan harga yang benar (bukan NaN) | |
 | R13 | Master Admin / Vendor | Tambah material / komponen / supplier / model / article / subkomponen dengan huruf kecil | Tersimpan huruf kapital | |
-| R14 | — | (G8f) | Terbit GTM berhasil, CBD lama jadi NEEDS_REVISION | |
+| R14 | - | (G8f) | Terbit GTM berhasil, CBD lama jadi NEEDS_REVISION | |
 
 Saran warna "clea" lama: bila masih muncul, cari asalnya (DB Tools):
 ```sql

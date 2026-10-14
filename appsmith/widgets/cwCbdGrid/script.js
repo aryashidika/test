@@ -1,11 +1,11 @@
-// cwCbdGrid — grid baris CBD page Cost Breakdown (CBD), dikelompokkan per grup komponen (a/b/c/d, + subtotal) + bagian
+// cwCbdGrid - grid baris CBD page Cost Breakdown (CBD), dikelompokkan per grup komponen (a/b/c/d, + subtotal) + bagian
 // MISSING_IN_SPEC, dengan panel ringkasan menempel di atas grid, banner refresh (F8), dan di bawah grid tabel
 // Cost recapitulation (baris biaya) + Harga jual (F8b).
 // Hanya tampilan & input: Yield, Loss %, dan nilai rekap diedit di sel (revisi DRAFT); harga lewat tombol
 // Isi harga (quotation) / Ajukan harga master (R8) (modal di luar widget). R11: Tanpa biaya
-// (alasan diisi di sel, cost/pair 0 — mis. printing yang harganya sudah termasuk baris lain). Setiap aksi dikirim sebagai model.action + event
+// (alasan diisi di sel, cost/pair 0 - mis. printing yang harganya sudah termasuk baris lain). Setiap aksi dikirim sebagai model.action + event
 // onAction (CbdGridCtrl.onAction()); aturan final di DB. Usage, harga IDR/USD, cost/pair, dan rekap dihitung
-// di DB (v_cbd_line, v_cbd_recap) — di sini hanya diformat.
+// di DB (v_cbd_line, v_cbd_recap) - di sini hanya diformat.
 // Antrean aksi (sama dengan cwBomGrid): aksi dikirim SATU PER SATU; berikutnya baru dikirim setelah CbdGridCtrl
 //   membalas doneSeq >= seq (ack). Tanpa ack 5 detik -> kirim ulang (seq yang sudah selesai diabaikan). Nilai yang
 //   sudah dikirim ditampilkan (optimistic) sampai antrean kosong. Sel disimpan saat change DAN blur.
@@ -21,10 +21,10 @@ let ncOpen = null;           // R11: id baris yang form "Tanpa biaya"-nya terbuk
 let ncText = '';
 
 const COLS = [
-  ['c-no', 'No'], ['c-comp', 'Komponen'], ['c-mat', 'Material'], ['c-thk', 'Thickness'], ['c-col', 'Color'],
+  ['c-no', 'No'], ['c-comp', 'Component'], ['c-mat', 'Material'], ['c-thk', 'Thickness'], ['c-col', 'Color'],
   ['c-sup', 'Supplier'], ['c-uom', 'UoM'], ['c-rem', 'Remarks'], ['c-num', 'Yield'], ['c-num', 'Usage'],
-  ['c-num', 'Loss %'], ['c-price', 'Harga'], ['c-cur', 'Cur'], ['c-num', 'USD'], ['c-num', 'IDR'],
-  ['c-num', 'Cost/pr (Rp)'], ['c-src', 'Asal'],
+  ['c-num', 'Loss %'], ['c-price', 'Price'], ['c-cur', 'Cur'], ['c-num', 'USD'], ['c-num', 'IDR'],
+  ['c-num', 'Cost/pr (Rp)'], ['c-src', 'Source'],
 ];
 
 // Panel atas (menempel): [field (null = hanya baca), label, kunci nilai, digit desimal, boleh minus, uang]
@@ -34,15 +34,15 @@ const RECAP = [
   [null, 'Material cost', 'material_cost', 2],
   [null, 'Actual FOB', 'actual_fob', 2],
   [null, 'Target FOB', 'target_fob', 2],
-  [null, 'Selisih', 'variance', 2],
-  [null, 'PO (Actual FOB × faktor stage)', 'po_price', 2],          // R5: kosong bila stage tanpa faktor
+  [null, 'Difference', 'variance', 2],
+  [null, 'PO (Actual FOB × stage factor)', 'po_price', 2],          // R5: kosong bila stage tanpa faktor
 ];
 
-// Jenis baris biaya (F8b) — urutan tampil
+// Jenis baris biaya (F8b) - urutan tampil
 const COST_TYPES = [
-  ['LABOUR', 'Direct Labour (LOP)'], ['AMORTIZATION', 'Amortisasi'], ['ADJUSTMENT', 'Adjustment'], ['OTHER', 'Lainnya'],
+  ['LABOUR', 'Direct Labour (LOP)'], ['AMORTIZATION', 'Amortization'], ['ADJUSTMENT', 'Adjustment'], ['OTHER', 'Other'],
 ];
-const COST_NAME = { LABOUR: 'Direct Labour', AMORTIZATION: 'Amortisasi', ADJUSTMENT: 'Adjustment', OTHER: 'Lainnya' };
+const COST_NAME = { LABOUR: 'Direct Labour', AMORTIZATION: 'Amortization', ADJUSTMENT: 'Adjustment', OTHER: 'Other' };
 let addForm = { type: '', name: '', amount: '', remarks: '' };
 let lastCostOk = null;
 
@@ -88,11 +88,11 @@ function parseInput(text, opt) {
   opt = opt || {};
   const t = String(text ?? '').trim().replace(/\s+/g, '');
   if (!t) return { value: '' };
-  if (!opt.neg && t.startsWith('-')) return { error: 'Nilai tidak boleh minus.' };
+  if (!opt.neg && t.startsWith('-')) return { error: 'The value cannot be negative.' };
   const re = opt.neg ? /^-?\d+([.,]\d+)?$/ : /^\d+([.,]\d+)?$/;
-  if (!re.test(t)) return { error: `"${text}" bukan angka. Pakai koma atau titik untuk desimal, tanpa pemisah ribuan.` };
+  if (!re.test(t)) return { error: `"${text}" is not a number. Use a comma or dot for decimals, no thousand separators.` };
   if (opt.money && /^-?\d{1,3}\.\d{3}$/.test(t)) {
-    return { error: `"${text}" ambigu. Tulis tanpa titik ribuan (mis. 16250), desimal pakai koma (mis. 16250,5).` };
+    return { error: `"${text}" is ambiguous. Write it without thousand separators (e.g. 16250), with a comma for decimals (e.g. 16250,5).` };
   }
   return { value: t.replace(',', '.') };
 }
@@ -224,7 +224,7 @@ function textInput(o) {
   committer(i, o.key, () => {
     const v = i.value.trim();
     if (v === i.dataset.orig.trim()) return;
-    if (o.required && !v) return invalid(i, `${o.label} wajib diisi.`);
+    if (o.required && !v) return invalid(i, `${o.label} is required.`);
     o.commit(v);
   });
   i.addEventListener('keydown', e => {
@@ -246,9 +246,9 @@ function lineInput(line, field, value, max) {
     key: `${field}:${line.id}`, col: field, value, max,
     label: `${yieldCol ? 'Yield' : 'Loss %'} ${line.display_no || ''} ${line.display_name || ''}`,
     need: yieldCol && num(line.price_original) !== null && num(value) === null && !line.no_charge,
-    needTitle: 'Baris berharga tanpa yield — wajib diisi sebelum terbit',
-    check: n => yieldCol ? (n !== null && n <= 0 ? 'Yield harus lebih besar dari 0.' : null)
-      : (n !== null && n >= 100 ? 'Loss % harus 0 sampai kurang dari 100.' : null),
+    needTitle: 'Priced line without yield. Required before publishing',
+    check: n => yieldCol ? (n !== null && n <= 0 ? 'Yield must be above 0.' : null)
+      : (n !== null && n >= 100 ? 'Loss % must be from 0 to below 100.' : null),
     commit: v => send(yieldCol ? 'setYield' : 'setLoss', { line_id: line.id, value: v }),
   });
 }
@@ -279,12 +279,12 @@ function roText(v) {
 // Kenapa harga kosong (price_gap dari v_cbd_price_check, hanya revisi DRAFT)
 function gapText(line) {
   switch (line.price_gap) {
-    case 'QUOTATION': return ['material quotation — belum diisi (cost 0)', ''];
-    case 'NO_SUPPLIER': return ['supplier belum dipilih di specsheet', ''];
-    case 'AVAILABLE': return ['harga master tersedia — klik Refresh Harga', 'warn'];
-    case 'PENDING': return ['harga master menunggu persetujuan Manager Costing', 'warn'];
-    case 'NO_PRICE': return ['belum ada harga master untuk Material Code + supplier ini', 'warn'];
-    default: return [line.price_method === 'QUOTATION' ? 'tidak dihargai terpisah' : 'tanpa harga', ''];
+    case 'QUOTATION': return ['quotation material, not filled in (cost 0)', ''];
+    case 'NO_SUPPLIER': return ['no supplier selected in the specsheet', ''];
+    case 'AVAILABLE': return ['master price available. Click Refresh Prices', 'warn'];
+    case 'PENDING': return ['master price waiting for Manager Costing approval', 'warn'];
+    case 'NO_PRICE': return ['no master price for this Material Code + supplier', 'warn'];
+    default: return [line.price_method === 'QUOTATION' ? 'not priced separately' : 'no price', ''];
   }
 }
 
@@ -294,8 +294,8 @@ function priceCell(line, editable) {
   const missing = line.status !== 'ACTIVE';
   if (line.no_charge) {                        // R11: biaya 0, harga (bila ada) tetap terlihat
     if (p !== null) box.appendChild(el('span', 'ro none', fmt(p, line.currency === 'USD' ? 4 : 2)));
-    const b = el('span', 'badge nocharge', 'tanpa biaya');
-    b.title = `Alasan: ${line.no_charge_reason || '-'}`;
+    const b = el('span', 'badge nocharge', 'no charge');
+    b.title = `Reason: ${line.no_charge_reason || '-'}`;
     box.appendChild(b);
     box.appendChild(el('span', 'hint', line.no_charge_reason || ''));
   } else if (p !== null) {
@@ -304,10 +304,10 @@ function priceCell(line, editable) {
     if (src) {
       const b = el('span', `badge ${src}`, src);
       if (line.price_source === 'MASTER' && line.master_price_valid_from) {
-        b.title = `Harga master${line.master_price_color ? ' warna ' + line.master_price_color : ' semua warna'} berlaku sejak ${line.master_price_valid_from}`;
+        b.title = `Master price for${line.master_price_color ? ' color ' + line.master_price_color : ' all colors'}, active since ${line.master_price_valid_from}`;
       }
-      if (line.price_source === 'OVERRIDE' && line.price_override_reason) b.title = `Alasan: ${line.price_override_reason}`;
-      if (line.price_source === 'QUOTATION' && line.price_reference) b.title = `Referensi: ${line.price_reference}`;
+      if (line.price_source === 'OVERRIDE' && line.price_override_reason) b.title = `Reason: ${line.price_override_reason}`;
+      if (line.price_source === 'QUOTATION' && line.price_reference) b.title = `Reference: ${line.price_reference}`;
       box.appendChild(b);
     }
   } else if (missing) {
@@ -318,26 +318,26 @@ function priceCell(line, editable) {
   }
   if (!missing && !line.no_charge && line.master_stale) {
     box.appendChild(el('span', 'hint warn', line.price_source === 'QUOTATION'
-      ? 'material sekarang katalog — klik Refresh Harga' : 'harga master berubah — klik Refresh Harga'));
+      ? 'material is now catalog. Click Refresh Prices' : 'master price changed. Click Refresh Prices'));
   }
   const acts = el('div', 'acts');
   if (editable && !missing) {
     if (line.price_method === 'QUOTATION') {
-      acts.appendChild(linkBtn(p !== null ? 'Ubah harga' : 'Isi harga', 'Harga quotation material proses',
+      acts.appendChild(linkBtn(p !== null ? 'Edit price' : 'Enter price', 'Quotation price of the process material',
         () => send('editPrice', { line_id: line.id, mode: 'QUOTATION' })));
     }
     if (line.no_charge) {
-      acts.appendChild(linkBtn('Batalkan tanpa biaya', 'Baris ini dihitung lagi dengan harganya',
+      acts.appendChild(linkBtn('Undo no charge', 'This line is counted again with its price',
         () => send('setNoCharge', { line_id: line.id, on: false, reason: '' }), true));
     } else if (ncOpen !== line.id) {
-      acts.appendChild(linkBtn('Tanpa biaya', 'Biaya baris ini 0 — harganya sudah termasuk baris lain / tidak dikenakan biaya',
+      acts.appendChild(linkBtn('No charge', 'This line costs 0. Its price is included in another line / not charged',
         () => openNoCharge(line.id)));
     }
   }
   // R8: ajukan harga MASTER untuk Material Code + supplier baris ini (alur approval biasa; Manager Costing langsung berlaku)
   if (M.canProposePrice && !missing && !line.no_charge && line.price_method === 'CATALOG' && line.variant_id && line.supplier_id && !line.pending) {
-    acts.appendChild(linkBtn(M.directPrice ? 'Harga master baru' : 'Ajukan harga master',
-      `Harga master ${line.material_code || ''} · ${line.supplier_name || ''} — berlaku untuk semua CBD`,
+    acts.appendChild(linkBtn(M.directPrice ? 'New master price' : 'Propose master price',
+      `Master price ${line.material_code || ''} · ${line.supplier_name || ''}. Applies to all CBDs`,
       () => send('proposePrice', { line_id: line.id })));
   }
   if (acts.childNodes.length) box.appendChild(acts);
@@ -368,15 +368,15 @@ function noChargeForm(line) {
   i.type = 'text';
   i.maxLength = 200;
   i.autocomplete = 'off';
-  i.placeholder = 'Alasan, mis. termasuk harga baris 10';
+  i.placeholder = 'Reason, e.g. included in line 10 price';
   i.value = ncText;
   i.dataset.key = `nc:${line.id}`;
   i.dataset.kind = 'text';
   i.dataset.orig = '';
-  i.setAttribute('aria-label', `Alasan tanpa biaya ${line.display_no || ''} ${line.display_name || ''}`);
+  i.setAttribute('aria-label', `No-charge reason ${line.display_no || ''} ${line.display_name || ''}`);
   const save = () => {
     const v = i.value.trim().replace(/\s+/g, ' ');
-    if (!v) return invalid(i, 'Isi alasan tanpa biaya (mis. "harga termasuk baris 10").');
+    if (!v) return invalid(i, 'Enter the no-charge reason (e.g. "price included in line 10").');
     ncOpen = null;
     ncText = '';
     send('setNoCharge', { line_id: line.id, on: true, reason: v });
@@ -387,11 +387,11 @@ function noChargeForm(line) {
     if (e.key === 'Enter') { e.preventDefault(); save(); }
     else if (e.key === 'Escape') closeNoCharge();
   });
-  const ok = el('button', 'bbtn sm', 'Simpan');
+  const ok = el('button', 'bbtn sm', 'Save');
   ok.type = 'button';
   ok.disabled = !!M.busy;
   ok.addEventListener('click', save);
-  const no = linkBtn('Batal', 'Tutup tanpa menyimpan', closeNoCharge);
+  const no = linkBtn('Cancel', 'Close without saving', closeNoCharge);
   no.disabled = false;
   f.appendChild(i);
   const b = el('div', 'ncbtns');
@@ -402,9 +402,9 @@ function noChargeForm(line) {
 }
 
 function originText(line) {
-  const t = { INPUT: 'input', COPIED: 'copy', CARRIED_FROM_REPLACED: 'ganti material' }[line.value_origin] || line.value_origin;
+  const t = { INPUT: 'input', COPIED: 'copy', CARRIED_FROM_REPLACED: 'replaced material' }[line.value_origin] || line.value_origin;
   const s = el('span', 'ro', t);
-  if (line.value_source_ref) s.title = `Dari ${line.value_source_ref}`;
+  if (line.value_source_ref) s.title = `From ${line.value_source_ref}`;
   return s;
 }
 
@@ -414,7 +414,7 @@ function lineRow(line, editable) {
   tr.appendChild(td('c-no', line.display_no || '-'));
   const comp = el('span', 'ro');
   comp.appendChild(el('span', 'name', line.display_name || '-'));
-  if (line.is_local) comp.appendChild(el('span', 'local', 'lokal'));
+  if (line.is_local) comp.appendChild(el('span', 'local', 'local'));
   tr.appendChild(td('c-comp', comp));
   const mat = el('span', 'ro');
   mat.appendChild(document.createTextNode(line.material_name || '-'));
@@ -485,10 +485,10 @@ function headerInput(field, label, value, max, neg, money) {
     key: `hdr:${field}`, col: `hdr:${field}`, value, max, label,
     parse: { neg, money },
     need: field === 'RATE' && num(value) === null,
-    needTitle: 'Exchange rate wajib diisi sebelum terbit',
-    check: n => field === 'RATE' ? (n !== null && n <= 0 ? 'Exchange rate harus lebih besar dari 0 (kosongkan kalau belum ada).' : null)
-      : field === 'MARGIN' ? (n !== null && n >= 100 ? 'Margin harus kurang dari 100%.' : null)
-      : (n !== null && n <= 0) ? 'Harus lebih besar dari 0 (kosongkan kalau belum ada).'
+    needTitle: 'Exchange rate is required before publishing',
+    check: n => field === 'RATE' ? (n !== null && n <= 0 ? 'Exchange rate must be above 0 (leave empty if not known yet).' : null)
+      : field === 'MARGIN' ? (n !== null && n >= 100 ? 'Margin must be below 100%.' : null)
+      : (n !== null && n <= 0) ? 'Must be above 0 (leave empty if not known yet).'
       : null,
     commit: v => send('setHeader', { field, value: v }),
   });
@@ -549,12 +549,12 @@ function costTable(r, editable) {
   wrap.appendChild(el('h3', null, 'Cost recapitulation'));
   const t = el('table', 'mini cost');
   const hr = el('tr');
-  ['No', 'Jenis', 'Uraian', 'Nilai (Rp)', 'Keterangan', ''].forEach((h, i) => hr.appendChild(cell('th', i === 3 ? 'n' : '', h)));
+  ['No', 'Type', 'Description', 'Value (Rp)', 'Remarks', ''].forEach((h, i) => hr.appendChild(cell('th', i === 3 ? 'n' : '', h)));
   t.appendChild(cell('thead', null, hr));
   const tb = el('tbody');
   const letter = i => String.fromCharCode(97 + i) + '.';
   const mat = el('tr', 'auto');
-  [letter(0), 'Material', 'Material cost', fmt(r.material_cost, 2, 2), 'otomatis dari grid', ''].forEach((v, i) => {
+  [letter(0), 'Material', 'Material cost', fmt(r.material_cost, 2, 2), 'automatic from the grid', ''].forEach((v, i) => {
     mat.appendChild(cell('td', i === 3 ? 'n' : (i === 4 ? 'muted' : ''), v));
   });
   tb.appendChild(mat);
@@ -564,36 +564,36 @@ function costTable(r, editable) {
     tr.appendChild(cell('td', '', letter(idx + 1)));
     tr.appendChild(cell('td', '', typeLabel[it.item_type] || it.item_type));
     tr.appendChild(cell('td', '', editable
-      ? textInput({ key: `cost:${it.id}:NAME`, value: it.name, label: 'Uraian', required: true,
+      ? textInput({ key: `cost:${it.id}:NAME`, value: it.name, label: 'Description', required: true,
           commit: v => send('setCost', { item_id: it.id, field: 'NAME', value: v }) })
       : it.name));
     tr.appendChild(cell('td', 'n', editable
-      ? numInput({ key: `cost:${it.id}:AMOUNT`, col: 'cost-amount', value: it.amount, max: 2, label: `Nilai ${it.name}`,
+      ? numInput({ key: `cost:${it.id}:AMOUNT`, col: 'cost-amount', value: it.amount, max: 2, label: `Value ${it.name}`,
           parse: { neg: it.item_type === 'ADJUSTMENT', money: true },
           commit: v => send('setCost', { item_id: it.id, field: 'AMOUNT', value: v }) })
       : fmt(it.amount, 2, 2)));
     tr.appendChild(cell('td', '', editable
-      ? textInput({ key: `cost:${it.id}:REMARKS`, value: it.remarks, label: 'Keterangan', placeholder: 'mis. LOP 2026',
+      ? textInput({ key: `cost:${it.id}:REMARKS`, value: it.remarks, label: 'Remarks', placeholder: 'e.g. LOP 2026',
           commit: v => send('setCost', { item_id: it.id, field: 'REMARKS', value: v }) })
       : (it.remarks || '')));
     const act = el('td', 'act');
-    if (editable && !it.is_default) act.appendChild(linkBtn('Hapus', 'Hapus baris biaya ini', () => send('deleteCost', { item_id: it.id }), true));
-    if (it.is_default) act.title = 'Baris default — selalu ada (isi 0 bila tidak dipakai)';
+    if (editable && !it.is_default) act.appendChild(linkBtn('Delete', 'Delete this cost line', () => send('deleteCost', { item_id: it.id }), true));
+    if (it.is_default) act.title = 'Default line. Always present (enter 0 if not used)';
     tr.appendChild(act);
     tb.appendChild(tr);
   });
   if (editable) tb.appendChild(addCostRow());
-  const fob = labelRow('ACTUAL FOB', fmt(r.actual_fob, 2, 2), 'material cost + semua baris biaya');
+  const fob = labelRow('ACTUAL FOB', fmt(r.actual_fob, 2, 2), 'material cost + all cost lines');
   fob.className = 'total';
   tb.appendChild(fob);
   if (num(r.po_factor) !== null) {                     // R5: PO SMS = Actual FOB x faktor stage
     const po = labelRow(`PO ${r.stage || ''} (× ${fmt(r.po_factor, 4, 2)})`, fmt(r.po_price, 2, 2),
-      r.status === 'PUBLISHED' ? 'faktor dibekukan saat terbit' : 'faktor stage saat ini');
+      r.status === 'PUBLISHED' ? 'factor frozen at publish' : 'current stage factor');
     po.className = 'total';
     tb.appendChild(po);
   }
   tb.appendChild(labelRow('Target FOB', editable ? headerInput('TARGET_FOB', 'Target FOB', r.target_fob, 2, false, true) : fmt(r.target_fob, 2, 2)));
-  tb.appendChild(labelRow('Selisih (Actual − Target)', varianceView(r)));
+  tb.appendChild(labelRow('Difference (Actual − Target)', varianceView(r)));
   t.appendChild(tb);
   wrap.appendChild(t);
   return wrap;
@@ -604,8 +604,8 @@ function addCostRow() {
   const tr = el('tr', 'add');
   tr.appendChild(cell('td', '', '+'));
   const sel = el('select', 'cell sel');
-  sel.setAttribute('aria-label', 'Jenis biaya baru');
-  const o0 = el('option', null, '— jenis —');
+  sel.setAttribute('aria-label', 'New cost type');
+  const o0 = el('option', null, 'Type');
   o0.value = '';
   sel.appendChild(o0);
   COST_TYPES.forEach(([v, l]) => {
@@ -623,14 +623,14 @@ function addCostRow() {
     i.setAttribute('aria-label', label);
     return i;
   };
-  const name = mk('cell txt', addForm.type ? COST_NAME[addForm.type] : 'Uraian', addForm.name, 'Uraian biaya baru');
-  const amt = mk('cell', '0', addForm.amount, 'Nilai biaya baru');
+  const name = mk('cell txt', addForm.type ? COST_NAME[addForm.type] : 'Description', addForm.name, 'New cost description');
+  const amt = mk('cell', '0', addForm.amount, 'New cost value');
   amt.inputMode = 'decimal';
-  const rem = mk('cell txt', 'Keterangan (opsional)', addForm.remarks, 'Keterangan biaya baru');
+  const rem = mk('cell txt', 'Remarks (optional)', addForm.remarks, 'New cost remarks');
   sel.addEventListener('change', () => {
     addForm.type = sel.value;
     sel.classList.remove('invalid');
-    name.placeholder = sel.value ? COST_NAME[sel.value] : 'Uraian';
+    name.placeholder = sel.value ? COST_NAME[sel.value] : 'Description';
   });
   name.addEventListener('input', () => { addForm.name = name.value; });
   amt.addEventListener('input', () => { addForm.amount = amt.value; amt.classList.remove('invalid'); });
@@ -640,11 +640,11 @@ function addCostRow() {
   tr.appendChild(cell('td', 'n', amt));
   tr.appendChild(cell('td', '', rem));
   const act = el('td', 'act');
-  const b = el('button', 'bbtn', 'Tambah');
+  const b = el('button', 'bbtn', 'Add');
   b.type = 'button';
   b.disabled = !!M.busy;
   b.addEventListener('click', () => {
-    if (!addForm.type) return invalid(sel, 'Pilih jenis biaya.');
+    if (!addForm.type) return invalid(sel, 'Select a cost type.');
     const p = parseInput(addForm.amount, { neg: addForm.type === 'ADJUSTMENT', money: true });
     if (p.error) return invalid(amt, p.error);
     send('addCost', {
@@ -657,7 +657,7 @@ function addCostRow() {
   return tr;
 }
 
-// R5: simulasi harga jual Brand (simulate_margin) — Selling price ⇄ Margin % dari Actual FOB.
+// R5: simulasi harga jual Brand (simulate_margin) - Selling price ⇄ Margin % dari Actual FOB.
 // Dihitung di layar saja, TIDAK disimpan (tanpa tombol simpan, tidak ikut export).
 let sim = { key: null, price: '', margin: '' };
 
@@ -668,7 +668,7 @@ function simRead(text, neg) {
 
 function sellTable(r) {
   const wrap = el('section', 'sect');
-  wrap.appendChild(el('h3', null, 'Simulasi harga jual'));
+  wrap.appendChild(el('h3', null, 'Selling price simulation'));
   const fob = num(r.actual_fob);
   if (sim.key !== r.cbd_revision_id) sim = { key: r.cbd_revision_id, price: '', margin: '' };
   const t = el('table', 'mini sell');
@@ -685,8 +685,8 @@ function sellTable(r) {
     tb.appendChild(tr);
     return i;
   };
-  const price = mk('Selling price (Rp)', sim.price, 'Simulasi selling price');
-  const margin = mk('Margin %', sim.margin, 'Simulasi margin');
+  const price = mk('Selling price (Rp)', sim.price, 'Selling price simulation');
+  const margin = mk('Margin %', sim.margin, 'Margin simulation');
   price.addEventListener('input', () => {
     sim.price = price.value;
     const v = simRead(price.value, false);
@@ -701,7 +701,7 @@ function sellTable(r) {
   });
   t.appendChild(tb);
   wrap.appendChild(t);
-  wrap.appendChild(el('p', 'muted', `Dari Actual FOB ${fmt(r.actual_fob, 2, 2)}. Hanya simulasi — tidak disimpan dan tidak ikut export.`));
+  wrap.appendChild(el('p', 'muted', `From Actual FOB ${fmt(r.actual_fob, 2, 2)}. Simulation only. Not saved and not exported.`));
   return wrap;
 }
 
@@ -748,8 +748,8 @@ function render(model) {
   const hr = el('tr');
   COLS.forEach(([c, t]) => {
     const th = el('th', c, t);
-    if (t === 'Yield') th.title = 'Jumlah pasang dari satu unit material. Usage = 1 / Yield.';
-    if (t === 'USD' || t === 'IDR') th.title = 'Konversi memakai exchange rate revisi ini (di rekap).';
+    if (t === 'Yield') th.title = 'Pairs from one material unit. Usage = 1 / Yield.';
+    if (t === 'USD' || t === 'IDR') th.title = 'Converted with this revision\'s exchange rate (in the recap).';
     hr.appendChild(th);
   });
   thead.appendChild(hr);
@@ -758,7 +758,7 @@ function render(model) {
   tbody.innerHTML = '';
   if (!lines.length) {
     const tr = el('tr');
-    const c = el('td', 'empty', M.emptyText || 'Belum ada baris CBD.');
+    const c = el('td', 'empty', M.emptyText || 'No CBD lines yet.');
     c.colSpan = COLS.length;
     tr.appendChild(c);
     tbody.appendChild(tr);
@@ -778,7 +778,7 @@ function render(model) {
   });
   if (group !== null) tbody.appendChild(subtotalRow(group, groupName));
   if (missing.length) {
-    tbody.appendChild(groupRow(`Hilang dari specsheet (MISSING_IN_SPEC) — ${missing.length} baris, tidak dihitung`, true));
+    tbody.appendChild(groupRow(`Missing from specsheet (MISSING_IN_SPEC): ${missing.length} lines, not counted`, true));
     missing.forEach(l => tbody.appendChild(lineRow(l, false)));
   }
 
@@ -808,12 +808,12 @@ function render(model) {
   const noPrice = active_.filter(l => num(l.price_original) === null && num(l.yield_value) !== null && !l.no_charge).length;
   const noYield = active_.filter(l => num(l.price_original) !== null && num(l.yield_value) === null && !l.no_charge).length;
   const noCharge = active_.filter(l => l.no_charge).length;
-  const parts = [`${active_.length} baris`];
-  if (noYield) parts.push(`${noYield} berharga tanpa yield`);
-  if (noPrice) parts.push(`${noPrice} belum berharga`);
-  if (noCharge) parts.push(`${noCharge} tanpa biaya`);
-  if (!editable) parts.push('hanya baca');
-  $('status').textContent = (M.busy || queue.length ? 'Menyimpan… · ' : '') + parts.join(' · ');
+  const parts = [`${active_.length} line(s)`];
+  if (noYield) parts.push(`${noYield} priced without yield`);
+  if (noPrice) parts.push(`${noPrice} without price`);
+  if (noCharge) parts.push(`${noCharge} no charge`);
+  if (!editable) parts.push('read only');
+  $('status').textContent = (M.busy || queue.length ? 'Saving… · ' : '') + parts.join(' · ');
   showMessage();
 }
 

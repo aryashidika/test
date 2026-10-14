@@ -1,4 +1,4 @@
-// cwCbdForm — modal Buat CBD di page Cost Breakdown (CBD) (mdlCbdBaru). Hanya tampilan; pilihan cara & sumber
+// cwCbdForm - modal Buat CBD di page Cost Breakdown (CBD) (mdlCbdBaru). Hanya tampilan; pilihan cara & sumber
 // disusun CbdCtrl.createFormModel(), simpan lewat CbdCtrl.saveCreate() -> fn_cbd_create.
 //   article belum punya CBD -> NEW (dari specsheet) / COPY (dari CBD terbit article lain model sama)
 //   article sudah punya CBD terbit -> NEXT (revisi berikutnya)
@@ -85,7 +85,7 @@ function fillStages(list) {
     b.disabled = !!s.disabled;
     b.setAttribute('role', 'radio');
     b.textContent = s.label || s.v;
-    b.title = s.disabled ? (s.note || '') : `${s.next} · acuan specsheet ${s.spec}`;
+    b.title = s.disabled ? (s.note || '') : `${s.next} · reference specsheet ${s.spec}`;
     b.addEventListener('click', () => setStage(s.v));
     box.appendChild(b);
   });
@@ -106,7 +106,7 @@ function setMode(v) {
 }
 
 function fillForm(m) {
-  $('title').textContent = m.title || 'Buat CBD';
+  $('title').textContent = m.title || 'Create CBD';
   options = m.options || [];
   const box = $('opts');
   box.innerHTML = '';
@@ -124,7 +124,7 @@ function fillForm(m) {
     box.appendChild(b);
   });
   const src = $('source');
-  src.innerHTML = '<option value="">— pilih article —</option>';
+  src.innerHTML = '<option value="">Select article</option>';
   (m.sources || []).forEach(s => {
     const opt = document.createElement('option');
     opt.value = s.id;
@@ -148,7 +148,7 @@ function setBusy(v) {
   $('btnSave').disabled = v;
   $('btnCancel').disabled = v;
   $('btnX').disabled = v;
-  $('btnSave').textContent = v ? 'Membuat…' : 'Buat';
+  $('btnSave').textContent = v ? 'Creating…' : 'Create';
 }
 
 function render(model) {
@@ -165,17 +165,17 @@ function submit() {
   if (busy) return;
   const o = current();
   if (!o) {
-    showMessage({ type: 'error', text: 'Pilih cara membuat CBD.' });
+    showMessage({ type: 'error', text: 'Choose how to create the CBD.' });
     return;
   }
   if (o.needsSource && !$('source').value) {
     $('source').classList.add('invalid');
     $('source').focus();
-    showMessage({ type: 'error', text: 'Pilih article sumber.' });
+    showMessage({ type: 'error', text: 'Select a source article.' });
     return;
   }
   if (stages.length && !curStage()) {
-    showMessage({ type: 'error', text: 'Pilih stage CBD.' });
+    showMessage({ type: 'error', text: 'Select the CBD stage.' });
     return;
   }
   $('source').classList.remove('invalid');

@@ -1,6 +1,6 @@
 # cwSeasonForm
 
-Form **Season Baru** — page `Model Detail`, modal `mdlSeason` → `ModelDetailCtrl.saveSeason()` → `a_season_add`.
+Form **Season Baru** - page `Model Detail`, modal `mdlSeason` → `ModelDetailCtrl.saveSeason()` → `a_season_add`.
 
 Hanya tampilan. Pilih musim **SS** (Spring/Summer) / **FH** (Fall/Holiday) + 2 digit tahun → `SS26`.
 Awal terisi musim & tahun berjalan (Jan–Jun = SS). Season yang sudah ada untuk model ini ditolak di form;

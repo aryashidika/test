@@ -1,23 +1,23 @@
 <div class="wrap">
   <div class="head">
-    <h2 id="title">Tambah Komponen</h2>
-    <button type="button" class="x" id="btnX" aria-label="Tutup">✕</button>
+    <h2 id="title">Add Component</h2>
+    <button type="button" class="x" id="btnX" aria-label="Close">✕</button>
   </div>
 
   <div id="msg" class="msg" role="alert" hidden></div>
 
-  <label for="group">Kelompok <span class="req">*</span></label>
+  <label for="group">Group <span class="req">*</span></label>
   <select id="group"></select>
 
-  <label for="number">Nomor <span class="req">*</span></label>
+  <label for="number">Number <span class="req">*</span></label>
   <input id="number" type="number" min="0" step="10" autocomplete="off">
   <div class="hint" id="numberHint"></div>
-  <button type="button" class="link" id="btnSuggest" hidden>Pakai saran</button>
+  <button type="button" class="link" id="btnSuggest" hidden>Use suggestion</button>
 
-  <label for="name">Nama komponen <span class="req">*</span></label>
-  <input id="name" type="text" maxlength="150" autocomplete="off" placeholder="mis. Vamp">
+  <label for="name">Component name <span class="req">*</span></label>
+  <input id="name" type="text" maxlength="150" autocomplete="off" placeholder="e.g. Vamp">
   <div class="similar" id="similar" hidden>
-    <div class="similar-title">Komponen dengan nama mirip sudah ada — pakai yang ini bila sama:</div>
+    <div class="similar-title">A component with a similar name exists. Use it if it is the same:</div>
     <ul id="similarList"></ul>
   </div>
 
@@ -26,11 +26,11 @@
     <select id="status"></select>
   </div>
 
-  <div class="info" id="addInfo" hidden>Komponen dipakai bersama semua pabrik dan langsung bisa dipilih.</div>
-  <div class="field-note" id="editNote" hidden>Nama, nomor, dan kelompok tidak bisa diubah bila komponen sudah dipakai di dokumen terbit. INACTIVE ditolak selama masih dipakai di draft.</div>
+  <div class="info" id="addInfo" hidden>Components are shared by all factories and can be selected right away.</div>
+  <div class="field-note" id="editNote" hidden>Name, number, and group cannot be changed once the component is used in a published document. INACTIVE is refused while it is used in a draft.</div>
 
   <div class="actions">
-    <button type="button" class="btn-secondary" id="btnCancel">Batal</button>
-    <button type="button" class="btn-primary" id="btnSave">Simpan</button>
+    <button type="button" class="btn-secondary" id="btnCancel">Cancel</button>
+    <button type="button" class="btn-primary" id="btnSave">Save</button>
   </div>
 </div>

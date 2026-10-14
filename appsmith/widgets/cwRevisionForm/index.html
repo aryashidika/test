@@ -1,21 +1,21 @@
 <div class="wrap">
   <div class="head">
-    <h2 id="title">Buat Revisi</h2>
-    <button type="button" class="x" id="btnX" aria-label="Tutup">✕</button>
+    <h2 id="title">Create Revision</h2>
+    <button type="button" class="x" id="btnX" aria-label="Close">✕</button>
   </div>
 
   <div id="msg" class="msg" role="alert" hidden></div>
 
-  <div class="opts" id="opts" role="radiogroup" aria-label="Cara membuat revisi"></div>
+  <div class="opts" id="opts" role="radiogroup" aria-label="How to create the revision"></div>
 
   <div id="firstBox" hidden>
     <div id="sourceBox" hidden>
-      <label for="source" id="sourceLabel">Season sumber <span class="req">*</span></label>
+      <label for="source" id="sourceLabel">Source season <span class="req">*</span></label>
       <select id="source"></select>
-      <div class="hint" id="sourceHint">Baris BOM revisi terbit terakhir season sumber di-copy. Article season ini dimuat dengan warna kosong.</div>
+      <div class="hint" id="sourceHint">BOM lines of the latest published revision of the source season are copied. This season's articles are loaded with empty colors.</div>
       <div class="info" id="sourceSum" hidden></div>
     </div>
-    <label for="stage">Stage awal <span class="req">*</span></label>
+    <label for="stage">First stage <span class="req">*</span></label>
     <select id="stage"></select>
   </div>
 
@@ -28,7 +28,7 @@
   <div class="info" id="note" hidden></div>
 
   <div class="actions">
-    <button type="button" class="btn-secondary" id="btnCancel">Batal</button>
-    <button type="button" class="btn-primary" id="btnSave">Buat</button>
+    <button type="button" class="btn-secondary" id="btnCancel">Cancel</button>
+    <button type="button" class="btn-primary" id="btnSave">Create</button>
   </div>
 </div>

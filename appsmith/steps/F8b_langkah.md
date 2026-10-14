@@ -1,22 +1,22 @@
-# F8b — CBD: Cost recapitulation & Harga jual (tabel di bawah grid): langkah di Appsmith
+# F8b - CBD: Cost recapitulation & Harga jual (tabel di bawah grid): langkah di Appsmith
 
 Permintaan user 5 Okt 2026, mengikuti contoh Excel `FH26_CBD PRODUCTION_ACC ILLUZION IV ELITE FG PRM 097.xlsx`
 (blok *Cost recapitulation*). Urutan: **1** SQL → **2** query → **3** JSObject → **4** widget → **5** uji → **6** export
 `export_v8b.json`.
 
 Setelan **query baru**: *Use prepared statements* **ON**, *Run behaviour* **Manual** (⚠️ termasuk `q_cbd_cost_items`
-— jangan *Automatic*, lihat T37). Jangan membuat `Query1` di app ini.
+- jangan *Automatic*, lihat T37). Jangan membuat `Query1` di app ini.
 
 Keputusan user:
 - **Tabel baris CBD tetap** seperti sekarang, ditambah **baris Subtotal per grup** (A Upper, B Bottom unit, …).
 - **Cost recapitulation** (tabel sendiri di bawah grid):
-  - `a.` **Material cost** — otomatis (jumlah subtotal grup).
+  - `a.` **Material cost** - otomatis (jumlah subtotal grup).
   - Baris biaya dengan **jenis tetap**: Direct Labour (LOP) · Amortisasi · Adjustment · Lainnya. Nilai Rupiah;
     hanya **Adjustment** yang boleh minus.
   - **Direct Labour, Amortisasi, Adjustment selalu ada** (baris default, tidak bisa dihapus; isi 0 bila tidak dipakai;
     uraian & keterangan boleh diubah). Baris tambahan (mis. *Amortisasi Mold Upper*) bisa ditambah & dihapus.
   - **ACTUAL FOB** = material cost + semua baris biaya · **Target FOB** · **Selisih** (OVER / UNDER / SESUAI).
-- **Harga jual** (tabel terpisah di bawah): Selling price ⇄ Margin % — sama seperti F8, hanya dipindah.
+- **Harga jual** (tabel terpisah di bawah): Selling price ⇄ Margin % - sama seperti F8, hanya dipindah.
 - Di atas grid (menempel) tinggal **Exchange rate** + ringkasan hanya baca: Material cost, Actual FOB, Target FOB, Selisih.
 - Kolom `amortization` & `adjustment` di `cbd_revision` **dihapus**; nilainya dipindah ke baris default (data uji tetap aman).
 - Revisi berikutnya / copy dari article lain: baris biaya **ikut ter-copy**. Revisi terbit: baris biaya **terkunci**.
@@ -42,7 +42,7 @@ Keputusan user:
 
 ## 2. Query (page `Cost Breakdown (CBD)`)
 
-**`q_cbd_cost_items`** (baca — **Manual**; dijalankan `CbdGridCtrl.reload()`)
+**`q_cbd_cost_items`** (baca - **Manual**; dijalankan `CbdGridCtrl.reload()`)
 ```sql
 SELECT c.id, c.item_type, c.name, c.amount, c.remarks, c.is_default, c.sort_order
 FROM cbd_cost_item c
@@ -67,12 +67,12 @@ SELECT fn_cbd_cost_set({{appsmith.store.token}}, {{this.params.item_id}}::uuid, 
                        {{this.params.value}}) AS id;
 ```
 
-**`a_cbd_cost_delete`** — *Request confirmation before running* = **ON**
+**`a_cbd_cost_delete`** - *Request confirmation before running* = **ON**
 ```sql
 SELECT fn_cbd_cost_delete({{appsmith.store.token}}, {{this.params.item_id}}::uuid) AS id;
 ```
 
-Query lain **tidak berubah** (`q_cbd_recap` memakai `SELECT v.*`, kolom baru ikut otomatis; `a_cbd_header_set` sama —
+Query lain **tidak berubah** (`q_cbd_recap` memakai `SELECT v.*`, kolom baru ikut otomatis; `a_cbd_header_set` sama -
 hanya isian AMORTIZATION/ADJUSTMENT yang tidak dipakai lagi).
 
 ---
@@ -87,7 +87,7 @@ hanya isian AMORTIZATION/ADJUSTMENT yang tidak dipakai lagi).
 
 ## 4. Widget
 
-### 4a. Desain (teks) — isi `cwCbdGrid`
+### 4a. Desain (teks) - isi `cwCbdGrid`
 
 ```
 ┌ cwCbdGrid ───────────────────────────────────────────────────────────────────────────┐
@@ -111,7 +111,7 @@ hanya isian AMORTIZATION/ADJUSTMENT yang tidak dipakai lagi).
 │ │c. Amortisasi     │[Amortisasi winfait]│[     0  ]│[          ]│     │ └─────────────────────┘│
 │ │d. Adjustment     │[Adjustment Piero  ]│[   500  ]│[          ]│     │ Selling price dan Margin│
 │ │e. Amortisasi     │[Amortisasi Mold Up]│[  4000  ]│[          ]│Hapus│ saling terhubung …     │
-│ │+ [— jenis — ▾]   │[Uraian           ]│[     0  ]│[Keterangan]│[Tambah]│                     │
+│ │+ [- jenis - ▾]   │[Uraian           ]│[     0  ]│[Keterangan]│[Tambah]│                     │
 │ │  ACTUAL FOB                           │449.490,00│material + biaya │                       │
 │ │  Target FOB                           │[365308  ]│            │     │                        │
 │ │  Selisih (Actual − Target)            │84.182 OVER│           │     │                        │
@@ -127,7 +127,7 @@ hanya isian AMORTIZATION/ADJUSTMENT yang tidak dipakai lagi).
 
 1. Klik `cwCbdGrid` → **Edit source** → tempel ulang **ketiga tab** (`widgets/cwCbdGrid/index.html`, `style.css`,
    `script.js`) → tutup editor.
-2. Tinggi `cwCbdGrid` → **±800 px** (baris 41–121; sekaligus menutup T40 — tabel bawah ada di dalam widget).
+2. Tinggi `cwCbdGrid` → **±800 px** (baris 41–121; sekaligus menutup T40 - tabel bawah ada di dalam widget).
 3. Properti lain **tetap**: Default model `{{CbdGridCtrl.gridModel()}}` · Visible `{{!!CbdCtrl.revision()}}` ·
    Height **Fixed** · event **onAction** `{{CbdGridCtrl.onAction()}}` (aksi biaya juga lewat `onAction`, tidak ada event baru).
 4. Sisa T41: `tblCbdRiwayat` → *Allow searching* **OFF**.
@@ -157,6 +157,6 @@ hanya isian AMORTIZATION/ADJUSTMENT yang tidak dipakai lagi).
 ## 6. Export & cek skema
 
 1. Export app → `appsmith/exports/export_v8b.json`.
-2. Cek skema (`PLAN.md` §8) — harus ada table `cbd_cost_item`, view `v_cbd_recap`, `v_cbd_checklist`, function
+2. Cek skema (`PLAN.md` §8) - harus ada table `cbd_cost_item`, view `v_cbd_recap`, `v_cbd_checklist`, function
    `fn_cbd_cost_label`, `fn_cbd_cost_defaults`, `fn_cbd_check_cost`, `fn_cbd_cost_item`, `fn_cbd_cost_add`,
    `fn_cbd_cost_set`, `fn_cbd_cost_delete`, trigger `trg_lock_published` (cbd_cost_item).

@@ -1,4 +1,4 @@
-// JSObject "CbdExportCtrl" — page Cost Breakdown (CBD): Export Excel revisi CBD yang sedang dibuka. Layout mengikuti
+// JSObject "CbdExportCtrl" - page Cost Breakdown (CBD): Export Excel revisi CBD yang sedang dibuka. Layout mengikuti
 // contoh user "FH26_CBD PRODUCTION_ACC ILLUZION IV ELITE FG PRM 097.xlsx": header (kurs 1 $ = …), tabel material per
 // grup + subtotal, baris MISSING_IN_SPEC (tidak dihitung), Cost recapitulation, Target FOB, baris PO (R5, ganti blok Harga jual), change log.
 // Sel hitungan berisi RUMUS Excel (Usage = 1/Yield, IDR = USD × kurs, Cost/pr, SUM, selisih) beserta hasilnya dari DB,
@@ -14,7 +14,7 @@ export default {
 	MISSING_FILL: 'FFFCEFD8',
 	RP: '_-"Rp"* #,##0.00_-;\\-"Rp"* #,##0.00_-;_-"Rp"* "-"??_-;_-@_-',
 	USD: '_-[$$-409]* #,##0.0000_ ;_-[$$-409]* \\-#,##0.0000\\ ;_-[$$-409]* "-"??_ ;_-@_ ',
-	COST_LABEL: { LABOUR: 'Direct Labour', AMORTIZATION: 'Amortisasi', ADJUSTMENT: 'Adjustment', OTHER: 'Lainnya' },
+	COST_LABEL: { LABOUR: 'Direct Labour', AMORTIZATION: 'Amortization', ADJUSTMENT: 'Adjustment', OTHER: 'Other' },
 
 	canExport() {
 		return !!CbdCtrl.revision() && !this.busy;
@@ -45,17 +45,17 @@ export default {
 		return result === null || result === undefined ? { formula } : { formula, result };
 	},
 
-	// Garis tipis — objek baru setiap kali (gaya jangan disimpan sebagai variabel JSObject)
+	// Garis tipis - objek baru setiap kali (gaya jangan disimpan sebagai variabel JSObject)
 	thin() {
 		const s = () => ({ style: 'thin', color: { argb: 'FFC9CFDB' } });
 		return { top: s(), left: s(), bottom: s(), right: s() };
 	},
 
-	// Tulis file (JSObject XlsxWriter, tanpa ExcelJS — T43) lalu unduh. this.step = langkah yang sedang berjalan.
+	// Tulis file (JSObject XlsxWriter, tanpa ExcelJS - T43) lalu unduh. this.step = langkah yang sedang berjalan.
 	async save(wb, name) {
-		this.step = 'menulis file';
+		this.step = 'writing the file';
 		const b64 = wb.toBase64();
-		this.step = 'mengunduh';
+		this.step = 'downloading';
 		const mime = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 		await download(`data:${mime};base64,${b64}`, name, mime);
 	},
@@ -66,9 +66,9 @@ export default {
 		const s = CbdCtrl.season();
 		const a = CbdCtrl.article();
 		const r = CbdCtrl.revision();
-		if (!m || !s || !a || !r) return showAlert('Buka revisi CBD dulu.', 'warning');
+		if (!m || !s || !a || !r) return showAlert('Open a CBD revision first.', 'warning');
 		this.busy = true;
-		this.step = 'memuat rincian perubahan';
+		this.step = 'loading the change breakdown';
 		try {
 			let withBridge = true;           // gagal dimuat -> export tetap jalan tanpa blok rincian
 			try {
@@ -76,12 +76,12 @@ export default {
 			} catch (e) {
 				withBridge = false;
 			}
-			this.step = 'menyusun isi';
+			this.step = 'building the content';
 			const wb = this.build(m, s, a, r, withBridge);
 			await this.save(wb, this.fileName('CBD', m.name, s.season, a.code, `${Util.stageLabel(r.stage)}-r${r.revision_no}`, r.status === 'DRAFT' ? 'DRAFT' : ''));
-			showAlert('File Excel CBD diunduh.', 'success');
+			showAlert('CBD Excel file downloaded.', 'success');
 		} catch (e) {
-			showAlert(`Export gagal saat ${this.step}: ` + Util.cleanError((e && e.message) || String(e)), 'error');
+			showAlert(`Export failed while ${this.step}: ` + Util.cleanError((e && e.message) || String(e)), 'error');
 		} finally {
 			this.busy = false;
 		}
@@ -110,7 +110,7 @@ export default {
 		ws.getCell('A1').font = { bold: true, size: 16, color: { argb: this.NAVY } };
 		ws.getCell('A2').value = 'Confidential Information';
 		ws.getCell('A2').font = { italic: true, color: { argb: 'FF6B7280' } };
-		ws.getCell('K2').value = 'Tanggal';
+		ws.getCell('K2').value = 'Date';
 		// R12 (T67): tanggal WIB (sel Excel memakai tanggal lokal PC)
 		ws.getCell('L2').value = new Date(moment(r.status === 'PUBLISHED' && r.published_at ? r.published_at : undefined)
 			.utcOffset(7).format('YYYY-MM-DD') + 'T00:00:00');
@@ -126,9 +126,9 @@ export default {
 			['Article #', `${a.code}`],
 			['Construction', v(m.construction)],
 			['Color', v(a.colorway)],
-			['Season / Revisi', `${s.season} · ${Util.revLabel(r)} · ${r.status}`
-				+ (r.status === 'PUBLISHED' ? ` · terbit oleh ${r.published_by || '-'}` : ' · BELUM TERBIT')
-				+ ` · acuan specsheet ${r.spec_label || '-'}`],
+			['Season / Revision', `${s.season} · ${Util.revLabel(r)} · ${r.status}`
+				+ (r.status === 'PUBLISHED' ? ` · published by ${r.published_by || '-'}` : ' · NOT PUBLISHED')
+				+ ` · reference specsheet ${r.spec_label || '-'}`],
 		];
 		info.forEach(([k, val], i) => {
 			ws.getCell(`B${4 + i}`).value = k;
@@ -141,7 +141,7 @@ export default {
 		const h1 = ws.getRow(10);
 		const h2 = ws.getRow(11);
 		['No', 'Component Name', 'Material description', 'Thickness', 'Unit', 'Color', 'Yield', 'Usage', 'Loss %',
-			'Unit Price', '', 'Cost/pr (Rp)', 'Supplier', 'Remarks', 'Asal'].forEach((t, i) => { h1.getCell(i + 1).value = t; });
+			'Unit Price', '', 'Cost/pr (Rp)', 'Supplier', 'Remarks', 'Source'].forEach((t, i) => { h1.getCell(i + 1).value = t; });
 		h2.getCell(10).value = 'USD';
 		h2.getCell(11).value = 'IDR';
 		ws.mergeCells('J10:K10');
@@ -162,7 +162,7 @@ export default {
 			const y = this.n(l.yield_value);
 			const p = this.n(l.price_original);
 			row.getCell(1).value = l.is_sub ? '' : (l.display_no || '');
-			row.getCell(2).value = (l.is_sub ? '↳ ' : '') + (l.display_name || '') + (l.is_local ? ' (lokal)' : '');
+			row.getCell(2).value = (l.is_sub ? '↳ ' : '') + (l.display_name || '') + (l.is_local ? ' (local)' : '');
 			row.getCell(3).value = `${l.material_name || ''}${l.material_code ? ' [' + l.material_code + ']' : ''}`;
 			row.getCell(4).value = l.thickness || '';
 			row.getCell(5).value = l.uom || '';
@@ -177,15 +177,15 @@ export default {
 				row.getCell(11).value = p;
 			}
 			if (counted && l.no_charge) {
-				row.getCell(12).value = 0;          // R11: tanpa biaya — harga termasuk baris lain
+				row.getCell(12).value = 0;          // R11: tanpa biaya - harga termasuk baris lain
 			} else if (counted && y && p !== null && (l.currency === 'IDR' || rate)) {
 				row.getCell(12).value = this.f(`H${i}*(1+I${i}/100)*K${i}`, this.n(l.cost_per_pair));
 			}
 			row.getCell(13).value = l.supplier_name || '';
 			row.getCell(14).value = l.remarks || '';
-			const src = { MASTER: 'harga master', OVERRIDE: 'override', QUOTATION: 'quotation' }[l.price_source] || 'tanpa harga';
-			const org = { INPUT: '', COPIED: ' · copy', CARRIED_FROM_REPLACED: ' · ganti material' }[l.value_origin] || '';
-			row.getCell(15).value = l.no_charge ? `tanpa biaya: ${l.no_charge_reason || '-'}`
+			const src = { MASTER: 'master price', OVERRIDE: 'override', QUOTATION: 'quotation' }[l.price_source] || 'no price';
+			const org = { INPUT: '', COPIED: ' · copy', CARRIED_FROM_REPLACED: ' · replaced material' }[l.value_origin] || '';
+			row.getCell(15).value = l.no_charge ? `no charge: ${l.no_charge_reason || '-'}`
 				: src + org + (l.price_source === 'OVERRIDE' && l.price_override_reason ? `: ${l.price_override_reason}` : '');
 			row.getCell(7).numFmt = '#,##0.00####';
 			row.getCell(8).numFmt = '0.000000';
@@ -228,9 +228,9 @@ export default {
 			subtotalCells.push(`L${st.number}`);
 			ws.addRow([]);
 		});
-		if (!groups.length) ws.addRow(['Belum ada baris CBD.']);
+		if (!groups.length) ws.addRow(['No CBD lines yet.']);
 		if (missing.length) {
-			groupHeader(`Hilang dari specsheet (MISSING_IN_SPEC) — ${missing.length} baris, tidak dihitung`, this.MISSING_FILL);
+			groupHeader(`Missing from specsheet (MISSING_IN_SPEC): ${missing.length} lines, not counted`, this.MISSING_FILL);
 			missing.forEach(l => writeLine(l, false));
 			ws.addRow([]);
 		}
@@ -258,7 +258,7 @@ export default {
 		items.forEach((it, i) => {
 			last = recapRow(`${letter(i + 1)} ${it.name || this.COST_LABEL[it.item_type]}`, this.n(it.amount) ?? 0, it.remarks || '');
 		});
-		const fobRow = recapRow('ACTUAL FOB', this.f(`SUM(L${first}:L${last})`, this.n(rc.actual_fob)), 'material cost + semua biaya', true);
+		const fobRow = recapRow('ACTUAL FOB', this.f(`SUM(L${first}:L${last})`, this.n(rc.actual_fob)), 'material cost + all costs', true);
 		ws.getRow(fobRow).getCell(12).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: this.GROUP_FILL } };
 
 		ws.addRow([]);
@@ -269,7 +269,7 @@ export default {
 		const t = tRow.number;
 		const vRow = ws.addRow([]);
 		if (tRow.getCell(12).value !== null) {
-			vRow.getCell(11).value = this.f(`IF(L${fobRow}>L${t},"OVER",IF(L${fobRow}<L${t},"UNDER","SESUAI"))`, rc.variance_label || null);
+			vRow.getCell(11).value = this.f(`IF(L${fobRow}>L${t},"OVER",IF(L${fobRow}<L${t},"UNDER","MATCH"))`, rc.variance_label || null);
 			vRow.getCell(12).value = this.f(`L${fobRow}-L${t}`, this.n(rc.variance));
 			vRow.getCell(12).numFmt = this.RP;
 			vRow.getCell(11).font = { bold: true, color: { argb: rc.variance_label === 'OVER' ? 'FFDC2626' : 'FF16A34A' } };
@@ -280,7 +280,7 @@ export default {
 		const factor = this.n(rc.po_factor);
 		if (factor) {
 			const pRow = recapRow(`PO ${Util.stageLabel(r.stage)} (Actual FOB × ${String(factor).replace('.', ',')})`,
-				this.f(`ROUND(L${fobRow}*${factor},2)`, this.n(rc.po_price)), 'harga PO ke brand', true);
+				this.f(`ROUND(L${fobRow}*${factor},2)`, this.n(rc.po_price)), 'PO price to brand', true);
 			ws.getRow(pRow).getCell(12).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: this.GROUP_FILL } };
 		}
 
@@ -289,7 +289,7 @@ export default {
 			ws.addRow([]);
 			const c = ws.addRow(['', 'Change log']);
 			c.getCell(2).font = { bold: true };
-			const ch = ws.addRow(['', 'Tanggal', 'Kategori', 'Oleh', '', 'Alasan']);
+			const ch = ws.addRow(['', 'Date', 'Category', 'By', '', 'Reason']);
 			ch.font = { bold: true };
 			ws.addRow(['', moment(log.created_at).utcOffset(7).format('DD-MM-YYYY HH:mm'), log.category, log.created_by, '', log.reason]);
 		}
@@ -298,10 +298,10 @@ export default {
 		const bridge = withBridge ? CbdCtrl.bridgeRows() : [];
 		if (bridge.length) {
 			ws.addRow([]);
-			const bt = ws.addRow(['', `Rincian perubahan dibanding ${bridge[0].prev_label || 'revisi sebelumnya'}`]);
+			const bt = ws.addRow(['', `Change breakdown vs ${bridge[0].prev_label || 'previous revision'}`]);
 			bt.getCell(2).font = { bold: true, color: { argb: this.NAVY } };
-			const bh = ws.addRow(['', 'Kategori', 'Uraian']);
-			bh.getCell(12).value = 'Nilai (Rp)';
+			const bh = ws.addRow(['', 'Category', 'Description']);
+			bh.getCell(12).value = 'Value (Rp)';
 			ws.mergeCells(bh.number, 3, bh.number, 11);
 			this.fill(bh, 2, 12, this.GROUP_FILL);
 			this.box(bh, 2, 12);
@@ -316,7 +316,7 @@ export default {
 				this.box(row, 2, 12);
 			});
 			const lastB = firstB + bridge.length - 1;
-			const tot = ws.addRow(['', 'Selisih Actual FOB',
+			const tot = ws.addRow(['', 'Actual FOB difference',
 				`${bridge[0].prev_label || ''}: ${Util.fmtNum(bridge[0].prev_fob, 2)} → ${Util.revLabel(r)}: ${Util.fmtNum(bridge[0].fob, 2)}`]);
 			const delta = this.n(bridge[0].fob) !== null && this.n(bridge[0].prev_fob) !== null
 				? this.n(bridge[0].fob) - this.n(bridge[0].prev_fob) : null;

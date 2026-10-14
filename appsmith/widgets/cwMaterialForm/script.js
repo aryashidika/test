@@ -1,12 +1,12 @@
-// cwMaterialForm — form Tambah / Ubah Material INDUK di mdlMaterial (Master Material & Material Detail).
+// cwMaterialForm - form Tambah / Ubah Material INDUK di mdlMaterial (Master Material & Material Detail).
 // Hanya tampilan; simpan lewat MaterialCtrl.save() / MaterialDetailCtrl.saveMaterial().
 // R2: tanpa Material Code & thickness (pindah ke varian), tanpa usulan; metode harga hanya tim CBD
 // (canPriceMethod); daftar nama mirip saat mengetik (event onSearch). Aturan final di DB.
 const $ = id => document.getElementById(id);
 const IDENTITY = ['category', 'name', 'uom'];
 const METHOD_HINT = {
-  CATALOG: 'Harga diambil dari master harga per varian × supplier (diajukan tim CBD).',
-  QUOTATION: 'Material proses (printing, molding, dst.): tidak ada harga master, harga diisi per CBD.',
+  CATALOG: 'Prices come from master prices per variant × supplier (proposed by the CBD team).',
+  QUOTATION: 'Process material (printing, molding, etc.): no master price. The price is entered per CBD.',
 };
 let lastKey = null;
 let busy = false;
@@ -96,12 +96,12 @@ function querySimilar() {
   }, 350);
 }
 
-// Isi ulang field hanya saat modal dibuka (key berubah) — busy/message tidak menghapus ketikan user
+// Isi ulang field hanya saat modal dibuka (key berubah) - busy/message tidak menghapus ketikan user
 function fillForm(m) {
   const f = m.form || {};
   isEdit = m.mode === 'edit';
   canPriceMethod = !!m.canPriceMethod;
-  $('title').textContent = isEdit ? 'Ubah Material' : 'Tambah Material';
+  $('title').textContent = isEdit ? 'Edit Material' : 'Add Material';
   $('name').value = f.name || '';
   $('category').value = f.category || '';
   $('uom').value = f.uom || '';
@@ -118,8 +118,8 @@ function fillForm(m) {
   document.querySelectorAll('#method button').forEach(b => { b.disabled = !canPriceMethod; });
   $('statusBox').hidden = !(isEdit && m.canStatus);
   const notes = [];
-  if (!canIdentity) notes.push('Data material diubah tim specsheet (Vendor Spec).');
-  if (!canPriceMethod) notes.push('Metode harga ditentukan tim CBD (default Catalog).');
+  if (!canIdentity) notes.push('Material data is edited by the specsheet team (Vendor Spec).');
+  if (!canPriceMethod) notes.push('The price method is set by the CBD team (default Catalog).');
   $('lockNote').textContent = notes.join(' ');
   $('lockNote').hidden = notes.length === 0;
   $('addInfo').hidden = isEdit;
@@ -132,7 +132,7 @@ function setBusy(v) {
   $('btnSave').disabled = v;
   $('btnCancel').disabled = v;
   $('btnX').disabled = v;
-  $('btnSave').textContent = v ? 'Menyimpan…' : 'Simpan';
+  $('btnSave').textContent = v ? 'Saving…' : 'Save';
 }
 
 function render(model) {
@@ -160,12 +160,12 @@ function submit() {
     status: $('status').value,
   };
   IDENTITY.forEach(id => $(id).classList.remove('invalid'));
-  const required = [['category', 'Kategori'], ['name', 'Nama material'], ['uom', 'Mea (UoM)']];
+  const required = [['category', 'Category'], ['name', 'Material name'], ['uom', 'Mea (UoM)']];
   const missing = required.find(([id]) => !clean(id));
   if (missing) {
     $(missing[0]).classList.add('invalid');
     $(missing[0]).focus();
-    showMessage({ type: 'error', text: `${missing[1]} wajib diisi.` });
+    showMessage({ type: 'error', text: `${missing[1]} is required.` });
     return;
   }
   appsmith.updateModel(data);

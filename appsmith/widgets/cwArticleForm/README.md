@@ -1,6 +1,6 @@
 # cwArticleForm
 
-Form **Tambah / Ubah Article** — page `Model Detail`, modal `mdlArticle` → `ModelDetailCtrl.saveArticle()`
+Form **Tambah / Ubah Article** - page `Model Detail`, modal `mdlArticle` → `ModelDetailCtrl.saveArticle()`
 → `a_article_add` / `a_article_update`.
 
 Hanya tampilan. Wajib: kode & colorway. Kode dikunci (`codeLocked`) kalau article sudah dipakai di
@@ -20,7 +20,7 @@ Ukuran: modal lebar ±480 px; widget tinggi ±360 px.
   key,          // naik setiap modal dibuka -> field diisi ulang
   mode,         // 'add' | 'edit'
   season,       // 'SS26' (info)
-  count, max,   // jumlah article di season & batas (5) — info "article ke-n dari maks. 5"
+  count, max,   // jumlah article di season & batas (5) - info "article ke-n dari maks. 5"
   form,         // { code, colorway }
   codeLocked,   // true = kode tidak bisa diubah (article sudah dipakai)
   busy, message // message: null | { type, text }

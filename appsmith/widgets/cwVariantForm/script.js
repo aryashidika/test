@@ -1,12 +1,12 @@
-// cwVariantForm — form satu varian material: mdlVarian (Material Detail, MaterialDetailCtrl) & mdlVarianBaru (Specsheet,
+// cwVariantForm - form satu varian material: mdlVarian (Material Detail, MaterialDetailCtrl) & mdlVarianBaru (Specsheet,
 // BomCtrl, dari Daftarkan di sel kuning). Hanya tampilan; simpan lewat saveVariant() -> fn_variant_save.
 // R2b: satu baris seperti ERP (Material Code 10 karakter = 4 awalan material · 3 thickness · 3 warna, warna, thickness).
-// R9 (keputusan user 12 Okt 2026) — "kamus kode" per pabrik, tiga tingkat:
-//   TOLAK      : kode dobel · material + thickness + warna dobel — pesan dari DB.
-//   KONFIRMASI : bagian kode sudah berarti lain (W01 = WHITE, diisi CREAM) — kotak merah + centang "Sudah saya cek,
+// R9 (keputusan user 12 Okt 2026) - "kamus kode" per pabrik, tiga tingkat:
+//   TOLAK      : kode dobel · material + thickness + warna dobel - pesan dari DB.
+//   KONFIRMASI : bagian kode sudah berarti lain (W01 = WHITE, diisi CREAM) - kotak merah + centang "Sudah saya cek,
 //                kode ini benar sesuai ERP"; tanpa centang tidak bisa simpan (DB juga menolak tanpa p_confirm).
 //   INFO       : warna / thickness sudah memakai kode lain, awalan beda dari varian lain material ini, kode bukan
-//                10 karakter — kotak kuning, tetap bisa simpan.
+//                10 karakter - kotak kuning, tetap bisa simpan.
 // Isi otomatis dua arah (event onLookup):
 //   - kode diketik (10 karakter) -> lookupKind 'code' -> model.hint (fn_variant_code_hint): warna / thickness yang
 //     masih kosong diisi dari arti kodenya (tetap bisa diedit).
@@ -65,7 +65,7 @@ function fillSelect(sel, options, selected) {
 const cleanCode = s => String(s || '').trim().replace(/\s+/g, ' ').toUpperCase();
 const tidyText = s => String(s || '').trim().replace(/\s+/g, ' ').toUpperCase();
 const cleanThick = s => (['', '.', '-'].includes(tidyText(s)) ? '' : tidyText(s));   // = fn_clean_thickness
-const thickLabel = s => cleanThick(s) || 'tanpa thickness';
+const thickLabel = s => cleanThick(s) || 'no thickness';
 const parts = s => String(s || '').split(',').filter(x => x);
 const el = (tag, cls, text) => Object.assign(document.createElement(tag), { className: cls || '', textContent: text || '' });
 
@@ -75,7 +75,7 @@ function setNote(field, text) {
 }
 
 function fixedNote(field) {
-  return field === 'color' ? 'Dari sel specsheet.' : 'Dari baris specsheet.';
+  return field === 'color' ? 'From the specsheet cell.' : 'From the specsheet line.';
 }
 
 // ---- arah 1: kode -> warna / thickness ----
@@ -102,7 +102,7 @@ function applyHint(h) {
    ['color', h.color_known, h.color, h.color_ref]].forEach(([field, known, value, ref]) => {
     const shown = field === 'thickness' ? thickLabel(value) : (value || '');
     if (fixed) {
-      setNote(field, known ? `${fixedNote(field)} Kode ${part[field]} tercatat = ${shown} (${ref}).` : fixedNote(field));
+      setNote(field, known ? `${fixedNote(field)} Code ${part[field]} is recorded as ${shown} (${ref}).` : fixedNote(field));
       return;
     }
     if (known) {
@@ -111,9 +111,9 @@ function applyHint(h) {
         autoField[field] = true;
         $(field).classList.remove('invalid');
       }
-      setNote(field, `Kode ${part[field]} = ${shown} (tercatat di ${ref}).`);
+      setNote(field, `Code ${part[field]} = ${shown} (recorded in ${ref}).`);
     } else {
-      setNote(field, `Kode ${field === 'thickness' ? 'thickness' : 'warna'} ${part[field]} baru — berikutnya terisi otomatis.`);
+      setNote(field, `${field === 'thickness' ? 'Thickness' : 'Color'} code ${part[field]} is new. It fills in automatically next time.`);
     }
   });
   updateChecks();
@@ -194,10 +194,10 @@ function renderSuggest() {
     box.hidden = true;
     return;
   }
-  box.appendChild(el('div', '', 'Usulan dari kode yang sudah tercatat — cocokkan dengan ERP sebelum simpan:'));
-  [['p', 'Awalan material', 'belum ada varian lain di material ini — ketik 4 karakter'],
-   ['t', 'Thickness', 'belum pernah dipakai — ketik 3 karakter'],
-   ['c', 'Warna', 'warna baru — ketik 3 karakter terakhir']].forEach(([k, label, none]) => {
+  box.appendChild(el('div', '', 'Suggested from recorded codes. Check against ERP before saving:'));
+  [['p', 'Material prefix', 'no other variants in this material yet. Type 4 characters'],
+   ['t', 'Thickness', 'never used yet. Type 3 characters'],
+   ['c', 'Color', 'new color. Type the last 3 characters']].forEach(([k, label, none]) => {
     const row = el('div', 'sug-row');
     row.appendChild(el('span', 'sug-label', `${label}:`));
     const list = sug[k];
@@ -205,7 +205,7 @@ function renderSuggest() {
       row.appendChild(el('span', 'sug-none', none));
     } else {
       row.appendChild(el('span', 'sug-code', list[0]));
-      if (list.length > 1) row.appendChild(el('span', 'sug-other', `(kode lain: ${list.slice(1).join(', ')})`));
+      if (list.length > 1) row.appendChild(el('span', 'sug-other', `(other codes: ${list.slice(1).join(', ')})`));
     }
     box.appendChild(row);
   });
@@ -220,10 +220,10 @@ function conflicts() {
     const color = tidyText($('color').value);
     const thick = cleanThick($('thickness').value);
     if (hint.thickness_known && cleanThick(hint.thickness) !== thick) {
-      out.push(`Kode thickness ${code.substr(4, 3)} sudah tercatat sebagai ${thickLabel(hint.thickness)} (kode ${hint.thickness_ref}), bukan ${thickLabel(thick)}.`);
+      out.push(`Thickness code ${code.substr(4, 3)} is already recorded as ${thickLabel(hint.thickness)} (code ${hint.thickness_ref}), not ${thickLabel(thick)}.`);
     }
     if (hint.color_known && color && tidyText(hint.color) !== color) {
-      out.push(`Kode warna ${code.substr(7, 3)} sudah tercatat sebagai ${hint.color} (kode ${hint.color_ref}), bukan ${color}.`);
+      out.push(`Color code ${code.substr(7, 3)} is already recorded as ${hint.color} (code ${hint.color_ref}), not ${color}.`);
     }
   }
   if (!out.length && serverConflict) out.push(serverConflict);
@@ -233,20 +233,20 @@ function conflicts() {
 function infos() {
   const code = cleanCode($('code').value);
   const out = [];
-  if (code && code.length !== 10 && code !== autoCode) out.push(`Material Code ERP biasanya 10 karakter (sekarang ${code.length}).`);
+  if (code && code.length !== 10 && code !== autoCode) out.push(`ERP Material Codes are usually 10 characters (now ${code.length}).`);
   if (hint && hint.code === code && hint.other_prefixes) {
-    out.push(`Awalan ${code.substr(0, 4)} berbeda dari varian lain di material ini (${hint.other_prefixes}).`);
+    out.push(`Prefix ${code.substr(0, 4)} differs from other variants of this material (${hint.other_prefixes}).`);
   }
   const key = `${tidyText($('color').value)}|${cleanThick($('thickness').value)}`;
   if (sug && sug.key === key && code.length === 10) {
     if (sug.t.length && !sug.t.includes(code.substr(4, 3))) {
-      out.push(`Thickness ${thickLabel($('thickness').value)} biasanya berkode ${sug.t.join(' / ')} — pastikan ${code.substr(4, 3)} sesuai ERP.`);
+      out.push(`Thickness ${thickLabel($('thickness').value)} usually has code ${sug.t.join(' / ')}. Make sure ${code.substr(4, 3)} matches ERP.`);
     }
     if (sug.c.length && !sug.c.includes(code.substr(7, 3))) {
-      out.push(`Warna ${tidyText($('color').value)} biasanya berkode ${sug.c.join(' / ')} — pastikan ${code.substr(7, 3)} sesuai ERP.`);
+      out.push(`Color ${tidyText($('color').value)} usually has code ${sug.c.join(' / ')}. Make sure ${code.substr(7, 3)} matches ERP.`);
     }
     if (sug.p.length && !sug.p.includes(code.substr(0, 4)) && !(hint && hint.code === code)) {
-      out.push(`Awalan ${code.substr(0, 4)} berbeda dari varian lain di material ini (${sug.p.join(', ')}).`);
+      out.push(`Prefix ${code.substr(0, 4)} differs from other variants of this material (${sug.p.join(', ')}).`);
     }
   }
   return out;
@@ -259,7 +259,7 @@ function updateChecks() {
     lastConflict = text;
     $('confChk').checked = false;
   }
-  $('confText').textContent = text ? `${text} Periksa Material Code di ERP.` : '';
+  $('confText').textContent = text ? `${text} Check the Material Code in ERP.` : '';
   $('confBox').hidden = !text;
   const i = infos();
   $('infoBox').innerHTML = '';
@@ -282,7 +282,7 @@ function fillForm(m) {
   lastConflict = '';
   autoField.color = false;
   autoField.thickness = false;
-  $('title').textContent = isEdit ? 'Ubah Varian' : 'Tambah Varian';
+  $('title').textContent = isEdit ? 'Edit Variant' : 'Add Variant';
   $('materialLabel').textContent = m.materialLabel || '';
   ['code', 'color', 'thickness'].forEach(id => {
     $(id).value = f[id] || '';
@@ -306,7 +306,7 @@ function fillForm(m) {
 function setBusy(v) {
   busy = v;
   ['btnSave', 'btnAgain', 'btnCancel', 'btnX', 'confChk'].forEach(id => { $(id).disabled = v; });
-  $('btnSave').textContent = v ? 'Menyimpan…' : 'Simpan';
+  $('btnSave').textContent = v ? 'Saving…' : 'Save';
 }
 
 function render(model) {
@@ -344,13 +344,13 @@ function submit(again) {
   if (!code || !color) {
     $(code ? 'color' : 'code').classList.add('invalid');
     $(code ? 'color' : 'code').focus();
-    showMessage({ type: 'error', text: 'Material Code dan warna wajib diisi.' });
+    showMessage({ type: 'error', text: 'Material Code and color are required.' });
     return;
   }
   const needConfirm = conflicts().length > 0;
   if (needConfirm && !$('confChk').checked) {
     $('code').classList.add('invalid');
-    showMessage({ type: 'error', text: 'Material Code bertentangan dengan kode yang sudah tercatat. Periksa kodenya, atau centang konfirmasi bila memang sesuai ERP.' });
+    showMessage({ type: 'error', text: 'The Material Code conflicts with recorded codes. Check the code, or tick the confirmation if it matches ERP.' });
     return;
   }
   appsmith.updateModel({ code, color, thickness, status: $('status').value, again: !!again, confirm: needConfirm });

@@ -1,4 +1,4 @@
-// cwLinkForm — form Tambah / Ubah supplier material di mdlLink (page Material Detail). Hanya tampilan;
+// cwLinkForm - form Tambah / Ubah supplier material di mdlLink (page Material Detail). Hanya tampilan;
 // simpan lewat MaterialDetailCtrl.saveLink() -> fn_link_save. Hak ubah per field dari model
 // (canLink: supplier utama, canStatus: status); aturan final di DB. R2: tanpa kode supplier & approval.
 const $ = id => document.getElementById(id);
@@ -43,13 +43,13 @@ function fillSelect(sel, options, selected, placeholder) {
   sel.value = selected || '';
 }
 
-// Isi ulang field hanya saat modal dibuka (key berubah) — busy/message tidak menghapus ketikan user
+// Isi ulang field hanya saat modal dibuka (key berubah) - busy/message tidak menghapus ketikan user
 function fillForm(m) {
   const f = m.form || {};
   isEdit = m.mode === 'edit';
   const canLink = m.canLink !== false;
   const canStatus = !!m.canStatus;
-  $('title').textContent = isEdit ? 'Ubah Supplier Material' : 'Tambah Supplier Material';
+  $('title').textContent = isEdit ? 'Edit Material Supplier' : 'Add Material Supplier';
   $('materialLabel').textContent = m.materialLabel || '';
 
   $('supplier').hidden = isEdit;
@@ -57,7 +57,7 @@ function fillForm(m) {
   $('supplierName').hidden = !isEdit;
   $('supplierName').textContent = f.supplier_name || '';
   const options = m.supplierOptions || [];
-  fillSelect($('supplier'), options, f.supplier_id, options.length ? '— Pilih supplier —' : '— Semua supplier sudah terdaftar —');
+  fillSelect($('supplier'), options, f.supplier_id, options.length ? 'Select supplier' : 'All suppliers are already added');
   $('supplier').classList.remove('invalid');
 
   $('preferred').checked = !!f.is_preferred;
@@ -66,7 +66,7 @@ function fillForm(m) {
   fillSelect($('status'), m.statusOptions, f.status || 'ACTIVE');
   $('statusBox').hidden = !(isEdit && canStatus);
 
-  $('lockNote').textContent = isEdit && !canLink ? 'Supplier utama diatur tim specsheet.' : '';
+  $('lockNote').textContent = isEdit && !canLink ? 'The main supplier is set by the specsheet team.' : '';
   $('lockNote').hidden = !(isEdit && !canLink);
   $('proposeInfo').hidden = isEdit;
   (isEdit ? $('status') : $('supplier')).focus();
@@ -77,7 +77,7 @@ function setBusy(v) {
   $('btnSave').disabled = v;
   $('btnCancel').disabled = v;
   $('btnX').disabled = v;
-  $('btnSave').textContent = v ? 'Menyimpan…' : 'Simpan';
+  $('btnSave').textContent = v ? 'Saving…' : 'Save';
 }
 
 function render(model) {
@@ -96,7 +96,7 @@ function submit() {
   if (!isEdit && !supplierId) {
     $('supplier').classList.add('invalid');
     $('supplier').focus();
-    showMessage({ type: 'error', text: 'Pilih supplier.' });
+    showMessage({ type: 'error', text: 'Select a supplier.' });
     return;
   }
   appsmith.updateModel({

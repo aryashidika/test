@@ -1,6 +1,6 @@
 # cwMaterialForm
 
-Form **Tambah / Usulkan / Ubah Material** — dipakai di dua page:
+Form **Tambah / Usulkan / Ubah Material** - dipakai di dua page:
 - `Master Material` (modal `mdlMaterial`, mode `add`) → `MaterialCtrl.save()` → `fn_material_add`
 - `Material Detail` (modal `mdlMaterial`, mode `edit`) → `MaterialDetailCtrl.saveMaterial()` → `fn_material_update`
 

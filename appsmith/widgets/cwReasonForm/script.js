@@ -1,9 +1,9 @@
-// cwReasonForm — form alasan umum (mis. Tolak usulan harga). Hanya tampilan; teks judul, ringkasan,
+// cwReasonForm - form alasan umum (mis. Tolak usulan harga). Hanya tampilan; teks judul, ringkasan,
 // label, dan tombol dari model. Simpan lewat JSObject pemilik (event onSave).
 const $ = id => document.getElementById(id);
 let lastKey = null;
 let busy = false;
-let confirmLabel = 'Simpan';
+let confirmLabel = 'Save';
 let minLength = 3;
 
 function applyTheme(t) {
@@ -26,18 +26,18 @@ function showMessage(m) {
   box.hidden = false;
 }
 
-// Isi ulang hanya saat modal dibuka (key berubah) — busy/message tidak menghapus ketikan user
+// Isi ulang hanya saat modal dibuka (key berubah) - busy/message tidak menghapus ketikan user
 function fillForm(m) {
-  $('title').textContent = m.title || 'Alasan';
+  $('title').textContent = m.title || 'Reason';
   $('summary').textContent = m.summary || '';
   $('summary').hidden = !m.summary;
-  $('label').textContent = m.label || 'Alasan';
+  $('label').textContent = m.label || 'Reason';
   $('reason').placeholder = m.placeholder || '';
   $('reason').value = m.reason || '';
   $('reason').classList.remove('invalid');
   $('hint').textContent = m.hint || '';
   $('hint').hidden = !m.hint;
-  confirmLabel = m.confirmLabel || 'Simpan';
+  confirmLabel = m.confirmLabel || 'Save';
   minLength = Number.isInteger(m.minLength) ? m.minLength : 3;
   $('btnSave').className = m.danger ? 'btn-primary btn-danger' : 'btn-primary';
   $('reason').focus();
@@ -48,7 +48,7 @@ function setBusy(v) {
   $('btnSave').disabled = v;
   $('btnCancel').disabled = v;
   $('btnX').disabled = v;
-  $('btnSave').textContent = v ? 'Menyimpan…' : confirmLabel;
+  $('btnSave').textContent = v ? 'Saving…' : confirmLabel;
 }
 
 function render(model) {
@@ -67,7 +67,7 @@ function submit() {
   if (reason.length < minLength) {
     $('reason').classList.add('invalid');
     $('reason').focus();
-    showMessage({ type: 'error', text: `${$('label').textContent} wajib diisi (min. ${minLength} karakter).` });
+    showMessage({ type: 'error', text: `${$('label').textContent} is required (min. ${minLength} characters).` });
     return;
   }
   appsmith.updateModel({ reason });

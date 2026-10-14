@@ -1,4 +1,4 @@
-// JSObject "SpecExportCtrl" — page Specsheet: Export Excel revisi yang sedang dibuka. Layout mengikuti contoh user
+// JSObject "SpecExportCtrl" - page Specsheet: Export Excel revisi yang sedang dibuka. Layout mengikuti contoh user
 // "SS_SPECS_FH26_FOOTBALL_ACC ILLUZION IV ELITE FG_PROD.pdf" (SPECIFICATION SHEET OF MATERIAL & COMPONENT), tanpa
 // kotak validasi (Dibuat / Diketahui / Divalidasi), tanpa gambar/logo, tanpa highlight. File ditulis JSObject
 // XlsxWriter (tanpa library). Data = query yang sudah dimuat page ini (q_spec_model, q_revisions, q_rev_articles,
@@ -7,8 +7,8 @@ export default {
 	busy: false,
 	step: '',      // langkah export yang sedang berjalan (untuk pesan error)
 
-	// PURPOSE dicentang otomatis dari stage (form asli 3 kotak; R14: Pullover & Preview = Preview Sample)
-	PURPOSES: [['Preview Sample', ['PULL', 'PREV']], ['Salesman Sample', ['SMS']], ['Production Process', ['GTM', 'PROD']]],
+	// PURPOSE dicentang otomatis dari stage (R15: 5 stage sesuai sistem, 2 kolom x 3 baris)
+	PURPOSES: ['PULL', 'PREV', 'SMS', 'GTM', 'PROD'],
 
 	canExport() {
 		return !!SpecCtrl.revision() && !this.busy;
@@ -18,7 +18,7 @@ export default {
 		return parts.filter(p => p).join('_').replace(/[\\/:*?"<>|\s]+/g, '-') + '.xlsx';
 	},
 
-	// Garis tipis — objek baru setiap kali (gaya jangan disimpan sebagai variabel JSObject)
+	// Garis tipis - objek baru setiap kali (gaya jangan disimpan sebagai variabel JSObject)
 	thin() {
 		const s = () => ({ style: 'thin', color: { argb: 'FF000000' } });
 		return { top: s(), left: s(), bottom: s(), right: s() };
@@ -28,11 +28,11 @@ export default {
 		return { bottom: { style: 'thin', color: { argb: 'FF000000' } } };
 	},
 
-	// Tulis file (JSObject XlsxWriter, tanpa ExcelJS — T43) lalu unduh. this.step = langkah yang sedang berjalan.
+	// Tulis file (JSObject XlsxWriter, tanpa ExcelJS - T43) lalu unduh. this.step = langkah yang sedang berjalan.
 	async save(wb, name) {
-		this.step = 'menulis file';
+		this.step = 'writing the file';
 		const b64 = wb.toBase64();
-		this.step = 'mengunduh';
+		this.step = 'downloading';
 		const mime = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 		await download(`data:${mime};base64,${b64}`, name, mime);
 	},
@@ -42,15 +42,15 @@ export default {
 		const m = SpecCtrl.model();
 		const s = SpecCtrl.season();
 		const r = SpecCtrl.revision();
-		if (!m || !s || !r) return showAlert('Buka revisi specsheet dulu.', 'warning');
+		if (!m || !s || !r) return showAlert('Open a specsheet revision first.', 'warning');
 		this.busy = true;
-		this.step = 'menyusun isi';
+		this.step = 'building the content';
 		try {
 			const wb = this.build(m, s, r);
 			await this.save(wb, this.fileName('Specsheet', m.name, s.season, `${Util.stageLabel(r.stage)}-r${r.revision_no}`, r.status === 'DRAFT' ? 'DRAFT' : ''));
-			showAlert('File Excel specsheet diunduh.', 'success');
+			showAlert('Specsheet Excel file downloaded.', 'success');
 		} catch (e) {
-			showAlert(`Export gagal saat ${this.step}: ` + Util.cleanError((e && e.message) || String(e)), 'error');
+			showAlert(`Export failed while ${this.step}: ` + Util.cleanError((e && e.message) || String(e)), 'error');
 		} finally {
 			this.busy = false;
 		}
@@ -104,15 +104,18 @@ export default {
 		cell(2, 1, 'FACTORY', small);
 		cell(2, 2, `:  ${v(m.factory)}`, { font: { size: 9 }, border: this.underline() });
 		cell(3, 1, 'REVISION', small);
-		cell(3, 2, `:  ${revDate ? moment(revDate).utcOffset(7).format('DD/MM/YYYY') : 'belum terbit'}`,
+		cell(3, 2, `:  ${revDate ? moment(revDate).utcOffset(7).format('DD/MM/YYYY') : 'not published'}`,
 			{ font: { size: 11, color: { argb: 'FF1D4ED8' } }, border: this.underline() });
 		cell(2, 3, s.season, { font: { size: 22, color: { argb: 'FF374151' } }, alignment: { horizontal: 'center', vertical: 'middle' } });
 		merge(2, 3, 4, 3);
 		cell(2, 4, 'PURPOSE :', { font: { size: 9 }, alignment: { horizontal: 'right' } });
-		this.PURPOSES.forEach(([label, stages], i) => {
-			cell(2 + i, A0, `${stages.includes(r.stage) ? '☑' : '☐'}  ${label}`,
-				{ font: { size: 10, bold: stages.includes(r.stage) } });
-			merge(2 + i, A0, 2 + i, N);
+		const mid = A0 + Math.ceil((N - A0 + 1) / 2);
+		this.PURPOSES.forEach((st, i) => {
+			const c1 = i < 3 ? A0 : mid;
+			const c2 = i < 3 ? mid - 1 : N;
+			cell(2 + (i % 3), c1, `${st === r.stage ? '☑' : '☐'}  ${Util.stageLabel(st)}`,
+				{ font: { size: 10, bold: st === r.stage } });
+			merge(2 + (i % 3), c1, 2 + (i % 3), c2);
 		});
 
 		// ---- baris 5–8: info model (kiri), info revisi (kanan, pengganti kotak validasi) ----
@@ -129,10 +132,10 @@ export default {
 				cell(5 + i, 3, `${k}  :  ${v(val)}`, { font: { size: 9 }, border: this.underline() });
 			});
 		cell(5, A0, `GENDER  :  ${v(m.gender)}`, small);
-		cell(6, A0, `STAGE ${Util.stageLabel(r.stage).toUpperCase()} · REVISI ${r.revision_no} · ${r.status}`
-			+ (r.status === 'PUBLISHED' ? (r.published_by ? ` · terbit oleh ${r.published_by}` : '') : ' · BELUM TERBIT'),
+		cell(6, A0, `STAGE ${Util.stageLabel(r.stage).toUpperCase()} · REVISION ${r.revision_no} · ${r.status}`
+			+ (r.status === 'PUBLISHED' ? (r.published_by ? ` · published by ${r.published_by}` : '') : ' · NOT PUBLISHED'),
 		{ font: { bold: true, size: 10, color: { argb: r.status === 'PUBLISHED' ? 'FF16A34A' : 'FFDC2626' } } });
-		if (log) cell(7, A0, `Perubahan (${log.category}): ${log.reason}`, { font: { size: 9, italic: true, color: { argb: 'FF6B7280' } }, alignment: { wrapText: true, vertical: 'top' } });
+		if (log) cell(7, A0, `Change (${log.category}): ${log.reason}`, { font: { size: 9, italic: true, color: { argb: 'FF6B7280' } }, alignment: { wrapText: true, vertical: 'top' } });
 		[5, 6].forEach(i => merge(i, A0, i, N));
 		merge(7, A0, 8, N);
 		// garis luar blok header saja (bukan kisi penuh) + garis bawah isian
@@ -163,7 +166,7 @@ export default {
 				cell(11, A0 + i, a.colorway || '-', hd);
 			});
 		} else {
-			cell(10, A0, 'Belum ada article aktif', hd);
+			cell(10, A0, 'No active articles', hd);
 			merge(10, A0, 11, A0);
 		}
 		box(9, 1, 11, N);
@@ -183,8 +186,8 @@ export default {
 			if (!l.is_sub) { closeParent(); parentRow = row; }
 			const mat = l.material_name || '';
 			cell(row, 1, l.is_sub ? '' : (l.display_no || ''), { alignment: top('center') });
-			cell(row, 2, l.is_sub ? '' : (l.display_name || '') + (l.is_local ? ' (lokal)' : ''), { alignment: top() });
-			cell(row, 3, l.is_sub && l.display_name && l.display_name !== l.material_name ? `${l.display_name} — ${mat}` : mat, { alignment: top() });
+			cell(row, 2, l.is_sub ? '' : (l.display_name || '') + (l.is_local ? ' (local)' : ''), { alignment: top() });
+			cell(row, 3, l.is_sub && l.display_name && l.display_name !== l.material_name ? `${l.display_name} · ${mat}` : mat, { alignment: top() });
 			cell(row, 4, l.supplier_name || '', { alignment: top('center') });
 			const cells = typeof l.cells === 'string' ? JSON.parse(l.cells || '{}') : (l.cells || {});
 			const codes = typeof l.cell_codes === 'string' ? JSON.parse(l.cell_codes || '{}') : (l.cell_codes || {});
@@ -202,7 +205,7 @@ export default {
 		});
 		closeParent();
 		if (!lines.length) {
-			cell(row, 1, 'Belum ada baris BOM.', { font: { italic: true } });
+			cell(row, 1, 'No BOM lines yet.', { font: { italic: true } });
 			merge(row, 1, row, N);
 			box(row, 1, row, N);
 		}

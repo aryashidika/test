@@ -1,9 +1,9 @@
-// JSObject "LoginCtrl" — page Login (home page). Page ini TIDAK memakai Auth.
+// JSObject "LoginCtrl" - page Login (home page). Page ini TIDAK memakai Auth.
 // Tampilan: Custom Widget cwLogin (lihat widgets/cwLogin/README.md).
-// Setelan: fungsi onPageLoad -> Run behaviour = On page load (WAJIB — tanpa ini tombol Keluar tidak
+// Setelan: fungsi onPageLoad -> Run behaviour = On page load (WAJIB - tanpa ini tombol Keluar tidak
 //   menghapus token dan page Login menampilkan sisa tampilan sebelumnya, T46).
 // Keluar: tombol Keluar mengisi appsmith.store.doLogout = true lalu membuka page Login
-//   (bukan lewat URL ?mode=keluar — URL itu tersimpan di riwayat browser sehingga tombol
+//   (bukan lewat URL ?mode=keluar - URL itu tersimpan di riwayat browser sehingga tombol
 //   Back setelah login ulang akan ikut logout).
 // URL: ?mode=ganti -> tampilan ganti password.
 export default {
@@ -24,7 +24,7 @@ export default {
 		this.setMessage(null);
 	},
 
-	// Kembalikan tampilan ke awal sebelum pindah ke Beranda — state JSObject tetap tersimpan selama sesi
+	// Kembalikan tampilan ke awal sebelum pindah ke Beranda - state JSObject tetap tersimpan selama sesi
 	// browser, jadi tanpa ini page Login berikutnya masih menampilkan form ganti password (T46).
 	resetView() {
 		this.view = 'login';
@@ -34,7 +34,7 @@ export default {
 
 	goHome() {
 		this.resetView();
-		navigateTo('Beranda');
+		navigateTo('Home');
 	},
 
 	async onPageLoad() {
@@ -75,7 +75,7 @@ export default {
 		const email = (cwLogin.model.email || '').trim().toLowerCase();
 		const password = cwLogin.model.password || '';
 		if (!email || !password) {
-			this.setMessage('error', 'Isi email dan password.');
+			this.setMessage('error', 'Enter email and password.');
 			return;
 		}
 		this.lastEmail = email;
@@ -91,7 +91,7 @@ export default {
 		}
 		const r = a_login.data && a_login.data[0];
 		if (!r || !r.ok) {
-			this.setMessage('error', (r && r.message) || 'Login gagal.');
+			this.setMessage('error', (r && r.message) || 'Login failed.');
 			return;
 		}
 		await storeValue('token', r.token, true);
@@ -107,7 +107,7 @@ export default {
 		const oldPass = cwLogin.model.oldPass || '';
 		const newPass = cwLogin.model.newPass || '';
 		if (!oldPass || !newPass) {
-			this.setMessage('error', 'Isi password lama dan password baru.');
+			this.setMessage('error', 'Enter the old and new password.');
 			return;
 		}
 		this.setMessage(null);
@@ -120,7 +120,7 @@ export default {
 				await removeValue('token');
 				this.view = 'login';
 				this.forced = false;
-				this.setMessage('error', 'Sesi login habis. Silakan login lagi.');
+				this.setMessage('error', 'Session expired. Please log in again.');
 			} else {
 				this.setMessage('error', Util.cleanError(msg));
 			}
@@ -128,7 +128,7 @@ export default {
 		} finally {
 			this.busy = false;
 		}
-		showAlert('Password berhasil diganti.', 'success');
+		showAlert('Password changed.', 'success');
 		this.goHome();
 	},
 
@@ -148,6 +148,6 @@ export default {
 		await removeValue('token');
 		this.view = 'login';
 		this.forced = false;
-		this.setMessage('info', 'Anda sudah keluar.');
+		this.setMessage('info', 'You are logged out.');
 	},
 }

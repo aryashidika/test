@@ -1,4 +1,4 @@
-// cwWorklist — daftar "Tugas Saya" di Beranda (ringkasan + bagian berisi tugas yang bisa diklik). Hanya tampilan.
+// cwWorklist - daftar "Tugas Saya" di Beranda (ringkasan + bagian berisi tugas yang bisa diklik). Hanya tampilan.
 // Model masuk: { loaded, loading, title, subtitle, columns, stats: [{ key, value, label, tone }],
 //   sections: [{ key, title, note, empty, hideWhenEmpty, items: [{ title, meta, flags: [{ text, tone, hint }], target, params }] }] }
 // Event keluar: onOpen (setelah appsmith.updateModel({ target, params })), onRefresh.
@@ -74,7 +74,7 @@ function sectionEl(section, rerender) {
   card.innerHTML = `<h3>${esc(section.title)}${items.length ? ` <span class="count">${items.length}</span>` : ''}</h3>`
     + (section.note ? `<p class="note">${esc(section.note)}</p>` : '');
   if (!items.length) {
-    card.insertAdjacentHTML('beforeend', `<p class="none">${esc(section.empty || 'Tidak ada.')}</p>`);
+    card.insertAdjacentHTML('beforeend', `<p class="none">${esc(section.empty || 'None.')}</p>`);
     return card;
   }
   const list = document.createElement('div');
@@ -86,7 +86,7 @@ function sectionEl(section, rerender) {
     const more = document.createElement('button');
     more.type = 'button';
     more.className = 'more';
-    more.textContent = expanded[section.key] ? 'Tampilkan lebih sedikit' : `Tampilkan semua (${items.length})`;
+    more.textContent = expanded[section.key] ? 'Show less' : `Show all (${items.length})`;
     more.addEventListener('click', () => {
       expanded[section.key] = !expanded[section.key];
       rerender();
@@ -103,11 +103,11 @@ function render(model) {
   const scroller = document.scrollingElement || document.documentElement;
   const keepTop = scroller.scrollTop;
 
-  $('title').textContent = m.title || 'Tugas Saya';
+  $('title').textContent = m.title || 'My Tasks';
   $('subtitle').textContent = m.subtitle || '';
   $('subtitle').hidden = !m.subtitle;
   $('refresh').disabled = !!m.loading;
-  $('refresh').textContent = m.loading ? 'Memuat…' : '↻ Muat ulang';
+  $('refresh').textContent = m.loading ? 'Loading…' : '↻ Reload';
 
   const loaded = !!m.loaded;
   const stats = Array.isArray(m.stats) ? m.stats : [];

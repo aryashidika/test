@@ -1,15 +1,15 @@
 <div class="wrap">
   <div class="head">
-    <h2 id="title">Tambah Material</h2>
-    <button type="button" class="x" id="btnX" aria-label="Tutup">✕</button>
+    <h2 id="title">Add Material</h2>
+    <button type="button" class="x" id="btnX" aria-label="Close">✕</button>
   </div>
 
   <div id="msg" class="msg" role="alert" hidden></div>
 
   <div class="row">
     <div>
-      <label for="category">Kategori <span class="req">*</span></label>
-      <input id="category" type="text" maxlength="60" autocomplete="off" list="dlCategory" placeholder="mis. Leather">
+      <label for="category">Category <span class="req">*</span></label>
+      <input id="category" type="text" maxlength="60" autocomplete="off" list="dlCategory" placeholder="e.g. Leather">
       <datalist id="dlCategory"></datalist>
     </div>
     <div>
@@ -19,15 +19,15 @@
     </div>
   </div>
 
-  <label for="name">Nama material <span class="req">*</span></label>
-  <input id="name" type="text" maxlength="200" autocomplete="off" placeholder="mis. SYNTHETIC LEATHER PU">
-  <div class="hint">Tanpa thickness &amp; warna — keduanya diisi per varian. Nama + Mea yang sama di pabrik Anda dianggap material yang sama.</div>
+  <label for="name">Material name <span class="req">*</span></label>
+  <input id="name" type="text" maxlength="200" autocomplete="off" placeholder="e.g. SYNTHETIC LEATHER PU">
+  <div class="hint">No thickness &amp; color here. Both are set per variant. The same Name + Mea in your factory is the same material.</div>
   <div class="similar" id="similar" hidden>
-    <div class="similar-title">Material dengan nama mirip sudah ada di pabrik Anda — tambahkan varian di sana bila sama:</div>
+    <div class="similar-title">A material with a similar name exists in your factory. Add the variant there if it is the same:</div>
     <ul id="similarList"></ul>
   </div>
 
-  <label>Metode harga</label>
+  <label>Price method</label>
   <div class="seg" id="method">
     <button type="button" data-v="CATALOG">Catalog</button>
     <button type="button" data-v="QUOTATION">Quotation</button>
@@ -40,10 +40,10 @@
   </div>
 
   <div class="field-note" id="lockNote" hidden></div>
-  <div class="info" id="addInfo" hidden>Setelah disimpan, halaman Material Detail terbuka untuk menambah varian (thickness × warna → Material Code).</div>
+  <div class="info" id="addInfo" hidden>After saving, the Material Detail page opens to add variants (thickness × color → Material Code).</div>
 
   <div class="actions">
-    <button type="button" class="btn-secondary" id="btnCancel">Batal</button>
-    <button type="button" class="btn-primary" id="btnSave">Simpan</button>
+    <button type="button" class="btn-secondary" id="btnCancel">Cancel</button>
+    <button type="button" class="btn-primary" id="btnSave">Save</button>
   </div>
 </div>

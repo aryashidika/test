@@ -59,12 +59,12 @@ export default {
 			this.similar = rows || [];
 			this.similarFor = text;
 		} catch (e) {
-			/* daftar mirip hanya bantuan — abaikan */
+			/* daftar mirip hanya bantuan - abaikan */
 		}
 	},
 
 	async save() {
-		// Baca model dulu — model di-reset saat state (Default model) berubah
+		// Baca model dulu - model di-reset saat state (Default model) berubah
 		const m = cwSupplierForm.model || {};
 		const data = {
 			id: this.form.id,
@@ -72,7 +72,7 @@ export default {
 			status: this.isNew ? 'ACTIVE' : m.status,
 		};
 		if (!data.name) {
-			this.message = { type: 'error', text: 'Nama supplier wajib diisi.' };
+			this.message = { type: 'error', text: 'Supplier name is required.' };
 			return;
 		}
 		this.message = null;
@@ -84,7 +84,7 @@ export default {
 			if (Util.isSessionError(msg)) {
 				closeModal('mdlSupplier');
 				await removeValue('token');
-				showAlert('Sesi login habis. Silakan login lagi.', 'warning');
+				showAlert('Session expired. Please log in again.', 'warning');
 				navigateTo('Login');
 				return;
 			}
@@ -94,7 +94,7 @@ export default {
 			this.busy = false;
 		}
 		closeModal('mdlSupplier');
-		showAlert(this.isNew ? 'Supplier ditambahkan.' : 'Supplier disimpan.', 'success');
+		showAlert(this.isNew ? 'Supplier added.' : 'Supplier saved.', 'success');
 		try { await q_suppliers.run(); } catch (e) { /* abaikan */ }
 	},
 }

@@ -1,4 +1,4 @@
-// JSObject "XlsxWriter" — penulis file .xlsx TANPA library (pengganti ExcelJS, T43: ExcelJS di worker Appsmith memicu
+// JSObject "XlsxWriter" - penulis file .xlsx TANPA library (pengganti ExcelJS, T43: ExcelJS di worker Appsmith memicu
 // "Maximum call stack size exceeded"). Tempel di page Specsheet DAN page Cost Breakdown (CBD) dengan nama sama.
 // API = bagian kecil ExcelJS yang dipakai SpecExportCtrl / CbdExportCtrl:
 //   const wb = XlsxWriter.workbook(); const ws = wb.addWorksheet(name, { pageSetup });
@@ -29,7 +29,7 @@ export default {
 		};
 		const parseRef = ref => {
 			const m = /^([A-Z]+)(\d+)$/.exec(String(ref).trim().toUpperCase());
-			if (!m) throw new Error('Alamat sel tidak valid: ' + ref);
+			if (!m) throw new Error('Invalid cell address: ' + ref);
 			let c = 0;
 			for (let i = 0; i < m[1].length; i++) c = c * 26 + m[1].charCodeAt(i) - 64;
 			return [Number(m[2]), c];

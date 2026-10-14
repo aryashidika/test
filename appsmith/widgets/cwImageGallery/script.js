@@ -1,4 +1,4 @@
-// cwImageGallery — galeri gambar change log di modal Riwayat (Specsheet & CBD, F10b). Hanya tampilan.
+// cwImageGallery - galeri gambar change log di modal Riwayat (Specsheet & CBD, F10b). Hanya tampilan.
 // Model masuk: { title, emptyText, loading, images: [{ id, name, mime, size, data (base64) }] }
 // Event keluar: onDownload (setelah appsmith.updateModel({ downloadId })).
 const $ = id => document.getElementById(id);
@@ -27,7 +27,7 @@ function openViewer(n) {
   current = n;
   $('vimg').src = src(list[n]);
   $('vimg').alt = list[n].name || '';
-  $('vname').textContent = `${list[n].name || 'gambar'} (${n + 1} / ${list.length})`;
+  $('vname').textContent = `${list[n].name || 'image'} (${n + 1} / ${list.length})`;
   $('vprev').disabled = n === 0;
   $('vnext').disabled = n === list.length - 1;
   $('viewer').hidden = false;
@@ -42,9 +42,9 @@ function closeViewer() {
 function render(model) {
   M = model || {};
   const list = images();
-  $('title').textContent = M.title || 'Gambar';
-  $('count').textContent = list.length ? `${list.length} gambar` : '';
-  $('empty').textContent = M.loading ? 'Memuat gambar…' : (M.emptyText || 'Tidak ada gambar.');
+  $('title').textContent = M.title || 'Images';
+  $('count').textContent = list.length ? `${list.length} image(s)` : '';
+  $('empty').textContent = M.loading ? 'Loading images…' : (M.emptyText || 'No images.');
   $('empty').hidden = !M.loading && list.length > 0;
   const grid = $('grid');
   grid.innerHTML = '';
@@ -53,13 +53,13 @@ function render(model) {
     const b = document.createElement('button');
     b.type = 'button';
     b.className = 'tile';
-    b.title = 'Klik untuk memperbesar';
+    b.title = 'Click to enlarge';
     const pic = document.createElement('img');
     pic.src = src(img);
     pic.alt = img.name || '';
     const name = document.createElement('span');
     name.className = 'name';
-    name.textContent = img.name || 'gambar';
+    name.textContent = img.name || 'image';
     b.appendChild(pic);
     b.appendChild(name);
     b.addEventListener('click', () => openViewer(n));

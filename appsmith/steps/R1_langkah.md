@@ -1,11 +1,11 @@
-# R1 — Fondasi: pabrik, role baru, matriks izin
+# R1 - Fondasi: pabrik, role baru, matriks izin
 
 File: `sql/R1_fondasi.sql`, `exports/build_r1.json` (salinan `export_v11.json` yang diedit), alat build di `tools/`.
 
-> **Penting:** sejak `export_v11` dijadikan base, app lama jangan diubah dulu. Kalau sempat ada perubahan di app setelah 6 Okt 2026, kirim export terbaru — saya ulang build dari situ.
+> **Penting:** sejak `export_v11` dijadikan base, app lama jangan diubah dulu. Kalau sempat ada perubahan di app setelah 6 Okt 2026, kirim export terbaru - saya ulang build dari situ.
 
 ## 1. Database (DB Tools)
-1. Jalankan **`sql/RESET_data_uji.sql`** — ⚠️ menghapus semua data uji & user selain System Admin (sudah disetujui).
+1. Jalankan **`sql/RESET_data_uji.sql`** - ⚠️ menghapus semua data uji & user selain System Admin (sudah disetujui).
 2. Jalankan **`sql/R1_fondasi.sql`**. Hasil akhir harus 5 baris cek:
    | cek | hasil |
    |---|---|

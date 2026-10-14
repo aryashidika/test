@@ -7,7 +7,7 @@ Hanya tampilan & input. Setiap perubahan dikirim sebagai `model.action` + **satu
 (`BomCtrl.onAction()` menjalankan query, lalu memuat ulang grid). Aturan final di DB (`fn_bom_*`,
 `fn_rev_article_set`, `trg_lock_published`); pesannya tampil di bar atas grid.
 
-- **Hanya baca** (`editable: false` — revisi terbit, atau role tanpa `edit_specsheet`): teks biasa.
+- **Hanya baca** (`editable: false` - revisi terbit, atau role tanpa `edit_specsheet`): teks biasa.
 - **Draft**: setiap sel berupa input yang tersimpan saat berubah (Enter / Tab / klik di luar). Enter di kolom
   yang sama pindah ke baris berikutnya; Esc membatalkan ketikan.
   - **Material** diketik ulang = *Ganti material* (`replaceMaterial`).
@@ -28,7 +28,7 @@ Hanya tampilan & input. Setiap perubahan dikirim sebagai `model.action` + **satu
 
 Ukuran: lebar penuh, tinggi ±600 px (scroll di dalam widget).
 
-## Model masuk (Default model) — `{{BomCtrl.gridModel()}}`
+## Model masuk (Default model) - `{{BomCtrl.gridModel()}}`
 
 ```js
 {
@@ -74,7 +74,7 @@ disimpan saat blur (nilai yang dipulihkan setelah render ulang tidak memicu `cha
 
 R4 (specsheet per varian):
 - `materials` = kombinasi **induk × thickness** `[{ material_id, name, uom, thickness, variant_count }]` (dari varian ACTIVE + induk tanpa varian); label "NAMA · THICKNESS".
-- `variants` = `[{ id, code, material_id, material_name, thickness, color }]` varian ACTIVE pabrik user — dipakai untuk Material Code yang diketik di kolom Material (mengisi induk + thickness, baris tambah menawarkan isi warna ke semua article) atau di sel (diganti warnanya; kode material/thickness lain ditolak).
+- `variants` = `[{ id, code, material_id, material_name, thickness, color }]` varian ACTIVE pabrik user - dipakai untuk Material Code yang diketik di kolom Material (mengisi induk + thickness, baris tambah menawarkan isi warna ke semua article) atau di sel (diganti warnanya; kode material/thickness lain ditolak).
 - `lines[]` + `cell_codes` (`{ article_id: kode }`), `yellow` (jumlah sel kuning); `thickness` dari baris.
 - `canRegister`, `canAddSupplier` (izin `manage_master`).
 - Sel berwarna tanpa varian = **kuning** + tombol **Daftarkan** → action `registerVariant` `{ line_id, material_id, material_name, uom, thickness, color }` → `BomCtrl.openRegister()` (modal `mdlVarianBaru` / `cwVariantForm` mode fixed).

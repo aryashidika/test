@@ -1,6 +1,6 @@
 # cwSupplierForm
 
-Form **Tambah/Ubah Supplier** (tanpa currency — currency dipilih per harga) di dalam modal `mdlSupplier` (page Master Supplier). Hanya tampilan;
+Form **Tambah/Ubah Supplier** (tanpa currency - currency dipilih per harga) di dalam modal `mdlSupplier` (page Master Supplier). Hanya tampilan;
 validasi ringan (nama wajib), simpan lewat `SupplierCtrl.save()` → `a_supplier_insert` / `a_supplier_update`.
 Aturan final (nama beda kapital/spasi ditolak) ada di DB (`trg_supplier_check`); pesannya tampil di dalam widget.
 

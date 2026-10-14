@@ -1,0 +1,307 @@
+'Article code is required.'	fn_article_check
+'Colorway is required.'	fn_article_check
+'An article cannot be moved to another season.'	fn_article_check
+'Article code % cannot be changed because it is used in a specsheet/CBD.'	fn_article_check
+'Article code % already exists in this season.'	fn_article_check
+'Article % is used in a specsheet/CBD and cannot be deleted. Drop it in the specsheet instead.'	fn_article_delete_check
+'SELECT EXISTS (SELECT 1 FROM %I WHERE article_id = $1)'	fn_article_is_used
+'This data belongs to another factory.'	fn_assert_factory
+'Select a file to upload.'	fn_attachment_add
+'The file cannot be read (invalid Base64 format).'	fn_attachment_add
+'File size is % MB. The maximum is 3.5 MB.'	fn_attachment_add
+'File type not supported. Only JPG, PNG, or PDF.'	fn_attachment_add
+'SESI_HABIS: Your session has expired. Please log in again.'	fn_auth
+'Please change your password before using the app.'	fn_auth
+'Role % has no access to this action.'	fn_auth,fn_auth_any
+'Data not found. Please reload the page.'	fn_auth_in
+'Master component not found or INACTIVE. For a new component, use a local component.'	fn_bom_add_line
+'Component % with this material (same thickness) is already in this revision.'	fn_bom_add_line
+'The component is not in the master. Fill in No. for a local component.'	fn_bom_add_line
+'A local component no. cannot be a multiple of 10 (multiples of 10 are for master components).'	fn_bom_add_line
+'Local component name is required.'	fn_bom_add_line
+'Local no. % is already used in this revision.'	fn_bom_add_line
+'Parent line not found or no longer active.'	fn_bom_add_sub
+'A subcomponent cannot be added under another subcomponent.'	fn_bom_add_sub
+'Subcomponent name is required.'	fn_bom_add_sub
+'Line not found or no longer active. Please reload the page.'	fn_bom_cell_set,fn_bom_delete_line,fn_bom_replace_material,fn_bom_set_process,fn_bom_set_supplier
+'This article is not active in this revision.'	fn_bom_cell_set
+'Code % is % · % · %. It does not match the material / thickness of this line.'	fn_bom_cell_set
+'Code % is INACTIVE.'	fn_bom_cell_set
+"Select a material from this factory's Master Material."	fn_bom_check_material
+'Material % is INACTIVE. Select another material.'	fn_bom_check_material
+'The supplier is not in Master Supplier.'	fn_bom_check_supplier
+'Supplier % is inactive. Select another supplier.'	fn_bom_check_supplier
+'The new material and thickness are the same as the current ones.'	fn_bom_replace_material
+'This component with that material + thickness is already in this revision.'	fn_bom_replace_material
+': price '	fn_cbd_bridge
+'usage changed'	fn_cbd_bridge
+'set to no charge ('	fn_cbd_bridge
+'no longer no charge'	fn_cbd_bridge
+'material changed: '	fn_cbd_bridge
+'Exchange rate '	fn_cbd_bridge
+'Value % cannot be negative (only Adjustment can be negative).'	fn_cbd_check_cost
+'Price is required and must be above 0.'	fn_cbd_check_price
+'Select a currency (IDR / USD).'	fn_cbd_check_price
+'Select a cost type.'	fn_cbd_cost_add
+'Line % is always present and cannot be deleted (enter 0 if not used).'	fn_cbd_cost_delete
+'Cost line not found. Please reload the page.'	fn_cbd_cost_item
+'Direct Labour'	fn_cbd_cost_label
+'Amortization'	fn_cbd_cost_label,fn_change_category_label
+'Adjustment'	fn_cbd_cost_label
+'Other'	fn_cbd_cost_label,fn_change_category_label
+'Invalid field.'	fn_cbd_cost_set,fn_cbd_line_set
+'Cost description is required.'	fn_cbd_cost_set
+'Cost value must be a number.'	fn_cbd_cost_set
+'Unknown stage %.'	fn_cbd_create,fn_revision_create
+'Article not found.'	fn_cbd_create
+'Article % is dropped in the latest published specsheet. Its CBD cannot be created anymore.'	fn_cbd_create
+'Article % is not in a published specsheet revision. Publish the specsheet first.'	fn_cbd_create
+'Article % already has a CBD DRAFT. Publish or delete that draft first.'	fn_cbd_create
+'No published % specsheet for article % yet.'	fn_cbd_create
+'Article % is not active in specsheet % r%. The % CBD cannot be created.'	fn_cbd_create
+'Article % already has a published % CBD. A CBD for an earlier stage (%) cannot be created anymore.'	fn_cbd_create
+'Article % already has a CBD. Use Next revision.'	fn_cbd_create
+'Select a source article.'	fn_cbd_create
+"A CBD can only be copied from an article of the same model, or of this specsheet's origin model (cross-model copy)."	fn_cbd_create
+'Article % has no published CBD to copy.'	fn_cbd_create
+'Article % has no published CBD yet.'	fn_cbd_create
+'Choose how to create the CBD.'	fn_cbd_create
+'This CBD revision is published and cannot be deleted.'	fn_cbd_delete_draft
+'This CBD revision is published and cannot be changed. Create a new revision for changes.'	fn_cbd_draft,fn_cbd_line_lock
+'CBD revision not found.'	fn_cbd_draft
+'This article is dropped in the latest published specsheet. Its CBD is view only (a draft can be deleted).'	fn_cbd_draft
+'This article is not in a published specsheet revision.'	fn_cbd_draft
+'This article is not active in the latest published % specsheet. The % CBD draft can only be deleted.'	fn_cbd_draft
+'Exchange rate must be above 0 (leave empty if not known yet).'	fn_cbd_header_set
+'Target FOB must be above 0 (leave empty if not known yet).'	fn_cbd_header_set
+'Invalid field (selling price & margin are not saved in the CBD).'	fn_cbd_header_set
+'This line is no longer in the specsheet (MISSING_IN_SPEC) and cannot be changed.'	fn_cbd_line_set
+'Yield must be above 0.'	fn_cbd_line_set
+'Loss %% must be from 0 to below 100 (empty = 0).'	fn_cbd_line_set
+'CBD line not found. Please reload the page.'	fn_cbd_price_line,fn_cbd_price_propose
+'The price of a line missing from the specsheet (MISSING_IN_SPEC) cannot be changed.'	fn_cbd_price_line
+'This line is no longer in the specsheet (MISSING_IN_SPEC).'	fn_cbd_price_propose
+'Material % uses the Quotation method. Enter its price with Enter price, not as a master price.'	fn_cbd_price_propose
+'This line has no Material Code (variant). Register it in the specsheet first.'	fn_cbd_price_propose
+'This line has no supplier in the specsheet.'	fn_cbd_price_propose
+"This line's supplier is not linked to the material. Link it in Material Detail."	fn_cbd_price_propose
+'The reference % specsheet of this CBD has a newer published revision. Click "Refresh from Specsheet" first.'	fn_cbd_publish
+'A % CBD is already published. The % CBD cannot be published anymore. Delete this draft.'	fn_cbd_publish
+'Fill in the exchange rate (above 0) in the recap first.'	fn_cbd_publish
+'% line(s) have prices waiting for Manager Costing approval (%). Wait until they are processed, then refresh prices.'	fn_cbd_publish
+'Master prices for % line(s) have changed. Click "Refresh Prices from Master" first.'	fn_cbd_publish
+'% priced line(s) have no Yield.'	fn_cbd_publish
+'Invalid change breakdown category.'	fn_cbd_publish
+'The change breakdown does not match the Actual FOB difference. Contact the developer (revision %).'	fn_cbd_publish
+'Select a change category.'	fn_cbd_publish,fn_revision_publish
+'A change reason is required for this revision.'	fn_cbd_publish,fn_revision_publish
+'Initial revision.'	fn_cbd_publish,fn_revision_publish
+'This CBD already uses the latest published % specsheet (% r%).'	fn_cbd_refresh_from_spec
+'All line prices already match the master.'	fn_cbd_refresh_prices
+'CBD revision % r% is published and cannot be deleted.'	fn_cbd_revision_lock
+'CBD revision % r% is published and cannot be changed. Create a new revision for changes.'	fn_cbd_revision_lock
+'The article of a CBD revision cannot be changed.'	fn_cbd_revision_lock
+'Enter the no-charge reason (e.g. "price included in line 10").'	fn_cbd_set_no_charge
+'Quotation prices are only for materials with the Quotation price method. Catalog materials use master prices.'	fn_cbd_set_quotation
+'Article dropped in the latest published specsheet'	fn_cbd_stage_options
+'Article not in the latest published specsheet'	fn_cbd_stage_options
+'Article dropped in specsheet '	fn_cbd_stage_options
+'Article not in specsheet '	fn_cbd_stage_options
+' CBD is already published'	fn_cbd_stage_options
+'Exchange rate'	fn_change_category_label
+'Material'	fn_change_category_label
+'Yield / Loss %'	fn_change_category_label
+'Component'	fn_change_category_label
+'Treatment'	fn_change_category_label
+'Change log not found.'	fn_change_log_attach
+'1 hour'	fn_change_log_attach
+'Images can only be attached by the publisher, while publishing.'	fn_change_log_attach
+'Max 5 images per publish.'	fn_change_log_attach
+'Invalid image content.'	fn_change_log_attach
+'The image is empty.'	fn_change_log_attach
+'Max image size is 3.5 MB.'	fn_change_log_attach
+'Only PNG or JPG images.'	fn_change_log_attach
+'The old password is wrong.'	fn_change_password
+'The new password must be at least 8 characters.'	fn_change_password
+'The new password must be different from the old one.'	fn_change_password
+'Component name is required.'	fn_component_check
+'Component number is required.'	fn_component_check
+'Component group is required.'	fn_component_check
+'Component number must be a multiple of 10.'	fn_component_check
+'The number must be in the range %–% for group %.'	fn_component_check
+'Number % is used by component "%" and cannot be reused.'	fn_component_check
+'Component not found.'	fn_component_save
+'Component status is required (ACTIVE / INACTIVE).'	fn_component_save
+'Name, number, and group of component % cannot be changed: it is used in published documents (%).'	fn_component_save
+'Component % is still used in drafts: %. Replace it in those drafts first.'	fn_component_save
+'Supplier % is inactive for material %. Select another supplier.'	fn_ensure_link
+'Factory name is required.'	fn_factory_check
+'Factory "%" already exists.'	fn_factory_check
+'Factory % still has active users. Deactivate or move them first.'	fn_factory_check
+'Factory status is required.'	fn_factory_save
+'Factory not found.'	fn_factory_save
+'Select a supplier.'	fn_link_save,fn_price_propose
+'Material not found.'	fn_link_save,fn_material_update,fn_variant_save
+'Material supplier not found.'	fn_link_save
+'Material supplier status is required (ACTIVE / INACTIVE).'	fn_link_save
+'This revision is published and cannot be changed. Create a new revision for changes.'	fn_lock_published,fn_revision_draft
+'Asia/Jakarta'	fn_login,fn_today
+'Wrong email or password.'	fn_login
+'Account locked after 5 wrong passwords. Try again after %s WIB, or ask the System Admin to reset your password.'	fn_login
+'15 minutes'	fn_login
+'12 hours'	fn_login
+'Your account has no factory yet. Ask the System Admin to set your factory.'	fn_material_add,fn_model_save
+'Material factory is required.'	fn_material_check
+'Material name is required.'	fn_material_check
+'Material category is required.'	fn_material_check
+'UoM is required.'	fn_material_check
+'The material factory cannot be changed.'	fn_material_check
+'Material "%" (%) already exists in this factory. Add the variant to that material.'	fn_material_check
+'Supplier not found in Master Supplier.'	fn_material_supplier_check
+'Supplier % is inactive in Master Supplier.'	fn_material_supplier_check
+'Supplier % is already added to this material.'	fn_material_supplier_check
+'Material data and status can only be changed by the specsheet team (Vendor Spec).'	fn_material_update
+'The price method can only be changed by the CBD team.'	fn_material_update
+'Material status is required (ACTIVE / INACTIVE).'	fn_material_update
+'Price method is required.'	fn_material_update
+'Name, category, and UoM of material % cannot be changed: it is used in a published specsheet / CBD. Add a new material if needed (the status can still be changed).'	fn_material_update
+'Material Code is required.'	fn_material_variant_check
+'Color is required.'	fn_material_variant_check
+'A variant cannot be moved to another material.'	fn_material_variant_check
+'Parent material not found.'	fn_material_variant_check
+'Material Code % is already used: % · % · %.'	fn_material_variant_check
+'Variant % · % already exists in this material (code %). If ERP really has another code, make the color name differ as in ERP (e.g. WHITE C).'	fn_material_variant_check
+'Confirmation needed: thickness code % is recorded as "%" (code %), not "%". Check the Material Code; if it matches ERP, tick the confirmation and save.'	fn_material_variant_check
+'Confirmation needed: color code % is recorded as "%" (code %), not "%". Check the Material Code; if it matches ERP, tick the confirmation and save.'	fn_material_variant_check
+'Model name is required.'	fn_model_check
+'The model factory cannot be changed.'	fn_model_check
+'Model "%" already exists in this factory.'	fn_model_check
+'Sizes must be whole numbers 1–99.'	fn_model_check
+'Sample size % must be one of the model sizes.'	fn_model_check
+'Option value is required.'	fn_model_option_check
+'The option type and factory cannot be changed.'	fn_model_option_check
+'Size must be a whole number (e.g. 40), no half sizes.'	fn_model_option_check
+'% "%" already exists.'	fn_model_option_check
+'Option % is not valid. Please reload the page.'	fn_model_option_ref
+'% "%" belongs to another factory.'	fn_model_option_ref
+'% "%" is INACTIVE.'	fn_model_option_ref
+'Model not found.'	fn_model_save
+'The name of model % cannot be changed: it is used in a published specsheet.'	fn_model_save
+'Category is required.'	fn_model_save
+'Invalid size list.'	fn_model_save
+'Sizes must be whole numbers (no half sizes).'	fn_model_save
+'Category'	fn_option_kind_label
+'Construction'	fn_option_kind_label
+'Gender'	fn_option_kind_label
+'Size'	fn_option_kind_label
+'Last'	fn_option_kind_label
+'Outsole mold'	fn_option_kind_label
+'Option status is required (ACTIVE / INACTIVE).'	fn_option_save
+'Select an option type.'	fn_option_save
+'% is set per factory, but your account has no factory.'	fn_option_save
+'Option not found.'	fn_option_save
+'% "%" is used by model %, so its value cannot be changed. Set it INACTIVE and add a new value.'	fn_option_save
+'Variant %: a price is already active from %. The proposal starts on % (earlier). Reject this proposal.'	fn_price_activate
+'Price not found.'	fn_price_cancel,fn_price_end
+'Only proposals that are not processed yet can be cancelled.'	fn_price_cancel
+'Select a source variant.'	fn_price_copy
+'Material % is INACTIVE and cannot get a new price.'	fn_price_copy,fn_price_propose
+'This material uses the Quotation price method. Its price is entered per CBD, not in the master.'	fn_price_copy,fn_price_propose
+'Tick at least one target variant.'	fn_price_copy
+'Target variants must be from the same material. Please reload the page.'	fn_price_copy
+'INACTIVE variants cannot get a price: %.'	fn_price_copy,fn_price_propose
+'Copied from '	fn_price_copy
+': a proposal is still pending'	fn_price_copy
+': already has a price from '	fn_price_copy
+'Source variant % has no active (approved) price from an active supplier.'	fn_price_copy
+'No prices were copied: %.'	fn_price_copy
+'Unknown decision.'	fn_price_decide
+'Select at least one price.'	fn_price_decide
+'Reject reason is required.'	fn_price_decide
+'Some proposals no longer exist (maybe cancelled by the proposer). Please reload the page.'	fn_price_decide
+'Proposal % · % is already processed (%). Please reload the page.'	fn_price_decide
+'You cannot process your own proposals.'	fn_price_decide
+'The material now uses the Quotation method. Reject proposal %.'	fn_price_decide
+'Supplier % is inactive. Reject proposal %.'	fn_price_decide
+'Variant % is INACTIVE. Reject its proposal.'	fn_price_decide
+'Only approved prices can be ended. For proposals, use Reject.'	fn_price_end
+'This price has already ended.'	fn_price_end
+'Supplier % is inactive for this material and cannot get a new price.'	fn_price_propose
+'Price must be above 0.'	fn_price_propose
+'Currency is required (IDR or USD).'	fn_price_propose
+'Tick at least one variant.'	fn_price_propose
+'Some variants do not belong to this material. Please reload the page.'	fn_price_propose
+'There are still price proposals from % waiting for approval for: %. Cancel them first or wait for Manager Costing to process them.'	fn_price_propose
+'The start date cannot be earlier than an existing price: %.'	fn_price_propose
+'Invalid article status.'	fn_rev_article_set
+"The article does not belong to this revision's season."	fn_rev_article_set
+'Season not found.'	fn_revision_create
+'Season % already has a DRAFT revision. Publish or delete that draft first.'	fn_revision_create
+'Season % already has revisions. Use Next revision or Next stage.'	fn_revision_create
+'Invalid stage.'	fn_revision_create
+'Select a source season.'	fn_revision_create
+'A specsheet can only be copied from a model of the same factory.'	fn_revision_create
+'Copying from another model is only for models with the same category.'	fn_revision_create
+'Season % has no published revision to copy.'	fn_revision_create
+'Season % has no published revision yet.'	fn_revision_create
+'Already at the last stage (%). Use Next revision.'	fn_revision_create
+'Stage must be higher than the latest published stage (%).'	fn_revision_create
+'Choose how to create the revision.'	fn_revision_create
+'Revision not found.'	fn_revision_draft
+'Revision % r% is published and cannot be changed or deleted.'	fn_revision_lock
+'Season, stage, and revision number cannot be changed.'	fn_revision_lock
+'The specsheet needs at least one active article before publishing.'	fn_revision_publish
+'Article % is not used in any BOM line (enter a color in at least one line).'	fn_revision_publish
+'Some lines use INACTIVE materials: %. Replace them first.'	fn_revision_publish
+'% BOM line(s) have no supplier. Fill in the supplier of all lines first.'	fn_revision_publish
+'% color cell(s) have no Material Code (yellow cells): %. Register the variants first.'	fn_revision_publish
+'Some suppliers are inactive: %. Replace them first.'	fn_revision_publish
+'Vendor - Specsheet'	fn_role_label
+'Vendor - CBD'	fn_role_label
+'Manager Costing'	fn_role_label
+'Brand Viewer'	fn_role_label
+'System Admin'	fn_role_label
+'DROP TRIGGER IF EXISTS trg_touch ON %s'	fn_setup_table
+'CREATE TRIGGER trg_touch BEFORE INSERT OR UPDATE ON %s\n                  FOR EACH ROW EXECUTE FUNCTION fn_touch_trigger()'	fn_setup_table
+'DROP TRIGGER IF EXISTS trg_audit ON %s'	fn_setup_table
+'CREATE TRIGGER trg_audit AFTER INSERT OR UPDATE OR DELETE ON %s\n                  FOR EACH ROW EXECUTE FUNCTION fn_audit_trigger()'	fn_setup_table
+'Unknown search type %.'	fn_similar_names
+'Season must be SS[year] or FH[year], e.g. SS26 or FH26.'	fn_specsheet_check
+'A season cannot be moved to another model.'	fn_specsheet_check
+'Season % already exists for this model.'	fn_specsheet_check
+'Pullover'	fn_stage_label
+'Preview'	fn_stage_label
+'Production'	fn_stage_label
+'Supplier name is required.'	fn_supplier_check
+'Supplier "%" already exists.'	fn_supplier_check
+'Supplier not found.'	fn_supplier_save
+'Supplier status is required (ACTIVE / INACTIVE).'	fn_supplier_save
+'The name of supplier % cannot be changed: it is used in published documents (%). Add a new supplier if needed.'	fn_supplier_save
+'Supplier % is still used in drafts: %. Replace it in those drafts first.'	fn_supplier_save
+'no thickness'	fn_thickness_label
+'For your own account, use Change Password.'	fn_user_reset_password
+'User % not found.'	fn_user_reset_password,fn_user_save
+'Invalid email format.'	fn_user_save
+'Name is required.'	fn_user_save
+'Role is required.'	fn_user_save
+'Role % needs a factory.'	fn_user_save
+'The selected factory does not exist or is inactive.'	fn_user_save
+'You cannot change your own role or deactivate your own account.'	fn_user_save
+'Email % is already registered.'	fn_user_save
+'Variant not found (maybe already deleted). Please reload the page.'	fn_variant_delete
+'Variant % cannot be deleted: %. Set it INACTIVE if it is no longer used.'	fn_variant_delete
+'used in '	fn_variant_delete_block
+' specsheet revision(s)'	fn_variant_delete_block
+' CBD revision(s)'	fn_variant_delete_block
+'still has '	fn_variant_delete_block
+'Variant status is required (ACTIVE / INACTIVE).'	fn_variant_save
+'Material % is INACTIVE. Activate it before adding variants.'	fn_variant_save
+'Variant not found.'	fn_variant_save
+'Variant % is used in published documents. Its Material Code, color, and thickness cannot be changed. Set it INACTIVE and register a new variant.'	fn_variant_save
+'Local '	v_cbd_line
+'Material is now Quotation'	v_price_pending
+'Supplier inactive'	v_price_pending
+'Variant INACTIVE'	v_price_pending
+'Earlier than the active price ('	v_price_pending
+'Supplier '	v_worklist_admin
+'30 days'	v_worklist_price_rejected

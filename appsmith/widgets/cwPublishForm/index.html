@@ -1,7 +1,7 @@
 <div class="wrap">
   <div class="head">
-    <h2 id="title">Terbitkan Revisi</h2>
-    <button type="button" class="x" id="btnX" aria-label="Tutup">✕</button>
+    <h2 id="title">Publish Revision</h2>
+    <button type="button" class="x" id="btnX" aria-label="Close">✕</button>
   </div>
 
   <div id="msg" class="msg" role="alert" hidden></div>
@@ -11,39 +11,39 @@
 
   <div id="formBox">
     <div id="bridgeBox" hidden>
-      <label>Rincian perubahan <span class="opt-label" id="bridgeHead"></span></label>
+      <label>Change breakdown <span class="opt-label" id="bridgeHead"></span></label>
       <div class="bridge-wrap">
         <table class="bridge">
-          <thead><tr><th>Kategori</th><th>Uraian</th><th class="n">Nilai (Rp)</th></tr></thead>
+          <thead><tr><th>Category</th><th>Description</th><th class="n">Value (Rp)</th></tr></thead>
           <tbody id="bridgeRows"></tbody>
-          <tfoot><tr><td colspan="2" id="bridgeTotalLabel">Selisih Actual FOB</td><td class="n" id="bridgeTotal"></td></tr></tfoot>
+          <tfoot><tr><td colspan="2" id="bridgeTotalLabel">Actual FOB difference</td><td class="n" id="bridgeTotal"></td></tr></tfoot>
         </table>
       </div>
-      <div class="hint" id="bridgeHint">Nilai dihitung sistem dari revisi terbit sebelumnya. Kategori &amp; uraian boleh diubah.</div>
+      <div class="hint" id="bridgeHint">Values are calculated from the previous published revision. Category &amp; description can be changed.</div>
     </div>
 
     <div id="catBox">
-      <label for="category">Kategori perubahan <span class="req">*</span></label>
+      <label for="category">Change category <span class="req">*</span></label>
       <select id="category"></select>
     </div>
 
-    <label for="reason" id="reasonLabel">Alasan perubahan <span class="req" id="reasonReq">*</span></label>
+    <label for="reason" id="reasonLabel">Change reason <span class="req" id="reasonReq">*</span></label>
     <textarea id="reason" maxlength="500"></textarea>
     <div class="hint" id="reasonHint"></div>
 
-    <label>Gambar <span class="opt-label">(opsional)</span></label>
+    <label>Images <span class="opt-label">(optional)</span></label>
     <div class="paste" id="paste" tabindex="0">
-      Tempel gambar di sini (<b>Ctrl+V</b>) atau <button type="button" class="link" id="btnPick">pilih file</button>
+      Paste images here (<b>Ctrl+V</b>) or <button type="button" class="link" id="btnPick">choose files</button>
       <input type="file" id="file" accept="image/png,image/jpeg" multiple hidden>
     </div>
     <div class="thumbs" id="thumbs"></div>
     <div class="hint" id="imgHint"></div>
 
-    <div class="info" id="note">Terbit = final. Revisi terkunci dan tidak bisa diubah atau dihapus; perubahan berikutnya lewat Buat Revisi.</div>
+    <div class="info" id="note">Publish = final. The revision is locked and cannot be changed or deleted; later changes go through Create Revision.</div>
   </div>
 
   <div class="actions">
-    <button type="button" class="btn-secondary" id="btnCancel">Batal</button>
-    <button type="button" class="btn-primary" id="btnSave">Terbitkan</button>
+    <button type="button" class="btn-secondary" id="btnCancel">Cancel</button>
+    <button type="button" class="btn-primary" id="btnSave">Publish</button>
   </div>
 </div>

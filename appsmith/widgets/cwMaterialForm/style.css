@@ -325,7 +325,7 @@ input[type=number]::-webkit-inner-spin-button {
   accent-color: var(--primary);
 }
 
-/* R2: "cari dulu, baru buat" — daftar nama mirip */
+/* R2: "cari dulu, baru buat" - daftar nama mirip */
 .similar {
   margin-top: 8px;
   border: 1px solid #F1D9A6;

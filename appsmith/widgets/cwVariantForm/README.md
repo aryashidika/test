@@ -1,12 +1,12 @@
 # cwVariantForm
 
-Form satu varian material (Material Code, warna, thickness teks ERP) — R2b. Dipakai di **Material Detail** (`mdlVarian`,
+Form satu varian material (Material Code, warna, thickness teks ERP) - R2b. Dipakai di **Material Detail** (`mdlVarian`,
 `MaterialDetailCtrl`) dan, mulai R4, di **Specsheet** (`mdlVarianBaru`, `BomCtrl`, dari tombol *Daftarkan* di sel kuning).
 
 Model masuk: `{ key, mode: 'add' | 'edit', materialLabel, form: { code, color, thickness, status }, statusOptions, hint, busy, message,
-fixed }` — `hint` = hasil `q_code_hint` (arti 3 tengah / 3 akhir kode yang sudah tercatat), `fixed = { color, thickness }` (R4) mengunci
+fixed }` - `hint` = hasil `q_code_hint` (arti 3 tengah / 3 akhir kode yang sudah tercatat), `fixed = { color, thickness }` (R4) mengunci
 warna & thickness (dari sel specsheet); bila bagian kode tercatat dengan arti lain hanya muncul peringatan, DB menolak saat simpan.
-**R9 (menggantikan aturan awalan R8)** — kamus kode per pabrik, tiga tingkat:
+**R9 (menggantikan aturan awalan R8)** - kamus kode per pabrik, tiga tingkat:
 - **Tolak** (pesan DB): kode dobel; material + thickness + warna dobel.
 - **Konfirmasi** (kotak merah + centang *Sudah saya cek, kode ini benar sesuai ERP*): kode thickness / warna sudah berarti lain
   (dari `hint`, atau pesan DB berawalan `Perlu konfirmasi:`). Simpan mengirim `confirm: true` → `fn_variant_save(..., p_confirm)`.

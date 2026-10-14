@@ -1,24 +1,24 @@
-# F2 — Master Supplier & Komponen: langkah di Appsmith
+# F2 - Master Supplier & Komponen: langkah di Appsmith
 
 Urutan: **0** temuan v1 → **1** SQL → **2** Master Supplier → **3** Master Komponen → **4** uji → **5** export `export_v2.json`.
 
 Setelan yang berlaku untuk **semua query baru** di bawah (datasource `Prestasi`):
 - *Use prepared statements* = **ON**
-- *Run behaviour* = **Manual** (query baca dijalankan oleh `Auth.pageQueries()`, bukan otomatis — lihat T3)
+- *Run behaviour* = **Manual** (query baca dijalankan oleh `Auth.pageQueries()`, bukan otomatis - lihat T3)
 
 ---
 
 ## 0. Temuan review v1 (T1–T8)
 
-Kalau belum, kerjakan dulu (detail di `PLAN.md` §9). Paling penting: **T1** (target `cwMenu` → `'Master Material'`, `'Model List'`) — tanpa ini menu Master dari Beranda tidak bisa dibuka.
+Kalau belum, kerjakan dulu (detail di `PLAN.md` §9). Paling penting: **T1** (target `cwMenu` → `'Master Material'`, `'Model List'`) - tanpa ini menu Master dari Beranda tidak bisa dibuka.
 
 ---
 
 ## 1. SQL
 
 1. Buka app **DB Tools** → query `z_run_sql` → tempel seluruh isi `sql/F2_master.sql` → Run.
-   Kalau versi awal F2 (dengan currency default) sudah telanjur dijalankan, jalankan ulang saja — kolom `default_currency` otomatis dihapus.
-   Satu transaksi: kalau ada error (mis. bentrok nama tabel), tidak ada yang tersimpan — kirim pesan errornya ke chat.
+   Kalau versi awal F2 (dengan currency default) sudah telanjur dijalankan, jalankan ulang saja - kolom `default_currency` otomatis dihapus.
+   Satu transaksi: kalau ada error (mis. bentrok nama tabel), tidak ada yang tersimpan - kirim pesan errornya ke chat.
 2. Cek cepat:
    ```sql
    SELECT code, name, range_start, range_end FROM component_group ORDER BY sort_order;
@@ -85,11 +85,11 @@ Kolom `tblSuppliers` (sembunyikan `id`, `updated_by` boleh tampil):
 |---|---|---|
 | `name` | Nama Supplier | – |
 | `status` | Status | Text color: `{{Util.statusColor(currentRow.status)}}`, font bold |
-| `updated_at` | Diubah | Computed value: `{{Util.fmtDateTime(currentRow.updated_at)}}` (**pakai nama kolom data**, bukan label — T2) |
+| `updated_at` | Diubah | Computed value: `{{Util.fmtDateTime(currentRow.updated_at)}}` (**pakai nama kolom data**, bukan label - T2) |
 | `updated_by` | Oleh | – |
 | *(kolom baru)* `aksi` | – | Column type **Button**, label `Ubah`, onClick: `{{SupplierCtrl.openEdit(currentRow)}}` · Visible (kolom): `{{SupplierCtrl.canManage()}}` |
 
-### 2d. Modal `mdlSupplier` — Custom Widget `cwSupplierForm`
+### 2d. Modal `mdlSupplier` - Custom Widget `cwSupplierForm`
 
 Sama seperti `mdlUser` + `cwUserForm` di page Admin (isi form = Custom Widget, tanpa widget bawaan lain di modal).
 
@@ -210,7 +210,7 @@ Kolom `tblComponents` (sembunyikan `id`, `group_code`):
 | *(baru)* `approve` | – | Button `Approve` · onClick: `{{KomponenCtrl.approve(currentRow)}}` · Visible (kolom): `{{KomponenCtrl.canManage()}}` · **Cell visible** (atau *Disabled* bila opsi itu tidak ada): `{{currentRow.status === 'PROPOSED'}}` / `{{currentRow.status !== 'PROPOSED'}}` |
 | *(baru)* `aksi` | – | Button `Ubah` · onClick: `{{KomponenCtrl.openEdit(currentRow)}}` · Visible (kolom): `{{KomponenCtrl.canManage()}}` |
 
-### 3d. Modal `mdlKomponen` — Custom Widget `cwKomponenForm`
+### 3d. Modal `mdlKomponen` - Custom Widget `cwKomponenForm`
 
 1. Tambah **Modal** `mdlKomponen`, lebar ±480 px, tanpa judul/tombol bawaan.
 2. Di dalamnya **Custom Widget** `cwKomponenForm`, isi seluruh modal, tinggi ±520 px.

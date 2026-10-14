@@ -1,4 +1,4 @@
-# Uji end-to-end — dari DB kosong sampai CBD GTM terbit
+# Uji end-to-end - dari DB kosong sampai CBD GTM terbit
 
 Menggabungkan semua uji yang ditunda (F8 A–E, F8b G1–G12, F9 X1–X9, F10 H1–H17) dalam satu alur nyata.
 Data diambil dari Excel contoh user **FH26_CBD PRODUCTION_ACC ILLUZION IV ELITE FG PRM 097.xlsx**
@@ -41,7 +41,7 @@ SELECT (SELECT count(*) FROM app_user)                              AS user_tota
 
 ---
 
-## A. Akun — System Admin
+## A. Akun - System Admin
 
 | # | Langkah | Hasil yang diharapkan | Hasil |
 |---|---|---|---|
@@ -62,14 +62,14 @@ SELECT (SELECT count(*) FROM app_user)                              AS user_tota
 
 ---
 
-## B. Master data — Master Admin
+## B. Master data - Master Admin
 
 Tanggal berlaku semua harga = **hari ini**. Currency harus dipilih setiap kali (tidak ada nilai awal).
 
 ### B1. Supplier (Master Supplier → Tambah)
 
 `Hwasung` · `HWASUNG ( ANAN )` · `MGE` · `Asemindo` · `BHS` · `DAE YOUNG` · `GMT` · `winfaith` · `Hanyoung` · `Kim` ·
-`Pelangi Elasindo` · `Nanpao` — tersimpan huruf kapital (mis. `HWASUNG`).
+`Pelangi Elasindo` · `Nanpao` - tersimpan huruf kapital (mis. `HWASUNG`).
 
 | # | Uji tambahan | Hasil yang diharapkan | Hasil |
 |---|---|---|---|
@@ -127,7 +127,7 @@ Kode otomatis `MTR-0001`… (urutan boleh beda). Metode harga **Catalog**, kecua
 
 ---
 
-## C. Model, season, article — Vendor – Specsheet
+## C. Model, season, article - Vendor – Specsheet
 
 | # | Langkah | Hasil yang diharapkan | Hasil |
 |---|---|---|---|
@@ -140,7 +140,7 @@ Kode otomatis `MTR-0001`… (urutan boleh beda). Metode harga **Catalog**, kecua
 
 ---
 
-## D. Specsheet SMS r0 — Vendor – Specsheet
+## D. Specsheet SMS r0 - Vendor – Specsheet
 
 | # | Langkah | Hasil yang diharapkan | Hasil |
 |---|---|---|---|
@@ -148,7 +148,7 @@ Kode otomatis `MTR-0001`… (urutan boleh beda). Metode harga **Catalog**, kecua
 | D2 | + Buat Revisi → **Kosong**, stage **SMS** | Draft `SMS r0`, kedua article aktif | |
 | D3 | Isi BOM sesuai tabel di bawah (tambah baris, subkomponen, komponen lokal, supplier, warna per article) | Grid sesuai tabel | |
 | D4 | Sebelum mengisi warna kolom SPE1010567, dan dengan supplier baris 100 dikosongkan sementara → **Terbitkan** | Checklist memblokir: SPE1010567 belum dipakai di BOM; *Semua baris punya supplier* ✕. Isi lagi supplier ASEMINDO | |
-| D5 | Beranda (jendela yang sama, Muat ulang) | Draft `FH26 — SMS r0`, lencana *1 article belum dipakai di BOM* (H1–H2) | |
+| D5 | Beranda (jendela yang sama, Muat ulang) | Draft `FH26 - SMS r0`, lencana *1 article belum dipakai di BOM* (H1–H2) | |
 | D6 | Lengkapi warna SPE1010567 → Terbitkan, alasan kosong | Terbit dengan *Revisi awal.* (kategori Lainnya); revisi terkunci | |
 | D7 | Coba ubah satu sel di SMS r0 yang terbit | Tidak bisa (grid baca saja / ditolak DB) | |
 | D8 | **Export Excel** specsheet | File `Specsheet_ACC-ILZ4-FG_FH26_SMS-r0.xlsx`; layout seperti PDF contoh, PURPOSE **Salesman Sample** tercentang, subkomponen ter-merge (X1–X2) | |
@@ -180,7 +180,7 @@ Remarks baris 8030 (dua baris, **Shift+Enter**): `Size 37-40: 115 cm` / `Size 41
 
 ---
 
-## E. CBD SMS — Vendor – CBD
+## E. CBD SMS - Vendor – CBD
 
 Nilai Yield / Loss % dari Excel. Loss % `1` = Excel 1,01. Loss % `0` = Excel 1.
 
@@ -205,7 +205,7 @@ Nilai Yield / Loss % dari Excel. Loss % `1` = Excel 1,01. Loss % `0` = Excel 1.
 | 8030 | 1 | 0 | master USD 0,311 | 5.069,30 |
 | | | | **Material cost** | **174.568,20** |
 
-Loss % baris baru **kosong** (F10b) — isi sesuai tabel (kosong dihitung 0 %).
+Loss % baris baru **kosong** (F10b) - isi sesuai tabel (kosong dihitung 0 %).
 
 Cost recapitulation: Direct Labour (LOP) **81.370** (keterangan `Estimasi LOP 2026`), Amortisasi 0, Adjustment 0 →
 **ACTUAL FOB 255.938,20** · Target FOB **365.308** → **UNDER −109.369,80** · Margin **10 %** → Selling price
@@ -241,11 +241,11 @@ Cost recapitulation: Direct Labour (LOP) **81.370** (keterangan `Estimasi LOP 20
 | F7 | Master Admin | Beranda | 5 bagian: supplier SU INDONESIA, material Darmi Mesh, komponen 8040, supplier material Darmi/DAE YOUNG, **3 usulan harga** (`USD 2.95`, `USD 2.49`, `USD 24.2`) (H11) | |
 | F8 | Master Admin | Approve supplier (Master Supplier → Ubah → APPROVED), material, komponen, supplier material | Item hilang dari Beranda setelah Muat ulang (H12) | |
 | F9 | Master Admin | **Tolak** usulan Hysock USD 24,20, alasan `Salah ketik, harga tetap 2,42` | Form tolak menampilkan *USD 24,2* (bukan NaN); DITOLAK; Vendor – CBD melihat alasannya | |
-| F10 | — | Usulan Darmi & Elastic Knit **belum** di-approve (dipakai di langkah H) | | |
+| F10 | - | Usulan Darmi & Elastic Knit **belum** di-approve (dipakai di langkah H) | | |
 
 ---
 
-## G. Specsheet GTM r0 — Vendor – Specsheet
+## G. Specsheet GTM r0 - Vendor – Specsheet
 
 | # | Langkah | Hasil yang diharapkan | Hasil |
 |---|---|---|---|
@@ -261,7 +261,7 @@ Cost recapitulation: Direct Labour (LOP) **81.370** (keterangan `Estimasi LOP 20
 
 ---
 
-## H. CBD GTM r0 — Vendor – CBD (setelah specsheet GTM terbit)
+## H. CBD GTM r0 - Vendor – CBD (setelah specsheet GTM terbit)
 
 | # | Langkah | Hasil yang diharapkan | Hasil |
 |---|---|---|---|
@@ -289,7 +289,7 @@ Hasil cost GTM per baris (rate 17.789): 10 = 29.286,26 · 10-1 = 20.500 · 20 = 
 
 | # | Langkah | Hasil yang diharapkan | Hasil |
 |---|---|---|---|
-| I1 | Beranda | 2 kolom: Specsheet `ACC-ILZ4-FG · FH26 — GTM r0`; CBD SPE1010566/567 `GTM r0` (tanpa draft) (H13) | |
+| I1 | Beranda | 2 kolom: Specsheet `ACC-ILZ4-FG · FH26 - GTM r0`; CBD SPE1010566/567 `GTM r0` (tanpa draft) (H13) | |
 | I2 | Klik specsheet → stepper | Hanya revisi terbit (SMS r0, GTM r0); tidak ada tombol ubah | |
 | I3 | CBD SPE1010566 | Revisi terbit saja; harga, rekap, selling price & margin terlihat; tidak bisa diubah | |
 | I4 | Export Excel specsheet & CBD | File sama dengan layar (X8) | |

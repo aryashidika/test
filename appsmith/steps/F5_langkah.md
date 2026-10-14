@@ -1,15 +1,15 @@
-# F5 — Specsheet: revisi & grid BOM: langkah di Appsmith
+# F5 - Specsheet: revisi & grid BOM: langkah di Appsmith
 
 Urutan: **0** sisa F4 → **1** SQL → **2** Model List & Model Detail (kolom status specsheet) → **3** page Specsheet → **4** uji → **5** export `export_v5.json`.
 
 Setelan untuk **semua query baru** (datasource `Prestasi`): *Use prepared statements* **ON**, *Run behaviour* **Manual**.
-`cwHeader`: **salin dari Model Detail**, ganti `pageTitle` saja. Jangan membuat query uji (`Query1`) di app ini — pakai DB Tools (T21).
+`cwHeader`: **salin dari Model Detail**, ganti `pageTitle` saja. Jangan membuat query uji (`Query1`) di app ini - pakai DB Tools (T21).
 
 Keputusan yang dipakai (30 Sep 2026):
 - **Copy specsheet** hanya dari **season lain model yang sama** (development NC / New Color), sumbernya revisi **terbit**
-  terakhir (urut stage lalu nomor — P1). Yang di-copy baris BOM; article = article season tujuan, warna kosong.
+  terakhir (urut stage lalu nomor - P1). Yang di-copy baris BOM; article = article season tujuan, warna kosong.
   Copy lintas model tidak dibawa.
-- **Ganti material** memindahkan subkomponen ke baris baru (P4 — di Python subkomponen hilang dari grid).
+- **Ganti material** memindahkan subkomponen ke baris baru (P4 - di Python subkomponen hilang dari grid).
 - Terbitkan revisi = **F6**. Di F5 revisi dibuat, diisi, dan dihapus (draft); untuk menguji "revisi berikutnya"
   dan kunci revisi terbit, terbitkan lewat DB Tools (langkah 4).
 
@@ -33,11 +33,11 @@ Kalau belum: hapus Copy Article (`steps/F4_langkah.md` §5).
 
 ---
 
-## 2. Model List & Model Detail — kolom status specsheet
+## 2. Model List & Model Detail - kolom status specsheet
 
 ### 2a. Model List
 1. JSObject `ModelCtrl` → tempel ulang `js/ModelCtrl.js` (fungsi baru `specSummary()`).
-2. Query **`q_models`** — ganti baris `SELECT … FROM v_model_list` menjadi:
+2. Query **`q_models`** - ganti baris `SELECT … FROM v_model_list` menjadi:
    ```sql
    SELECT id, code, name, category, factory, size_range, season_count::int AS season_count,
           specsheet_id, season, article_count::int AS article_count, updated_at,
@@ -51,7 +51,7 @@ Kalau belum: hapus Copy Article (`steps/F4_langkah.md` §5).
 
 ### 2b. Model Detail
 1. JSObject `ModelDetailCtrl` → tempel ulang `js/ModelDetailCtrl.js` (fungsi baru `specText()`, `specColor()`).
-2. Query **`q_articles`** — ganti baris SELECT menjadi:
+2. Query **`q_articles`** - ganti baris SELECT menjadi:
    ```sql
    SELECT id, specsheet_id, code, colorway, attachment_count::int AS attachment_count, is_used, updated_at, updated_by,
           pub_label, pub_status, draft_label, draft_status
@@ -190,7 +190,7 @@ SELECT fn_revision_create({{appsmith.store.token}}, {{this.params.specsheet_id}}
                           {{this.params.stage}}, nullif({{this.params.source_id}}, '')::uuid) AS id;
 ```
 
-**`a_revision_delete`** — *Request confirmation before running* = **ON**
+**`a_revision_delete`** - *Request confirmation before running* = **ON**
 ```sql
 SELECT fn_revision_delete_draft({{appsmith.store.token}}, {{this.params.id}}::uuid) AS id;
 ```
@@ -263,9 +263,9 @@ SELECT fn_rev_article_set({{appsmith.store.token}}, {{this.params.revision_id}}:
 | `cwBomGrid` | Custom Widget, lebar penuh, tinggi **±600 px** (grid punya scroll sendiri) · Default model: `{{BomCtrl.gridModel()}}` · event `onAction`: `{{BomCtrl.onAction()}}` · kode `widgets/cwBomGrid/` |
 
 Semua isian grid (tambah baris, subkomponen, ganti material, supplier, remarks, warna, drop article) lewat
-`cwBomGrid` — lihat `widgets/cwBomGrid/README.md`. Tidak ada tombol Simpan: tiap sel tersimpan saat Enter/Tab/klik di luar.
+`cwBomGrid` - lihat `widgets/cwBomGrid/README.md`. Tidak ada tombol Simpan: tiap sel tersimpan saat Enter/Tab/klik di luar.
 
-### 3e. Modal `mdlRevisi` — Custom Widget `cwRevisionForm`
+### 3e. Modal `mdlRevisi` - Custom Widget `cwRevisionForm`
 
 Modal lebar ±560 px, widget tinggi ±460 px. Kode `widgets/cwRevisionForm/`.
 
@@ -315,7 +315,7 @@ Grid BOM (draft FH25 PULL r0)
 - [ ] Material INACTIVE tidak ada di saran; diketik manual → ditolak
 - [ ] Header article **✕** → berubah **Drop?** → klik lagi → kolom hilang, info *di-drop: …*; **Masukkan ke Revisi** article itu → kolom kembali (warna lama tetap)
 
-Hapus draft & copy — langkah lengkap ada di **§4b** di bawah.
+Hapus draft & copy - langkah lengkap ada di **§4b** di bawah.
 
 ---
 
@@ -325,7 +325,7 @@ Hapus draft & copy — langkah lengkap ada di **§4b** di bawah.
 baris; season **SS26** belum punya revisi. Login sebagai **Vendor – Specsheet** kecuali disebut lain.
 Semua query di bawah dijalankan di app **DB Tools** (`z_run_sql`).
 
-**Q-cek** — query bantu untuk melihat isi semua revisi `ILZ-01` (dipakai berulang):
+**Q-cek** - query bantu untuk melihat isi semua revisi `ILZ-01` (dipakai berulang):
 ```sql
 SELECT s.season, r.stage, r.revision_no, r.status,
        src_s.season || ' ' || src.stage || ' r' || src.revision_no AS sumber,
@@ -370,7 +370,7 @@ UPDATE specsheet_revision SET status = 'PUBLISHED', published_at = now(), publis
 | # | Langkah | Hasil yang diharapkan |
 |---|---|---|
 | B5 | Reload page Specsheet, pilih `ILZ-01` / `FH25` | Chip `r0` biru terisi (terbit); info *PUBLISHED · terbit … oleh uji*; grid **hanya baca** (tidak ada input, baris **+ Tambah**, **+ Sub**, **✕** di header article); **Hapus Draft** & **Masukkan ke Revisi** tidak tampil; **+ Buat Revisi** tampil |
-| B6 | DB Tools: coba ubah baris revisi terbit (query di bawah) — **harus error** | *Revisi ini sudah diterbitkan dan tidak bisa diubah…* |
+| B6 | DB Tools: coba ubah baris revisi terbit (query di bawah) - **harus error** | *Revisi ini sudah diterbitkan dan tidak bisa diubah…* |
 
 ```sql
 UPDATE bom_line SET process = 'x'
@@ -381,7 +381,7 @@ UPDATE bom_line SET process = 'x'
 
 | # | Langkah | Hasil yang diharapkan |
 |---|---|---|
-| B7 | DB Tools: coba hapus revisi terbit (query di bawah) — **harus error** | *Revisi PULL r0 sudah diterbitkan dan tidak bisa diubah atau dihapus.* |
+| B7 | DB Tools: coba hapus revisi terbit (query di bawah) - **harus error** | *Revisi PULL r0 sudah diterbitkan dan tidak bisa diubah atau dihapus.* |
 
 ```sql
 DELETE FROM specsheet_revision
@@ -400,8 +400,8 @@ DELETE FROM specsheet_revision
 | # | Langkah | Hasil yang diharapkan |
 |---|---|---|
 | C1 | Specsheet `SS26` → **+ Buat Revisi** | **Mulai kosong** dan **Copy dari season lain (model sama)** (aktif); tidak ada Revisi/Stage berikutnya |
-| C2 | Pilih **Copy…**, ubah Season sumber ke `— pilih season —` → **Buat** | Pesan merah *Pilih season sumber.*, modal tetap terbuka |
-| C3 | Season sumber `FH25 — PULL r0 terbit`, stage `PULL` → **Buat** | Toast *Revisi draft dibuat.*; chip `r0` kuning di PULL; info *… DRAFT … sumber: FH25 PULL r0* |
+| C2 | Pilih **Copy…**, ubah Season sumber ke `- pilih season -` → **Buat** | Pesan merah *Pilih season sumber.*, modal tetap terbuka |
+| C3 | Season sumber `FH25 - PULL r0 terbit`, stage `PULL` → **Buat** | Toast *Revisi draft dibuat.*; chip `r0` kuning di PULL; info *… DRAFT … sumber: FH25 PULL r0* |
 | C4 | Lihat grid SS26 | Baris sama dengan FH25: `10` (material A, supplier sama, remarks `Emboss`), `10-1 ↳ Lining`, `35 Heel badge` **lokal**; kolom = **3 article SS26**; **semua warna kosong** |
 | C5 | DB Tools: **Q-cek** | `SS26 · PULL · 0 · DRAFT`, sumber `FH25 PULL r0`, `baris` = 3, `article_aktif` = 3, `sel_berwarna` = 0 |
 | C6 | DB Tools: cek line_key baru & induk subkomponen (query di bawah) | 3 baris; semua `key_baru` = true, `origin_ok` = true; baris `Lining`: `induk_baru` = true |
@@ -420,7 +420,7 @@ WHERE n.revision_id = (SELECT r.id FROM specsheet_revision r JOIN specsheet s ON
 
 | # | Langkah | Hasil yang diharapkan |
 |---|---|---|
-| C7 | Isi warna `Navy` di baris 10, article pertama SS26 → pindah ke season `FH25` | FH25 `r0` tidak berubah (baris 10 tetap `Black` / `White`) — hasil copy tidak terhubung ke sumber |
+| C7 | Isi warna `Navy` di baris 10, article pertama SS26 → pindah ke season `FH25` | FH25 `r0` tidak berubah (baris 10 tetap `Black` / `White`) - hasil copy tidak terhubung ke sumber |
 | C8 | Kembali ke `SS26` | **+ Buat Revisi** tidak tampil (sudah ada draft) |
 | C9 | Model Detail `SS26` | 3 article *DI DRAFT · PULL r0* (kuning); tombol **Hapus** tidak tampil; kode terkunci di form Ubah |
 
@@ -436,7 +436,7 @@ WHERE n.revision_id = (SELECT r.id FROM specsheet_revision r JOIN specsheet s ON
 | D6 | **+ Buat Revisi** → **Stage berikutnya: SMS r0** → **Buat** | Stage SMS punya chip `r0` kuning dan bergaris bawah (stage aktif); chip PULL `r0` tetap |
 | D7 | DB Tools: **Q-cek** | `FH25 · SMS · 0 · DRAFT`, sumber `FH25 PULL r0`, isi sama dengan PULL r0 |
 
-Biarkan draft **FH25 SMS r0** dan **SS26 PULL r0** — dipakai untuk uji role di bawah dan uji Terbitkan di F6.
+Biarkan draft **FH25 SMS r0** dan **SS26 PULL r0** - dipakai untuk uji role di bawah dan uji Terbitkan di F6.
 
 ### E. Hak akses per role
 
@@ -468,10 +468,10 @@ Export app → `appsmith/exports/export_v5.json` → kirim di chat bersama hasil
 
 ## 6. Perbaikan setelah review export v5 (30 Sep 2026)
 
-### 6a. T28 — query baca Specsheet ke Manual
+### 6a. T28 - query baca Specsheet ke Manual
 Page `Specsheet`: `q_spec_models`, `q_spec_model`, `q_spec_seasons`, `q_revisions`, `q_rev_articles`, `q_bom_grid`,
 `q_bom_options`, `q_season_colors` → *Run behaviour* **Manual** (sekarang *Automatic*: ikut jalan tanpa params saat
-page dibuka dan bisa mengosongkan grid/stepper setelah `SpecCtrl.init()` selesai — sama dengan T22).
+page dibuka dan bisa mengosongkan grid/stepper setelah `SpecCtrl.init()` selesai - sama dengan T22).
 
 ### 6b. Grid BOM hanya tampil kalau ada revisi yang dibuka
 `cwBomGrid` → Visible: `{{!!SpecCtrl.revision()}}`
@@ -489,7 +489,7 @@ page dibuka dan bisa mengosongkan grid/stepper setelah `SpecCtrl.init()` selesai
 | Sidebar, model sudah dipilih | `← Model Detail` |
 | Sidebar, model belum dipilih | `← Model List` |
 
-### 6d. F5b — hapus baris BOM (permintaan user; tidak ada di Python)
+### 6d. F5b - hapus baris BOM (permintaan user; tidak ada di Python)
 1. DB Tools → `z_run_sql` → tempel `sql/F5b_bom_delete.sql` → Run.
 2. Query baru **`a_bom_delete_line`** (prepared ON, Manual):
    ```sql
@@ -503,7 +503,7 @@ Lalu **Deploy**.
 
 ### 6e. Uji
 - [ ] Specsheet dibuka dari sidebar tanpa model → grid tidak tampil; pilih model yang belum punya revisi → grid tetap tidak tampil; buka revisi → grid tampil
-- [ ] Reload page Specsheet berkali-kali → stepper & grid selalu terisi (tidak kosong mendadak) — T28
+- [ ] Reload page Specsheet berkali-kali → stepper & grid selalu terisi (tidak kosong mendadak) - T28
 - [ ] Model List → **Specsheet** → tombol `← Model List` → kembali ke Model List
 - [ ] Model Detail → **Buka Specsheet** → tombol `← Model Detail` → kembali ke model & season yang sama
 - [ ] Sidebar → Specsheet → pilih model → tombol `← Model Detail`

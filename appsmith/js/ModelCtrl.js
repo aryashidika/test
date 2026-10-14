@@ -1,4 +1,4 @@
-// JSObject "ModelCtrl" — page Model List. Form tambah: Custom Widget cwModelForm di modal mdlModel.
+// JSObject "ModelCtrl" - page Model List. Form tambah: Custom Widget cwModelForm di modal mdlModel.
 // Izin: lihat = view_model · tambah model = edit_model (Master Admin, Vendor – Specsheet) · tombol CBD = view_cbd.
 // Semua dicek lagi di DB. Setelah model ditambah, langsung dibuka di Model Detail (isi season & article).
 // R4: model tanpa kode (nama unik per pabrik), pilihan dari Master Pilihan (q_model_options). R6: Brand / System Admin
@@ -9,12 +9,12 @@ export default {
 	busy: false,
 	message: null,     // { type, text } ditampilkan di dalam cwModelForm
 
-	// R11 (S9): q_models dibatasi 500 baris — beri tahu bila hasil sebenarnya lebih banyak
+	// R11 (S9): q_models dibatasi 500 baris - beri tahu bila hasil sebenarnya lebih banyak
 	limitNote() {
 		const rows = q_models.data || [];
 		const total = rows.length ? Number(rows[0].total_count) || rows.length : 0;
 		return total > rows.length
-			? `Menampilkan ${Util.fmtNum(rows.length)} dari ${Util.fmtNum(total)} model — persempit dengan pencarian / filter.` : '';
+			? `Showing ${Util.fmtNum(rows.length)} of ${Util.fmtNum(total)} models. Narrow down with search / filter.` : '';
 	},
 
 	canEdit() {
@@ -31,7 +31,7 @@ export default {
 	},
 
 	factoryOptions() {
-		return [{ label: 'Semua pabrik', value: '' }].concat((q_model_factories.data || []).map(f => ({ label: f.name, value: f.id })));
+		return [{ label: 'All factories', value: '' }].concat((q_model_factories.data || []).map(f => ({ label: f.name, value: f.id })));
 	},
 
 	// SS26 -> "SS26 · Spring/Summer 2026"
@@ -47,9 +47,9 @@ export default {
 
 	// Kolom "Season" di tabel
 	seasonSummary(row) {
-		if (!row.season) return 'Belum ada season';
-		const more = row.season_count > 1 ? ` (+${row.season_count - 1} season lain)` : '';
-		return `${row.season} · ${row.article_count} article${more}`;
+		if (!row.season) return 'No seasons yet';
+		const more = row.season_count > 1 ? ` (+${row.season_count - 1} other season(s))` : '';
+		return `${row.season} · ${row.article_count} article(s)${more}`;
 	},
 
 	// Kolom "Specsheet": revisi terakhir season itu (P2). Role tanpa view_drafts (Brand) hanya revisi terbit.
@@ -58,11 +58,11 @@ export default {
 		const label = drafts ? row.spec_label : row.spec_label_pub;
 		const n = drafts ? row.spec_active_articles : row.spec_active_articles_pub;
 		if (!row.season) return '-';
-		return label ? `${label} · ${n} article aktif` : 'Belum ada specsheet';
+		return label ? `${label} · ${n} active article(s)` : 'No specsheet yet';
 	},
 
 	// ---- pilihan model (R4, q_model_options) ----
-	// { KATEGORI: [{ value, label }], ... } — ACTIVE + nilai lama form (ditandai INACTIVE); sizes = UKURAN ACTIVE
+	// { KATEGORI: [{ value, label }], ... } - ACTIVE + nilai lama form (ditandai INACTIVE); sizes = UKURAN ACTIVE
 	optionModel(form) {
 		const rows = q_model_options.data || [];
 		const cur = new Set(Object.values(form || {}).filter(v => typeof v === 'string' && v));
@@ -105,11 +105,11 @@ export default {
 	},
 
 	async save() {
-		// Baca model dulu — model di-reset saat state (Default model) berubah
+		// Baca model dulu - model di-reset saat state (Default model) berubah
 		const m = cwModelForm.model || {};
 		const data = this.modelParams(m);
 		if (!data.name || !data.category_id) {
-			this.message = { type: 'error', text: 'Nama model dan kategori wajib diisi.' };
+			this.message = { type: 'error', text: 'Model name and category are required.' };
 			return;
 		}
 		this.message = null;
@@ -121,7 +121,7 @@ export default {
 			if (Util.isSessionError(msg)) {
 				closeModal('mdlModel');
 				await removeValue('token');
-				showAlert('Sesi login habis. Silakan login lagi.', 'warning');
+				showAlert('Session expired. Please log in again.', 'warning');
 				navigateTo('Login');
 				return;
 			}
@@ -132,7 +132,7 @@ export default {
 		}
 		closeModal('mdlModel');
 		const id = a_model_add.data && a_model_add.data[0] && a_model_add.data[0].id;
-		showAlert(`Model ${data.name.toUpperCase()} ditambahkan. Tambahkan season & article-nya.`, 'success');
+		showAlert(`Model ${data.name.toUpperCase()} added. Now add its seasons & articles.`, 'success');
 		if (id) navigateTo('Model Detail', { id });
 	},
 

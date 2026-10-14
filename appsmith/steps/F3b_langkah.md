@@ -1,4 +1,4 @@
-# F3b — Approval harga oleh Master Admin: langkah di Appsmith
+# F3b - Approval harga oleh Master Admin: langkah di Appsmith
 
 Keputusan user (29 Sep 2026):
 - Harga dari **Vendor CBD** = usulan (PROPOSED); harga dari **Master Admin** langsung APPROVED.
@@ -27,7 +27,7 @@ SELECT status, count(*) FROM material_price GROUP BY status;
 ## 2. Page `Master Material`
 
 1. JSObject `MaterialCtrl` → tempel ulang `js/MaterialCtrl.js` (ringkasan kolom Supplier menampilkan *n harga menunggu approval*).
-2. Query **`q_materials`** — ganti seluruhnya:
+2. Query **`q_materials`** - ganti seluruhnya:
    ```sql
    SELECT id, material_code, name, category, thickness, uom, price_method, status,
           supplier_count, proposed_links, priced_links, preferred_supplier, missing_price, pending_prices,
@@ -57,7 +57,7 @@ SELECT status, count(*) FROM material_price GROUP BY status;
 
 ### 3b. Query
 
-**`q_prices`** — ganti seluruhnya (tambah status, alasan tolak, diproses oleh):
+**`q_prices`** - ganti seluruhnya (tambah status, alasan tolak, diproses oleh):
 ```sql
 SELECT mp.id, mp.material_supplier_id AS link_id, s.name AS supplier_name, mp.color, mp.price, mp.currency,
        mp.valid_from, mp.valid_to, mp.reference, mp.created_by, mp.created_at,
@@ -87,7 +87,7 @@ SELECT fn_price_approve({{appsmith.store.token}}, {{this.params.id}}::uuid) AS i
 SELECT fn_price_reject({{appsmith.store.token}}, {{this.params.id}}::uuid, {{this.params.reason}}) AS id;
 ```
 
-**`a_price_cancel`** — *Request confirmation before running* = **ON**
+**`a_price_cancel`** - *Request confirmation before running* = **ON**
 ```sql
 SELECT fn_price_cancel({{appsmith.store.token}}, {{this.params.id}}::uuid) AS id;
 ```
@@ -99,7 +99,7 @@ SELECT fn_price_cancel({{appsmith.store.token}}, {{this.params.id}}::uuid) AS id
 - Kolom `state` (Keterangan):
   - Computed value: `{{MaterialDetailCtrl.stateText(currentRow)}}`
   - Text color: `{{MaterialDetailCtrl.stateColor(currentRow.state)}}`
-- Kolom tombol yang sudah ada — ubah **Cell visible** supaya hanya untuk harga yang sudah APPROVED:
+- Kolom tombol yang sudah ada - ubah **Cell visible** supaya hanya untuk harga yang sudah APPROVED:
   - `Ganti harga`: `{{!currentRow.valid_to && currentRow.status === 'APPROVED'}}`
   - `Akhiri`: `{{!currentRow.valid_to && currentRow.status === 'APPROVED'}}`
 - Kolom tombol **baru**:
@@ -110,7 +110,7 @@ SELECT fn_price_cancel({{appsmith.store.token}}, {{this.params.id}}::uuid) AS id
 | `Tolak` (warna merah) | `{{MaterialDetailCtrl.openReject(currentRow)}}` | `{{MaterialDetailCtrl.canManageMaster()}}` | `{{currentRow.status === 'PROPOSED'}}` |
 | `Batalkan` | `{{MaterialDetailCtrl.cancelPrice(currentRow)}}` | `{{MaterialDetailCtrl.canManagePrice()}}` | `{{currentRow.status === 'PROPOSED'}}` |
 
-### 3d. Modal `mdlTolakHarga` — Custom Widget `cwReasonForm` (baru, dipakai ulang di fase berikutnya)
+### 3d. Modal `mdlTolakHarga` - Custom Widget `cwReasonForm` (baru, dipakai ulang di fase berikutnya)
 
 Modal lebar ±480 px; `cwReasonForm` tinggi ±400 px. Kode: `widgets/cwReasonForm/`.
 

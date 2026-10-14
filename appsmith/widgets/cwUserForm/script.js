@@ -1,4 +1,4 @@
-// cwUserForm — form Tambah/Ubah User di mdlUser. Hanya tampilan; simpan lewat AdminCtrl.save().
+// cwUserForm - form Tambah/Ubah User di mdlUser. Hanya tampilan; simpan lewat AdminCtrl.save().
 const $ = (id) => document.getElementById(id);
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 let lastKey = null;
@@ -24,7 +24,7 @@ function fillRoles(options, selected) {
   const sel = $('role');
   sel.innerHTML = '';
   const ph = document.createElement('option');
-  ph.value = ''; ph.textContent = '— Pilih role —';
+  ph.value = ''; ph.textContent = 'Select role';
   sel.appendChild(ph);
   (options || []).forEach((o) => {
     const opt = document.createElement('option');
@@ -38,7 +38,7 @@ function fillFactories(options, selected) {
   const sel = $('factory');
   sel.innerHTML = '';
   const ph = document.createElement('option');
-  ph.value = ''; ph.textContent = '— Pilih pabrik —';
+  ph.value = ''; ph.textContent = 'Select factory';
   sel.appendChild(ph);
   (options || []).forEach((o) => {
     const opt = document.createElement('option');
@@ -56,13 +56,13 @@ function toggleFactory() {
   $('factoryRow').hidden = !needsFactory();
 }
 
-// Isi ulang field hanya saat modal dibuka (key berubah) — busy/message tidak menghapus ketikan user
+// Isi ulang field hanya saat modal dibuka (key berubah) - busy/message tidak menghapus ketikan user
 function fillForm(m) {
   const f = m.form || {};
   const isEdit = m.mode === 'edit';
   const isSelf = isEdit && m.selfEmail && f.email === m.selfEmail;
 
-  $('title').textContent = isEdit ? 'Ubah User' : 'Tambah User';
+  $('title').textContent = isEdit ? 'Edit User' : 'Add User';
   $('email').value = f.email || '';
   $('email').disabled = isEdit;
   $('email').classList.remove('invalid');
@@ -86,7 +86,7 @@ function setBusy(v) {
   $('btnSave').disabled = v;
   $('btnCancel').disabled = v;
   $('btnX').disabled = v;
-  $('btnSave').textContent = v ? 'Menyimpan…' : 'Simpan';
+  $('btnSave').textContent = v ? 'Saving…' : 'Save';
 }
 
 function render(model) {
@@ -105,10 +105,10 @@ function submit() {
   const full_name = $('fullName').value.trim();
   const role = $('role').value;
   let error = '';
-  if (!EMAIL_RE.test(email)) error = 'Format email tidak valid.';
-  else if (!full_name) error = 'Nama lengkap wajib diisi.';
-  else if (!role) error = 'Role wajib dipilih.';
-  else if (needsFactory() && !$('factory').value) error = 'Pilih pabrik untuk role ini.';
+  if (!EMAIL_RE.test(email)) error = 'Invalid email format.';
+  else if (!full_name) error = 'Full name is required.';
+  else if (!role) error = 'Role is required.';
+  else if (needsFactory() && !$('factory').value) error = 'Select a factory for this role.';
   $('email').classList.toggle('invalid', !EMAIL_RE.test(email));
   if (error) { showMessage({ type: 'error', text: error }); return; }
   const factory_id = needsFactory() ? $('factory').value : '';

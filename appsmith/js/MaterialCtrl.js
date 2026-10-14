@@ -14,12 +14,12 @@ export default {
 		{ label: 'INACTIVE', value: 'INACTIVE' },
 	],
 
-	// R11 (S9): q_materials dibatasi 500 baris — beri tahu bila hasil sebenarnya lebih banyak
+	// R11 (S9): q_materials dibatasi 500 baris - beri tahu bila hasil sebenarnya lebih banyak
 	limitNote() {
 		const rows = q_materials.data || [];
 		const total = rows.length ? Number(rows[0].total_count) || rows.length : 0;
 		return total > rows.length
-			? `Menampilkan ${Util.fmtNum(rows.length)} dari ${Util.fmtNum(total)} material — persempit dengan pencarian / filter.` : '';
+			? `Showing ${Util.fmtNum(rows.length)} of ${Util.fmtNum(total)} materials. Narrow down with search / filter.` : '';
 	},
 
 	canManage() {
@@ -48,9 +48,9 @@ export default {
 	// Kolom "Varian" di tabel: "3 varian · 1.2 mm, 1.5 mm"
 	variantSummary(row) {
 		const n = Number(row.variant_count) || 0;
-		if (!n) return 'Belum ada varian';
+		if (!n) return 'No variants yet';
 		const active = Number(row.active_variant_count) || 0;
-		const parts = [`${n} varian`];
+		const parts = [`${n} variant(s)`];
 		if (active < n) parts.push(`${n - active} INACTIVE`);
 		if (row.thicknesses) parts.push(row.thicknesses);
 		return parts.join(' · ');
@@ -58,9 +58,9 @@ export default {
 
 	// Kolom "Supplier" di tabel
 	supplierSummary(row) {
-		if (!Number(row.supplier_count)) return 'Belum ada supplier';
-		const parts = [`${row.supplier_count} supplier`];
-		if (row.preferred_supplier) parts.push(`utama: ${row.preferred_supplier}`);
+		if (!Number(row.supplier_count)) return 'No suppliers yet';
+		const parts = [`${row.supplier_count} supplier(s)`];
+		if (row.preferred_supplier) parts.push(`main: ${row.preferred_supplier}`);
 		return parts.join(' · ');
 	},
 
@@ -90,16 +90,16 @@ export default {
 			this.similar = rows || [];
 			this.similarFor = text;
 		} catch (e) {
-			/* daftar mirip hanya bantuan — abaikan */
+			/* daftar mirip hanya bantuan - abaikan */
 		}
 	},
 
 	async save() {
-		// Baca model dulu — model di-reset saat state (Default model) berubah
+		// Baca model dulu - model di-reset saat state (Default model) berubah
 		const m = cwMaterialForm.model || {};
 		const data = { name: m.name, category: m.category, uom: m.uom };
 		if (!data.name || !data.category || !data.uom) {
-			this.message = { type: 'error', text: 'Lengkapi kategori, nama, dan Mea.' };
+			this.message = { type: 'error', text: 'Fill in category, name, and Mea.' };
 			return;
 		}
 		this.message = null;
@@ -113,7 +113,7 @@ export default {
 			if (Util.isSessionError(msg)) {
 				closeModal('mdlMaterial');
 				await removeValue('token');
-				showAlert('Sesi login habis. Silakan login lagi.', 'warning');
+				showAlert('Session expired. Please log in again.', 'warning');
 				navigateTo('Login');
 				return;
 			}
@@ -123,7 +123,7 @@ export default {
 			this.busy = false;
 		}
 		closeModal('mdlMaterial');
-		showAlert('Material ditambahkan. Lanjutkan dengan menambah varian.', 'success');
+		showAlert('Material added. Next, add its variants.', 'success');
 		if (id) {
 			navigateTo('Material Detail', { id });
 			return;

@@ -11,11 +11,11 @@ Hanya tampilan & input. Usage (= 1 / Yield), harga IDR/USD, cost/pair, dan rekap
 
 Susunan (atas → bawah): bar pesan + status · **banner** (dari `CbdGridCtrl.banners()`: specsheet baru → tombol
 **Refresh dari Specsheet**; harga master berubah → **Refresh Harga dari Master**; info baris tanpa harga / supplier)
-· **ringkasan menempel** (Exchange rate — satu-satunya yang diisi di sini; Material cost, Actual FOB, Target FOB,
+· **ringkasan menempel** (Exchange rate - satu-satunya yang diisi di sini; Material cost, Actual FOB, Target FOB,
 Selisih + OVER/UNDER/SESUAI hanya baca) · area scroll: grid (+ baris **Subtotal** per grup, F8b) lalu di bawahnya
 **Cost recapitulation** dan **Harga jual** (F8b; tidak ikut bergeser saat grid di-scroll ke kanan).
 
-- **Hanya baca** (`editable: false` — revisi terbit, article di-drop / belum terbit, atau role tanpa `edit_cbd`).
+- **Hanya baca** (`editable: false` - revisi terbit, article di-drop / belum terbit, atau role tanpa `edit_cbd`).
 - **Draft**: Yield & Loss % berupa input yang tersimpan saat berubah (Enter / Tab / klik di luar). Enter pindah ke
   baris berikutnya di kolom yang sama; Esc membatalkan. Desimal pakai koma atau titik, tanpa pemisah ribuan.
   Yield kosong = dikosongkan; Loss % kosong = 0. Yield kosong di baris berharga ditandai kuning (wajib sebelum terbit).
@@ -29,7 +29,7 @@ Selisih + OVER/UNDER/SESUAI hanya baca) · area scroll: grid (+ baris **Subtotal
 - **Harga** (draft, baris ACTIVE): material Quotation → **Isi harga / Ubah harga**; material katalog → harga master
   (override dihapus F10b; tombol *Hapus override* dihapus R12). Harga kosong diberi keterangan (`price_gap`): material quotation belum diisi, supplier belum
   dipilih, harga master tersedia (refresh), menunggu approval, belum ada harga untuk warna ini (ada: …), belum ada
-  harga master. Harga master yang berubah ditandai *harga master berubah — klik Refresh Harga*.
+  harga master. Harga master yang berubah ditandai *harga master berubah - klik Refresh Harga*.
 - Ketikan yang belum disimpan, fokus, dan posisi scroll dipertahankan saat data dimuat ulang.
 
 | File | Tab |
@@ -38,7 +38,7 @@ Selisih + OVER/UNDER/SESUAI hanya baca) · area scroll: grid (+ baris **Subtotal
 
 Ukuran: lebar penuh, tinggi ±800 px (F8b: tabel Cost recapitulation & Harga jual di bawah grid, ikut scroll di dalam widget).
 
-## Model masuk (Default model) — `{{CbdGridCtrl.gridModel()}}`
+## Model masuk (Default model) - `{{CbdGridCtrl.gridModel()}}`
 
 ```js
 {

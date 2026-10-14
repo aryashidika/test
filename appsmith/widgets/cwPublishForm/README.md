@@ -1,6 +1,6 @@
 # cwPublishForm
 
-Form **Terbitkan** revisi — page `Specsheet`, modal `mdlTerbit` → `SpecCtrl.publish()` → `a_revision_publish`
+Form **Terbitkan** revisi - page `Specsheet`, modal `mdlTerbit` → `SpecCtrl.publish()` → `a_revision_publish`
 (`fn_revision_publish`); page `Cost Breakdown (CBD)`, modal `mdlCbdTerbit` → `CbdCtrl.publish()` → `a_cbd_publish`
 (`fn_cbd_publish`, F8). Kode widget sama di kedua page; checklist, kategori & teks dari model.
 

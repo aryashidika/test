@@ -7,8 +7,8 @@ yang baru dipakai setelah disetujui Manager Costing (page Persetujuan Harga).
 harga langsung **BERLAKU** (DB `trg_price_self_approve`).
 
 - **mode `propose` (Ajukan Harga)**: supplier material (ACTIVE), **centang banyak varian** (cari, Pilih semua,
-  Kosongkan; status per varian untuk supplier terpilih: berlaku / menunggu / belum ada harga — varian yang masih
-  punya usulan menunggu tidak bisa dicentang), satu harga, **currency tanpa nilai awal — wajib diklik IDR/USD**,
+  Kosongkan; status per varian untuk supplier terpilih: berlaku / menunggu / belum ada harga - varian yang masih
+  punya usulan menunggu tidak bisa dicentang), satu harga, **currency tanpa nilai awal - wajib diklik IDR/USD**,
   berlaku mulai (default hari ini WIB), referensi. Tanggal lebih awal dari harga yang sudah ada ditolak.
 - **mode `copy` (Salin Harga)**: varian sumber (hanya yang punya harga BERLAKU dari supplier aktif) → centang
   varian tujuan; semua harga berlaku sumber (per supplier) diajukan untuk tiap tujuan. Pasangan yang masih punya

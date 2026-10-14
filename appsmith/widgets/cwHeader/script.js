@@ -1,4 +1,4 @@
-// cwHeader — header app: nama app, judul page, user + role, tombol Beranda / Ganti Password / Keluar.
+// cwHeader - header app: nama app, judul page, user + role, tombol Beranda / Ganti Password / Keluar.
 // Hanya tampilan. Model masuk: { pageTitle, name, role, showHome }. Event: onHome, onChangePassword, onLogout.
 
 const $ = id => document.getElementById(id);

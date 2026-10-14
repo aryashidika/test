@@ -1,4 +1,4 @@
-# R11 — Skalabilitas, bug, dan kesesuaian alur (12 Okt 2026)
+# R11 - Skalabilitas, bug, dan kesesuaian alur (12 Okt 2026)
 
 Lanjut dari data yang ada (tanpa reset). Base build = `exports/export_r10.json` (= export app Anda "Product Management R9"
 yang sudah berisi tempelan manual R10). Kalau Anda mengubah app setelah export itu, kirim export terbaru dulu supaya build
@@ -21,23 +21,23 @@ Isi R11 (rincian di `PLAN.md` §6 R11 dan §9 T54–T59, A1–A9):
 | 0.1 | DB Tools → jalankan `sql/R11_perbaikan.sql` (prepared statements OFF) | `R11 terpasang` · `tanpa biaya: true · rincian perubahan: true · terbit CBD 5 argumen: true · index varian CBD: true` |
 | 0.1b | DB Tools → jalankan `sql/R11b_harga_batal.sql` (perbaikan uji C, 13 Okt 2026) | `R11b terpasang` · `dipulihkan: N · harga dibatalkan: N · masih AKAN BERLAKU: N` (dipulihkan = harga dibatalkan yang sempat hidup lagi karena bug; di DB Anda kemungkinan 1) |
 | 0.2 | DB Tools → jalankan `sql/R_selftest.sql` | **`SELFTEST LOLOS`** (166 cek, semua dibatalkan) |
-| 0.3 | Import `exports/build_r11b.json` sebagai app baru → Deploy (atau: tempel `js/MaterialDetailCtrl.js` ke JSObject *MaterialDetailCtrl* di app R11 — hanya itu yang berubah dari R11) | Nama app *Product Management R11b*; modal Terbit CBD (`mdlCbdTerbit`) tinggi 900 px |
+| 0.3 | Import `exports/build_r11b.json` sebagai app baru → Deploy (atau: tempel `js/MaterialDetailCtrl.js` ke JSObject *MaterialDetailCtrl* di app R11 - hanya itu yang berubah dari R11) | Nama app *Product Management R11b*; modal Terbit CBD (`mdlCbdTerbit`) tinggi 900 px |
 
 Catatan: CBD yang terbit **sebelum** R11 tidak punya rincian tersimpan (riwayatnya tetap seperti dulu). Rincian dihitung
-untuk setiap terbit setelah R11 — termasuk revisi pertama setelah pemasangan (dibanding revisi terbit sebelumnya).
+untuk setiap terbit setelah R11 - termasuk revisi pertama setelah pemasangan (dibanding revisi terbit sebelumnya).
 
 ## A. Baris belum berharga & Tanpa biaya (A1/T56)
 
 Keputusan 13 Okt 2026: baris belum berharga **tidak memblokir** terbit (dihitung 0). Peringatan + daftar baris hanya untuk
 baris yang **sudah ada Yield** tapi belum berharga (kemungkinan lupa). Baris yang harga **dan** Yield-nya kosong
-dianggap memang tanpa biaya — tidak diperingatkan / tidak didaftar.
+dianggap memang tanpa biaya - tidak diperingatkan / tidak didaftar.
 
 Pakai draft CBD yang punya baris **belum berharga** (mis. material Quotation yang belum diisi, atau baris printing /
 dekorasi yang harganya ikut baris lain).
 
 | # | Langkah | Hasil |
 |---|---|---|
-| A1 | Buka draft dengan baris ber-Yield tanpa harga → banner kuning | "N baris sudah ada Yield tapi belum berharga — tetap bisa terbit dengan cost 0. Isi harganya bila terlupa." |
+| A1 | Buka draft dengan baris ber-Yield tanpa harga → banner kuning | "N baris sudah ada Yield tapi belum berharga - tetap bisa terbit dengan cost 0. Isi harganya bila terlupa." |
 | A2 | Klik **Terbitkan** | Checklist "Baris ber-Yield sudah berharga" bertanda **!** + daftar barisnya; tombol **Terbitkan tetap muncul** (bila tidak ada pemblokir lain) |
 | A2b | Baris yang harga **dan** Yield-nya kosong | Tidak ada di banner maupun daftar checklist; status bawah grid tidak menghitungnya; Cost/pr kosong (0) |
 | A3 | Kolom Harga baris itu → **Tanpa biaya** → kosongkan alasan → Simpan | Ditolak "Isi alasan tanpa biaya…" |
@@ -56,11 +56,11 @@ baris, LOP, tambah baris biaya Lainnya (mis. *Assembling*).
 
 | # | Langkah | Hasil |
 |---|---|---|
-| B1 | Terbitkan | Tabel **Rincian perubahan (dibanding … terbit)**: baris Exchange rate, Yield / Loss %, LOP, Lainnya — nilai Rp per baris, total = **Selisih Actual FOB (lama → baru)**; pilihan Kategori perubahan tidak tampil; "Ringkasan" opsional |
+| B1 | Terbitkan | Tabel **Rincian perubahan (dibanding … terbit)**: baris Exchange rate, Yield / Loss %, LOP, Lainnya - nilai Rp per baris, total = **Selisih Actual FOB (lama → baru)**; pilihan Kategori perubahan tidak tampil; "Ringkasan" opsional |
 | B2 | Ganti kategori satu baris (mis. Yield → Komponen) dan ubah uraiannya | Bisa; nilai tidak bisa diubah |
 | B3 | Kosongkan uraian satu baris → Terbitkan | Ditolak "Uraian rincian perubahan tidak boleh kosong." |
 | B4 | Isi lagi → Terbitkan (Ringkasan kosong) | Terbit; Riwayat: kategori = kategori bernilai terbesar, alasan = ringkasan per kategori (mis. "Exchange rate +…; LOP +…") |
-| B5 | Export Excel revisi terbit tadi | Di bawah change log: **Rincian perubahan dibanding …** — kategori, uraian (versi yang Anda ubah), nilai, total = selisih Actual FOB |
+| B5 | Export Excel revisi terbit tadi | Di bawah change log: **Rincian perubahan dibanding …** - kategori, uraian (versi yang Anda ubah), nilai, total = selisih Actual FOB |
 | B6 | Login Brand → buka CBD terbit itu → Export | Rincian yang sama ikut |
 | B7 | Revisi CBD pertama sebuah article (belum ada yang terbit) → Terbitkan | Tanpa tabel rincian; pilihan kategori + alasan seperti dulu |
 | B8 | Revisi yang tidak mengubah biaya apa pun → Terbitkan | Tanpa tabel rincian; kategori & alasan seperti dulu |
@@ -70,7 +70,7 @@ baris, LOP, tambah baris biaya Lainnya (mis. *Assembling*).
 | # | Langkah | Hasil |
 |---|---|---|
 | C1 | Manager Costing → Material Detail → varian berharga BERLAKU → **Tambah Harga** (berlaku mulai **bulan depan**) | Harga lama tetap BERLAKU sampai tanggal itu, harga baru AKAN BERLAKU |
-| C2 | Harga AKAN BERLAKU → **Akhiri** → konfirmasi | Pesan "Harga yang akan berlaku dibatalkan — harga sebelumnya tetap berlaku."; harga lama BERLAKU lagi tanpa tanggal akhir; harga yang diakhiri **hilang dari tabel** (Tampilkan riwayat ON: *DIBATALKAN (tidak jadi berlaku)*, tanpa tombol Ajukan) |
+| C2 | Harga AKAN BERLAKU → **Akhiri** → konfirmasi | Pesan "Harga yang akan berlaku dibatalkan - harga sebelumnya tetap berlaku."; harga lama BERLAKU lagi tanpa tanggal akhir; harga yang diakhiri **hilang dari tabel** (Tampilkan riwayat ON: *DIBATALKAN (tidak jadi berlaku)*, tanpa tombol Ajukan) |
 | C2b | **Tambah Harga** → supplier yang sama | Varian itu: "Berlaku: <harga lama> sejak …" (bukan harga yang dibatalkan) |
 | C2c | Tambah lagi harga dengan **tanggal mulai sama** → Akhiri lagi | Kedua harga DIBATALKAN (riwayat ON); tidak ada yang AKAN BERLAKU; harga lama BERLAKU tanpa tanggal akhir |
 | C3 | Harga BERLAKU → Akhiri | "Harga diakhiri per hari ini." (seperti dulu) |
@@ -106,6 +106,6 @@ baris, LOP, tambah baris biaya Lainnya (mis. *Assembling*).
 ## G. Daftar terpotong (S9)
 
 Hanya terlihat bila data > 500 (mis. setelah bertahun-tahun): Model List / Master Material menampilkan teks oranye
-"Menampilkan 500 dari N … — persempit dengan pencarian / filter." Dengan data sekarang teks itu kosong (benar).
+"Menampilkan 500 dari N … - persempit dengan pencarian / filter." Dengan data sekarang teks itu kosong (benar).
 
 Kirim hasil per bagian, lalu export app → `exports/export_r11.json`.

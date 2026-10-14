@@ -1,4 +1,4 @@
-# F9 — Export Excel specsheet & CBD: langkah di Appsmith
+# F9 - Export Excel specsheet & CBD: langkah di Appsmith
 
 Urutan: **0** sisa F8b → **1** cek library → **2** page Specsheet → **3** page CBD → **4** uji → **5** export `export_v9.json`.
 
@@ -14,7 +14,7 @@ Isi file:
     PURPOSE ☑ otomatis dari stage (PULL → Preview Sample, SMS → Salesman Sample, GTM/PROD → Production Process);
   - MODEL NAME · CATEGORY · OUTSOLE MOULD · LAST No. · CONSTRUCTION · SIZE RANGE · SAMPLE SIZE; di kanan (pengganti kotak
     validasi) kode model, stage · revisi · status (merah bila belum terbit), change log revisi terbit;
-  - tabel NO. · COMPONENT NAME · MATERIAL DESCRIPTION (thickness + material; subkomponen: `nama — material`) ·
+  - tabel NO. · COMPONENT NAME · MATERIAL DESCRIPTION (thickness + material; subkomponen: `nama - material`) ·
     SOURCE OF MATERIAL · ARTICLE NO. (kode + colorway, satu kolom warna per article aktif, nilai apa adanya mis. `None`) ·
     UNIT OF MSRMNT · PROCESS; NO & COMPONENT NAME di-merge untuk komponen + subkomponennya;
   - baris 1–11 diulang tiap halaman cetak, footer `Page x / y`, landscape A4 muat 1 halaman lebar.
@@ -29,7 +29,7 @@ Isi file:
   - **Cost recapitulation**: a. Material Cost + baris biaya (b, c, …) + **ACTUAL FOB**; **TARGET FOB** + OVER/UNDER +
     selisih; **Harga jual** (Selling price, Margin %); change log revisi terbit.
   - Sel hitungan berisi **rumus Excel** seperti contoh user (Usage `=1/G`, IDR `=J*$L$3`, Cost/pr `=H*(1+I/100)*K`,
-    `SUM` subtotal, Material Cost, Actual FOB, selisih, margin) **beserta hasil dari DB** — angka langsung tampil sama
+    `SUM` subtotal, Material Cost, Actual FOB, selisih, margin) **beserta hasil dari DB** - angka langsung tampil sama
     dengan layar, dan tetap hidup bila kurs/yield diubah di Excel. Format Rupiah / Dollar seperti contoh.
 
 ---
@@ -40,7 +40,7 @@ Isi file:
 
 ---
 
-## 1. Library — tidak dipakai lagi (T43)
+## 1. Library - tidak dipakai lagi (T43)
 
 File Excel ditulis JSObject **`XlsxWriter`** (tanpa library), karena ExcelJS memicu *Maximum call stack size exceeded*
 di Appsmith. Library ExcelJS boleh dibiarkan terpasang atau dihapus (Libraries → ikon tempat sampah); tidak dipakai.
@@ -77,7 +77,7 @@ Bila kolom 58–64 terlalu sempit untuk label, perkecil `btnBuatRevisi` jadi 42�
 
 ## 3. Page `Cost Breakdown (CBD)`
 
-### 3a. Query `q_cbd_model` — ganti seluruhnya (+ `outsole_mold`, `last_no`, `construction` untuk header Excel)
+### 3a. Query `q_cbd_model` - ganti seluruhnya (+ `outsole_mold`, `last_no`, `construction` untuk header Excel)
 ```sql
 SELECT id, code, name, category, factory, outsole_mold, last_no, construction, size_range, sample_size
 FROM product_model

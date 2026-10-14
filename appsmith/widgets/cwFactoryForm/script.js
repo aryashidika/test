@@ -1,4 +1,4 @@
-// cwFactoryForm — form Tambah/Ubah Pabrik di mdlPabrik. Hanya tampilan; simpan lewat AdminCtrl.saveFactory().
+// cwFactoryForm - form Tambah/Ubah Pabrik di mdlPabrik. Hanya tampilan; simpan lewat AdminCtrl.saveFactory().
 const $ = (id) => document.getElementById(id);
 let lastKey = null;
 let busy = false;
@@ -21,7 +21,7 @@ function showMessage(m) {
 
 function fillForm(m) {
   const f = m.form || {};
-  $('title').textContent = f.id ? 'Ubah Pabrik' : 'Tambah Pabrik';
+  $('title').textContent = f.id ? 'Edit Factory' : 'Add Factory';
   $('name').value = f.name || '';
   $('name').classList.remove('invalid');
   $('status').value = f.status || 'ACTIVE';
@@ -33,7 +33,7 @@ function setBusy(v) {
   $('btnSave').disabled = v;
   $('btnCancel').disabled = v;
   $('btnX').disabled = v;
-  $('btnSave').textContent = v ? 'Menyimpan…' : 'Simpan';
+  $('btnSave').textContent = v ? 'Saving…' : 'Save';
 }
 
 function render(model) {
@@ -50,7 +50,7 @@ function submit() {
   if (busy) return;
   const name = $('name').value.trim().replace(/\s+/g, ' ');
   $('name').classList.toggle('invalid', !name);
-  if (!name) { showMessage({ type: 'error', text: 'Nama pabrik wajib diisi.' }); return; }
+  if (!name) { showMessage({ type: 'error', text: 'Factory name is required.' }); return; }
   appsmith.updateModel({ name, status: $('status').value });
   appsmith.triggerEvent('onSave');
 }

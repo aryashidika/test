@@ -1,4 +1,4 @@
-# F4 — Model, Season, Article, lampiran: langkah di Appsmith
+# F4 - Model, Season, Article, lampiran: langkah di Appsmith
 
 Urutan: **0** sisa F3 → **1** SQL → **2** Model List → **3** Model Detail → **4** uji → **5** export `export_v4.json`.
 
@@ -15,7 +15,7 @@ sudah dipasang, page tujuannya masih kosong sampai F5 / F7.
 
 ## 0. Sisa F3 / F3b
 
-1. Kirim hasil **query cek skema** (PLAN.md §8) — untuk F3, F3b, dan sekalian F4 setelah langkah 1.
+1. Kirim hasil **query cek skema** (PLAN.md §8) - untuk F3, F3b, dan sekalian F4 setelah langkah 1.
 2. (Opsional, kosmetik T20) `Master Material`: label switch `swMaterialHargaPending` → `Harga menunggu approval`.
 
 ---
@@ -52,7 +52,7 @@ WHERE (SELECT fn_auth({{appsmith.store.token}}, 'view_model')) IS NOT NULL
 ORDER BY season_sort DESC;
 ```
 
-**`q_models`** — tanpa filter season: satu baris per model dengan season terbarunya; dengan filter: model yang punya season itu.
+**`q_models`** - tanpa filter season: satu baris per model dengan season terbarunya; dengan filter: model yang punya season itu.
 ```sql
 SELECT id, code, name, category, factory, size_range, season_count::int AS season_count,
        specsheet_id, season, article_count::int AS article_count, updated_at
@@ -88,7 +88,7 @@ RETURNING id;
 | `btnModelTambah` | `+ Tambah Model` · Visible: `{{ModelCtrl.canEdit()}}` · onClick: `{{ModelCtrl.openAdd()}}` |
 | `tblModels` | Table data: `{{q_models.data}}` |
 
-Kolom `tblModels` — sembunyikan `id`, `specsheet_id`, `season_count`, `article_count`:
+Kolom `tblModels` - sembunyikan `id`, `specsheet_id`, `season_count`, `article_count`:
 
 | Kolom | Label | Setelan |
 |---|---|---|
@@ -103,7 +103,7 @@ Kolom `tblModels` — sembunyikan `id`, `specsheet_id`, `season_count`, `article
 | *(baru)* Button `Specsheet` | – | onClick: `{{ModelCtrl.openSpecsheet(currentRow)}}` |
 | *(baru)* Button `CBD` | – | onClick: `{{ModelCtrl.openCbd(currentRow)}}` · Visible (kolom): `{{ModelCtrl.canViewCbd()}}` |
 
-### 2d. Modal `mdlModel` — Custom Widget `cwModelForm`
+### 2d. Modal `mdlModel` - Custom Widget `cwModelForm`
 
 Modal lebar ±560 px; `cwModelForm` tinggi ±640 px. Kode: `widgets/cwModelForm/`.
 
@@ -222,7 +222,7 @@ UPDATE article
 RETURNING id;
 ```
 
-**`a_article_delete`** — *Request confirmation before running* = **ON** (lampiran article ikut terhapus)
+**`a_article_delete`** - *Request confirmation before running* = **ON** (lampiran article ikut terhapus)
 ```sql
 DELETE FROM article
  WHERE id = {{this.params.id}}::uuid
@@ -230,13 +230,13 @@ DELETE FROM article
 RETURNING id;
 ```
 
-**`a_attachment_add`** — *Query timeout* **30000** ms (file besar)
+**`a_attachment_add`** - *Query timeout* **30000** ms (file besar)
 ```sql
 SELECT fn_attachment_add({{appsmith.store.token}}, {{this.params.article_id}}::uuid, {{this.params.file_name}},
                          {{this.params.b64}}, {{this.params.note}}) AS id;
 ```
 
-**`a_attachment_delete`** — *Request confirmation before running* = **ON**
+**`a_attachment_delete`** - *Request confirmation before running* = **ON**
 ```sql
 DELETE FROM article_attachment
  WHERE id = {{this.params.id}}::uuid
@@ -265,7 +265,7 @@ Tab **Season & Article**:
 | `tblArticles` | Table data: `{{q_articles.data}}` |
 | `txtArticleNote` | Text: `{{ModelDetailCtrl.articleNote()}}`, warna abu-abu, ukuran kecil |
 
-Kolom `tblArticles` — sembunyikan `id`, `specsheet_id`, `is_used`, `updated_by`:
+Kolom `tblArticles` - sembunyikan `id`, `specsheet_id`, `is_used`, `updated_by`:
 
 | Kolom | Label | Setelan |
 |---|---|---|
@@ -302,14 +302,14 @@ Modal lebar ±760 px, tinggi ±680 px, *close on outside click* boleh ON (tidak 
 |---|---|
 | `txtLampiranJudul` | Text: `{{ModelDetailCtrl.attachmentTitle()}}`, bold |
 | `btnLampiranTutup` | Label `✕`, style tertiary · onClick: `{{closeModal('mdlLampiran')}}` |
-| `inpLampiranCatatan` | Input, placeholder `Catatan (opsional) — isi sebelum memilih file` · Visible: `{{ModelDetailCtrl.canEdit()}}` |
+| `inpLampiranCatatan` | Input, placeholder `Catatan (opsional) - isi sebelum memilih file` · Visible: `{{ModelDetailCtrl.canEdit()}}` |
 | `fpLampiran` | FilePicker, label `Pilih & unggah file` · *Allowed file types* (JS): `{{['.jpg', '.jpeg', '.png', '.pdf']}}` · *Data format* **Base64** · *Max no. of files* **1** · *Max file size* **5** MB · onFilesSelected: `{{ModelDetailCtrl.upload()}}` · Visible: `{{ModelDetailCtrl.canEdit()}}` · Disabled: `{{ModelDetailCtrl.fileBusy}}` |
 | `txtLampiranInfo` | Text: `JPG, PNG, atau PDF, maks. 5 MB. Gambar: Lihat = pratinjau di bawah; PDF: diunduh.`, abu-abu kecil |
 | `tblLampiran` | Table data: `{{q_attachments.data}}` |
 | `txtPreviewNama` | Text: `{{ModelDetailCtrl.preview ? 'Pratinjau: ' + ModelDetailCtrl.preview.name : ''}}` · Visible: `{{!!ModelDetailCtrl.preview}}` |
 | `imgLampiran` | Image, tinggi ±280 px · Image: `{{ModelDetailCtrl.preview ? ModelDetailCtrl.preview.url : ''}}` · Object fit **Contain** · Visible: `{{!!ModelDetailCtrl.preview}}` |
 
-Kolom `tblLampiran` — sembunyikan `id`:
+Kolom `tblLampiran` - sembunyikan `id`:
 
 | Kolom | Label | Setelan |
 |---|---|---|
@@ -370,10 +370,10 @@ SELECT entity, action, after_data ? 'content' AS ada_isi FROM audit_log
 
 ---
 
-## 5. Perbaikan setelah review v4.7 — hapus Copy Article
+## 5. Perbaikan setelah review v4.7 - hapus Copy Article
 
 Keputusan user (30 Sep 2026): article **tidak** di-copy antar season; article diisi per season. Yang di-copy
-hanya **struktur specsheet** (baris BOM) dari season lain model yang sama — dibuat di F5.
+hanya **struktur specsheet** (baris BOM) dari season lain model yang sama - dibuat di F5.
 
 1. DB Tools → `z_run_sql`:
    ```sql

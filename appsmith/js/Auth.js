@@ -1,4 +1,4 @@
-// JSObject "Auth" — salin ke SETIAP page kecuali Login.
+// JSObject "Auth" - salin ke SETIAP page kecuali Login.
 // Yang diubah per page: `requiredPerm` dan isi `pageQueries()`.
 // Setelan: fungsi onPageLoad -> Run on page load = ON.
 // Semua query baca di page: Run on page load = OFF (dijalankan lewat pageQueries).
@@ -36,12 +36,12 @@ export default {
 		try {
 			await this.load();
 		} catch (e) {
-			showAlert('Gagal memuat profil: ' + Util.cleanError(e && e.message), 'error');
+			showAlert('Could not load profile: ' + Util.cleanError(e && e.message), 'error');
 			return false;
 		}
 		if (!this.me) {
 			await removeValue('token');
-			if (hadToken) showAlert('Sesi login habis. Silakan login lagi.', 'warning');
+			if (hadToken) showAlert('Session expired. Please log in again.', 'warning');
 			navigateTo('Login');
 			return false;
 		}
@@ -50,8 +50,8 @@ export default {
 			return false;
 		}
 		if (this.requiredPerm && !this.can(this.requiredPerm)) {
-			showAlert(`Role ${this.me.role_label} tidak punya akses ke halaman ini.`, 'warning');
-			navigateTo('Beranda');
+			showAlert(`Role ${this.me.role_label} has no access to this page.`, 'warning');
+			navigateTo('Home');
 			return false;
 		}
 		for (const q of this.pageQueries()) {
@@ -61,7 +61,7 @@ export default {
 				const msg = e && e.message;
 				if (Util.isSessionError(msg)) {          // R12 (T64)
 					await removeValue('token');
-					showAlert('Sesi login habis. Silakan login lagi.', 'warning');
+					showAlert('Session expired. Please log in again.', 'warning');
 					navigateTo('Login');
 					return false;
 				}

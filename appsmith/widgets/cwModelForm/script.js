@@ -1,4 +1,4 @@
-// cwModelForm — form Tambah / Ubah Model di mdlModel. Hanya tampilan; simpan lewat
+// cwModelForm - form Tambah / Ubah Model di mdlModel. Hanya tampilan; simpan lewat
 // ModelCtrl.save() (Model List) atau ModelDetailCtrl.saveModel() (Model Detail) -> fn_model_save.
 // R4: kode model dihapus (nama = identitas, unik per pabrik). Kategori/Gender/Construction/Last/Outsole mould =
 // dropdown dari Master Pilihan; ukuran = grid ala kalender (klik awal + akhir = rentang, klik lagi = buang),
@@ -78,10 +78,10 @@ function renderSizes() {
     b.addEventListener('click', () => clickSize(n));
     box.appendChild(b);
   });
-  $('sizeSum').textContent = picked.size ? `${sizeLabel(picked)} (${picked.size} ukuran)` : 'Belum dipilih';
+  $('sizeSum').textContent = picked.size ? `${sizeLabel(picked)} (${picked.size} sizes)` : 'None selected';
   const sample = $('sample_size').value;
   fillSelect($('sample_size'), [...picked].sort((a, b) => a - b).map(n => ({ value: String(n), label: String(n) })),
-    picked.has(Number(sample)) ? sample : '', picked.size ? '— pilih —' : '— pilih ukuran dulu —');
+    picked.has(Number(sample)) ? sample : '', picked.size ? 'Select' : 'Select sizes first');
 }
 
 function clickSize(n) {
@@ -101,15 +101,15 @@ function clickSize(n) {
   renderSizes();
 }
 
-// Isi ulang field hanya saat modal dibuka (key berubah) — busy/message tidak menghapus ketikan user
+// Isi ulang field hanya saat modal dibuka (key berubah) - busy/message tidak menghapus ketikan user
 function fillForm(m) {
   const f = m.form || {};
   const opts = m.options || {};
-  $('title').textContent = m.mode === 'edit' ? 'Ubah Model' : 'Tambah Model';
+  $('title').textContent = m.mode === 'edit' ? 'Edit Model' : 'Add Model';
   $('name').value = f.name || '';
   $('name').classList.remove('invalid');
   SELECTS.forEach(([id, kind]) => {
-    fillSelect($(id), opts[kind], f[id], id === 'category_id' ? '— pilih kategori —' : '— kosong —');
+    fillSelect($(id), opts[kind], f[id], id === 'category_id' ? 'Select category' : 'None');
     $(id).classList.remove('invalid');
   });
   picked = new Set((f.sizes || []).map(Number).filter(n => n > 0));
@@ -125,7 +125,7 @@ function setBusy(v) {
   $('btnSave').disabled = v;
   $('btnCancel').disabled = v;
   $('btnX').disabled = v;
-  $('btnSave').textContent = v ? 'Menyimpan…' : 'Simpan';
+  $('btnSave').textContent = v ? 'Saving…' : 'Save';
   document.querySelectorAll('#sizes .size').forEach(b => { b.disabled = v; });
 }
 
@@ -147,13 +147,13 @@ function submit() {
   if (!name) {
     $('name').classList.add('invalid');
     $('name').focus();
-    showMessage({ type: 'error', text: 'Nama model wajib diisi.' });
+    showMessage({ type: 'error', text: 'Model name is required.' });
     return;
   }
   if (!$('category_id').value) {
     $('category_id').classList.add('invalid');
     $('category_id').focus();
-    showMessage({ type: 'error', text: 'Kategori wajib dipilih.' });
+    showMessage({ type: 'error', text: 'Category is required.' });
     return;
   }
   const data = { name, sizes: [...picked].sort((a, b) => a - b), sample_size: $('sample_size').value ? Number($('sample_size').value) : null };

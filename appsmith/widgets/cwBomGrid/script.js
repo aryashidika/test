@@ -1,6 +1,6 @@
-// cwBomGrid — grid BOM page Specsheet: No, Komponen, Material, Supplier, UoM, Thickness, Remarks + satu kolom per article.
+// cwBomGrid - grid BOM page Specsheet: No, Komponen, Material, Supplier, UoM, Thickness, Remarks + satu kolom per article.
 // F10b: sel warna & Remarks = kotak teks yang membungkus (terbaca semua); Remarks boleh beberapa baris (Shift+Enter);
-//   saran warna = daftar sendiri (panah atas/bawah lalu Enter memilih saran — ketikan setengah jadi tidak tersimpan).
+//   saran warna = daftar sendiri (panah atas/bawah lalu Enter memilih saran - ketikan setengah jadi tidak tersimpan).
 // R4: baris = material INDUK + thickness ("NAMA · THICKNESS"); sel = WARNA, varian (Material Code) dicari DB.
 //   Material Code boleh diketik di kolom Material (mengisi induk + thickness, menawarkan isi warna ke semua article
 //   di baris tambah) atau di sel (diganti warnanya; kode material/thickness lain ditolak). Sel berwarna tanpa varian =
@@ -84,13 +84,13 @@ function variantByCode(text) {
 
 function resolveComponent(text) {
   const key = norm(text);
-  if (!key) return { error: 'Komponen wajib diisi.' };
+  if (!key) return { error: 'Component is required.' };
   const comps = M.components || [];
   let c = comps.find(x => norm(compLabel(x)) === key);
   if (c) return { comp: c };
   if (/^\d+$/.test(key)) {
     c = comps.find(x => Number(x.number) === Number(key));
-    return c ? { comp: c } : { error: `Komponen nomor ${key} tidak ada di master. Untuk komponen baru, ketik namanya lalu isi No.` };
+    return c ? { comp: c } : { error: `Component number ${key} is not in the master. For a new component, type its name and fill in No.` };
   }
   const byName = comps.filter(x => norm(x.name) === key);
   return byName.length === 1 ? { comp: byName[0] } : { local: tidy(text) };
@@ -99,7 +99,7 @@ function resolveComponent(text) {
 // -> { mat: { material_id, name, uom, thickness, ... }, color } (color terisi bila yang diketik Material Code)
 function resolveMaterial(text) {
   const raw = tidy(text);
-  if (!raw) return { error: 'Material wajib diisi.' };
+  if (!raw) return { error: 'Material is required.' };
   const key = norm(raw);
   const mats = M.materials || [];
   const m = mats.find(x => norm(matLabel(x)) === key);
@@ -108,19 +108,19 @@ function resolveMaterial(text) {
   if (v) {
     const combo = mats.find(x => x.material_id === v.material_id && norm(x.thickness) === norm(v.thickness));
     return combo ? { mat: combo, color: v.color }
-      : { error: `Material Code ${v.code} milik material yang INACTIVE.` };
+      : { error: `Material Code ${v.code} belongs to an INACTIVE material.` };
   }
   const byName = mats.filter(x => norm(x.name) === key);
   if (byName.length === 1) return { mat: byName[0] };
-  if (byName.length > 1) return { error: `Material "${raw}" punya beberapa thickness. Pilih dari daftar (NAMA · THICKNESS) atau ketik Material Code.` };
-  return { error: `Material "${raw}" tidak ada di master pabrik ini (atau INACTIVE). Pilih dari daftar, ketik Material Code, atau daftarkan dulu di Master Material.` };
+  if (byName.length > 1) return { error: `Material "${raw}" has several thicknesses. Pick from the list (NAME · THICKNESS) or type the Material Code.` };
+  return { error: `Material "${raw}" is not in this factory's master (or INACTIVE). Pick from the list, type the Material Code, or add it in Master Material first.` };
 }
 
 function resolveSupplier(text) {
   const raw = tidy(text);
   if (!raw) return { id: null };
   const s = (M.suppliers || []).find(x => norm(x.name) === norm(raw));
-  return s ? { id: s.id } : { error: `Supplier "${raw}" tidak ada di Master Supplier (atau nonaktif).` };
+  return s ? { id: s.id } : { error: `Supplier "${raw}" is not in Master Supplier (or inactive).` };
 }
 
 function linksOf(materialId) {
@@ -156,8 +156,8 @@ function supplierListId(materialId) {
   linked.concat(others).forEach(({ s, l }) => {
     const o = el('option');
     o.value = s.name;
-    o.textContent = l ? (l.is_preferred ? 'supplier utama material ini' : 'terdaftar untuk material ini')
-      : 'supplier lain (akan ditautkan)';
+    o.textContent = l ? (l.is_preferred ? 'main supplier of this material' : 'added to this material')
+      : 'other supplier (will be linked)';
     dl.appendChild(o);
   });
   $('dlSuppliers').appendChild(dl);
@@ -176,7 +176,7 @@ function fillDatalists() {
   };
   fill($('dlComponents'), (M.components || []).map(c => [compLabel(c)]));
   fill($('dlMaterials'), (M.materials || []).map(m =>
-    [matLabel(m), [m.uom, m.variant_count ? `${m.variant_count} warna` : 'belum ada varian'].join(' · ')]));
+    [matLabel(m), [m.uom, m.variant_count ? `${m.variant_count} colors` : 'no variants yet'].join(' · ')]));
   fill($('dlColors'), (M.colors || []).map(c => [c]));
   $('dlSuppliers').innerHTML = '';
 }
@@ -414,7 +414,7 @@ function commitCell(line, article, input) {
   const v = variantByCode(color);
   if (v) {
     if (v.material_id !== line.material_id || norm(v.thickness) !== norm(line.thickness)) {
-      return fail(input, `Kode ${v.code} adalah ${v.material_name || 'material lain'} · ${v.thickness || 'tanpa thickness'} · ${v.color} — tidak cocok dengan material / thickness baris ini.`);
+      return fail(input, `Code ${v.code} is ${v.material_name || 'another material'} · ${v.thickness || 'no thickness'} · ${v.color}. It does not match the material / thickness of this line.`);
     }
     color = v.color;
     input.value = color;
@@ -463,14 +463,14 @@ function armDelete(btn, line, hasSubs) {
   }
   delArmed = line.id;
   btn.classList.add('confirm');
-  btn.textContent = line.undo_replace ? 'Yakin?' : hasSubs ? 'Hapus + sub?' : 'Yakin?';
+  btn.textContent = line.undo_replace ? 'Sure?' : hasSubs ? 'Delete + sub?' : 'Sure?';
   clearTimeout(delTimer);
   delTimer = setTimeout(() => {
     delArmed = null;
     const b = document.querySelector(`#tbody .link.danger[data-line="${line.id}"]`);
     if (b) {
       b.classList.remove('confirm');
-      b.textContent = line.undo_replace ? 'Batal ganti' : 'Hapus';
+      b.textContent = line.undo_replace ? 'Undo replace' : 'Delete';
     }
   }, 3000);
 }
@@ -486,14 +486,14 @@ function formInputs(prefix, state, isSub) {
     return i;
   };
   if (isSub) {
-    mk('name', { placeholder: 'Nama subkomponen', label: 'Nama subkomponen' });
+    mk('name', { placeholder: 'Subcomponent name', label: 'Subcomponent name' });
   } else {
-    mk('comp', { list: 'dlComponents', placeholder: 'Ketik komponen…', label: 'Komponen' });
-    mk('no', { placeholder: 'No.', label: 'No. komponen lokal', title: 'Hanya untuk komponen baru yang tidak ada di master' });
+    mk('comp', { list: 'dlComponents', placeholder: 'Type a component…', label: 'Component' });
+    mk('no', { placeholder: 'No.', label: 'Local component no.', title: 'Only for a new component that is not in the master' });
   }
-  mk('mat', { list: 'dlMaterials', placeholder: 'Nama · thickness / Material Code…', label: 'Material' });
+  mk('mat', { list: 'dlMaterials', placeholder: 'Name · thickness / Material Code…', label: 'Material' });
   mk('sup', { list: supplierListId(null), placeholder: 'Supplier…', label: 'Supplier' });
-  mk('rem', { placeholder: 'Remarks', label: 'Remarks', keepLines: true, title: 'Shift+Enter / Alt+Enter = baris baru' });
+  mk('rem', { placeholder: 'Remarks', label: 'Remarks', keepLines: true, title: 'Shift+Enter / Alt+Enter = new line' });
   f.uom = el('span', 'ro none', '-');
   f.thk = el('span', 'ro none', '-');
   if (!isSub) {
@@ -523,7 +523,7 @@ function formInputs(prefix, state, isSub) {
       if (r.color) state.fillKey = key;
       state.fillColor = r.color || (key && key === state.fillKey ? state.fillColor || '' : '');
       f.fill.hidden = !state.fillColor;
-      f.fillText.textContent = ` Isi warna ${state.fillColor} ke semua article`;
+      f.fillText.textContent = ` Fill color ${state.fillColor} into all articles`;
     }
     f.sup.setAttribute('list', supplierListId(mat ? mat.material_id : null));
     if (mat && !tidy(f.sup.value)) {
@@ -559,8 +559,8 @@ function submitAdd(f) {
     data.component_id = c.comp.id;
   } else {
     const no = tidy(f.no.value);
-    if (!/^\d+$/.test(no)) return fail(f.no, `"${c.local}" tidak ada di master komponen — isi No. (angka) untuk komponen lokal ini.`);
-    if (Number(no) % 10 === 0) return fail(f.no, 'No. komponen lokal tidak boleh kelipatan 10.');
+    if (!/^\d+$/.test(no)) return fail(f.no, `"${c.local}" is not in the component master. Fill in No. (a number) for this local component.`);
+    if (Number(no) % 10 === 0) return fail(f.no, 'A local component no. cannot be a multiple of 10.');
     data.local_no = no;
     data.local_name = c.local;
   }
@@ -577,7 +577,7 @@ function submitAdd(f) {
 
 function submitSub(parent, f) {
   Object.values(f).forEach(i => i.classList && i.classList.remove('invalid'));
-  if (!tidy(f.name.value)) return fail(f.name, 'Nama subkomponen wajib diisi.');
+  if (!tidy(f.name.value)) return fail(f.name, 'Subcomponent name is required.');
   const m = resolveMaterial(f.mat.value);
   if (m.error) return fail(f.mat, m.error);
   const s = resolveSupplier(f.sup.value);
@@ -611,10 +611,10 @@ function supplierCell(line, editable) {
     c.appendChild(el('span', 'ro' + (line.supplier_name ? '' : ' none'), line.supplier_name || '-'));
   }
   if (line.supplier_id && (line.link_status === 'INACTIVE' || line.supplier_status === 'INACTIVE')) {
-    const b = el('span', 'badge inactive', '⚠ nonaktif');
+    const b = el('span', 'badge inactive', '⚠ inactive');
     b.title = line.supplier_status === 'INACTIVE'
-      ? 'Supplier ini sudah dinonaktifkan di Master Supplier — pilih supplier lain sebelum terbit.'
-      : 'Supplier ini sudah dinonaktifkan untuk material ini — pilih supplier lain sebelum terbit.';
+      ? 'This supplier is inactive in Master Supplier. Choose another supplier before publishing.'
+      : 'This supplier is inactive for this material. Choose another supplier before publishing.';
     c.appendChild(b);
   }
   return c;
@@ -627,7 +627,7 @@ function materialCell(line, editable) {
   if (editable) {
     c.appendChild(cellInput(`mat:${line.id}`, label, {
       col: 'mat', list: 'dlMaterials', label: 'Material',
-      title: `${title}. Ketik material / thickness lain (atau Material Code) untuk Ganti Material.`,
+      title: `${title}. Type another material / thickness (or Material Code) to Replace Material.`,
       onCommit: i => commitMaterial(line, i),
     }));
   } else {
@@ -644,7 +644,7 @@ function lineRow(line, arts, editable, hasSubs) {
   tr.appendChild(td('c-no', String(line.display_no ?? '')));
   const comp = el('td', 'c-comp');
   const name = el('span', 'ro name', line.display_name || '');
-  if (line.is_local) name.appendChild(el('span', 'local', 'lokal'));
+  if (line.is_local) name.appendChild(el('span', 'local', 'local'));
   comp.appendChild(name);
   tr.appendChild(comp);
   tr.appendChild(materialCell(line, editable));
@@ -655,7 +655,7 @@ function lineRow(line, arts, editable, hasSubs) {
   if (editable) {
     rem.appendChild(cellInput(`rem:${line.id}`, line.process, {
       col: 'rem', placeholder: '', label: 'Remarks', keepLines: true,
-      title: 'Shift+Enter / Alt+Enter = baris baru · Enter = simpan', onCommit: i => commitProcess(line, i),
+      title: 'Shift+Enter / Alt+Enter = new line · Enter = save', onCommit: i => commitProcess(line, i),
     }));
   } else {
     rem.appendChild(el('span', 'ro lines' + (line.process ? '' : ' none'), line.process || '-'));
@@ -666,7 +666,7 @@ function lineRow(line, arts, editable, hasSubs) {
     if (!line.is_sub) {
       const b = el('button', 'link', '+ Sub');
       b.type = 'button';
-      b.title = 'Tambah subkomponen di bawah baris ini';
+      b.title = 'Add a subcomponent below this line';
       b.addEventListener('click', () => {
         subParent = subParent === line.id ? null : line.id;
         subState = {};
@@ -678,13 +678,13 @@ function lineRow(line, arts, editable, hasSubs) {
     }
     // R11 (T58): baris hasil Ganti material -> "Batal ganti" (baris ini dihapus, material sebelumnya aktif lagi)
     const undo = !!line.undo_replace;
-    const del = el('button', 'link danger', delArmed === line.id ? (undo ? 'Yakin?' : hasSubs ? 'Hapus + sub?' : 'Yakin?')
-      : (undo ? 'Batal ganti' : 'Hapus'));
+    const del = el('button', 'link danger', delArmed === line.id ? (undo ? 'Sure?' : hasSubs ? 'Delete + sub?' : 'Sure?')
+      : (undo ? 'Undo replace' : 'Delete'));
     if (delArmed === line.id) del.classList.add('confirm');
     del.type = 'button';
     del.dataset.line = line.id;
-    del.title = undo ? `Batalkan ganti material: kembali ke ${line.undo_material || 'material sebelumnya'}${hasSubs ? ' (subkomponen ikut pindah)' : ''} (klik dua kali)`
-      : hasSubs ? 'Hapus baris ini beserta subkomponennya (klik dua kali)' : 'Hapus baris ini (klik dua kali)';
+    del.title = undo ? `Undo material replace: back to ${line.undo_material || 'the previous material'}${hasSubs ? ' (subcomponents move too)' : ''} (click twice)`
+      : hasSubs ? 'Delete this line and its subcomponents (click twice)' : 'Delete this line (click twice)';
     del.addEventListener('click', () => armDelete(del, line, hasSubs));
     act.appendChild(del);
     tr.appendChild(act);
@@ -699,7 +699,7 @@ function lineRow(line, arts, editable, hasSubs) {
     if (editable) {
       c.appendChild(cellInput(`cell:${line.id}:${a.id}`, v, {
         col: `art:${a.id}`, multiline: true, suggest: colorSource(line), label: `Warna ${a.code}`,
-        title: 'Ketik warna atau Material Code. Kosong = tidak dipakai di article ini.',
+        title: 'Type a color or Material Code. Empty = not used in this article.',
         onCommit: i => commitCell(line, a, i),
       }));
     } else {
@@ -708,13 +708,13 @@ function lineRow(line, arts, editable, hasSubs) {
     if (code) {
       c.appendChild(el('span', 'vcode', code));
     } else if (yellow) {
-      const note = el('span', 'vcode warn', 'belum ada Material Code');
-      note.title = 'Warna ini belum terdaftar sebagai varian material + thickness ini. Specsheet tidak bisa terbit.';
+      const note = el('span', 'vcode warn', 'no Material Code');
+      note.title = 'This color is not registered as a variant of this material + thickness. The specsheet cannot be published.';
       c.appendChild(note);
       if (editable && M.canRegister) {
-        const b = el('button', 'link reg', 'Daftarkan');
+        const b = el('button', 'link reg', 'Register');
         b.type = 'button';
-        b.title = `Daftarkan varian ${line.material_name} · ${line.thickness || 'tanpa thickness'} · ${v}`;
+        b.title = `Register variant ${line.material_name} · ${line.thickness || 'no thickness'} · ${v}`;
         b.addEventListener('click', () => send('registerVariant', {
           line_id: line.id, material_id: line.material_id, material_name: line.material_name, uom: line.uom,
           thickness: line.thickness || '', color: v,
@@ -801,7 +801,7 @@ function render(model, keepState) {
   const thead = $('thead');
   thead.innerHTML = '';
   const hr = el('tr');
-  [['c-no', 'No'], ['c-comp', 'Komponen'], ['c-mat', 'Material'], ['c-sup', 'Supplier'], ['c-uom', 'UoM'], ['c-thk', 'Thickness'], ['c-rem', 'Remarks']]
+  [['c-no', 'No'], ['c-comp', 'Component'], ['c-mat', 'Material'], ['c-sup', 'Supplier'], ['c-uom', 'UoM'], ['c-thk', 'Thickness'], ['c-rem', 'Remarks']]
     .forEach(([c, t]) => hr.appendChild(el('th', c, t)));
   if (editable) hr.appendChild(el('th', 'c-act', ''));
   arts.forEach(a => {
@@ -816,7 +816,7 @@ function render(model, keepState) {
       if (dropArmed === a.id) b.classList.add('confirm');
       b.type = 'button';
       b.dataset.art = a.id;
-      b.title = `Drop article ${a.code} dari revisi ini (klik dua kali)`;
+      b.title = `Drop article ${a.code} from this revision (click twice)`;
       b.addEventListener('click', () => armDrop(b, a));
       box.appendChild(b);
     }
@@ -831,7 +831,7 @@ function render(model, keepState) {
   const cols = 7 + (editable ? 1 : 0) + arts.length;
   if (!lines.length && !editable) {
     const tr = el('tr');
-    const c = el('td', 'empty', M.emptyText || 'Belum ada baris BOM.');
+    const c = el('td', 'empty', M.emptyText || 'No BOM lines yet.');
     c.colSpan = cols;
     tr.appendChild(c);
     tbody.appendChild(tr);
@@ -841,11 +841,11 @@ function render(model, keepState) {
     tbody.appendChild(lineRow(line, arts, editable, !line.is_sub && parents.has(line.line_key)));
     if (editable && subParent === line.id) {
       const f = formInputs('sub', subState, true);
-      const ok = el('button', 'btn', 'Tambah');
+      const ok = el('button', 'btn', 'Add');
       ok.type = 'button';
       ok.disabled = !!M.busy;
       ok.addEventListener('click', () => submitSub(line, f));
-      const cancel = el('button', 'link muted', 'Batal');
+      const cancel = el('button', 'link muted', 'Cancel');
       cancel.type = 'button';
       cancel.addEventListener('click', () => { subParent = null; subState = {}; render(M, true); });
       tbody.appendChild(formRow('subform', f, { comp: f.name, input: f.name }, ok, cancel, arts));
@@ -853,13 +853,13 @@ function render(model, keepState) {
   });
   if (editable) {
     const f = formInputs('add', addState, false);
-    const ok = el('button', 'btn', '+ Tambah');
+    const ok = el('button', 'btn', '+ Add');
     ok.type = 'button';
     ok.disabled = !!M.busy;
     ok.addEventListener('click', () => submitAdd(f));
     tbody.appendChild(formRow('add', f, {
       no: f.no, comp: f.comp, input: f.comp,
-      hint: 'Tidak ada di master → komponen lokal, isi No. (bukan kelipatan 10).',
+      hint: 'Not in the master → local component, fill in No. (not a multiple of 10).',
     }, ok, null, arts));
   }
 
@@ -887,8 +887,8 @@ function render(model, keepState) {
 
   const n = lines.length;
   const yellow = lines.reduce((t, l) => t + (Number(l.yellow) || 0), 0);
-  $('status').textContent = (M.busy || queue.length ? 'Menyimpan… · ' : '')
-    + `${n} baris · ${arts.length} article` + (yellow ? ` · ${yellow} sel kuning` : '') + (editable ? '' : ' · hanya baca');
+  $('status').textContent = (M.busy || queue.length ? 'Saving… · ' : '')
+    + `${n} lines · ${arts.length} article(s)` + (yellow ? ` · ${yellow} yellow cells` : '') + (editable ? '' : ' · read only');
   $('btnSupplier').hidden = !(editable && M.canAddSupplier);
   $('btnSupplier').disabled = !!M.busy;
   showMessage();

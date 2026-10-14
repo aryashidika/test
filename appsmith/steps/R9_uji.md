@@ -1,9 +1,9 @@
-# R9 — Material Code: isi otomatis + kamus kode tiga tingkat (12 Okt 2026)
+# R9 - Material Code: isi otomatis + kamus kode tiga tingkat (12 Okt 2026)
 
-Lanjut dari data yang ada (tanpa reset). Base build = `exports/build_r8.json` (app Anda setelah uji R8, tanpa perubahan —
+Lanjut dari data yang ada (tanpa reset). Base build = `exports/build_r8.json` (app Anda setelah uji R8, tanpa perubahan -
 kalau Anda sempat mengubah app setelah import R8, kirim export-nya dulu supaya build R9 saya ulang dari situ).
 
-Contoh di bawah memakai material **HONEYLON MESH** (ME) · 44" — ganti dengan material Anda yang setara. Sebelum mulai, catat
+Contoh di bawah memakai material **HONEYLON MESH** (ME) · 44" - ganti dengan material Anda yang setara. Sebelum mulai, catat
 varian yang sudah ada di material itu (Master Material → Material Detail → tab Varian), mis. `2003404W01` WHITE.
 
 ## 0. Pasang
@@ -19,7 +19,7 @@ varian yang sudah ada di material itu (Master Material → Material Detail → t
 | # | Langkah | Hasil |
 |---|---|---|
 | A1 | Specsheet draft → baris HONEYLON MESH 44" → ketik warna yang **sudah punya kode di material lain** (mis. BLACK) → sel kuning → **Daftarkan** | Material Code langsung terisi lengkap (awalan HONEYLON + kode 44" + kode BLACK); kotak biru "Usulan…" menjelaskan asal tiap bagian → Simpan |
-| A2 | Sama, warna **baru** (mis. NAVY) | Terisi 7 karakter, kursor di akhir, "warna baru — ketik 3 karakter terakhir" → ketik → Simpan |
+| A2 | Sama, warna **baru** (mis. NAVY) | Terisi 7 karakter, kursor di akhir, "warna baru - ketik 3 karakter terakhir" → ketik → Simpan |
 | A3 | Warna yang punya >1 kode di pabrik | Terisi kode yang paling sering dipakai; "(kode lain: …)" tampil; ganti sendiri bila perlu |
 | A4 | Master Material → material **baru** tanpa varian → + Varian → ketik warna & thickness | Kode kosong; kotak usulan menyebut kode thickness & warna; ketik 4 awalan + sisanya |
 | A5 | Master Material → HONEYLON → + Varian → ketik warna & thickness dulu | Kode terisi seperti A1/A2; ubah kodenya → tidak ditimpa lagi walau warna diganti |
@@ -30,8 +30,8 @@ varian yang sudah ada di material itu (Master Material → Material Detail → t
 | # | Langkah | Hasil |
 |---|---|---|
 | B1 | Kode 9 karakter | "Material Code ERP biasanya 10 karakter" |
-| B2 | Kode dengan awalan beda dari varian lain material ini | "Awalan … berbeda dari varian lain…" — tersimpan |
-| B3 | Warna yang sudah berkode X diberi kode warna lain yang **belum dipakai** (mis. WHITE dengan W10) | "Warna WHITE biasanya berkode W01 — pastikan W10 sesuai ERP" — tersimpan |
+| B2 | Kode dengan awalan beda dari varian lain material ini | "Awalan … berbeda dari varian lain…" - tersimpan |
+| B3 | Warna yang sudah berkode X diberi kode warna lain yang **belum dipakai** (mis. WHITE dengan W10) | "Warna WHITE biasanya berkode W01 - pastikan W10 sesuai ERP" - tersimpan |
 
 ## C. Konfirmasi (merah)
 

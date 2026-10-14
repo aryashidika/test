@@ -1,4 +1,4 @@
-// cwTempPassword — tampilkan password sementara sekali. Hanya tampilan; salin & tutup lewat event.
+// cwTempPassword - tampilkan password sementara sekali. Hanya tampilan; salin & tutup lewat event.
 const $ = id => document.getElementById(id);
 let copiedTimer = null;
 let lastPassword = null;
@@ -11,7 +11,7 @@ function applyTheme(t) {
 }
 function resetCopied() {
   clearTimeout(copiedTimer);
-  $('btnCopy').textContent = 'Salin';
+  $('btnCopy').textContent = 'Copy';
   $('btnCopy').classList.remove('copied');
 }
 function render(model) {
@@ -28,7 +28,7 @@ function render(model) {
 appsmith.onReady(() => {
   $('btnCopy').addEventListener('click', () => {
     appsmith.triggerEvent('onCopy');
-    $('btnCopy').textContent = 'Disalin ✓';
+    $('btnCopy').textContent = 'Copied ✓';
     $('btnCopy').classList.add('copied');
     clearTimeout(copiedTimer);
     copiedTimer = setTimeout(resetCopied, 2000);

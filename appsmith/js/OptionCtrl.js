@@ -1,5 +1,5 @@
 export default {
-	// R2: page Master Pilihan — pilihan dropdown model (dipakai Model List/Detail mulai R4).
+	// R2: page Master Pilihan - pilihan dropdown model (dipakai Model List/Detail mulai R4).
 	// KATEGORI, CONSTRUCTION, GENDER, UKURAN bersama semua pabrik; LAST & OUTSOLE MOLD per pabrik.
 	isNew: true,
 	form: { id: null, value: '', sort_order: null, status: 'ACTIVE' },
@@ -11,12 +11,12 @@ export default {
 	similarSeq: 0,
 
 	kindOptions: [
-		{ label: 'Kategori', value: 'KATEGORI' },
+		{ label: 'Category', value: 'KATEGORI' },
 		{ label: 'Construction', value: 'CONSTRUCTION' },
 		{ label: 'Gender', value: 'GENDER' },
-		{ label: 'Ukuran', value: 'UKURAN' },
-		{ label: 'Last (per pabrik)', value: 'LAST' },
-		{ label: 'Outsole mold (per pabrik)', value: 'OUTSOLE_MOLD' },
+		{ label: 'Size', value: 'UKURAN' },
+		{ label: 'Last (per factory)', value: 'LAST' },
+		{ label: 'Outsole mold (per factory)', value: 'OUTSOLE_MOLD' },
 	],
 
 	statusOptions: [
@@ -31,7 +31,7 @@ export default {
 	kindLabel(kind) {
 		const k = kind || this.kind();
 		const o = this.kindOptions.find(x => x.value === k);
-		return o ? o.label.replace(' (per pabrik)', '') : k;
+		return o ? o.label.replace(' (per factory)', '') : k;
 	},
 
 	isFactoryKind(kind) {
@@ -49,8 +49,8 @@ export default {
 
 	note() {
 		return this.isFactoryKind()
-			? `${this.kindLabel()} diisi per pabrik — tiap pabrik hanya melihat miliknya sendiri.`
-			: `${this.kindLabel()} dipakai bersama semua pabrik.`;
+			? `${this.kindLabel()} is set per factory. Each factory only sees its own.`
+			: `${this.kindLabel()} is shared by all factories.`;
 	},
 
 	openForm(isNew, form) {
@@ -110,12 +110,12 @@ export default {
 			this.similar = rows || [];
 			this.similarFor = text;
 		} catch (e) {
-			/* daftar mirip hanya bantuan — abaikan */
+			/* daftar mirip hanya bantuan - abaikan */
 		}
 	},
 
 	async save() {
-		// Baca model dulu — model di-reset saat state (Default model) berubah
+		// Baca model dulu - model di-reset saat state (Default model) berubah
 		const m = cwOptionForm.model || {};
 		const data = {
 			id: this.form.id || '',
@@ -125,7 +125,7 @@ export default {
 			status: this.isNew ? 'ACTIVE' : m.status,
 		};
 		if (!data.value) {
-			this.message = { type: 'error', text: 'Nilai wajib diisi.' };
+			this.message = { type: 'error', text: 'Value is required.' };
 			return;
 		}
 		this.message = null;
@@ -137,7 +137,7 @@ export default {
 			if (Util.isSessionError(msg)) {
 				closeModal('mdlPilihan');
 				await removeValue('token');
-				showAlert('Sesi login habis. Silakan login lagi.', 'warning');
+				showAlert('Session expired. Please log in again.', 'warning');
 				navigateTo('Login');
 				return;
 			}
@@ -147,7 +147,7 @@ export default {
 			this.busy = false;
 		}
 		closeModal('mdlPilihan');
-		showAlert(this.isNew ? `${this.kindLabel(data.kind)} ditambahkan.` : `${this.kindLabel(data.kind)} disimpan.`, 'success');
+		showAlert(this.isNew ? `${this.kindLabel(data.kind)} added.` : `${this.kindLabel(data.kind)} saved.`, 'success');
 		try { await q_options.run(); } catch (e) { /* abaikan */ }
 	},
 }

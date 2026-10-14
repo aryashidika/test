@@ -1,7 +1,7 @@
 # cwWorklist
 
 Daftar **Tugas Saya** di page `Beranda` (F10): baris ringkasan (angka yang bisa diklik → loncat ke bagiannya) dan bagian
-berisi tugas. Satu widget dipakai semua role — isi per role disusun `BerandaCtrl.model()`; widget tidak tahu role.
+berisi tugas. Satu widget dipakai semua role - isi per role disusun `BerandaCtrl.model()`; widget tidak tahu role.
 
 Hanya tampilan. Tiap bagian menampilkan **6 tugas pertama** + tombol *Tampilkan semua (n)*. Tugas yang punya `target`
 bisa diklik (tombol `→`), yang tidak punya tampil sebagai teks. Tombol **↻ Muat ulang** menjalankan ulang query role itu.
@@ -24,9 +24,9 @@ Ukuran: lebar penuh (kolom 0–64), tinggi ±640 px (isi lebih panjang → scrol
   loading,           // true -> tombol Muat ulang nonaktif ("Memuat…")
   title,             // 'Tugas Saya'
   subtitle,          // teks pendek di bawah judul
-  columns,           // 1 (default) | 2 — jumlah kolom bagian (Brand: 2)
+  columns,           // 1 (default) | 2 - jumlah kolom bagian (Brand: 2)
   stats: [{ key, value, label, tone }],
-                     // key = key bagian tujuan (klik -> scroll); tone: info | warn | ok — hanya berwarna bila value > 0
+                     // key = key bagian tujuan (klik -> scroll); tone: info | warn | ok - hanya berwarna bila value > 0
   sections: [{
     key, title, note, // note = teks kecil di bawah judul (opsional)
     empty,           // teks bila tidak ada tugas

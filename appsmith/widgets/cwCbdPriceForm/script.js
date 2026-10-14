@@ -1,4 +1,4 @@
-// cwCbdPriceForm — modal harga baris CBD (mdlCbdHarga, page Cost Breakdown (CBD)). Hanya tampilan.
+// cwCbdPriceForm - modal harga baris CBD (mdlCbdHarga, page Cost Breakdown (CBD)). Hanya tampilan.
 // mode QUOTATION: harga quotation material proses (kosong = tidak dihargai terpisah), referensi opsional.
 // mode PROPOSE  : (R8, ganti OVERRIDE yang dihapus F10b) ajukan harga MASTER untuk Material Code + supplier baris ini:
 //   harga, currency & tanggal berlaku wajib, referensi opsional. model.direct (Manager Costing) = langsung berlaku.
@@ -30,7 +30,7 @@ function showMessage(m) {
   box.hidden = false;
 }
 
-// "47.500" bisa berarti 47500 (titik ribuan) atau 47,5 — ditolak supaya tidak salah input
+// "47.500" bisa berarti 47500 (titik ribuan) atau 47,5 - ditolak supaya tidak salah input
 function isAmbiguous(s) {
   return /^\d{1,3}(\.\d{3})+$/.test(String(s || '').replace(/\s+/g, ''));
 }
@@ -56,17 +56,17 @@ function updateHint() {
   const p = parsePrice(raw);
   $('priceHint').classList.toggle('warn', !!raw && (!p || isAmbiguous(raw)));
   $('priceHint').textContent = !raw
-    ? (mode === 'QUOTATION' ? 'Kosongkan = baris ini tidak dihargai terpisah (cost 0).' : 'Tanpa titik ribuan; desimal pakai koma atau titik.')
-    : isAmbiguous(raw) ? `"${raw}" ambigu — tulis tanpa titik ribuan (mis. 47500), desimal pakai koma (mis. 47,5).`
-    : p ? `Terbaca: ${fmt(p)}${currency ? ' ' + currency : ''}`
-    : 'Bukan angka yang valid (maks. 4 desimal).';
+    ? (mode === 'QUOTATION' ? 'Empty = this line is not priced separately (cost 0).' : 'No thousand separators; use a comma or dot for decimals.')
+    : isAmbiguous(raw) ? `"${raw}" is ambiguous. Write it without thousand separators (e.g. 47500), with a comma for decimals (e.g. 47,5).`
+    : p ? `Read as: ${fmt(p)}${currency ? ' ' + currency : ''}`
+    : 'Not a valid number (max 4 decimals).';
 }
 
-// Isi ulang hanya saat modal dibuka (key berubah) — busy/message tidak menghapus isian user
+// Isi ulang hanya saat modal dibuka (key berubah) - busy/message tidak menghapus isian user
 function fillForm(m) {
   mode = m.mode === 'PROPOSE' ? 'PROPOSE' : 'QUOTATION';
   direct = !!m.direct;
-  $('title').textContent = m.title || (mode === 'QUOTATION' ? 'Harga Quotation' : 'Ajukan Harga Master');
+  $('title').textContent = m.title || (mode === 'QUOTATION' ? 'Quotation Price' : 'Propose Master Price');
   $('lineLabel').textContent = m.lineLabel || '';
   $('current').textContent = m.current || '';
   $('current').hidden = !m.current;
@@ -78,13 +78,13 @@ function fillForm(m) {
   $('validBox').hidden = mode !== 'PROPOSE';
   $('validFrom').value = m.today || '';
   $('validFrom').classList.remove('invalid');
-  $('textLabel').textContent = 'Referensi';
+  $('textLabel').textContent = 'Reference';
   $('textReq').hidden = true;
-  $('text').placeholder = mode === 'QUOTATION' ? 'no. quotation / penawaran (opsional)' : 'no. penawaran supplier (opsional)';
+  $('text').placeholder = mode === 'QUOTATION' ? 'quotation / offer no. (optional)' : 'supplier offer no. (optional)';
   $('textHint').textContent = mode === 'QUOTATION' ? ''
-    : direct ? 'Langsung berlaku sebagai harga master (Anda Manager Costing) untuk semua CBD yang memakai Material Code + supplier ini.'
-      : 'Masuk ke Manager Costing sebagai usulan harga master (bukan override) — setelah disetujui berlaku untuk semua CBD '
-        + 'yang memakai Material Code + supplier ini; lalu klik Refresh Harga dari Master.';
+    : direct ? 'Active right away as the master price (you are Manager Costing) for all CBDs using this Material Code + supplier.'
+      : 'Sent to Manager Costing as a master price proposal (not an override). After approval it applies to all CBDs '
+        + 'using this Material Code + supplier; then click Refresh Prices from Master.';
   $('textHint').hidden = mode === 'QUOTATION';
   $('info').textContent = m.info || '';
   $('info').hidden = !m.info;
@@ -98,7 +98,7 @@ function setBusy(v) {
   $('btnSave').disabled = v;
   $('btnCancel').disabled = v;
   $('btnX').disabled = v;
-  $('btnSave').textContent = v ? 'Menyimpan…' : (mode === 'PROPOSE' && !direct ? 'Ajukan' : 'Simpan');
+  $('btnSave').textContent = v ? 'Saving…' : (mode === 'PROPOSE' && !direct ? 'Propose' : 'Save');
 }
 
 function render(model) {
@@ -126,15 +126,15 @@ function submit() {
   const raw = $('price').value.trim();
   const text = $('text').value.trim();
   if (isAmbiguous(raw)) {
-    return fail('price', `"${raw}" ambigu. Tulis tanpa titik ribuan (mis. 47500), desimal pakai koma (mis. 47,5).`);
+    return fail('price', `"${raw}" is ambiguous. Write it without thousand separators (e.g. 47500), with a comma for decimals (e.g. 47,5).`);
   }
   const price = raw ? parsePrice(raw) : '';
-  if (raw && !price) return fail('price', 'Harga harus angka (tanpa titik ribuan, maks. 4 desimal).');
-  if (mode === 'PROPOSE' && !price) return fail('price', 'Harga wajib diisi.');
-  if (price && Number(price) <= 0) return fail('price', 'Harga harus lebih besar dari 0.');
-  if (price && !currency) return fail('currency', 'Pilih currency: IDR atau USD.');
+  if (raw && !price) return fail('price', 'Price must be a number (no thousand separators, max 4 decimals).');
+  if (mode === 'PROPOSE' && !price) return fail('price', 'Price is required.');
+  if (price && Number(price) <= 0) return fail('price', 'Price must be above 0.');
+  if (price && !currency) return fail('currency', 'Select currency: IDR or USD.');
   const validFrom = $('validFrom').value;
-  if (mode === 'PROPOSE' && !validFrom) return fail('validFrom', 'Tanggal berlaku wajib diisi.');
+  if (mode === 'PROPOSE' && !validFrom) return fail('validFrom', 'Start date is required.');
   appsmith.updateModel({ price: price || '', currency: price ? currency : '', text, valid_from: mode === 'PROPOSE' ? validFrom : '' });
   appsmith.triggerEvent('onSave');
 }

@@ -1,4 +1,4 @@
-// cwArticleForm — form Tambah / Ubah Article di mdlArticle (page Model Detail). Hanya tampilan; simpan lewat
+// cwArticleForm - form Tambah / Ubah Article di mdlArticle (page Model Detail). Hanya tampilan; simpan lewat
 // ModelDetailCtrl.saveArticle(). Kode dikunci kalau article sudah dipakai (codeLocked).
 // Aturan final di DB (trg_article_check: kode unik per season, kode terpakai terkunci; tanpa batas jumlah sejak R8).
 const $ = id => document.getElementById(id);
@@ -25,11 +25,11 @@ function showMessage(m) {
   box.hidden = false;
 }
 
-// Isi ulang field hanya saat modal dibuka (key berubah) — busy/message tidak menghapus ketikan user
+// Isi ulang field hanya saat modal dibuka (key berubah) - busy/message tidak menghapus ketikan user
 function fillForm(m) {
   const f = m.form || {};
   const isEdit = m.mode === 'edit';
-  $('title').textContent = isEdit ? 'Ubah Article' : 'Tambah Article';
+  $('title').textContent = isEdit ? 'Edit Article' : 'Add Article';
   $('code').value = f.code || '';
   $('colorway').value = f.colorway || '';
   $('code').disabled = !!m.codeLocked;
@@ -37,7 +37,7 @@ function fillForm(m) {
   ['code', 'colorway'].forEach(id => $(id).classList.remove('invalid'));
   $('seasonInfo').textContent = isEdit
     ? `Season ${m.season || '-'}`
-    : `Season ${m.season || '-'} · article ke-${(m.count || 0) + 1}`;
+    : `Season ${m.season || '-'} · article no. ${(m.count || 0) + 1}`;
   (isEdit ? $('colorway') : $('code')).focus();
 }
 
@@ -46,7 +46,7 @@ function setBusy(v) {
   $('btnSave').disabled = v;
   $('btnCancel').disabled = v;
   $('btnX').disabled = v;
-  $('btnSave').textContent = v ? 'Menyimpan…' : 'Simpan';
+  $('btnSave').textContent = v ? 'Saving…' : 'Save';
 }
 
 function render(model) {
@@ -67,11 +67,11 @@ function submit() {
   if (busy) return;
   const data = { code: clean('code'), colorway: clean('colorway') };
   ['code', 'colorway'].forEach(id => $(id).classList.remove('invalid'));
-  const missing = [['code', 'Kode article'], ['colorway', 'Colorway']].find(([id]) => !data[id]);
+  const missing = [['code', 'Article code'], ['colorway', 'Colorway']].find(([id]) => !data[id]);
   if (missing) {
     $(missing[0]).classList.add('invalid');
     $(missing[0]).focus();
-    showMessage({ type: 'error', text: `${missing[1]} wajib diisi.` });
+    showMessage({ type: 'error', text: `${missing[1]} is required.` });
     return;
   }
   appsmith.updateModel(data);

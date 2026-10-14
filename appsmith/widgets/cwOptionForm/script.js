@@ -1,4 +1,4 @@
-// cwOptionForm — form Tambah / Ubah pilihan model (page Master Pilihan, mdlPilihan). Hanya tampilan;
+// cwOptionForm - form Tambah / Ubah pilihan model (page Master Pilihan, mdlPilihan). Hanya tampilan;
 // simpan lewat OptionCtrl.save() -> fn_option_save. Jenis dipilih di page (bukan di form).
 // UKURAN: angka bulat, urutan otomatis. Daftar nilai mirip saat mengetik (event onSearch).
 const $ = id => document.getElementById(id);
@@ -74,20 +74,20 @@ function querySimilar() {
   }, 350);
 }
 
-// Isi ulang field hanya saat modal dibuka (key berubah) — busy/message tidak menghapus ketikan user
+// Isi ulang field hanya saat modal dibuka (key berubah) - busy/message tidak menghapus ketikan user
 function fillForm(m) {
   const f = m.form || {};
   isEdit = m.mode === 'edit';
   kind = m.kind || '';
   const isSize = kind === 'UKURAN';
-  $('title').textContent = `${isEdit ? 'Ubah' : 'Tambah'} ${m.kindLabel || 'Pilihan'}`;
+  $('title').textContent = `${isEdit ? 'Edit' : 'Add'} ${m.kindLabel || 'Option'}`;
   $('kindLabel').textContent = m.kindLabel || kind;
   $('scopeNote').textContent = m.isFactoryKind
-    ? `Berlaku untuk pabrik Anda saja${m.factoryName ? ` (${m.factoryName})` : ''}.`
-    : 'Dipakai bersama semua pabrik.';
+    ? `Applies to your factory only${m.factoryName ? ` (${m.factoryName})` : ''}.`
+    : 'Shared by all factories.';
   $('value').type = isSize ? 'number' : 'text';      // tipe dulu: nilai teks ditolak input number
   $('value').value = f.value || '';
-  $('value').placeholder = isSize ? 'mis. 40 (angka bulat)' : '';
+  $('value').placeholder = isSize ? 'e.g. 40 (whole number)' : '';
   $('value').classList.remove('invalid');
   $('sort').value = f.sort_order === null || f.sort_order === undefined ? '' : String(f.sort_order);
   $('sortBox').hidden = isSize;
@@ -102,7 +102,7 @@ function setBusy(v) {
   $('btnSave').disabled = v;
   $('btnCancel').disabled = v;
   $('btnX').disabled = v;
-  $('btnSave').textContent = v ? 'Menyimpan…' : 'Simpan';
+  $('btnSave').textContent = v ? 'Saving…' : 'Save';
 }
 
 function render(model) {
@@ -123,16 +123,16 @@ function submit() {
   $('value').classList.remove('invalid');
   if (!value) {
     $('value').classList.add('invalid');
-    showMessage({ type: 'error', text: 'Nilai wajib diisi.' });
+    showMessage({ type: 'error', text: 'Value is required.' });
     return;
   }
   if (kind === 'UKURAN' && !/^\d{1,2}$/.test(value)) {
     $('value').classList.add('invalid');
-    showMessage({ type: 'error', text: 'Ukuran harus angka bulat (mis. 40), tanpa setengah ukuran.' });
+    showMessage({ type: 'error', text: 'Size must be a whole number (e.g. 40), no half sizes.' });
     return;
   }
   if (sort && !/^\d+$/.test(sort)) {
-    showMessage({ type: 'error', text: 'Urutan harus angka bulat.' });
+    showMessage({ type: 'error', text: 'Order must be a whole number.' });
     return;
   }
   appsmith.updateModel({ value, sort_order: kind === 'UKURAN' ? '' : sort, status: $('status').value });

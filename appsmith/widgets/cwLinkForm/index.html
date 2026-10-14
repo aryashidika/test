@@ -1,7 +1,7 @@
 <div class="wrap">
   <div class="head">
-    <h2 id="title">Tambah Supplier Material</h2>
-    <button type="button" class="x" id="btnX" aria-label="Tutup">✕</button>
+    <h2 id="title">Add Material Supplier</h2>
+    <button type="button" class="x" id="btnX" aria-label="Close">✕</button>
   </div>
 
   <div id="msg" class="msg" role="alert" hidden></div>
@@ -11,11 +11,11 @@
   <label for="supplier">Supplier <span class="req">*</span></label>
   <select id="supplier"></select>
   <div class="readonly" id="supplierName" hidden></div>
-  <div class="hint" id="supplierHint">Supplier harus sudah ada di Master Supplier.</div>
+  <div class="hint" id="supplierHint">The supplier must exist in Master Supplier.</div>
 
   <label class="check-row">
     <input id="preferred" type="checkbox">
-    <span>Supplier utama (otomatis terisi di BOM saat material dipilih)</span>
+    <span>Main supplier (filled in the BOM when the material is selected)</span>
   </label>
 
   <div id="statusBox">
@@ -24,10 +24,10 @@
   </div>
 
   <div class="field-note" id="lockNote" hidden></div>
-  <div class="info" id="proposeInfo" hidden>Supplier langsung terhubung ke material ini (semua varian). Harga per varian diajukan tim CBD.</div>
+  <div class="info" id="proposeInfo" hidden>The supplier is linked to this material (all variants). Prices per variant are proposed by the CBD team.</div>
 
   <div class="actions">
-    <button type="button" class="btn-secondary" id="btnCancel">Batal</button>
-    <button type="button" class="btn-primary" id="btnSave">Simpan</button>
+    <button type="button" class="btn-secondary" id="btnCancel">Cancel</button>
+    <button type="button" class="btn-primary" id="btnSave">Save</button>
   </div>
 </div>

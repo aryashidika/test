@@ -6,10 +6,10 @@ Form **harga baris CBD** di modal `mdlCbdHarga` (page `Cost Breakdown (CBD)`). D
 - **QUOTATION** (material metode Quotation): harga + currency, referensi opsional. Harga **kosong** = baris tidak
   dihargai terpisah (cost 0) → `fn_cbd_set_quotation` mengosongkan harga.
 - **PROPOSE** (R8, material katalog; mengganti OVERRIDE yang dihapus F10b): ajukan **harga master** untuk Material Code
-  + supplier baris itu — harga, currency & **berlaku mulai** (default hari ini) wajib, referensi opsional →
+  + supplier baris itu - harga, currency & **berlaku mulai** (default hari ini) wajib, referensi opsional →
   `fn_cbd_price_propose` → `fn_price_propose` (usulan PROPOSED, disetujui di page Persetujuan Harga; berlaku untuk
   semua CBD setelah Refresh Harga). `direct = true` (Manager Costing): langsung berlaku, tombol **Simpan**.
-- **Currency tanpa nilai awal — wajib diklik IDR/USD setiap input** (keputusan user 27 Sep 2026).
+- **Currency tanpa nilai awal - wajib diklik IDR/USD setiap input** (keputusan user 27 Sep 2026).
 - Angka ambigu seperti `47.500` ditolak; widget menampilkan "Terbaca: …".
 
 | File | Tab |
@@ -18,7 +18,7 @@ Form **harga baris CBD** di modal `mdlCbdHarga` (page `Cost Breakdown (CBD)`). D
 
 Ukuran: modal lebar ±560 px, *close on outside click* OFF; widget tinggi ±520 px.
 
-## Model masuk (Default model) — `{{CbdGridCtrl.priceFormModel()}}`
+## Model masuk (Default model) - `{{CbdGridCtrl.priceFormModel()}}`
 
 ```js
 {
@@ -29,7 +29,7 @@ Ukuran: modal lebar ±560 px, *close on outside click* OFF; widget tinggi ±520 
   title,        // 'Harga Quotation' / 'Ajukan Harga Master' / 'Harga Master Baru'
   lineLabel,    // '10 · Upper · MTR-0001 Kulit … · Black · PT Maju Jaya'
   current,      // teks harga sekarang ('' = tidak tampil)
-  form,         // { price: '45000' (teks, titik desimal), text: 'referensi / alasan' } — currency tidak diisi
+  form,         // { price: '45000' (teks, titik desimal), text: 'referensi / alasan' } - currency tidak diisi
   info,         // teks info tambahan ('' = tidak tampil)
   busy, message // message: null | { type, text }
 }

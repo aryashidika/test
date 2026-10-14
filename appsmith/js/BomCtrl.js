@@ -1,4 +1,4 @@
-// JSObject "BomCtrl" — page Specsheet: grid BOM (Custom Widget cwBomGrid) dan article di revisi.
+// JSObject "BomCtrl" - page Specsheet: grid BOM (Custom Widget cwBomGrid) dan article di revisi.
 // cwBomGrid mengirim satu event onAction dengan model.action = { type, ... }; onAction() menjalankan query
 // yang sesuai lalu memuat ulang grid. Semua aturan dicek di DB (fn_bom_*, fn_rev_article_set, trg_lock_published).
 // Query baca dijalankan dengan params lewat load() / reload().
@@ -33,7 +33,7 @@ export default {
 	// Article season yang belum aktif di revisi (belum masuk atau di-drop) -> msArticleTambah
 	addableOptions() {
 		return this.articles().filter(a => a.rev_status !== 'ACTIVE').map(a => ({
-			label: `${a.code} — ${a.colorway}${a.rev_status === 'DROPPED' ? ' (di-drop)' : ''}`, value: a.id,
+			label: `${a.code} · ${a.colorway}${a.rev_status === 'DROPPED' ? ' (dropped)' : ''}`, value: a.id,
 		}));
 	},
 
@@ -51,9 +51,9 @@ export default {
 		if (!r) return '';
 		const dropped = this.articles().filter(a => a.rev_status === 'DROPPED').map(a => a.code);
 		const notIn = this.articles().filter(a => !a.rev_status).map(a => a.code);
-		const parts = [`${this.activeArticles().length} article aktif`];
-		if (dropped.length) parts.push(`di-drop: ${dropped.join(', ')}`);
-		if (notIn.length && SpecCtrl.canEdit()) parts.push(`belum masuk revisi: ${notIn.join(', ')}`);
+		const parts = [`${this.activeArticles().length} active article(s)`];
+		if (dropped.length) parts.push(`dropped: ${dropped.join(', ')}`);
+		if (notIn.length && SpecCtrl.canEdit()) parts.push(`not in revision: ${notIn.join(', ')}`);
 		return parts.join(' · ');
 	},
 
@@ -119,7 +119,7 @@ export default {
 			doneSeq: this.doneSeq,
 			canRegister: Auth.can('manage_master'),
 			canAddSupplier: Auth.can('manage_master'),
-			emptyText: SpecCtrl.navBusy ? 'Memuat…' : (SpecCtrl.revision() ? 'Belum ada baris BOM.' : ''),
+			emptyText: SpecCtrl.navBusy ? 'Loading…' : (SpecCtrl.revision() ? 'No BOM lines yet.' : ''),
 		};
 	},
 
@@ -127,7 +127,7 @@ export default {
 	// Satu aksi sekali jalan. Setelah selesai (berhasil / gagal) + data dimuat ulang -> doneSeq = seq aksi (ack);
 	// cwBomGrid baru mengirim aksi berikutnya setelah ack. Kiriman ulang dengan seq yang sudah selesai diabaikan.
 	async onAction() {
-		const a = (cwBomGrid.model || {}).action;   // baca dulu — model di-reset saat Default model berubah
+		const a = (cwBomGrid.model || {}).action;   // baca dulu - model di-reset saat Default model berubah
 		if (!a || !a.type) return;
 		const s = Number(a.seq) || 0;
 		if (s && s <= this.doneSeq) return;
@@ -167,7 +167,7 @@ export default {
 				const msg = e && e.message;
 				if (Util.isSessionError(msg)) {
 					await removeValue('token');
-					showAlert('Sesi login habis. Silakan login lagi.', 'warning');
+					showAlert('Session expired. Please log in again.', 'warning');
 					navigateTo('Login');
 					return;
 				}
@@ -205,7 +205,7 @@ export default {
 		return {
 			key: this.varKey,
 			mode: 'add',
-			materialLabel: c.material_name ? `${c.material_name} (${c.uom || '-'}) · ${c.thickness || 'tanpa thickness'}` : '',
+			materialLabel: c.material_name ? `${c.material_name} (${c.uom || '-'}) · ${c.thickness || 'no thickness'}` : '',
 			form: { code: '', color: c.color, thickness: c.thickness, status: 'ACTIVE' },
 			fixed: { color: c.color, thickness: c.thickness },
 			statusOptions: this.statusOptions,
@@ -228,7 +228,7 @@ export default {
 			if (seq !== this.varLookupSeq) return;
 			this.varHint = (rows && rows[0]) || null;
 		} catch (e) {
-			/* hanya bantuan — aturan final di DB */
+			/* hanya bantuan - aturan final di DB */
 		}
 	},
 
@@ -245,7 +245,7 @@ export default {
 			if (seq !== this.varSuggestSeq) return;
 			this.varSuggest = Object.assign({ for: `${color}|${thickness}` }, (rows && rows[0]) || {});
 		} catch (e) {
-			/* hanya bantuan isi otomatis — kode tetap diketik/diperiksa user */
+			/* hanya bantuan isi otomatis - kode tetap diketik/diperiksa user */
 		}
 	},
 
@@ -254,7 +254,7 @@ export default {
 		const c = this.varCtx || {};
 		const code = String(f.code || '').trim();
 		if (!code) {
-			this.varMsg = { type: 'error', text: 'Material Code wajib diisi.' };
+			this.varMsg = { type: 'error', text: 'Material Code is required.' };
 			return;
 		}
 		this.varMsg = null;
@@ -269,7 +269,7 @@ export default {
 			if (Util.isSessionError(msg)) {
 				closeModal('mdlVarianBaru');
 				await removeValue('token');
-				showAlert('Sesi login habis. Silakan login lagi.', 'warning');
+				showAlert('Session expired. Please log in again.', 'warning');
 				navigateTo('Login');
 				return;
 			}
@@ -279,7 +279,7 @@ export default {
 			this.varBusy = false;
 		}
 		closeModal('mdlVarianBaru');
-		showAlert(`Varian ${code.toUpperCase()} terdaftar — sel ${c.color} tersambung otomatis.`, 'success');
+		showAlert(`Variant ${code.toUpperCase()} registered. Cell ${c.color} linked automatically.`, 'success');
 		await this.reload(['options']);
 	},
 
@@ -329,7 +329,7 @@ export default {
 	async saveSupplier() {
 		const name = String((cwSupplierForm.model || {}).name || '').trim();
 		if (!name) {
-			this.supMsg = { type: 'error', text: 'Nama supplier wajib diisi.' };
+			this.supMsg = { type: 'error', text: 'Supplier name is required.' };
 			return;
 		}
 		this.supMsg = null;
@@ -341,7 +341,7 @@ export default {
 			if (Util.isSessionError(msg)) {
 				closeModal('mdlSupplierBaru');
 				await removeValue('token');
-				showAlert('Sesi login habis. Silakan login lagi.', 'warning');
+				showAlert('Session expired. Please log in again.', 'warning');
 				navigateTo('Login');
 				return;
 			}
@@ -351,7 +351,7 @@ export default {
 			this.supBusy = false;
 		}
 		closeModal('mdlSupplierBaru');
-		showAlert(`Supplier ${name.toUpperCase()} ditambahkan — ketik namanya di kolom Supplier.`, 'success');
+		showAlert(`Supplier ${name.toUpperCase()} added. Type its name in the Supplier column.`, 'success');
 		await this.reload(['options']);
 	},
 
@@ -360,14 +360,14 @@ export default {
 		const r = SpecCtrl.revision();
 		const ids = msArticleTambah.selectedOptionValues || [];
 		if (!r || !ids.length) {
-			showAlert('Pilih article dulu.', 'warning');
+			showAlert('Select an article first.', 'warning');
 			return;
 		}
 		for (const id of ids) {
 			if (!await Util.run(a_rev_article_set, { revision_id: r.id, article_id: id, status: 'ACTIVE' })) break;
 		}
 		resetWidget('msArticleTambah');
-		showAlert('Article dimasukkan ke revisi.', 'success');
+		showAlert('Article added to the revision.', 'success');
 		await this.reload(['articles']);
 	},
 }

@@ -1,9 +1,9 @@
-// JSObject "Util" — salin ke SETIAP page (termasuk Login), isinya sama persis.
+// JSObject "Util" - salin ke SETIAP page (termasuk Login), isinya sama persis.
 // Kalau diubah (mis. errorMessages bertambah), tempel ulang di semua page.
 export default {
 	// Pesan ramah untuk constraint DB. Ditambah setiap fase.
 	errorMessages: {
-		app_user_pkey: 'Email sudah terdaftar.',
+		app_user_pkey: 'Email is already registered.',
 	},
 
 	// 45000 -> "45.000", fmtNum(1.5, 2) -> "1,50"
@@ -25,7 +25,7 @@ export default {
 
 	// Ambil pesan inti dari error Postgres (RAISE EXCEPTION / constraint)
 	cleanError(msg) {
-		const text = String(msg || 'Terjadi kesalahan.');
+		const text = String(msg || 'Something went wrong.');
 		const m = text.match(/constraint "([^"]+)"/);
 		if (m && this.errorMessages[m[1]]) return this.errorMessages[m[1]];
 		return text
@@ -49,7 +49,7 @@ export default {
 			const msg = e && e.message;
 			if (this.isSessionError(msg)) {
 				await removeValue('token');
-				showAlert('Sesi login habis. Silakan login lagi.', 'warning');
+				showAlert('Session expired. Please log in again.', 'warning');
 				navigateTo('Login');
 				return false;
 			}
@@ -73,7 +73,7 @@ export default {
 				const msg = e && e.message;
 				if (this.isSessionError(msg)) {
 					await removeValue('token');
-					showAlert('Sesi login habis. Silakan login lagi.', 'warning');
+					showAlert('Session expired. Please log in again.', 'warning');
 					navigateTo('Login');
 					return false;
 				}

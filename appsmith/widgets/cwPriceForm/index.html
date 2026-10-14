@@ -1,7 +1,7 @@
 <div class="wrap">
   <div class="head">
-    <h2 id="title">Ajukan Harga</h2>
-    <button type="button" class="x" id="btnX" aria-label="Tutup">✕</button>
+    <h2 id="title">Propose Price</h2>
+    <button type="button" class="x" id="btnX" aria-label="Close">✕</button>
   </div>
 
   <div id="msg" class="msg" role="alert" hidden></div>
@@ -14,27 +14,27 @@
   </div>
 
   <div id="copyTop" hidden>
-    <label for="source">Salin dari varian <span class="req">*</span></label>
+    <label for="source">Copy from variant <span class="req">*</span></label>
     <select id="source"></select>
     <div class="src-prices" id="sourcePrices"></div>
   </div>
 
   <div class="list-head">
-    <label id="listLabel">Varian <span class="req">*</span></label>
+    <label id="listLabel">Variants <span class="req">*</span></label>
     <span class="count" id="count"></span>
   </div>
   <div class="list-tools">
-    <input id="filter" type="text" maxlength="60" autocomplete="off" placeholder="Cari kode / warna / thickness">
-    <button type="button" class="link" id="btnAll">Pilih semua</button>
-    <button type="button" class="link" id="btnNone">Kosongkan</button>
+    <input id="filter" type="text" maxlength="60" autocomplete="off" placeholder="Search code / color / thickness">
+    <button type="button" class="link" id="btnAll">Select all</button>
+    <button type="button" class="link" id="btnNone">Clear</button>
   </div>
   <div class="vlist" id="list"></div>
 
   <div class="row" id="priceRow">
     <div>
-      <label for="price">Harga <span class="req">*</span></label>
-      <input id="price" type="text" inputmode="decimal" maxlength="20" autocomplete="off" placeholder="mis. 45000 atau 3,25">
-      <div class="hint" id="priceHint">Tanpa titik ribuan; desimal pakai koma atau titik.</div>
+      <label for="price">Price <span class="req">*</span></label>
+      <input id="price" type="text" inputmode="decimal" maxlength="20" autocomplete="off" placeholder="e.g. 45000 or 3,25">
+      <div class="hint" id="priceHint">No thousand separators; use a comma or dot for decimals.</div>
     </div>
     <div>
       <label>Currency <span class="req">*</span></label>
@@ -42,25 +42,25 @@
         <button type="button" data-v="IDR">IDR</button>
         <button type="button" data-v="USD">USD</button>
       </div>
-      <div class="hint">Wajib dipilih setiap input.</div>
+      <div class="hint">Required for every entry.</div>
     </div>
   </div>
 
   <div class="row">
     <div>
-      <label for="validFrom">Berlaku mulai <span class="req">*</span></label>
+      <label for="validFrom">Valid from <span class="req">*</span></label>
       <input id="validFrom" type="date">
     </div>
     <div>
-      <label for="reference">Referensi</label>
-      <input id="reference" type="text" maxlength="100" autocomplete="off" placeholder="no. quotation / PO (opsional)">
+      <label for="reference">Reference</label>
+      <input id="reference" type="text" maxlength="100" autocomplete="off" placeholder="quotation / PO no. (optional)">
     </div>
   </div>
 
   <div class="info" id="info"></div>
 
   <div class="actions">
-    <button type="button" class="btn-secondary" id="btnCancel">Batal</button>
-    <button type="button" class="btn-primary" id="btnSave">Ajukan</button>
+    <button type="button" class="btn-secondary" id="btnCancel">Cancel</button>
+    <button type="button" class="btn-primary" id="btnSave">Propose</button>
   </div>
 </div>

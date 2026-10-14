@@ -1,23 +1,23 @@
 <div class="wrap">
   <div class="head">
-    <h2 id="title">Tambah Pabrik</h2>
-    <button type="button" class="x" id="btnX" aria-label="Tutup">✕</button>
+    <h2 id="title">Add Factory</h2>
+    <button type="button" class="x" id="btnX" aria-label="Close">✕</button>
   </div>
 
   <div id="msg" class="msg" role="alert" hidden></div>
 
-  <label for="name">Nama pabrik <span class="req">*</span></label>
-  <input id="name" type="text" maxlength="100" autocomplete="off" placeholder="mis. PT PRESTASI">
+  <label for="name">Factory name <span class="req">*</span></label>
+  <input id="name" type="text" maxlength="100" autocomplete="off" placeholder="e.g. PT PRESTASI">
 
   <label for="status">Status <span class="req">*</span></label>
   <select id="status">
     <option value="ACTIVE">ACTIVE</option>
     <option value="INACTIVE">INACTIVE</option>
   </select>
-  <div class="field-note">Pabrik tidak bisa dinonaktifkan selama masih punya user aktif.</div>
+  <div class="field-note">A factory cannot be set inactive while it has active users.</div>
 
   <div class="actions">
-    <button type="button" class="btn-secondary" id="btnCancel">Batal</button>
-    <button type="button" class="btn-primary" id="btnSave">Simpan</button>
+    <button type="button" class="btn-secondary" id="btnCancel">Cancel</button>
+    <button type="button" class="btn-primary" id="btnSave">Save</button>
   </div>
 </div>

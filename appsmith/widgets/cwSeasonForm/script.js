@@ -1,4 +1,4 @@
-// cwSeasonForm — form Season Baru di mdlSeason (page Model Detail). Hanya tampilan; simpan lewat
+// cwSeasonForm - form Season Baru di mdlSeason (page Model Detail). Hanya tampilan; simpan lewat
 // ModelDetailCtrl.saveSeason(). Season = SS/FH + 2 digit tahun (SS26, FH26). Aturan final di DB
 // (trg_specsheet_check: format & season yang sama untuk model ini ditolak).
 const $ = id => document.getElementById(id);
@@ -36,9 +36,9 @@ function updatePreview() {
   const s = season();
   const box = $('preview');
   if (!s) {
-    box.textContent = 'Pilih musim dan isi 2 digit tahun.';
+    box.textContent = 'Select a season and enter a 2-digit year.';
   } else if (existing.includes(s)) {
-    box.textContent = `${s} sudah ada untuk model ini.`;
+    box.textContent = `${s} already exists for this model.`;
   } else {
     box.textContent = `${s} · ${half === 'SS' ? 'Spring/Summer' : 'Fall/Holiday'} 20${s.slice(2)}`;
   }
@@ -58,7 +58,7 @@ function fillForm(m) {
   setHalf(now.getMonth() < 6 ? 'SS' : 'FH');
   $('year').value = String(now.getFullYear()).slice(2);
   $('year').classList.remove('invalid');
-  $('existing').textContent = existing.length ? `Season yang sudah ada: ${existing.join(', ')}` : 'Belum ada season untuk model ini.';
+  $('existing').textContent = existing.length ? `Existing seasons: ${existing.join(', ')}` : 'This model has no seasons yet.';
   updatePreview();
   $('year').focus();
   $('year').select();
@@ -69,7 +69,7 @@ function setBusy(v) {
   $('btnSave').disabled = v;
   $('btnCancel').disabled = v;
   $('btnX').disabled = v;
-  $('btnSave').textContent = v ? 'Menyimpan…' : 'Simpan';
+  $('btnSave').textContent = v ? 'Saving…' : 'Save';
 }
 
 function render(model) {
@@ -86,19 +86,19 @@ function submit() {
   if (busy) return;
   if (!half) {
     $('half').classList.add('invalid');
-    showMessage({ type: 'error', text: 'Pilih musim SS atau FH.' });
+    showMessage({ type: 'error', text: 'Select SS or FH.' });
     return;
   }
   const s = season();
   if (!s) {
     $('year').classList.add('invalid');
     $('year').focus();
-    showMessage({ type: 'error', text: 'Tahun harus 2 digit angka, mis. 26.' });
+    showMessage({ type: 'error', text: 'Year must be 2 digits, e.g. 26.' });
     return;
   }
   if (existing.includes(s)) {
     $('year').classList.add('invalid');
-    showMessage({ type: 'error', text: `Season ${s} sudah ada untuk model ini.` });
+    showMessage({ type: 'error', text: `Season ${s} already exists for this model.` });
     return;
   }
   $('year').classList.remove('invalid');

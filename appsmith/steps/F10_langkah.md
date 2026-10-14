@@ -1,11 +1,11 @@
-# F10 — Beranda "Tugas Saya": langkah di Appsmith
+# F10 - Beranda "Tugas Saya": langkah di Appsmith
 
 Urutan: **1** SQL → **2** query (page `Beranda`) → **3** JSObject → **4** widget → **5** Specsheet & CBD (tombol kembali,
 buka article) → **6** uji → **7** export `export_v10.json`.
 
 Tidak ada tabel baru, hanya 6 view. Satu Custom Widget baru **`cwWorklist`** (pengganti ±12 tabel/teks bawaan; satu
 widget dipakai semua role). Semua query: *Use prepared statements* **ON**, *Run behaviour* **Manual** (⚠️ jangan
-*Automatic* — lihat T22/T28/T37/T42; di Beranda query dijalankan `BerandaCtrl.load()` setelah login valid). Jangan membuat
+*Automatic* - lihat T22/T28/T37/T42; di Beranda query dijalankan `BerandaCtrl.load()` setelah login valid). Jangan membuat
 `Query1` di app ini.
 
 Isi tiap role (satu daftar saja, sama dengan Python):
@@ -42,14 +42,14 @@ Klik tugas → page tujuan dengan model / season / article sudah terpilih; tombo
 
 Buat 8 query (+ New → pilih datasource Anda), nama persis:
 
-**`q_worklist_spec`** — Vendor Specsheet
+**`q_worklist_spec`** - Vendor Specsheet
 ```sql
 SELECT * FROM v_worklist_spec
 WHERE (SELECT fn_auth({{appsmith.store.token}}, 'edit_specsheet')) IS NOT NULL
 ORDER BY model_code, season;
 ```
 
-**`q_worklist_proposals`** — Vendor Specsheet (jumlah usulan; **tanpa** data harga)
+**`q_worklist_proposals`** - Vendor Specsheet (jumlah usulan; **tanpa** data harga)
 ```sql
 SELECT kind, count(*)::integer AS n
 FROM v_worklist_admin
@@ -58,28 +58,28 @@ WHERE kind IN ('MATERIAL', 'COMPONENT', 'LINK')
 GROUP BY kind;
 ```
 
-**`q_worklist_cbd`** — Vendor CBD
+**`q_worklist_cbd`** - Vendor CBD
 ```sql
 SELECT * FROM v_worklist_cbd
 WHERE (SELECT fn_auth({{appsmith.store.token}}, 'edit_cbd')) IS NOT NULL
 ORDER BY model_code, season, article_code;
 ```
 
-**`q_worklist_gap`** — Vendor CBD
+**`q_worklist_gap`** - Vendor CBD
 ```sql
 SELECT * FROM v_worklist_price_gap
 WHERE (SELECT fn_auth({{appsmith.store.token}}, 'edit_cbd')) IS NOT NULL
 ORDER BY material_code, supplier_name;
 ```
 
-**`q_worklist_admin`** — Master Admin
+**`q_worklist_admin`** - Master Admin
 ```sql
 SELECT * FROM v_worklist_admin
 WHERE (SELECT fn_auth({{appsmith.store.token}}, 'manage_master')) IS NOT NULL
 ORDER BY kind, proposed_at DESC;
 ```
 
-**`q_worklist_pub_spec`** — Brand
+**`q_worklist_pub_spec`** - Brand
 ```sql
 SELECT * FROM v_recent_published
 WHERE doc_type = 'SPECSHEET'
@@ -88,7 +88,7 @@ ORDER BY published_at DESC
 LIMIT 10;
 ```
 
-**`q_worklist_pub_cbd`** — Brand
+**`q_worklist_pub_cbd`** - Brand
 ```sql
 SELECT * FROM v_recent_published
 WHERE doc_type = 'CBD'
@@ -97,7 +97,7 @@ ORDER BY published_at DESC
 LIMIT 10;
 ```
 
-**`q_worklist_system`** — System Admin
+**`q_worklist_system`** - System Admin
 ```sql
 SELECT * FROM v_system_summary
 WHERE (SELECT fn_auth({{appsmith.store.token}}, 'view_audit')) IS NOT NULL;
@@ -137,9 +137,9 @@ Tinggi widget boleh disesuaikan; isi yang lebih panjang menggulir di dalam widge
 
 Dua perubahan kecil supaya klik dari Beranda membuka tujuan yang pas (tidak ada query / widget baru):
 
-1. **Specsheet** — tempel ulang seluruh JSObject `SpecCtrl` dari `js/SpecCtrl.js` (parameter `from=home`: tombol
+1. **Specsheet** - tempel ulang seluruh JSObject `SpecCtrl` dari `js/SpecCtrl.js` (parameter `from=home`: tombol
    kembali berlabel *← Beranda* dan menuju Beranda).
-2. **Cost Breakdown (CBD)** — tempel ulang seluruh JSObject `CbdCtrl` dari `js/CbdCtrl.js` (parameter `from=home`
+2. **Cost Breakdown (CBD)** - tempel ulang seluruh JSObject `CbdCtrl` dari `js/CbdCtrl.js` (parameter `from=home`
    dan **`article`**: article langsung terpilih).
 
 ---
@@ -152,7 +152,7 @@ System Admin).
 
 | # | Akun | Langkah | Hasil yang diharapkan |
 |---|---|---|---|
-| H1 | Vendor – Specsheet | Buka Beranda | Judul *Tugas Saya*; 3 angka (draft, article belum masuk, usulan); bagian Draft Specsheet berisi draft yang ada: `MODEL · SEASON — STAGE rN`, jumlah baris BOM & article aktif |
+| H1 | Vendor – Specsheet | Buka Beranda | Judul *Tugas Saya*; 3 angka (draft, article belum masuk, usulan); bagian Draft Specsheet berisi draft yang ada: `MODEL · SEASON - STAGE rN`, jumlah baris BOM & article aktif |
 | H2 | Vendor – Specsheet | Draft dengan article aktif yang belum dipakai di BOM / baris tanpa supplier | Lencana *N article belum dipakai di BOM* (arahkan kursor → kode article), *N baris tanpa supplier*; draft rapi → *Tidak ada penghambat terdeteksi*; draft kosong → *BOM masih kosong* |
 | H3 | Vendor – Specsheet | Season yang punya article belum masuk revisi mana pun | Muncul di *Article Belum Masuk Specsheet* dengan daftar kode; lencana *Specsheet belum dibuat* bila season belum punya revisi, selain itu *Pilih di revisi specsheet* |
 | H4 | Vendor – Specsheet | Klik sebuah draft | Page Specsheet terbuka dengan model & season terpilih, **revisi draft** terbuka; tombol kembali = **← Beranda** dan benar-benar kembali ke Beranda |

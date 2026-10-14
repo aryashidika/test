@@ -1,7 +1,7 @@
 # cwLogin
 
 Custom Widget di page **Login**: form *Masuk* dan *Ganti Password* (wajib setelah password sementara,
-atau dibuka dari Beranda lewat `?mode=ganti`). Hanya tampilan — keputusan ada di JSObject `LoginCtrl`
+atau dibuka dari Beranda lewat `?mode=ganti`). Hanya tampilan - keputusan ada di JSObject `LoginCtrl`
 dan function DB (`fn_login`, `fn_change_password`).
 
 | File | Tab di editor Custom Widget |

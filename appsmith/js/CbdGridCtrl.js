@@ -64,9 +64,9 @@ export default {
 		const out = [];
 		if (a.draft_stale) {
 			out.push({
-				tone: 'danger', action: 'refreshSpec', actionLabel: 'Refresh dari Specsheet',
-				text: `Specsheet ${Util.stageLabel(r.stage)} sudah terbit ${a.draft_spec_label}. Baris draft ini masih dari ${r.spec_label}. `
-					+ 'Refresh dulu sebelum terbit (Yield, Loss % & harga input dibawa; baris yang hilang jadi MISSING_IN_SPEC).',
+				tone: 'danger', action: 'refreshSpec', actionLabel: 'Refresh from Specsheet',
+				text: `The ${Util.stageLabel(r.stage)} specsheet now has ${a.draft_spec_label} published. This draft still uses ${r.spec_label}. `
+					+ 'Refresh before publishing (Yield, Loss % & entered prices are kept; removed lines become MISSING_IN_SPEC).',
 			});
 			return out;
 		}
@@ -74,33 +74,33 @@ export default {
 		const stale = lines.filter(l => l.master_stale).length;
 		if (stale) {
 			out.push({
-				tone: 'warn', action: 'refreshPrices', actionLabel: 'Refresh Harga dari Master',
-				text: `Harga master untuk ${stale} baris baru tersedia atau berubah sejak CBD ini dibuat. `
-					+ 'Samakan dulu sebelum terbit.',
+				tone: 'warn', action: 'refreshPrices', actionLabel: 'Refresh Prices from Master',
+				text: `Master prices for ${stale} lines are new or changed since this CBD was created. `
+					+ 'Update them before publishing.',
 			});
 		}
 		const pending = lines.filter(l => l.pending).length;
 		if (pending) {
 			out.push({
 				tone: 'danger',
-				text: `${pending} baris punya usulan harga yang menunggu persetujuan Manager Costing — CBD belum bisa terbit. `
-					+ 'Setelah disetujui, klik Refresh Harga dari Master.',
+				text: `${pending} lines have price proposals waiting for Manager Costing. The CBD cannot be published yet. `
+					+ 'After approval, click Refresh Prices from Master.',
 			});
 		}
 		// R11 (T56, keputusan user 13 Okt 2026): peringatan saja, untuk baris ber-Yield yang belum berharga (kemungkinan
-		// lupa). Baris tanpa harga & tanpa Yield dianggap memang tanpa biaya — tidak diperingatkan.
+		// lupa). Baris tanpa harga & tanpa Yield dianggap memang tanpa biaya - tidak diperingatkan.
 		const unpriced = lines.filter(l => l.price_original == null && l.yield_value != null && !l.no_charge);
 		if (unpriced.length) {
 			const gaps = unpriced.filter(l => l.price_gap === 'NO_PRICE').length;
 			const noSup = unpriced.filter(l => l.price_gap === 'NO_SUPPLIER').length;
-			const parts = [`${unpriced.length} baris sudah ada Yield tapi belum berharga — tetap bisa terbit dengan cost 0. Isi harganya bila terlupa.`];
-			if (gaps) parts.push(`${gaps} di antaranya belum punya harga master untuk Material Code + supplier-nya (ajukan di Material Detail).`);
-			if (noSup) parts.push(`${noSup} belum punya supplier di specsheet.`);
+			const parts = [`${unpriced.length} lines have a Yield but no price. They can still publish with cost 0. Fill in the price if it was missed.`];
+			if (gaps) parts.push(`${gaps} of them have no master price for their Material Code + supplier (propose it in Material Detail).`);
+			if (noSup) parts.push(`${noSup} have no supplier in the specsheet.`);
 			out.push({ tone: 'warn', text: parts.join(' ') });
 		}
 		const rc = this.recap();
 		if (rc && rc.usd_no_rate_count) {
-			out.push({ tone: 'warn', text: `${rc.usd_no_rate_count} baris berharga USD belum terhitung — isi Exchange rate di rekap.` });
+			out.push({ tone: 'warn', text: `${rc.usd_no_rate_count} USD-priced lines are not counted. Fill in the Exchange rate in the recap.` });
 		}
 		return out;
 	},
@@ -121,7 +121,7 @@ export default {
 			banners: this.banners(),
 			busy: this.busyCount > 0,
 			message: this.message,
-			emptyText: CbdCtrl.navBusy ? 'Memuat…' : (r ? 'Tidak ada baris — article ini tidak memakai baris BOM mana pun.' : ''),
+			emptyText: CbdCtrl.navBusy ? 'Loading…' : (r ? 'No lines. This article does not use any BOM line.' : ''),
 		};
 	},
 
@@ -134,7 +134,7 @@ export default {
 			const msg = e && e.message;
 			if (Util.isSessionError(msg)) {
 				await removeValue('token');
-				showAlert('Sesi login habis. Silakan login lagi.', 'warning');
+				showAlert('Session expired. Please log in again.', 'warning');
 				navigateTo('Login');
 				return false;
 			}
@@ -153,7 +153,7 @@ export default {
 	// Satu aksi sekali jalan. Setelah selesai (berhasil / gagal) + data dimuat ulang -> doneSeq = seq aksi (ack);
 	// cwCbdGrid baru mengirim aksi berikutnya setelah ack. Kiriman ulang dengan seq yang sudah selesai diabaikan.
 	async onAction() {
-		const a = (cwCbdGrid.model || {}).action;   // baca dulu — model di-reset saat Default model berubah
+		const a = (cwCbdGrid.model || {}).action;   // baca dulu - model di-reset saat Default model berubah
 		if (!a || !a.type) return;
 		const s = Number(a.seq) || 0;
 		if (s && s <= this.doneSeq) return;
@@ -197,18 +197,18 @@ export default {
 				break;
 			case 'setNoCharge':     // R11: tanpa biaya (alasan wajib) / batalkan
 				if (await this.exec(a_cbd_no_charge, { line_id: a.line_id, on: a.on ? 'true' : 'false', reason: a.reason || '' })) {
-					showAlert(a.on ? 'Baris ditandai tanpa biaya (cost 0).' : 'Tanda tanpa biaya dibatalkan.', 'success');
+					showAlert(a.on ? 'Line marked as no charge (cost 0).' : 'No-charge mark removed.', 'success');
 				}
 				break;
 			case 'refreshPrices':
 				if (await this.exec(a_cbd_refresh_prices, { revision_id: r.id })) {
 					const n = a_cbd_refresh_prices.data && a_cbd_refresh_prices.data[0] && a_cbd_refresh_prices.data[0].n;
-					showAlert(`Harga ${n || ''} baris disamakan dengan master.`, 'success');
+					showAlert(`Prices of ${n || ''} line(s) updated from master.`, 'success');
 				}
 				break;
 			case 'refreshSpec':     // a_cbd_refresh_spec: Request confirmation = ON
 				if (await this.exec(a_cbd_refresh_spec, { revision_id: r.id })) {
-					showAlert(`CBD di-refresh dari specsheet ${Util.stageLabel(r.stage)} terbit terakhir.`, 'success');
+					showAlert(`CBD refreshed from the latest published ${Util.stageLabel(r.stage)} specsheet.`, 'success');
 					await CbdCtrl.refresh(r.id);   // acuan & baris berubah (R13: stage tetap)
 				}
 				break;
@@ -238,14 +238,14 @@ export default {
 		let info = '';
 		if (l) {
 			if (l.price_original != null) {
-				const src = { MASTER: 'harga master', OVERRIDE: 'override', QUOTATION: 'quotation' }[l.price_source] || '';
-				current = `Harga di CBD ini: ${fmt(l.price_original, l.currency)}${src ? ' (' + src + ')' : ''}`;
+				const src = { MASTER: 'master price', OVERRIDE: 'override', QUOTATION: 'quotation' }[l.price_source] || '';
+				current = `Price in this CBD: ${fmt(l.price_original, l.currency)}${src ? ' (' + src + ')' : ''}`;
 			} else {
-				current = 'Harga di CBD ini: kosong';
+				current = 'Price in this CBD: empty';
 			}
 			if (!q) {
-				info = l.master_price != null ? `Harga master berlaku sekarang: ${fmt(l.master_price, l.master_currency)}.`
-					: 'Belum ada harga master berlaku untuk Material Code + supplier ini.';
+				info = l.master_price != null ? `Current master price: ${fmt(l.master_price, l.master_currency)}.`
+					: 'No active master price for this Material Code + supplier.';
 			}
 		}
 		return {
@@ -253,7 +253,7 @@ export default {
 			mode: this.priceMode,
 			direct,
 			today: moment().utcOffset(7).format('YYYY-MM-DD'),
-			title: q ? 'Harga Quotation' : (direct ? 'Harga Master Baru' : 'Ajukan Harga Master'),
+			title: q ? 'Quotation Price' : (direct ? 'New Master Price' : 'Propose Master Price'),
 			lineLabel: l ? [l.display_no, l.display_name, `${l.material_code} ${l.material_name}`, l.color, l.supplier_name]
 				.filter(x => x).join(' · ') : '',
 			current,
@@ -287,7 +287,7 @@ export default {
 			if (Util.isSessionError(msg)) {
 				closeModal('mdlCbdHarga');
 				await removeValue('token');
-				showAlert('Sesi login habis. Silakan login lagi.', 'warning');
+				showAlert('Session expired. Please log in again.', 'warning');
 				navigateTo('Login');
 				return;
 			}
@@ -297,9 +297,9 @@ export default {
 			this.priceBusy = false;
 		}
 		closeModal('mdlCbdHarga');
-		showAlert(q ? (f.price ? 'Harga quotation disimpan.' : 'Harga quotation dikosongkan.')
-			: Auth.can('approve_price') ? 'Harga master disimpan dan langsung berlaku. Vendor CBD perlu klik Refresh Harga dari Master.'
-				: 'Usulan harga master dikirim ke Manager Costing. Setelah disetujui, klik Refresh Harga dari Master.', 'success');
+		showAlert(q ? (f.price ? 'Quotation price saved.' : 'Quotation price cleared.')
+			: Auth.can('approve_price') ? 'Master price saved and active now. Vendor CBD needs to click Refresh Prices from Master.'
+				: 'Master price proposal sent to Manager Costing. After approval, click Refresh Prices from Master.', 'success');
 		this.message = null;
 		await this.reload();
 	},

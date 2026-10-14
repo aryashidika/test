@@ -1,4 +1,4 @@
-// JSObject "ApprovalCtrl" — page Persetujuan Harga (R3, ?batch=<batch id> opsional). Tampilan: Custom Widget cwPriceApproval.
+// JSObject "ApprovalCtrl" - page Persetujuan Harga (R3, ?batch=<batch id> opsional). Tampilan: Custom Widget cwPriceApproval.
 // Daftar usulan harga per batch (q_price_pending); Setujui / Tolak lewat a_price_decide (izin approve_price, tanpa
 // self-approval, pabrik dicek di DB). Buka material -> Material Detail tab Harga.
 export default {
@@ -19,7 +19,7 @@ export default {
 			const msg = e && e.message;
 			if (Util.isSessionError(msg)) {
 				await removeValue('token');
-				showAlert('Sesi login habis. Silakan login lagi.', 'warning');
+				showAlert('Session expired. Please log in again.', 'warning');
 				navigateTo('Login');
 				return false;
 			}
@@ -73,7 +73,7 @@ export default {
 		};
 	},
 
-	// cwPriceApproval onDecide — baca aksi dari model widget dulu (model di-reset saat state berubah)
+	// cwPriceApproval onDecide - baca aksi dari model widget dulu (model di-reset saat state berubah)
 	async decide() {
 		const a = (cwPriceApproval.model || {}).action || {};
 		const ids = Array.isArray(a.ids) ? a.ids : [];
@@ -85,14 +85,14 @@ export default {
 			const n = Number(((a_price_decide.data || [])[0] || {}).n) || ids.length;
 			this.message = {
 				type: 'success',
-				text: a.decision === 'APPROVE' ? `${n} harga disetujui. Harga lama ditutup per tanggal berlaku harga baru.`
-					: `${n} harga ditolak.`,
+				text: a.decision === 'APPROVE' ? `${n} price(s) approved. The old price ends on the new price start date.`
+					: `${n} price(s) rejected.`,
 			};
 		} catch (e) {
 			const msg = e && e.message;
 			if (Util.isSessionError(msg)) {
 				await removeValue('token');
-				showAlert('Sesi login habis. Silakan login lagi.', 'warning');
+				showAlert('Session expired. Please log in again.', 'warning');
 				navigateTo('Login');
 				return;
 			}
