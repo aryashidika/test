@@ -64,7 +64,32 @@ function fillSelect(sel, options, selected) {
 
 const cleanCode = s => String(s || '').trim().replace(/\s+/g, ' ').toUpperCase();
 const tidyText = s => String(s || '').trim().replace(/\s+/g, ' ').toUpperCase();
-const cleanThick = s => (['', '.', '-'].includes(tidyText(s)) ? '' : tidyText(s));   // = fn_clean_thickness
+// = fn_clean_thickness (R16, gaya berspasi tim material): huruf besar, kutip pintar / dua apostrof -> ", koma desimal -> titik,
+// ".5" -> "0.5", nol belakang dibuang ("2.0" = "2"), INCH / IN setelah angka -> ", angka + satuan satu spasi ("1.2MM" -> "1.2 MM"),
+// "X" antar ukuran berspasi ("44X69CM" -> "44 X 69 CM"), tanpa spasi di sekitar "-", spasi sebelum "(", rentang
+// "1.4 MM-1.6 MM" -> "1.4-1.6 MM". Kosong / "." / "-" = tanpa thickness. Salinan sama di cwBomGrid.
+function canonThickness(s) {
+  let t = String(s ?? '').replace(/\s+/g, ' ').trim().toUpperCase();
+  if (t === '' || t === '.' || t === '-') return '';
+  t = t.replace(/[“”„‟″〃＂]/g, '"')
+    .replace(/['’‘′`´]{2}/g, '"')
+    .replace(/(\d),(\d)/g, '$1.$2')
+    .replace(/(^|[^0-9.])\.(\d)/g, (m, a, b) => `${a}0.${b}`)
+    .replace(/(\d)\.(\d*[1-9])0+(?![0-9])/g, '$1.$2')
+    .replace(/(\d)\.0+(?![0-9])/g, '$1')
+    .replace(/(\d)\s*(INCHES|INCH|IN)(?=$|\s*X|\s*\(|\s*-|[^A-Z0-9\s])/g, '$1"')
+    .replace(/(\d)\s*(MM|CM|UM|ME)(?=$|[^A-Z]|X\d)/g, '$1 $2')
+    .replace(/(\d|MM|CM|UM|")\s*X\s*(?=\d)/g, '$1 X ')
+    .replace(/\s*-\s*/g, '-')
+    .replace(/\s*\(\s*/g, ' (')
+    .replace(/\s+\)/g, ')')
+    .replace(/(\d)\s+"/g, '$1"')
+    .replace(/(\d) (MM|CM|UM)-(\d+(?:\.\d+)?) \2(?=$|[^A-Z])/g, '$1-$3 $2')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return t;
+}
+const cleanThick = canonThickness;   // R16: thickness dibandingkan dalam bentuk baku ("44 \"" = '44"')
 const thickLabel = s => cleanThick(s) || 'no thickness';
 const parts = s => String(s || '').split(',').filter(x => x);
 const el = (tag, cls, text) => Object.assign(document.createElement(tag), { className: cls || '', textContent: text || '' });
@@ -315,16 +340,17 @@ function render(model) {
     lastKey = m.key;
     fillForm(m);
   }
-  // DB menolak dengan "Perlu konfirmasi" (form belum sempat tahu): tampilkan di kotak konfirmasi
+  // DB menolak dengan "Confirmation needed" (form belum sempat tahu): tampilkan di kotak konfirmasi.
+  // R16 (review): sejak R15 pesan DB berbahasa Inggris; pola lama "Perlu konfirmasi" tidak pernah cocok lagi.
   const t = (m.message && m.message.text) || '';
   if (t !== lastMsgText) {                 // pesan baru saja (model dikirim ulang tidak memasang lagi)
     lastMsgText = t;
-    if (/^Perlu konfirmasi:/.test(t)) {
-      const x = t.replace(/^Perlu konfirmasi:\s*/, '').replace(/\s*Periksa Material Code;.*$/, '');
+    if (/^Confirmation needed:/.test(t)) {
+      const x = t.replace(/^Confirmation needed:\s*/, '').replace(/\s*Check the Material Code;.*$/, '');
       serverConflict = x.charAt(0).toUpperCase() + x.slice(1);
     }
   }
-  if (/^Perlu konfirmasi:/.test(t)) {
+  if (/^Confirmation needed:/.test(t)) {
     showMessage(null);
   } else {
     showMessage(m.message);

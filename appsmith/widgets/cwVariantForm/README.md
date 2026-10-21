@@ -9,7 +9,8 @@ warna & thickness (dari sel specsheet); bila bagian kode tercatat dengan arti la
 **R9 (menggantikan aturan awalan R8)** - kamus kode per pabrik, tiga tingkat:
 - **Tolak** (pesan DB): kode dobel; material + thickness + warna dobel.
 - **Konfirmasi** (kotak merah + centang *Sudah saya cek, kode ini benar sesuai ERP*): kode thickness / warna sudah berarti lain
-  (dari `hint`, atau pesan DB berawalan `Perlu konfirmasi:`). Simpan mengirim `confirm: true` → `fn_variant_save(..., p_confirm)`.
+  (dari `hint`, atau pesan DB berawalan `Confirmation needed:`, sejak R15). Simpan mengirim `confirm: true` → `fn_variant_save(..., p_confirm)`.
+  R16: thickness dibandingkan dalam bentuk baku (`canonThickness`, salinan sama dengan `cwBomGrid` = `fn_clean_thickness`), jadi `44 "` = `44"`.
 - **Info** (kotak kuning): warna / thickness biasanya berkode lain, awalan beda, kode bukan 10 karakter.
 - **Isi otomatis**: warna + thickness → `onLookup` (`lookupKind: 'suggest'`, `suggestColor`, `suggestThickness`) →
   `model.suggest = { for: 'WARNA|THICKNESS', prefixes, thickness_codes, color_codes }` (daftar dipisah koma, paling sering

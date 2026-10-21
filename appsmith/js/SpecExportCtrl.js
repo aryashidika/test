@@ -3,6 +3,8 @@
 // kotak validasi (Dibuat / Diketahui / Divalidasi), tanpa gambar/logo, tanpa highlight. File ditulis JSObject
 // XlsxWriter (tanpa library). Data = query yang sudah dimuat page ini (q_spec_model, q_revisions, q_rev_articles,
 // q_bom_grid, q_change_log), jadi isi file sama dengan layar dan Brand hanya bisa mengekspor revisi terbit.
+// R16: sel warna tanpa Material Code (sel kuning di layar) diberi latar kuning + tulisan "(no code)" di Excel, supaya jelas kode
+// mana yang harus diminta ke tim material. Hanya satu sheet, tanpa tombol terpisah.
 export default {
 	busy: false,
 	step: '',      // langkah export yang sedang berjalan (untuk pesan error)
@@ -60,7 +62,7 @@ export default {
 	// aktif · UNIT OF MSRMNT · THICKNESS (F10c) · PROCESS. Baris 1–11 = header (diulang tiap halaman cetak), data mulai baris 12.
 	build(m, s, r) {
 		const articles = BomCtrl.activeArticles();
-		const lines = q_bom_grid.data || [];
+		const lines = BomCtrl.gridLines();     // baris revisi yang dibuka saja (R12, T62)
 		const log = r.status === 'PUBLISHED' ? SpecCtrl.logFor(r.id) : null;
 		const K = Math.max(articles.length, 1);
 		const A0 = 5;                 // kolom article pertama (E)
@@ -173,6 +175,7 @@ export default {
 		ws.getRow(11).height = 30;
 
 		// ---- data ----
+		let yellow = 0;      // R16: sel warna tanpa Material Code
 		let row = 12;
 		let parentRow = null;
 		const closeParent = () => {
@@ -194,7 +197,11 @@ export default {
 			// R4: warna + Material Code varian di bawahnya
 			articles.forEach((a, i) => {
 				const color = cells[a.id] || '';
-				cell(row, A0 + i, color && codes[a.id] ? `${color}\n${codes[a.id]}` : color, { alignment: top('center') });
+				const noCode = !!color && !codes[a.id];
+				if (noCode) yellow++;
+				cell(row, A0 + i, color && codes[a.id] ? `${color}\n${codes[a.id]}` : (noCode ? `${color}\n(no code)` : color),
+					noCode ? { alignment: top('center'), fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFEF08A' } } }
+					  : { alignment: top('center') });
 			});
 			cell(row, UOM, l.uom || '', { alignment: top('center') });
 			cell(row, THK, l.thickness || '', { alignment: top('center') });
@@ -204,6 +211,10 @@ export default {
 			row++;
 		});
 		closeParent();
+		if (yellow && !log) {
+			cell(7, A0, `YELLOW = no Material Code yet (${yellow} cell(s)). Ask the Material team for these codes.`,
+				{ font: { size: 9, bold: true, color: { argb: 'FF92400E' } }, alignment: { wrapText: true, vertical: 'top' } });
+		}
 		if (!lines.length) {
 			cell(row, 1, 'No BOM lines yet.', { font: { italic: true } });
 			merge(row, 1, row, N);

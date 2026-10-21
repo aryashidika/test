@@ -19,8 +19,9 @@
 
   <div class="row">
     <div id="sortBox">
-      <label for="sort">Order</label>
-      <input id="sort" type="number" min="0" step="1" autocomplete="off" placeholder="optional">
+      <label for="sort">Order (position)</label>
+      <input id="sort" type="number" min="1" step="1" autocomplete="off" placeholder="empty = last"
+             title="Position in the list. If the number is already used, this option takes it and the others move down. Empty = last (new) or unchanged (edit).">
     </div>
     <div id="statusBox">
       <label for="status">Status <span class="req">*</span></label>

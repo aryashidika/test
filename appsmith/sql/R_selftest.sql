@@ -1,6 +1,6 @@
 -- ============================================================================
--- R_selftest: uji alur inti R3–R15 langsung di database, lalu DIBATALKAN (ROLLBACK): tidak ada data yang tersimpan.
--- Jalankan SETELAH sql/R_revisi_semua.sql, sql/R8_catatan_uji.sql, R9_kode_varian.sql R10_hapus_varian.sql, R11_perbaikan.sql, R11b_harga_batal.sql, R12_golive.sql, R13_cbd_stage.sql, R14_audit_stage.sql DAN R15_english.sql, lewat z_run_sql di app "DB Tools" (Use prepared statements = OFF),
+-- R_selftest: uji alur inti R3–R16 langsung di database, lalu DIBATALKAN (ROLLBACK): tidak ada data yang tersimpan.
+-- Jalankan SETELAH sql/R_revisi_semua.sql, sql/R8_catatan_uji.sql, R9_kode_varian.sql R10_hapus_varian.sql, R11_perbaikan.sql, R11b_harga_batal.sql, R12_golive.sql, R13_cbd_stage.sql, R14_audit_stage.sql, R15_english.sql DAN R16_baku_thickness.sql, lewat z_run_sql di app "DB Tools" (Use prepared statements = OFF),
 -- SEBELUM import app. Hasil yang diharapkan: baris terakhir "SELFTEST LOLOS". Kalau ada yang salah, query berhenti
 -- dengan pesan "SELFTEST GAGAL: ..." — kirim pesan itu ke pengembang.
 -- Aman di DB yang sudah berisi data: pabrik SELFTEST PABRIK A/B, email @selftest.invalid; master BERSAMA (supplier,
@@ -249,7 +249,7 @@ BEGIN
                      'R4 price gap per varian (GREY belum berharga)');
   PERFORM fn_bom_replace_material(t_spec, (SELECT id FROM bom_line WHERE revision_id = v_rev2 AND line_key =
                                     (SELECT line_key FROM bom_line WHERE id = l1)), v_mat, '1.5MM');
-  PERFORM pg_temp.ok((SELECT yellow FROM v_bom_grid WHERE revision_id = v_rev2 AND thickness = '1.5MM') = 3,
+  PERFORM pg_temp.ok((SELECT yellow FROM v_bom_grid WHERE revision_id = v_rev2 AND thickness = '1.5 MM') = 3,
                      'R4 ganti thickness tanpa varian -> semua sel kuning');
   PERFORM pg_temp.ok((SELECT count(*) FROM v_model_list WHERE id IN (m_a, m_b)) = 2
                      AND (SELECT count(*) FROM v_recent_published WHERE model_id = m_a) = 1, 'R4 view model & terbit terbaru');
@@ -257,7 +257,7 @@ BEGIN
   -- ===== R5: CBD per varian =====
   c1 := fn_cbd_create(t_cbd, a1, 'NEW', NULL);
   PERFORM pg_temp.ok((SELECT material_code || '|' || thickness || '|' || price_source || '|' || trim_scale(price_original)::text
-                        FROM v_cbd_line WHERE cbd_revision_id = c1 AND material_id = v_mat) = 'MSHU120BLK|1.2MM|MASTER|45000',
+                        FROM v_cbd_line WHERE cbd_revision_id = c1 AND material_id = v_mat) = 'MSHU120BLK|1.2 MM|MASTER|45000',
                      'R5 baris CBD membawa Material Code + thickness, harga master per varian');
   PERFORM pg_temp.ok((SELECT pc.price_gap FROM v_cbd_price_check pc JOIN cbd_line l ON l.id = pc.line_id
                        WHERE l.cbd_revision_id = c1 AND l.material_id = v_mat2) = 'NO_PRICE', 'R5 varian tanpa harga = NO_PRICE');
@@ -303,7 +303,7 @@ BEGIN
                      'R5 revisi berikutnya membawa Yield; draft memakai faktor stage');
   -- revisi specsheet berikutnya: baris material diganti -> CBD terbit PERLU REVISI
   PERFORM fn_variant_save(t_spec, v2, v_mat, 'MSHU120WHT', 'WHITE', '1.2MM', 'ACTIVE');
-  PERFORM fn_bom_replace_material(t_spec, (SELECT id FROM bom_line WHERE revision_id = v_rev2 AND is_active AND thickness = '1.5MM'),
+  PERFORM fn_bom_replace_material(t_spec, (SELECT id FROM bom_line WHERE revision_id = v_rev2 AND is_active AND thickness = '1.5 MM'),
                                   v_mat, '1.2MM');
   PERFORM pg_temp.ok((SELECT yellow_cells FROM v_revision_checklist WHERE revision_id = v_rev2) = 0,
                      'R5 (spec) varian aktif lagi -> sel tersambung kembali');
@@ -600,7 +600,7 @@ BEGIN
   ly := fn_bom_replace_material(t_spec, lx, v_mat, '1.5MM');
   PERFORM pg_temp.ok((SELECT parent_line_key FROM bom_line WHERE id = ls) = (SELECT line_key FROM bom_line WHERE id = ly),
                      'R11/T58 (awal) subkomponen pindah ke baris pengganti');
-  PERFORM pg_temp.ok((SELECT undo_replace AND undo_material = 'UJI MESH 1.2MM' FROM v_bom_grid WHERE id = ly)
+  PERFORM pg_temp.ok((SELECT undo_replace AND undo_material = 'UJI MESH 1.2 MM' FROM v_bom_grid WHERE id = ly)
                      AND NOT (SELECT undo_replace FROM v_bom_grid WHERE id = ls),
                      'R11/T58 grid: baris pengganti bertanda bisa dibatalkan (material lama tampil), baris biasa tidak');
   n := fn_bom_delete_line(t_spec, ly);
@@ -917,6 +917,155 @@ BEGIN
                      'R14 pilihan CBD setelah lompat: Pullover tertutup (label Preview), tanpa SMS');
   PERFORM pg_temp.must_fail(format('SELECT fn_revision_create(%L, %L, ''NEXT_STAGE'', ''SMS'', NULL)', t_spec, sh),
             '%higher than the latest published stage (GTM)%', 'R14 tidak bisa kembali ke SMS setelah GTM terbit');
+END;
+$$;
+
+-- ---------------------------------------------------------------- R16: thickness baku + material baru tanpa kode (sel kuning)
+DO $$
+DECLARE
+  t_spec  text := pg_temp.tok('spec.a@selftest.invalid');
+  v_cat   uuid; v_sup uuid; v_comp uuid;
+  v_mat   uuid; v_var uuid; v_v2 uuid;
+  m uuid; sh uuid; a1 uuid; a2 uuid; rv uuid; l1 uuid; l2 uuid;
+BEGIN
+  -- ===== bentuk baku (sama dengan canonThickness di cwBomGrid) =====
+  PERFORM pg_temp.ok(fn_clean_thickness('1,2 mm') = '1.2 MM' AND fn_clean_thickness('  1.2   MM ') = '1.2 MM'
+                     AND fn_clean_thickness('1.2mm') = '1.2 MM', 'R16 spasi / koma / huruf kecil: 1,2mm = 1.2 MM');
+  PERFORM pg_temp.ok(fn_clean_thickness('0.55mmx44"') = '0.55 MM X 44"' AND fn_clean_thickness('1.2MM X 44 "') = '1.2 MM X 44"'
+                     AND fn_clean_thickness('1.4 - 1.6MM') = '1.4-1.6 MM' AND fn_clean_thickness('4MM(110X200 CM )') = '4 MM (110 X 200 CM)'
+                     AND fn_clean_thickness('43''''') = '43"' AND fn_clean_thickness('A1A(275X170X100 MM)') = 'A1A (275 X 170 X 100 MM)',
+                     'R16 ukuran "X", tanda "-", kurung, tanda kutip (gaya berspasi tim material)');
+  PERFORM pg_temp.ok(fn_clean_thickness('MAX 5') = 'MAX 5' AND fn_clean_thickness('SIZE 37 - 39') = 'SIZE 37-39'
+                     AND fn_clean_thickness('.') IS NULL AND fn_clean_thickness('-') IS NULL AND fn_clean_thickness('  ') IS NULL
+                     AND fn_clean_thickness(NULL) IS NULL, 'R16 kata biasa tidak berubah, "." / "-" / kosong = tanpa thickness');
+  PERFORM pg_temp.ok(fn_clean_thickness('2.0 mm') = '2 MM' AND fn_clean_thickness('2.00MM') = '2 MM' AND fn_clean_thickness('1,50mm') = '1.5 MM'
+                     AND fn_clean_thickness('.5mm') = '0.5 MM' AND fn_clean_thickness('1.050 MM') = '1.05 MM' AND fn_clean_thickness('10 MM') = '10 MM'
+                     AND fn_clean_thickness('1.0MMX44"') = '1 MM X 44"' AND fn_clean_thickness('100 MM') = '100 MM',
+                     'R16 angka setara satu bentuk: 2.0 = 2, 1.50 = 1.5, .5 = 0.5 (nol di depan / tengah tetap)');
+  PERFORM pg_temp.ok(fn_clean_thickness('44' || chr(8221)) = '44"' AND fn_clean_thickness('44 ' || chr(8243)) = '44"'
+                     AND fn_clean_thickness('44' || chr(8217) || chr(8217)) = '44"'
+                     AND fn_clean_thickness('44 inch') = '44"' AND fn_clean_thickness('44IN') = '44"' AND fn_clean_thickness('1.4mmx44 inches') = '1.4 MM X 44"'
+                     AND fn_clean_thickness('2 IN 1') = '2 IN 1' AND fn_clean_thickness('10 INCL') = '10 INCL',
+                     'R16 kutip pintar dan INCH / IN setelah angka = tanda kutip (kata lain tidak berubah)');
+  PERFORM pg_temp.ok(fn_clean_thickness('1.4mm-1.6mm') = '1.4-1.6 MM' AND fn_clean_thickness('1,4 MM - 1,6 MM x 54"') = '1.4-1.6 MM X 54"'
+                     AND fn_clean_thickness('1.4MM-1.6CM') = '1.4 MM-1.6 CM' AND fn_clean_thickness('SIZE 35-39 (3-4)') = 'SIZE 35-39 (3-4)',
+                     'R16 rentang dengan satuan di kedua sisi = satu satuan di belakang');
+  PERFORM pg_temp.ok(NOT EXISTS (SELECT 1 FROM unnest(ARRAY['1,2 mm', '44 "', '0.55 MMX44"', 'LEBAR=140 CM', 'A ( 1 MM )', '10 CM X 6 CM',
+                                                              '2.0MM(95X152 CM)', 'SIZE 37 - 39', '.50 mm', '44 inch', '1.4mm - 1.6mm', '44' || chr(8221)]) x
+                      WHERE fn_clean_thickness(fn_clean_thickness(x)) IS DISTINCT FROM fn_clean_thickness(x)),
+                     'R16 pembakuan idempoten (dibakukan dua kali = sama)');
+
+  -- ===== induk baru tanpa kode + thickness diketik apa adanya =====
+  SELECT pm.category_id INTO v_cat FROM product_model pm JOIN factory f ON f.id = pm.factory_id
+   WHERE f.name = 'SELFTEST PABRIK A' LIMIT 1;
+  SELECT id INTO v_sup FROM supplier WHERE name = 'SELFTEST SUPPLIER SATU';
+  SELECT id INTO v_comp FROM component WHERE name = 'SELFTEST VAMP';
+  v_mat := fn_material_add(t_spec, 'uji baru tanpa kode', 'textile', 'yd');            -- ketik huruf kecil
+  PERFORM pg_temp.ok((SELECT name || '|' || category FROM material WHERE id = v_mat) = 'UJI BARU TANPA KODE|TEXTILE',
+                     'R16 nama + kategori material baru otomatis huruf besar, tanpa kode');
+  PERFORM pg_temp.must_fail(format('SELECT fn_material_add(%L, ''Uji  Baru  Tanpa Kode'', ''TEXTILE'', ''YD'')', t_spec),
+            '%already exists%', 'R16 typo spasi ganda / huruf kecil = material yang sama (ditolak)');
+
+  m  := fn_model_save(t_spec, NULL, 'Uji Baku', v_cat, NULL, NULL, NULL, NULL, '[40]', NULL);
+  sh := fn_season_add(t_spec, m, 'FH27');
+  a1 := fn_article_save(t_spec, NULL, sh, 'UJI-BAKU1', 'BLACK');
+  a2 := fn_article_save(t_spec, NULL, sh, 'UJI-BAKU2', 'WHITE');
+  rv := fn_revision_create(t_spec, sh, 'EMPTY', NULL, NULL);
+
+  -- thickness diketik "2,0mm" -> disimpan "2 MM"; warna " Black " / "white" -> huruf besar
+  l1 := fn_bom_add_line(t_spec, rv, v_comp, NULL, NULL, v_mat, '2,0mm', v_sup, NULL, NULL);
+  PERFORM fn_bom_cell_set(t_spec, l1, a1, ' Black ');
+  PERFORM fn_bom_cell_set(t_spec, l1, a2, 'white');
+  PERFORM pg_temp.ok((SELECT thickness FROM bom_line WHERE id = l1) = '2 MM'
+                     AND (SELECT string_agg(color, ',' ORDER BY color) FROM bom_cell WHERE bom_line_id = l1 AND color IS NOT NULL) = 'BLACK,WHITE',
+                     'R16 thickness 2,0mm -> 2 MM, warna huruf besar');
+  PERFORM pg_temp.ok((SELECT yellow_cells FROM v_revision_checklist WHERE revision_id = rv) = 2,
+                     'R16 material baru tanpa varian: 2 sel kuning');
+  PERFORM pg_temp.must_fail(format('SELECT fn_bom_add_line(%L, %L, %L, NULL, NULL, %L, ''2.0mm'', %L, NULL, NULL)', t_spec, rv, v_comp, v_mat, v_sup),
+            '%already in this revision%', 'R16 komponen + material + thickness sama, beda cara tulis (2.0mm = 2 MM) = dobel, ditolak');
+  PERFORM pg_temp.must_fail(format('SELECT fn_revision_publish(%L, %L, ''OTHER'', NULL)', t_spec, rv),
+            '%no Material Code%', 'R16 tidak boleh terbit selama ada sel kuning');
+
+  -- kode datang belakangan: daftarkan varian -> sel kuning tersambung otomatis (relink), thickness diketik beda cara tulis
+  v_var := fn_variant_save(t_spec, NULL, v_mat, 'UBTK200BLK', 'black', '2.0 mm', 'ACTIVE');
+  PERFORM pg_temp.ok((SELECT thickness || '|' || color FROM material_variant WHERE id = v_var) = '2 MM|BLACK'
+                     AND (SELECT variant_id FROM bom_cell WHERE bom_line_id = l1 AND article_id = a1) = v_var
+                     AND (SELECT yellow_cells FROM v_revision_checklist WHERE revision_id = rv) = 1,
+                     'R16 varian didaftarkan dengan "2.0 mm": sel BLACK tersambung, sisa 1 kuning');
+  PERFORM pg_temp.must_fail(format('SELECT fn_variant_save(%L, NULL, %L, ''UBTK200BL2'', ''BLACK'', ''2,0MM'', ''ACTIVE'')', t_spec, v_mat),
+            '%already exists%', 'R16 varian dobel beda cara tulis thickness (2,0MM = 2 MM) ditolak');
+  v_v2 := fn_variant_save(t_spec, NULL, v_mat, 'UBTK200WHT', 'White', '2MM', 'ACTIVE');
+  PERFORM pg_temp.ok((SELECT yellow_cells FROM v_revision_checklist WHERE revision_id = rv) = 0, 'R16 semua kuning hilang setelah kode lengkap');
+  -- arti kode = yang paling banyak dipakai: pengecualian yang dikonfirmasi (200 = 9 MM) tidak membuat kode 200 normal (2 MM) diminta konfirmasi
+  PERFORM fn_variant_save(t_spec, NULL, v_mat, 'UBTK200GRN', 'GREEN', '9 MM', 'ACTIVE', true);
+  PERFORM fn_variant_save(t_spec, NULL, v_mat, 'UBTK200GRY', 'GREY', '2,0 mm', 'ACTIVE');
+  PERFORM pg_temp.must_fail(format('SELECT fn_variant_save(%L, NULL, %L, ''UBTK200PNK'', ''PINK'', ''9 MM'', ''ACTIVE'')', t_spec, v_mat),
+            'Confirmation needed: thickness code 200 is recorded as "2 MM"%', 'R16 arti kode = paling banyak dipakai: pengecualian baru tetap diminta konfirmasi');
+
+  -- thickness baru untuk induk yang sama: baris baru, kuning lagi sampai kodenya ada
+  l2 := fn_bom_add_line(t_spec, rv, NULL, 91, 'Uji lokal baku', v_mat, '3mm', v_sup, NULL, 'Black');
+  PERFORM pg_temp.ok((SELECT thickness FROM bom_line WHERE id = l2) = '3 MM'
+                     AND (SELECT yellow_cells FROM v_revision_checklist WHERE revision_id = rv) = 2,
+                     'R16 thickness baru (3mm) untuk induk yang sama: baris baru, 2 sel kuning');
+  PERFORM pg_temp.must_fail(format('SELECT fn_revision_publish(%L, %L, ''OTHER'', NULL)', t_spec, rv),
+            '%no Material Code%', 'R16 thickness baru tanpa kode tidak boleh terbit');
+  PERFORM fn_variant_save(t_spec, NULL, v_mat, 'UBTK300BLK', 'BLACK', '3MM', 'ACTIVE');
+  PERFORM fn_variant_save(t_spec, NULL, v_mat, 'UBTK300WHT', 'WHITE', '3 mm', 'ACTIVE');
+  PERFORM pg_temp.ok((SELECT yellow_cells FROM v_revision_checklist WHERE revision_id = rv) = 0,
+                     'R16 kode thickness baru lengkap, tidak ada kuning');
+  PERFORM fn_revision_publish(t_spec, rv, 'OTHER', NULL);
+  PERFORM pg_temp.ok((SELECT status FROM specsheet_revision WHERE id = rv) = 'PUBLISHED', 'R16 specsheet terbit setelah kode lengkap');
+  PERFORM pg_temp.must_fail(format('SELECT fn_variant_save(%L, %L, %L, ''UBTK200BLK'', ''BLACK'', ''2.5MM'', ''ACTIVE'')', t_spec, v_var, v_mat),
+            '%used in published documents%', 'R16 varian terpakai dokumen terbit tetap terkunci (thickness tidak bisa diubah)');
+END;
+$$;
+
+
+-- ---------------------------------------------------------------- R16: Order master option = posisi (tanpa kembar, kosong = akhir)
+DO $$
+DECLARE
+  t_spec  text := pg_temp.tok('spec.a@selftest.invalid');
+  k text; v_fac uuid; x uuid; y uuid; z uuid; w uuid; q uuid; n integer;
+  kinds text[] := ARRAY['KATEGORI', 'CONSTRUCTION', 'GENDER', 'LAST', 'OUTSOLE_MOLD'];
+BEGIN
+  FOREACH k IN ARRAY kinds LOOP
+    v_fac := CASE WHEN fn_option_is_factory_kind(k) THEN fn_user_factory('spec.a@selftest.invalid') END;
+    x := fn_option_save(t_spec, NULL, k, 'UJI ORD ' || k || ' X', NULL, 'ACTIVE');       -- kosong = paling akhir
+    y := fn_option_save(t_spec, NULL, k, 'UJI ORD ' || k || ' Y', NULL, 'ACTIVE');
+    PERFORM pg_temp.ok((SELECT sort_order FROM model_option WHERE id = y) = (SELECT count(*) FROM model_option WHERE kind = k AND factory_id IS NOT DISTINCT FROM v_fac)
+                       AND (SELECT sort_order FROM model_option WHERE id = x) = (SELECT sort_order FROM model_option WHERE id = y) - 1,
+                       'R16 ' || k || ': Order kosong = paling akhir, berurutan');
+    z := fn_option_save(t_spec, NULL, k, 'UJI ORD ' || k || ' Z', 1, 'ACTIVE');          -- sisip di posisi 1
+    PERFORM pg_temp.ok((SELECT sort_order FROM model_option WHERE id = z) = 1
+                       AND (SELECT sort_order FROM model_option WHERE id = x) > 1,
+                       'R16 ' || k || ': Order 1 dipakai = menyisip, yang lain bergeser ke bawah');
+    n := (SELECT sort_order FROM model_option WHERE id = x);
+    w := fn_option_save(t_spec, NULL, k, 'UJI ORD ' || k || ' W', n, 'ACTIVE');          -- angka yang sama dengan X
+    PERFORM pg_temp.ok((SELECT sort_order FROM model_option WHERE id = w) = n
+                       AND (SELECT sort_order FROM model_option WHERE id = x) = n + 1,
+                       'R16 ' || k || ': Order kembar diketik = baris baru ambil posisi itu, X turun satu');
+    q := fn_option_save(t_spec, NULL, k, 'UJI ORD ' || k || ' Q', 9999, 'ACTIVE');       -- terlalu besar = paling akhir
+    PERFORM pg_temp.ok((SELECT sort_order FROM model_option WHERE id = q) = (SELECT count(*) FROM model_option WHERE kind = k AND factory_id IS NOT DISTINCT FROM v_fac),
+                       'R16 ' || k || ': Order lebih besar dari jumlah baris = paling akhir');
+    n := (SELECT sort_order FROM model_option WHERE id = x);
+    PERFORM fn_option_save(t_spec, x, k, 'UJI ORD ' || k || ' X', NULL, 'ACTIVE');       -- edit, Order kosong = tidak berubah
+    PERFORM pg_temp.ok((SELECT sort_order FROM model_option WHERE id = x) = n, 'R16 ' || k || ': edit dengan Order kosong tidak memindahkan');
+    PERFORM fn_option_save(t_spec, x, k, 'UJI ORD ' || k || ' X', 1, 'ACTIVE');          -- pindah ke posisi 1
+    PERFORM pg_temp.ok((SELECT sort_order FROM model_option WHERE id = x) = 1 AND (SELECT sort_order FROM model_option WHERE id = z) = 2,
+                       'R16 ' || k || ': edit pindah ke posisi 1, yang lama turun');
+    y := (SELECT id FROM model_option WHERE kind = k AND factory_id IS NOT DISTINCT FROM v_fac AND sort_order = 2);
+    w := (SELECT id FROM model_option WHERE kind = k AND factory_id IS NOT DISTINCT FROM v_fac AND sort_order = 3);
+    PERFORM fn_option_save(t_spec, x, k, 'UJI ORD ' || k || ' X', 3, 'ACTIVE');          -- pindah ke bawah: 1 -> 3
+    PERFORM pg_temp.ok((SELECT sort_order FROM model_option WHERE id = x) = 3 AND (SELECT sort_order FROM model_option WHERE id = y) = 1
+                       AND (SELECT sort_order FROM model_option WHERE id = w) = 2,
+                       'R16 ' || k || ': edit pindah ke bawah (1 -> 3) tepat di posisi 3, yang di antaranya naik satu');
+    PERFORM pg_temp.ok((SELECT min(sort_order) = 1 AND max(sort_order) = count(*) AND count(DISTINCT sort_order) = count(*)
+                          FROM model_option WHERE kind = k AND factory_id IS NOT DISTINCT FROM v_fac),
+                       'R16 ' || k || ': Order selalu 1..n tanpa kembar dan tanpa kosong');
+  END LOOP;
+  PERFORM fn_option_save(t_spec, NULL, 'UKURAN', '96', 5, 'ACTIVE');
+  PERFORM pg_temp.ok((SELECT sort_order FROM model_option WHERE kind = 'UKURAN' AND value = '96') = 96,
+                     'R16 UKURAN: Order tetap = angka ukuran (tidak ikut posisi)');
 END;
 $$;
 

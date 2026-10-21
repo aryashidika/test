@@ -50,10 +50,17 @@ body {
   gap: 12px;
   padding: 6px 8px;
   min-height: 36px;
+  flex-wrap: wrap;
+}
+
+.bar .link, .bar .status {
+  flex: none;
+  white-space: nowrap;
 }
 
 .msg {
-  flex: 1;
+  flex: 1 1 280px;
+  min-width: 0;
   border-radius: var(--radius);
   padding: 6px 10px;
   font-size: 12.5px;
@@ -398,6 +405,21 @@ textarea.cell {
 .vcode.warn {
   color: var(--warn);
   font-weight: 600;
+}
+
+.newmat {
+  margin-top: 3px;
+}
+
+.newmat .hint {
+  display: inline;
+  margin-right: 6px;
+  color: var(--danger);
+}
+
+.newmat-btn {
+  font-size: 11.5px;
+  padding: 2px 0;
 }
 
 .link.reg {

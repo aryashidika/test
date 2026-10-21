@@ -696,7 +696,8 @@ function sellTable(r) {
   margin.addEventListener('input', () => {
     sim.margin = margin.value;
     const m = simRead(margin.value, true);
-    sim.price = m !== null && m < 100 && fob !== null ? Math.round(fob / (1 - m / 100)).toLocaleString('id-ID') : '';
+    // tanpa pemisah ribuan: "255.784" akan ditolak sebagai angka ambigu saat Selling price diubah lagi
+    sim.price = m !== null && m < 100 && fob !== null ? String(Math.round(fob / (1 - m / 100))) : '';
     price.value = sim.price;
   });
   t.appendChild(tb);

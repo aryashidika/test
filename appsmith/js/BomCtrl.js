@@ -4,6 +4,8 @@
 // Query baca dijalankan dengan params lewat load() / reload().
 // R4: kolom Material = induk × thickness; sel warna tanpa Material Code = kuning -> Daftarkan (cwVariantForm di
 // mdlVarianBaru) · + Supplier baru (cwSupplierForm di mdlSupplierBaru).
+// R16: "+ New material" (mdlMaterialBaru / cwMaterialForm, induk baru tanpa kode, cari nama mirip dulu). Thickness baru = baris
+// baru, sel kuning. Sel kuning juga kuning di Export Excel (SpecExportCtrl) supaya kode yang harus diminta jelas.
 // R12 (T62): grid hanya menampilkan baris revisi yang dibuka; pemuatan yang tersalip dimuat ulang (fetch()).
 export default {
 	okKey: 0,        // naik setelah tambah baris / subkomponen berhasil -> cwBomGrid mengosongkan form
@@ -16,6 +18,9 @@ export default {
 	// R4: modal Daftarkan varian (sel kuning) & + Supplier baru
 	varKey: 0, varBusy: false, varMsg: null, varCtx: null, varHint: null, varLookupSeq: 0, varSuggest: null, varSuggestSeq: 0,
 	supKey: 0, supBusy: false, supMsg: null, similar: [], similarFor: '', similarSeq: 0,
+	matKey: 0, matBusy: false, matMsg: null, matForm: { name: '', category: '', uom: '' },
+	matSimilar: [], matSimilarFor: '', matSimilarSeq: 0,
+	matAdded: { key: 0, name: '' },   // R16: material baru tersimpan -> cwBomGrid melanjutkan baris yang menunggu
 	statusOptions: [
 		{ label: 'ACTIVE', value: 'ACTIVE' },
 		{ label: 'INACTIVE', value: 'INACTIVE' },
@@ -43,6 +48,7 @@ export default {
 		return {
 			components: arr(r.components), materials: arr(r.materials), variants: arr(r.variants),
 			suppliers: arr(r.suppliers), links: arr(r.links),
+			categories: arr(r.categories), uoms: arr(r.uoms),   // R16: saran isian modal + New material
 		};
 	},
 
@@ -119,6 +125,8 @@ export default {
 			doneSeq: this.doneSeq,
 			canRegister: Auth.can('manage_master'),
 			canAddSupplier: Auth.can('manage_master'),
+			canAddMaterial: Auth.can('manage_master'),   // R16: tombol + New material
+			matAdded: this.matAdded,
 			emptyText: SpecCtrl.navBusy ? 'Loading…' : (SpecCtrl.revision() ? 'No BOM lines yet.' : ''),
 		};
 	},
@@ -135,6 +143,7 @@ export default {
 		const ack = () => { this.doneSeq = Math.max(this.doneSeq, s); };
 		if (a.type === 'registerVariant') { ack(); return this.openRegister(a); }
 		if (a.type === 'newSupplier') { ack(); return this.openNewSupplier(); }
+		if (a.type === 'newMaterial') { ack(); return this.openNewMaterial(a); }
 		const r = SpecCtrl.revision();
 		const actions = !r ? {} : {
 			addLine: [a_bom_add_line, {
@@ -353,6 +362,127 @@ export default {
 		closeModal('mdlSupplierBaru');
 		showAlert(`Supplier ${name.toUpperCase()} added. Type its name in the Supplier column.`, 'success');
 		await this.reload(['options']);
+	},
+
+	// ---- + New material (mdlMaterialBaru / cwMaterialForm): induk baru (nama, kategori, UoM), tanpa kode ----
+	openNewMaterial(a) {
+		this.matForm = { name: String((a && a.name) || ''), category: '', uom: '' };
+		this.matSimilar = [];
+		this.matSimilarFor = '';
+		this.matBusy = false;
+		this.matMsg = null;
+		this.matKey = this.matKey + 1;
+		showModal('mdlMaterialBaru');
+	},
+
+	materialFormModel() {
+		const o = this.options();
+		return {
+			key: this.matKey,
+			mode: 'add',
+			form: this.matForm,
+			categories: o.categories,
+			uoms: o.uoms,
+			statusOptions: this.statusOptions,
+			canIdentity: true,
+			canPriceMethod: false,
+			canStatus: false,
+			similar: this.matSimilar,
+			similarFor: this.matSimilarFor,
+			busy: this.matBusy,
+			message: this.matMsg,
+		};
+	},
+
+	// cwMaterialForm onSearch: nama mirip di pabrik user ("cari dulu, baru buat")
+	async searchSimilarMaterial() {
+		const text = String((cwMaterialForm.model || {}).similarQuery || '').trim();
+		const seq = this.matSimilarSeq + 1;
+		this.matSimilarSeq = seq;
+		if (text.length < 2) {
+			this.matSimilar = [];
+			this.matSimilarFor = text;
+			return;
+		}
+		try {
+			const rows = await q_similar.run({ kind: 'MATERIAL', text, exclude_id: '' });
+			if (seq !== this.matSimilarSeq) return;
+			// R16: DB hanya menemukan nama yang memuat teks (tanpa tanda baca); typo / urutan kata dicari di sini dari master pabrik
+			const list = (rows || []).slice();
+			this.nearMaterialNames(text).forEach(n => {
+				if (!list.some(r => String(r.label).toUpperCase() === n.toUpperCase())) list.push({ ref_id: n, label: n, info: 'looks similar (typo?)' });
+			});
+			this.matSimilar = list;
+			this.matSimilarFor = text;
+		} catch (e) {
+			/* daftar mirip hanya bantuan */
+		}
+	},
+
+	// Nama material pabrik yang mirip teks (typo sampai ±25% panjang, atau semua kata ada dalam urutan lain)
+	nearMaterialNames(text) {
+		const clean = x => String(x ?? '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+		const q = clean(text);
+		if (q.length < 3) return [];
+		const dist = (a, b) => {
+			let prev = Array.from({ length: b.length + 1 }, (_, j) => j);
+			for (let i = 1; i <= a.length; i++) {
+				const cur = [i];
+				for (let j = 1; j <= b.length; j++) {
+					cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+				}
+				prev = cur;
+			}
+			return prev[b.length];
+		};
+		const words = q.split(' ');
+		const limit = Math.max(1, Math.floor(q.length / 4));
+		const names = [...new Set((this.options().materials || []).map(x => x.name))];
+		return names
+			.map(n => ({ n, c: clean(n) }))
+			.map(x => {
+				const nw = x.c.split(' ');
+				const near = (a, b) => Math.abs(a.length - b.length) <= Math.max(1, Math.floor(a.length / 4)) && dist(a, b) <= Math.max(1, Math.floor(a.length / 4));
+				const wordsOk = words.every(w => nw.some(v => v.includes(w) || near(w, v)));
+				return { n: x.n, d: wordsOk ? 1 : (Math.abs(x.c.length - q.length) > limit ? limit + 1 : dist(q, x.c)) };
+			})
+			.filter(x => x.d <= limit)
+			.sort((a, b) => a.d - b.d || a.n.localeCompare(b.n))
+			.slice(0, 5)
+			.map(x => x.n);
+	},
+
+	async saveMaterial() {
+		const m = cwMaterialForm.model || {};     // baca dulu - model di-reset saat Default model berubah
+		const data = { name: m.name, category: m.category, uom: m.uom };
+		if (!data.name || !data.category || !data.uom) {
+			this.matMsg = { type: 'error', text: 'Fill in category, name, and Mea.' };
+			return;
+		}
+		this.matMsg = null;
+		this.matBusy = true;
+		try {
+			await a_material_add.run(data);
+		} catch (e) {
+			const msg = e && e.message;
+			if (Util.isSessionError(msg)) {
+				closeModal('mdlMaterialBaru');
+				await removeValue('token');
+				showAlert('Session expired. Please log in again.', 'warning');
+				navigateTo('Login');
+				return;
+			}
+			this.matMsg = { type: 'error', text: Util.cleanError(msg) };   // mis. nama + UoM sudah ada
+			return;
+		} finally {
+			this.matBusy = false;
+		}
+		closeModal('mdlMaterialBaru');
+		const name = String(data.name).trim().replace(/\s+/g, ' ').toUpperCase();
+		showAlert(`Material ${name} added.`, 'success');
+		await this.reload(['options']);
+		// R16: sesudah daftar material dimuat ulang -> cwBomGrid mengulang aksi baris yang menunggu (tambah / sub / ganti)
+		this.matAdded = { key: this.matAdded.key + 1, name };
 	},
 
 	// Tombol "Masukkan ke Revisi": article terpilih di msArticleTambah jadi ACTIVE (baru masuk / aktif lagi)

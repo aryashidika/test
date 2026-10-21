@@ -45,6 +45,7 @@ Legenda status: ⬜ belum · 🟡 dibuat (belum diverifikasi dari export) · ✅
 | R10 | Hapus varian yang tidak dipakai (manual, tanpa build) | – (tempel manual: SQL R10, `q_variants`, `a_variant_delete`, `MaterialDetailCtrl.deleteVariant`, kolom Hapus `tblVariants`) | 🟡 dibuat 12 Okt 2026 · self-test 121 cek lolos |
 | R9 | Material Code: isi otomatis (usulan) + kamus kode tiga tingkat (tolak / konfirmasi / info); awalan kembali info - panduan `steps/R9_uji.md` | **`build_r9.json` (di-import)** (base `build_r8.json`) | 🟡 dibuat 12 Okt 2026 · self-test 113 cek lolos (DB bersih & DB tiruan data user) · 845 kode ERP: 844 masuk, 1 ditolak (T-160 WHITE dobel) · 139 query EXPLAIN · harness |
 | R8 | Catatan uji E2E-R: Manager Costing langsung berlaku, riwayat harga, article tanpa batas, awalan Material Code wajib sama, ajukan harga master dari CBD - panduan `steps/R8_uji.md` | **`build_r8.json` (di-import)** | 🟡 dibuat 12 Okt 2026 · R8 2× tanpa error · self-test 102 cek lolos · 137 query EXPLAIN · harness widget & JSObject |
+| R16 | Specsheet boleh disusun dengan material tanpa Material Code (sel kuning, terbit tetap diblokir), **+ New material** (bar atas & di baris yang tidak ketemu, baris dilanjutkan otomatis), saran "Did you mean", sel kuning di Export Excel, thickness baku (gaya berspasi tim material; 20 Okt: nol belakang dibuang, kutip miring / INCH, rentang), Order master option = posisi; review seluruh app 20 Okt 2026: T74–T86 (lihat §6 R16 & §9) · panduan `steps/R16_uji.md` | `sql/R16_baku_thickness.sql` + **`exports/build_r16.json`** (base `build_r15.json`) | ✅ lolos uji user 21 Okt 2026 · self-test **267 cek** (DB kosong & data sintetis 1 tahun) · 144 query dijalankan per role tanpa error · pembakuan thickness SQL = JS pada 239 teks · pindah Order 42/42 · alur panduan bagian 1–6 lewat fungsi DB 19/19 · uji browser `cwBomGrid` + `BomCtrl` + `cwVariantForm` + `cwCbdGrid` asli · validator **LOLOS** |
 | R15 | Seluruh app ke bahasa Inggris sederhana + tanpa em dash (keputusan user 13 Okt 2026): label, tombol, pesan, isi Custom Widget, pesan error DB, Tugas Saya, export Excel; nama page Home / Master Component / Master Options / Price Approval; kode status harga bahasa Inggris; PURPOSE Excel specsheet 5 stage (catatan uji R14); T72, T73 (lihat §6 R15) · panduan `steps/R15_uji.md` | `sql/R15_english.sql` + **`exports/build_r15.json`** (base `build_r14.json`: app R14 user tidak diubah) | ✅ lolos uji user 14 Okt 2026 (commit 33b943d) · R15 2× tanpa error (DB bersih & DB data uji) · logika 88 fungsi/view identik (dibandingkan tanpa teks & komentar) · 0 teks Indonesia tersisa di literal DB · self-test **204 cek** (pola pesan bahasa Inggris) · 143 query EXPLAIN · query kode status harga per role 11/11 · harness 45/45 (28 Custom Widget dirender tanpa error, Material Detail dengan data DB, PURPOSE 5 stage) · validator **LOLOS** · em dash di app & dokumen: 0 · tinjauan kalimat utuh (906 baris) + perbaikan frasa · **14 Okt: uji user menemukan T73 (data tidak tampil), build diperbaiki, Auth per page dicek sama dengan R14, validator LOLOS** |
 | R14 | Detail audit (panel `cwAuditDetail` di Admin, tab Audit Log: UPDATE kolom berubah lama → baru, INSERT keterangan, DELETE isi lengkap, kolom teknis diringkas, password tidak pernah tampil) + T71 (kolom Waktu audit) + **5 stage** Pullover, Preview, SMS, GTM, Production (kode `PULL`/`PREV`/`SMS`/`GTM`/`PROD`, label di app, stage berikutnya boleh melompat) (lihat §6 R14) · panduan `steps/R14_uji.md` | `sql/R14_audit_stage.sql` + **`exports/build_r14.json`** (base `build_r13.json`: app R13 user tidak diubah, hanya di-deploy) | ✅ lolos uji user 13 Okt 2026 (catatan: PURPOSE di Excel specsheet dibuat 5 stage → R15) · dibuat 13 Okt 2026 · R14 2× tanpa error (DB bersih & DB data uji, data lama dinomori ulang tanpa audit) · self-test **204 cek** · 143 query EXPLAIN · query baru/diubah per role 24/24 · harness (AdminCtrl, Util, SpecCtrl, CbdCtrl, SpecExportCtrl asli + `cwAuditDetail`, `cwRevisionForm`, `cwStepper`, `cwCbdForm` asli, data `q_audit` asli) 41/41 · scan fungsi menganggur: tidak ada yang baru · validator **LOLOS** |
 | R13 | CBD per stage (laporan user 13 Okt 2026: draft CBD SMS r0 pindah jadi GTM r0 saat *Refresh dari Specsheet* setelah specsheet GTM terbit → CBD & PO SMS hilang): acuan CBD = specsheet terbit terakhir **di stage CBD itu**, stage dipilih saat Buat CBD, tidak boleh mundur, chip/Tugas Saya *perlu CBD <stage>*, sinkron hanya stage sama, perbaikan data acuan lintas stage + **bersih-bersih** hasil scan (lihat §6 R13) - panduan `steps/R13_uji.md` | `sql/R13_cbd_stage.sql` + **`exports/build_r13.json`** (base `export_r12.json` = export user "Product Management R12", sama dengan build R12 kecuali tata letak kecil) | ✅ lolos uji user 13 Okt 2026 · dibuat 13 Okt 2026 · R13 2× tanpa error (DB bersih & DB data uji) · self-test **190 cek** · bug lama direproduksi dengan kode R12 lalu acuan dipulihkan R13 · 143 query EXPLAIN · query baru/diubah per role 12/12 · data 5 tahun: Tugas Saya CBD ±0,6–1 dtk (sama), chip article 2–4 ms, checklist ±30 ms · harness (CbdCtrl/CbdGridCtrl/BerandaCtrl asli + `cwCbdForm` asli) 17/17 · validator **LOLOS** (0 error) |
@@ -724,6 +725,92 @@ bentuk jamak sederhana "line(s)" bila jumlah bisa 1; alasan terbit lama ("Revisi
 
 **Selesai bila:** semua page & modal tanpa teks Indonesia / em dash; pesan error DB bahasa Inggris; status harga & filter
 riwayat berjalan; Excel PURPOSE 5 stage; navigasi ke 4 page yang berganti nama berjalan.
+
+### R16: Material baru tanpa kode di specsheet + thickness baku (15 Okt 2026)
+
+Latar: Vendor Spec menyusun specsheet langsung tanpa membuka master dulu, padahal Material Code berasal dari tim material
+UMK yang tidak memegang app (lead time). Keputusan user: draft boleh berisi material yang belum punya kode; **specsheet tetap
+tidak boleh terbit selama ada sel kuning** (aturan lama, tidak berubah). Penyeragaman penulisan: huruf besar + trim (nama,
+warna, kode sudah sejak F10b / R2b / R9) dan thickness dibakukan.
+
+**Temuan pemindaian sebelum membangun:** rencana awal "baris sementara bernama bebas" **tidak perlu**. Induk material tidak
+punya kode (kode ada di varian), `bom_line.thickness` sudah teks bebas, dan sel warna tanpa varian sudah berupa sel kuning
+(`variant_id` NULL, terbit diblokir `v_revision_checklist.yellow_cells`) yang tersambung otomatis saat varian didaftarkan
+(`trg_variant_relink`). Tidak ada tabel yang diubah; risiko baris tanpa induk (BOM, CBD, copy model, export) tidak ada.
+Celah sebenarnya hanya dua: (1) induk yang belum ada di master / thickness baru tidak bisa diketik di grid ("add it in
+Master Material first"), (2) tidak ada daftar untuk diminta ke tim material.
+
+**Koreksi catatan lama:** kunci pencocokan `fn_normalize` hanya huruf kecil + spasi dirapatkan, **tidak** membuang tanda baca
+atau spasi di dalam. Jadi "1.2 MM" dan "1.2MM" selama ini dianggap dua thickness (varian dobel bisa lolos) dan "HONEY-LON" tidak
+sama dengan "HONEYLON". Nama material sudah huruf besar otomatis (`trg_aa_upper`), tidak diubah.
+
+- [x] (dibuat) `sql/R16_baku_thickness.sql`: `fn_clean_thickness` = bentuk baku (huruf besar, spasi ganda dirapikan, koma desimal
+  jadi titik, angka + satuan satu spasi `1.2MM` jadi `1.2 MM`, `X` antar ukuran berspasi `1.0MMX44"` jadi `1.0 MM X 44"`, tanpa spasi di
+  sekitar `-`, spasi sebelum `(` dan tidak ada spasi di dalam kurung, dua apostrof jadi tanda kutip; kosong / "." / "-" = tanpa thickness; idempoten; "MAX 5" tidak berubah). Data lama (`material_variant`, `bom_line`,
+  `cbd_line`, termasuk di dokumen terbit) dibakukan; kunci dokumen terbit dimatikan sebentar hanya untuk penulisan ulang teks.
+  Varian yang menabrak varian lain setelah dibakukan (material + warna sama) **dilewati** dan dilaporkan lewat NOTICE.
+  Gaya berspasi dipilih user (15 Okt 2026) karena sama dengan standar tim material (file `MATERIAL_CODE_KLASIFIKASI_v8`): dari 603 thickness
+  asli, 599 menghasilkan bentuk yang sama dengan hasil rapi tim (4 sisanya `SZ` jadi `SIZE` = isi), dan 690 thickness v8 tidak berubah.
+  Uji impor 690 kode v8 ke DB uji: 686 diterima, 4 ditolak (identitas dobel), 0 thickness berubah bentuk.
+- [x] (dibuat) Grid BOM (`cwBomGrid`): kolom Material menerima `NAMA · THICKNESS` dengan thickness baru untuk induk yang ada
+  (dibakukan di klien seperti DB, `canonThickness`, diuji sama dengan DB pada 126 teks): baris baru bertanda "(new)", sel warna
+  kuning sampai kodenya didaftarkan. Nama tidak ditemukan: pesan "Did you mean" (typo nama sampai ±25%, urutan kata, typo
+  Material Code) + tombol **+ New material**.
+- [x] (dibuat) **+ New material**: modal `mdlMaterialBaru` (salinan modal Master Material: nama, kategori, Mea; daftar nama mirip
+  dari DB + typo dari master pabrik) tanpa kode, lalu Enter lagi di baris tambah. Hanya role `manage_master`.
+  `q_bom_options` + `categories`, `uoms`; action baru `a_material_add`.
+- [x] (dibuat) **Export Excel specsheet**: sel warna tanpa Material Code diberi latar kuning dan tulisan `(no code)`, plus satu baris
+  keterangan di blok header (jumlah sel). Satu sheet, tanpa tombol baru (keputusan user 15 Okt 2026: "gausah banyak tombol, gausah
+  banyak sheet, yang penting tahu kodenya apa saja yang di request"). Rencana awal tombol **Code request** + sheet daftar
+  usulan kode dibatalkan. Kode yang kembali diketik lewat tombol Register di sel kuning (flow R4).
+- [x] (dibuat) `sql/R_selftest.sql` +bagian R16 (pembakuan, material baru tanpa kode, kuning, terbit diblokir, relink, dobel beda
+  cara tulis ditolak, kode terkunci setelah terbit). `tools/build_r16.py` (basis `build_r15.json`). `steps/R16_uji.md`.
+
+- [x] (dibuat) **Order master option = posisi** (permintaan user 16 Okt 2026: Order tidak boleh kembar). Sebelumnya Order opsional, tidak unik
+  (dua "10" lolos), kosong tersimpan NULL dan tampil paling bawah (Category, Construction, Gender, Last, Outsole Mold; Size sudah selalu
+  = angka ukuran). Sekarang `fn_option_renumber` + `fn_option_save`: Order selalu 1..n tanpa kembar dan tanpa kosong per jenis (dan per
+  pabrik untuk Last / Outsole Mold). Kosong saat tambah = paling akhir; kosong saat edit = posisi tetap; angka yang sudah dipakai =
+  baris ini mengambil posisi itu dan yang lain turun; angka lebih besar dari jumlah baris = paling akhir. Data lama dinomori ulang
+  mempertahankan urutan (kembar urut nama, lubang ditutup, kosong paling bawah). Label form: "Order (position)", placeholder "empty = last".
+  Uji: selftest 5 jenis x 7 pemeriksaan + Size; migrasi data seperti tangkapan layar user (dua Order 10 + kosong + lubang).
+
+**Tidak termasuk (diputuskan):** daftar / usulan kode terpisah, impor 845 kode ERP (tersendiri), impor balik Excel kode dari tim material (kode diketik satu per
+satu seperti sekarang), pencarian kode di form harga / Material Detail, tombol Gabungkan varian dobel.
+
+**Keputusan detail (Claude, R16):** bentuk baku thickness = berspasi seperti standar tim material (pilihan user; rencana awal saya padat `1.0MMX44"` dibatalkan); thickness
+kosong setelah `·` dianggap masih mengetik (nama saja); nama material tidak ditebak otomatis dari kode (ERP sumber kebenaran);
+tidak ada status "menunggu kode" baru (sel kuning sudah itu).
+
+**Review 20 Okt 2026 (permintaan user: tutup celah pembakuan thickness poin 1–4 + cek bug seluruh app, sebelum uji R16 selain SQL):**
+- [x] (dibuat) Pembakuan thickness diperluas, sama persis di `fn_clean_thickness` (kini plpgsql, satu langkah per baris), `canonThickness`
+  di `cwBomGrid` **dan** `cwVariantForm`: (1) angka setara satu bentuk, **nol di belakang koma dibuang** (keputusan user 20 Okt 2026: "Buang nol
+  belakang"; `2.0 MM` = `2 MM`, `1.50` = `1.5`, `.5` = `0.5`), (2) kutip miring `” “ ″ ＂` dan dua apostrof miring jadi `"`, (3) `INCH` / `INCHES` / `IN`
+  setelah angka jadi `"` (hanya bila diikuti akhir teks, `X`, `(`, `-` atau tanda baca; `2 IN 1`, `10 INCL` tidak berubah), (4) rentang dengan
+  satuan di kedua sisi `1.4 MM-1.6 MM` jadi `1.4-1.6 MM` (satuan berbeda tidak diubah). Uji: 239 teks (semua thickness file tim + kasus tepi)
+  SQL = JS (Chromium) dan idempoten; dari nilai rapi file tim hanya 4 yang berubah (`1.0 MM ...`, `2.0 MM ...` jadi `1 MM ...`, `2 MM ...`).
+  Yang tetap tidak bisa dibakukan: satuan yang hilang (`1.4 X 44` vs `1.4 MM X 44"`).
+- [x] (dibuat) Migrasi R16 + sambung ulang sel kuning draft yang setelah dibakukan cocok dengan varian (diuji pada data dengan fungsi lama:
+  varian `2.0 MM` vs `2 MM` warna sama = dilewati + NOTICE, terbit dibakukan, kunci terbit aktif lagi, sel `1 MM X 44 INCH` tersambung).
+- [x] (dibuat) Perbaikan bug T74–T80 (tabel di §9 "Temuan review R16"). Build: `tools/build_r16.py` juga menimpa `CbdCtrl` (CBD) dan JS
+  `cwVariantForm` (Specsheet & Material Detail), dengan assert isi app = repo R15. `tools/validate.py`: tidak lagi crash bila sintaks JSObject gagal.
+- [x] (dibuat) `R_selftest.sql` +6 cek (angka setara, kutip miring / INCH, rentang, pindah Order ke bawah per jenis); 266 cek lolos di DB kosong
+  dan DB berisi data sintetis 1 tahun. Semua 144 query build dijalankan per role di data 1 tahun (tanpa error). Pindah Order: 42 kombinasi
+  (dari posisi mana pun ke mana pun, 6 nilai) = hasil yang diharapkan.
+
+- [x] (dibuat) **+ New material di baris** (permintaan user 20 Okt 2026, pilihan "a"): material yang tidak ketemu saat Enter / + Add / Add sub /
+  ganti material di sel menampilkan tombol **+ New material** di sel Material baris itu; setelah Save di modal, baris itu **langsung
+  ditambahkan / diganti otomatis** dengan nama yang disimpan (tanpa Enter lagi). Tombol di bar atas tetap ada. `cwBomGrid` (`awaitNew`,
+  `matAdded`), `BomCtrl.matAdded`. Diuji di browser dengan `cwBomGrid` + `BomCtrl` asli: tambah, sub, ganti, tanpa izin, isian diubah.
+
+- [x] (dibuat) **Material tanpa titik tengah** (permintaan user 21 Okt 2026, setelah R16 lolos uji): `·` tidak ada di keyboard, jadi
+  `NAMA . 1,5 mm`, `NAMA - 1.5mm`, `NAMA / 44 inch`, `NAMA 1,5mm` dibaca `NAMA · THICKNESS` bila bagian depan persis nama material yang ada
+  (terpanjang dulu) dan sisanya mirip thickness (dengan pemisah: ada angka; tanpa pemisah: angka + satuan); isian ditulis ulang.
+  `HONEYLON MESH 2` / `... blue` tidak dipecah, nama berisi `-` / kurung tetap utuh. Material baru `NAMA . THICKNESS`: modal tanpa
+  thickness, baris dilanjutkan dengan thickness itu. Uji browser 19 variasi + alur material baru. Panduan: `steps/R16_uji.md` **bagian 11**
+  (hanya bagian ini yang perlu diuji ulang), 9.5 diubah.
+
+**Selesai bila:** semua uji `steps/R16_uji.md` lolos, selftest lolos, migrasi pada data lama tidak mengubah Material Code di
+dokumen terbit.
 
 ### Opsional (setelah F10, bila diminta)
 - [ ] Tab Material: **Dipakai di** (where-used) & **Histori Harga**
@@ -1487,6 +1574,38 @@ audit tidak menyimpan isi file/password; tidak ada `Query1`/query uji tersisa; p
 | T72 | Sedang (terbukti) | Kolom **Last login** `tblUsers` membaca `currentRow["Login terakhir"]` (label, bukan kunci data) → semua user tampil jam sekarang (sejenis T71) | Dibaca dari `last_login_at` | ✅ R15 |
 | T73 | Tinggi (terbukti, uji user) | Build R15 pertama: JSObject `Auth` semua page tertimpa template repo → data tidak tampil di semua page & cek izin page hilang | Auth diterjemahkan dari isi app per page + assert di `build_r15.py` | ✅ R15 |
 
+
+### Temuan review R16 (20 Okt 2026, permintaan user sebelum uji R16) - seluruh app
+Cara: semua JSObject (20 file) & Custom Widget yang berubah sejak R12 dibaca; cek silang otomatis (parameter `.run({...})` vs `this.params`
+di query, properti model yang dibaca Custom Widget vs yang dikirim fungsi Default model), validator build, semua query baca build R16 dijalankan
+per role di PostgreSQL lokal dengan data sintetis 1 tahun, fungsi DB yang berubah di R13–R16 dibaca, pencarian sisa teks / pola Indonesia (R15),
+uji browser (Chromium) `cwBomGrid` + `BomCtrl.gridModel()` asli dan `cwVariantForm` versi lama vs baru. Yang **aman**: logika revisi & CBD per
+stage (buat, terbit, refresh, sinkron), hapus/ubah varian dengan thickness baku, pesan yang dikutip panduan uji R16 cocok dengan kode,
+DB tanpa sisa teks Indonesia.
+
+| # | Tingkat | Temuan | Perbaikan | Status |
+|---|---|---|---|---|
+| T74 | **Tinggi** (terbukti, R16) | Tombol **+ New material** di grid BOM **tidak pernah tampil**: `BomCtrl.gridModel()` tidak mengirim `canAddMaterial` (widget membaca `M.canAddMaterial`). Pesan material tidak ditemukan juga selalu menyuruh "ask Vendor Specsheet", juga untuk Vendor Spec. Lolos uji harness R16 karena model harness diisi manual | `canAddMaterial: Auth.can('manage_master')` | ✅ R16 (review) |
+| T75 | Sedang (terbukti, R16) | `cwVariantForm` masih memakai pembakuan thickness lama (rapikan spasi saja): kode yang bagian thickness-nya sudah tercatat (`404` = `44"`) dengan thickness diketik `44 "` / `6mm x 44 "` memunculkan kotak merah "already recorded as 44", not 44 "" dan wajib centang (uji R16 1.2 & 1.5 akan gagal) | Salinan `canonThickness` di `cwVariantForm` (dibandingkan dalam bentuk baku) | ✅ R16 (review) |
+| T76 | Sedang (terbukti, sejak R15) | `cwVariantForm` mencari pesan DB `/^Perlu konfirmasi:/`, padahal sejak R15 pesannya `Confirmation needed: ...` (regex tidak ikut diterjemahkan). Bila DB yang menolak (petunjuk kode belum dimuat), kotak centang konfirmasi tidak muncul; hanya pesan merah | Pola `Confirmation needed:` / `Check the Material Code;` | ✅ R16 (review) |
+| T77 | Sedang (terbukti, R16) | Master Options: pindah Order **ke bawah** meleset satu (A,B,C,D: A diberi 3 → B,A,C,D). Selftest hanya menguji pindah ke atas | `fn_option_renumber` membaca posisi lama (pindah ke bawah: sesudah baris di posisi itu); `fn_option_save` tidak mengubah `sort_order` sebelum renumber | ✅ R16 (review) |
+| T78 | Kecil (R16) | Modal **+ New material** di Specsheet: saran Category / Mea kosong (`BomCtrl.options()` tidak meneruskan `categories` / `uoms` dari `q_bom_options`) → rawan kategori baru karena salah ketik | Diteruskan | ✅ R16 (review) |
+| T79 | Kecil | Export Excel specsheet membaca `q_bom_grid.data` tanpa saring revisi (pola T62): bila revisi baru saja diganti, isi bisa milik revisi lain | `BomCtrl.gridLines()` | ✅ R16 (review) |
+| T80 | Kecil (R15) | Chip article CBD menampilkan `TERBIT <label>` (sisa bahasa Indonesia) | `PUBLISHED <label>` | ✅ R16 (review) |
+| T82 | **Tinggi** (terbukti di export, sejak R1) | Page Login: `LoginCtrl.onPageLoad` tercatat **Manual** dan `layoutOnLoadActions` kosong di semua export sejak `export_r1.json` (v11 masih benar; fungsi itu dibuat ulang 8 Okt 2026). Akibat: **Logout tidak logout** (token tetap di browser, sesi DB tidak ditutup, tombol Back masuk lagi tanpa password), tombol **Change password** di header membuka form login biasa, user yang sudah login tidak langsung ke Home. Jenis bug T46 | Build R16: `runBehaviour = ON_PAGE_LOAD`, `userSetOnLoad = true`, entri `layoutOnLoadActions` (pola sama dengan `Auth.onPageLoad`). **Cek setelah import**: Login → LoginCtrl → onPageLoad → *Run on page load* ON | ✅ R16 (review ke-2) |
+| T83 | Sedang (R16) | Master Options: tabel mengurutkan INACTIVE ke paling bawah sebelum Order, padahal sejak R16 Order = posisi → nilai yang dinonaktifkan "melompat" ke bawah dan kolom Order tidak berurutan (uji 8.8 tampak gagal) | `q_options`: urut menurut Order saja (status tetap terlihat di kolom Status) | ✅ R16 (review ke-2) |
+| T84 | Kecil (R15) | Master Options kolom Factory: `Bersama` untuk opsi milik bersama (sisa bahasa Indonesia di query) | `Shared` | ✅ R16 (review ke-2) |
+| T85 | Kecil | CBD simulasi harga jual: Margin → Selling price ditulis dengan pemisah ribuan (`319.730`), lalu angka itu ditolak widget sebagai ambigu saat diubah → Margin kosong | Selling price hasil hitungan tanpa pemisah ribuan | ✅ R16 (review ke-2) |
+| T86 | Sedang (terbukti, uji user 1.16b, sejak R9) | Konfirmasi arti kode di trigger varian membandingkan dengan varian pertama yang thickness / warnanya **berbeda**, sedangkan form memakai varian pertama yang memakai bagian kode itu. Setelah satu pengecualian dikonfirmasi (`2003404BLK` 404 = `58"`), setiap varian normal 404 = `44"` ikut diminta konfirmasi | Trigger `fn_material_variant_check` & `fn_variant_code_hint`: arti bagian kode = thickness / warna yang **paling banyak** memakainya (seri: yang tercatat paling awal, lalu kode). Pengecualian baru tetap diminta konfirmasi. Hanya SQL (`R16_baku_thickness.sql`), app tidak berubah | ✅ R16 (uji user) |
+| T81 | Info | (a) Kolom Main supplier `tblLinks`: teks cadangan `★ Utama` hanya dipakai saat tabel kosong (tidak tampil). (b) Varian yang **dilewati** migrasi karena bentrok (thickness lama) tidak bisa diubah statusnya lewat form (akan dibakukan → bentrok); selesaikan lewat DB Tools. Tidak terjadi di DB user (material kosong). (c) `q_cbd_sources` menerima `model_id` yang tidak dipakai | Dibiarkan | ✅ (dicatat) |
+
+**Review ke-2 (20 Okt 2026, permintaan user "recheck"):** cek otomatis tambahan: kolom setiap tabel (`currentRow` / `selectedRow` /
+`triggeredRow`) vs kolom hasil query (15 tabel, semua cocok), properti snake_case yang dibaca JSObject & widget vs kolom query page itu
+(tidak ada yang hilang), aksi saat page dibuka per page, event `cwHeader` di 12 page, konfirmasi pada semua aksi hapus / batal, izin
+tombol vs izin fungsi DB, teks Indonesia di literal query / view / fungsi, `innerHTML` (semua di-escape), nama sheet Excel (sudah
+dibersihkan `XlsxWriter`). Dibaca: `cwCbdGrid`, `cwPublishForm`, `cwPriceForm`, `cwPriceApproval`, `cwStepper`, `cwModelForm`,
+`cwOptionForm`, `CbdExportCtrl` (rumus Excel = rumus DB), fungsi harga DB. Alur panduan R16 bagian 1-6 dijalankan lewat fungsi DB:
+18 hasil sesuai panduan. Temuan T82-T85.
 
 ### Temuan kesesuaian alur kerja (12 Okt 2026) - dibanding CBD asli UMK
 Acuan: `FH26_CBD PRODUCTION_ACC ILLUZION IV ELITE FG PRM 097.xlsx` (sheet SMS, GTM OKT, PROD OKT, 2 article) + Project Charter. Yang **sudah sesuai**: stage PULL/SMS/GTM/PROD, revisi terkunci setelah terbit, CBD per article, kolom Yield–Usage–Loss–USD–IDR–Cost/pr–Supplier, kelompok Upper/Bottom/Packaging/Misc, rekap Material + Direct Labour + Amortisasi (boleh beberapa baris) + Adjustment, Target FOB & under/over, PO SMS × 1,25, kurs per revisi, tanda perlu revisi bila specsheet berubah.

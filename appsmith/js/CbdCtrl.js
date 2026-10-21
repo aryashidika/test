@@ -303,7 +303,7 @@ export default {
 		// R13: CBD terbit terakhir tertinggal stage specsheet (mis. CBD SMS terbit, specsheet sudah GTM)
 		if (a.pub_id && a.pub_behind) return { badge: `NEEDS CBD ${Util.stageLabel(a.spec_pub_stage)} · ${a.pub_label}`, tone: 'danger' };
 		if (a.pub_id && a.pub_sync === 'NEEDS_REVISION') return { badge: `NEEDS REVISION · ${a.pub_label}`, tone: 'danger' };
-		if (a.pub_id) return { badge: `TERBIT ${a.pub_label}`, tone: 'ok' };
+		if (a.pub_id) return { badge: `PUBLISHED ${a.pub_label}`, tone: 'ok' };
 		if (a.spec_status === 'NOT_PUBLISHED') return { badge: 'SPECSHEET NOT PUBLISHED', tone: 'muted' };
 		return { badge: 'NO CBD YET', tone: 'info' };
 	},

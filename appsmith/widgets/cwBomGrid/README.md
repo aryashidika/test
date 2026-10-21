@@ -80,3 +80,26 @@ R4 (specsheet per varian):
 - Sel berwarna tanpa varian = **kuning** + tombol **Daftarkan** → action `registerVariant` `{ line_id, material_id, material_name, uom, thickness, color }` → `BomCtrl.openRegister()` (modal `mdlVarianBaru` / `cwVariantForm` mode fixed).
 - Tombol **+ Supplier baru** di bar → action `newSupplier` → `mdlSupplierBaru` / `cwSupplierForm`.
 - `addLine` + `thickness`, `fill_color`; `addSub` + `thickness`; `replaceMaterial` + `thickness`. Badge usulan dihapus; badge ⚠ nonaktif untuk supplier / supplier material INACTIVE.
+
+## R16: material baru tanpa kode + thickness baku
+
+- **Kolom Material** menerima `NAMA · THICKNESS`. Thickness dibakukan di klien persis seperti DB (`canonThickness` = `fn_clean_thickness`:
+  gaya berspasi tim material: huruf besar, koma jadi titik, `1.2MM` jadi `1.2 MM`, `44X69CM` jadi `44 X 69 CM`, tanpa spasi di sekitar `-`;
+  20 Okt 2026: nol belakang dibuang `2.0` = `2`, kutip miring dan `INCH` / `IN` jadi `"`, rentang `1.4MM-1.6MM` jadi `1.4-1.6 MM`; salinan sama
+  di `cwVariantForm`, ubah ketiganya bersamaan); thickness baru untuk induk yang ada =
+  baris baru bertanda `(new)`. `NAMA ·` tanpa thickness = masih mengetik (dianggap nama saja).
+- **Tidak ketemu**: pesan `Did you mean` (nama: typo sampai ±25% panjang atau kata-kata dalam urutan lain; kode: ≤ 2 salah ketik)
+  + `lastNotFound` untuk isian awal modal.
+- **Bar atas**: `+ New material` (action `newMaterial`, `{ name }`, butuh `canAddMaterial`), `+ New supplier`. Tidak menyusut saat pesan panjang.
+  Sel kuning juga disorot di Export Excel (`SpecExportCtrl`), tanpa tombol terpisah.
+- Model masuk: + `canAddMaterial`. Action baru: `newMaterial` (BomCtrl membuka `mdlMaterialBaru`), langsung di-ack seperti `registerVariant`.
+- **Tanpa titik tengah** (21 Okt 2026, permintaan user): `NAMA . THICKNESS` / `- / | , ; :` / tanpa pemisah dibaca sebagai
+  `NAMA · THICKNESS` bila bagian depan persis nama material yang ada (terpanjang dulu) dan sisanya mirip thickness (`altSplit`,
+  `looksThick`: dengan pemisah cukup ada angka, tanpa pemisah harus angka + satuan). Nama yang cocok persis selalu menang. Material baru
+  `NAMA . THICKNESS` (pemisah berspasi) dipisah untuk modal (`splitNewName`): Name tanpa thickness, thickness dipakai saat baris dilanjutkan.
+- **Tombol di baris** (20 Okt 2026, permintaan user): material tidak ketemu saat Enter / **+ Add** (baris tambah), **Add** (sub) atau ganti
+  material di sel → `Not in Master Material.` + tombol **+ New material** di sel Material itu (hilang bila isian diubah). Klik → `newMaterial`
+  `{ name }` dan widget mencatat baris yang menunggu (`awaitNew`). Model masuk + `matAdded: { key, name }` (BomCtrl menaikkan `key` setelah
+  material tersimpan **dan** daftar material dimuat ulang) → widget mengisi nama yang disimpan (+ thickness yang diketik) lalu mengulang
+  aksi baris itu otomatis: `addLine`, `addSub`, atau `replaceMaterial`. Batal di modal = tidak ada aksi.
+- **Skala**: saran dihitung hanya saat pesan error dibaca (sync isian tidak menghitung). Diukur dengan data tiruan: 5.000 material + 20.000 varian = 50 sampai 130 ms per salah ketik; 20.000 material + 80.000 varian = 120 sampai 380 ms. Kandidat disaring dulu (selisih panjang, 3 huruf awal / akhir kode) sebelum jarak ketik dihitung.

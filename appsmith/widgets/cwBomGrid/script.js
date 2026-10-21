@@ -5,6 +5,12 @@
 //   Material Code boleh diketik di kolom Material (mengisi induk + thickness, menawarkan isi warna ke semua article
 //   di baris tambah) atau di sel (diganti warnanya; kode material/thickness lain ditolak). Sel berwarna tanpa varian =
 //   SEL KUNING + tombol Daftarkan (action registerVariant). Tombol "+ Supplier baru" (action newSupplier).
+// R16: thickness diketik apa adanya lalu dibakukan (= fn_clean_thickness, canonThickness); "NAMA · THICKNESS" dengan thickness
+//   baru untuk induk yang ada = baris baru, selnya kuning sampai kodenya didaftarkan. Induk yang belum ada: tombol
+//   "+ New material" (action newMaterial). Typo: pesan "Did you mean".
+// R16 (20 Okt 2026, permintaan user): material yang tidak ketemu (Enter / + Add / ganti material di sel) -> tombol
+//   "+ New material" langsung di sel Material baris itu. Setelah material disimpan di modal (model.matAdded berubah), aksi baris
+//   itu diulang otomatis dengan nama yang disimpan: baris tambah / sub ditambahkan, atau material baris diganti.
 // Hanya tampilan & input. Setiap perubahan dikirim sebagai model.action + event onAction (BomCtrl.onAction());
 // BomCtrl menjalankan query lalu memuat ulang data. Aturan final di DB (fn_bom_*).
 // Antrean aksi: aksi dikirim SATU PER SATU; berikutnya baru dikirim setelah BomCtrl membalas doneSeq >= seq aksi
@@ -22,6 +28,12 @@ let retryTimer = null;
 let optimistic = {};        // key input -> nilai yang sudah dikirim tapi belum kembali dari DB
 let lastMsg = null;         // object message dari model (untuk mendeteksi pesan baru)
 let localMsg = null;        // pesan validasi di widget
+let lastNotFound = null;    // R16: material terakhir yang diketik dan tidak ketemu -> isian awal "+ New material"
+let nfFor = null;           // R16: { key, name, thick } input Material yang tidak ketemu -> tombol "+ New material" di sel itu
+let awaitNew = null;        // R16: { key, thick } menunggu material baru dari modal, lalu aksi baris itu diulang otomatis
+let lastMatAdded = null;    // R16: model.matAdded.key terakhir
+let curAdd = null;          // input baris tambah yang sedang tampil
+let curSub = null;          // { parent, f } form subkomponen yang sedang tampil
 let lastOkKey = null;
 let subParent = null;       // id baris induk yang sedang dibuka form "+ Sub"
 let addState = {};          // isian baris tambah (dipertahankan saat render ulang)
@@ -48,6 +60,49 @@ function tidy(s) {
   return String(s ?? '').replace(/\s+/g, ' ').trim();
 }
 
+// = fn_clean_thickness (R16, gaya berspasi tim material): huruf besar, kutip pintar / dua apostrof -> ", koma desimal -> titik,
+// ".5" -> "0.5", nol belakang dibuang ("2.0" = "2"), INCH / IN setelah angka -> ", angka + satuan satu spasi ("1.2MM" -> "1.2 MM"),
+// "X" antar ukuran berspasi ("44X69CM" -> "44 X 69 CM"), tanpa spasi di sekitar "-", spasi sebelum "(", rentang
+// "1.4 MM-1.6 MM" -> "1.4-1.6 MM". Kosong / "." / "-" = tanpa thickness. Salinan sama di cwVariantForm.
+function canonThickness(s) {
+  let t = String(s ?? '').replace(/\s+/g, ' ').trim().toUpperCase();
+  if (t === '' || t === '.' || t === '-') return '';
+  t = t.replace(/[“”„‟″〃＂]/g, '"')
+    .replace(/['’‘′`´]{2}/g, '"')
+    .replace(/(\d),(\d)/g, '$1.$2')
+    .replace(/(^|[^0-9.])\.(\d)/g, (m, a, b) => `${a}0.${b}`)
+    .replace(/(\d)\.(\d*[1-9])0+(?![0-9])/g, '$1.$2')
+    .replace(/(\d)\.0+(?![0-9])/g, '$1')
+    .replace(/(\d)\s*(INCHES|INCH|IN)(?=$|\s*X|\s*\(|\s*-|[^A-Z0-9\s])/g, '$1"')
+    .replace(/(\d)\s*(MM|CM|UM|ME)(?=$|[^A-Z]|X\d)/g, '$1 $2')
+    .replace(/(\d|MM|CM|UM|")\s*X\s*(?=\d)/g, '$1 X ')
+    .replace(/\s*-\s*/g, '-')
+    .replace(/\s*\(\s*/g, ' (')
+    .replace(/\s+\)/g, ')')
+    .replace(/(\d)\s+"/g, '$1"')
+    .replace(/(\d) (MM|CM|UM)-(\d+(?:\.\d+)?) \2(?=$|[^A-Z])/g, '$1-$3 $2')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return t;
+}
+
+const thickKey = t => norm(canonThickness(t));
+
+// Jarak ketik (Levenshtein) untuk saran typo
+function editDistance(a, b) {
+  const m = a.length;
+  const n = b.length;
+  let prev = Array.from({ length: n + 1 }, (_, j) => j);
+  for (let i = 1; i <= m; i++) {
+    const cur = [i];
+    for (let j = 1; j <= n; j++) {
+      cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    }
+    prev = cur;
+  }
+  return prev[n];
+}
+
 // Remarks: baris dipertahankan, spasi di dalam baris dirapatkan, baris kosong dibuang
 function tidyLines(s) {
   return String(s ?? '').split(/\r?\n/).map(x => x.replace(/\s+/g, ' ').trim()).filter(x => x).join('\n');
@@ -70,11 +125,11 @@ function el(tag, cls, text) {
 // ---------------------------------------------------------------- master & saran
 const compLabel = c => `${c.number} - ${c.name}`;
 const matLabel = m => (m.thickness ? `${m.name}${SEP}${m.thickness}` : m.name);
-const matKey = (materialId, thickness) => `${materialId}|${norm(thickness)}`;
+const matKey = (materialId, thickness) => `${materialId}|${thickKey(thickness)}`;
 
 // Varian ACTIVE per induk + thickness (warna terdaftar baris itu)
 function variantsOf(materialId, thickness) {
-  return (M.variants || []).filter(v => v.material_id === materialId && norm(v.thickness) === norm(thickness));
+  return (M.variants || []).filter(v => v.material_id === materialId && thickKey(v.thickness) === thickKey(thickness));
 }
 
 function variantByCode(text) {
@@ -96,24 +151,134 @@ function resolveComponent(text) {
   return byName.length === 1 ? { comp: byName[0] } : { local: tidy(text) };
 }
 
-// -> { mat: { material_id, name, uom, thickness, ... }, color } (color terisi bila yang diketik Material Code)
+// Material yang tidak ditemukan: nama mirip (typo) dari master pabrik, paling dekat dulu
+function didYouMean(raw) {
+  const q = norm(String(raw).split(/\s*·\s*/)[0]);
+  if (q.length < 3) return [];
+  // typo di Material Code (tanpa spasi): kode terdekat
+  if (!/\s/.test(q) && q.length >= 6) {
+    const head = q.slice(0, 3);
+    const tail = q.slice(-3);
+    const codes = (M.variants || [])
+      .filter(v => { const c = norm(v.code); return Math.abs(c.length - q.length) <= 2 && (c.startsWith(head) || c.endsWith(tail)); })
+      .map(v => ({ v, d: editDistance(q, norm(v.code)) }))
+      .filter(x => x.d <= 2)
+      .sort((x, y) => x.d - y.d)
+      .slice(0, 3)
+      .map(x => `${x.v.code} (${x.v.material_name} · ${x.v.thickness || 'no thickness'} · ${x.v.color})`);
+    if (codes.length) return codes;
+  }
+  const names = [...new Set((M.materials || []).map(x => x.name))];
+  const limit = Math.max(1, Math.floor(q.length / 4));
+  const qw = q.replace(/[^a-z0-9]+/g, ' ').trim().split(' ');
+  return names
+    .map(n => {
+      const nn = norm(n);
+      const nw = nn.replace(/[^a-z0-9]+/g, ' ').trim().split(' ');
+      const near = (a, b) => Math.abs(a.length - b.length) <= Math.max(1, Math.floor(a.length / 4)) && editDistance(a, b) <= Math.max(1, Math.floor(a.length / 4));
+      const wordsOk = qw.every(w => nw.some(v => v.includes(w) || near(w, v)));
+      const whole = nn.includes(q) || q.includes(nn) || wordsOk ? 1
+        : (Math.abs(nn.length - q.length) > limit ? limit + 1 : editDistance(q, nn));
+      return { n, d: whole };
+    })
+    .filter(x => x.d <= limit)
+    .sort((x, y) => x.d - y.d || x.n.localeCompare(y.n))
+    .slice(0, 3)
+    .map(x => x.n);
+}
+
+// R16 (21 Okt 2026, permintaan user): titik tengah sulit diketik. Tanpa "·", teks dibaca sebagai NAMA MASTER + THICKNESS bila
+// bagian depannya persis nama material yang ada (terpanjang dulu) dan sisanya mirip thickness:
+//   dengan pemisah ". - | / , ; :"  -> sisanya cukup berisi angka   ("honeylon mesh . 1,5 mm", "honeylon mesh - 44 inch")
+//   tanpa pemisah                   -> sisanya angka + satuan      ("honeylon mesh 1,5mm"; "HONEYLON MESH 2" tetap nama)
+// Nama yang cocok persis (mis. "SM-300 (COOL MELT)") selalu menang. Hasil -> "NAMA · THICKNESS" (isian ditulis ulang).
+function looksThick(text, explicit) {
+  const t = canonThickness(text);
+  if (!/\d/.test(t) || /\d\.\d+\.\d/.test(t)) return false;         // "1.2.5" bukan angka
+  return explicit || /\d\s*(MM|CM|UM)\b|\d"/.test(t);
+}
+
+function altSplit(raw) {
+  if (raw.includes('·')) return null;
+  const nr = norm(raw);
+  const names = [...new Set((M.materials || []).map(x => x.name))].sort((a, b) => norm(b).length - norm(a).length);
+  if (names.some(n => norm(n) === nr)) return null;                   // nama persis
+  for (const n of names) {
+    const nn = norm(n);
+    if (!nn || !nr.startsWith(nn)) continue;
+    const rest = nr.slice(nn.length);
+    if (!/^[\s.\-|\/,;:]/.test(rest)) continue;                         // nama lain yang lebih panjang ("honeylon meshx ...")
+    const sep = /^\s*[.\-|\/,;:]+\s*/.exec(rest);
+    const dotNumber = /^\.\d/.test(rest);                              // "NAMA.5mm" = 0.5, bukan pemisah
+    const explicit = !!sep && !dotNumber;
+    const body = (explicit ? rest.slice(sep[0].length) : rest).trim();
+    if (body && looksThick(body, explicit)) return `${n}${SEP}${canonThickness(body)}`;
+  }
+  return null;
+}
+
+// Material baru (tidak ada di master) ditulis "NAMA . THICKNESS" / "NAMA - THICKNESS" (pemisah berspasi): pisahkan untuk modal
+function splitNewName(raw) {
+  const m = /^(.*\S)\s+[.\-|\/]\s+(\S.*)$/.exec(raw);
+  return m && looksThick(m[2], true) ? { name: m[1], thickness: canonThickness(m[2]) } : null;
+}
+
+// -> { mat: { material_id, name, uom, thickness, isNew?, ... }, color }
+//   (color terisi bila yang diketik Material Code; isNew = induk ada tapi thickness ini belum punya varian)
+//   Tidak ketemu -> { error, notFound: { name, thickness } } (tombol "+ New material")
 function resolveMaterial(text) {
   const raw = tidy(text);
   if (!raw) return { error: 'Material is required.' };
-  const key = norm(raw);
   const mats = M.materials || [];
-  const m = mats.find(x => norm(matLabel(x)) === key);
-  if (m) return { mat: m };
+  const parts = raw.split(/\s*·\s*/);
+  const nameKey = norm(parts[0]);
+  const thick = parts.length > 1 ? canonThickness(parts.slice(1).join(' ')) : '';
+  const hasThick = thick !== '';      // "NAMA ·" tanpa thickness = masih mengetik: dianggap nama saja
+  // 1. NAMA · THICKNESS (thickness dibakukan dulu: "1.2mm" = "1.2 MM")
+  if (hasThick) {
+    const same = mats.filter(x => norm(x.name) === nameKey);
+    if (same.length) {
+      const hit = same.find(x => thickKey(x.thickness) === norm(thick));
+      if (hit) return { mat: hit };
+      if (new Set(same.map(x => x.material_id)).size > 1) {
+        return { error: `Several materials are named "${parts[0]}" (different UoM). Pick one from the list.` };
+      }
+      const b = same[0];
+      return { mat: { material_id: b.material_id, name: b.name, uom: b.uom, thickness: thick, variant_count: 0, isNew: !!thick } };
+    }
+  }
+  // 2. Material Code
   const v = variantByCode(raw);
   if (v) {
-    const combo = mats.find(x => x.material_id === v.material_id && norm(x.thickness) === norm(v.thickness));
+    const combo = mats.find(x => x.material_id === v.material_id && thickKey(x.thickness) === thickKey(v.thickness));
     return combo ? { mat: combo, color: v.color }
       : { error: `Material Code ${v.code} belongs to an INACTIVE material.` };
   }
-  const byName = mats.filter(x => norm(x.name) === key);
-  if (byName.length === 1) return { mat: byName[0] };
-  if (byName.length > 1) return { error: `Material "${raw}" has several thicknesses. Pick from the list (NAME · THICKNESS) or type the Material Code.` };
-  return { error: `Material "${raw}" is not in this factory's master (or INACTIVE). Pick from the list, type the Material Code, or add it in Master Material first.` };
+  // 3. nama saja
+  if (!hasThick) {
+    const byName = mats.filter(x => nameKey === norm(x.name));
+    if (byName.length === 1) return { mat: byName[0] };
+    if (byName.length > 1) return { error: `Material "${raw}" has several thicknesses. Pick from the list (NAME · THICKNESS) or type the Material Code.` };
+  }
+  // 4. R16: tanpa titik tengah ("NAMA . 1,5 mm", "NAMA 1,5mm") -> dibaca ulang sebagai "NAMA · THICKNESS"
+  const alt = altSplit(raw);
+  if (alt) return Object.assign(resolveMaterial(alt), { reparsed: alt });
+  const nw = parts.length > 1 ? null : splitNewName(raw);
+  const nfName = nw ? nw.name : tidy(parts[0]);
+  const nfThick = nw ? nw.thickness : thick;
+  lastNotFound = { name: nfName, thickness: nfThick };
+  // pesan (termasuk "Did you mean", pemindaian seluruh master) baru dihitung saat dibaca: sync isian tidak menampilkannya
+  return {
+    notFound: { name: nfName, thickness: nfThick },
+    get error() {
+      const guess = didYouMean(nw ? nw.name : raw);
+      const how = M.canAddMaterial
+        ? 'Check the spelling, or click "+ New material" to add it.'
+        : 'Check the spelling, or ask Vendor Specsheet to add it to Master Material.';
+      return `Material "${raw}" is not in this factory's Master Material (or INACTIVE).`
+        + (guess.length ? ` Did you mean: ${guess.join(' / ')}?` : '') + ` ${how}`;
+    },
+  };
 }
 
 function resolveSupplier(text) {
@@ -381,9 +546,81 @@ function moveDown(input) {
   }
 }
 
+// R16: material tidak ketemu -> pesan + tombol "+ New material" di sel input itu (hanya role yang boleh menambah material)
+function materialMissing(key, input, r) {
+  fail(input, r.error);
+  if (!r.notFound || !M.canAddMaterial) return;
+  nfFor = { key, name: r.notFound.name, thick: r.notFound.thickness };
+  const cell = input.closest('td');
+  if (!cell) return;
+  const old = cell.querySelector('.newmat');
+  if (old) old.remove();
+  cell.appendChild(newMaterialBox(key));
+}
+
+function newMaterialBox(key) {
+  const box = el('div', 'newmat');
+  box.appendChild(el('span', 'hint', 'Not in Master Material.'));
+  const b = el('button', 'link newmat-btn', '+ New material');
+  b.type = 'button';
+  b.disabled = !!M.busy;
+  b.title = `Add "${nfFor ? nfFor.name : ''}" to Master Material. This line continues automatically after saving.`;
+  b.addEventListener('mousedown', e => e.preventDefault());   // jangan blur input dulu (blur = simpan ulang)
+  b.addEventListener('click', () => openNewFor(key));
+  box.appendChild(b);
+  return box;
+}
+
+function openNewFor(key) {
+  if (!nfFor || nfFor.key !== key) return;
+  awaitNew = { key, thick: nfFor.thick };
+  lastNotFound = null;
+  send('newMaterial', { name: nfFor.name });
+}
+
+// Isian Material diubah lagi -> tombol "+ New material" baris itu hilang
+function clearMissing(key, input) {
+  if (!nfFor || nfFor.key !== key) return;
+  nfFor = null;
+  const box = input.closest('td') && input.closest('td').querySelector('.newmat');
+  if (box) box.remove();
+}
+
+// R16: material baru tersimpan di modal (BomCtrl.matAdded) -> ulangi aksi baris yang menunggu dengan nama yang disimpan
+function resumeAfterNewMaterial() {
+  const a = M.matAdded || {};
+  if (a.key === lastMatAdded) return;
+  lastMatAdded = a.key;
+  const w = awaitNew;
+  awaitNew = null;
+  if (!w || !a.name) return;
+  nfFor = null;
+  const text = a.name + (w.thick ? SEP + w.thick : '');
+  if (w.key === 'add:mat' && curAdd) {
+    curAdd.mat.value = text;
+    addState.mat = text;
+    curAdd.mat.dispatchEvent(new Event('change'));   // UoM, thickness, supplier utama
+    submitAdd(curAdd);
+  } else if (w.key === 'sub:mat' && curSub) {
+    curSub.f.mat.value = text;
+    subState.mat = text;
+    curSub.f.mat.dispatchEvent(new Event('change'));
+    submitSub(curSub.parent, curSub.f);
+  } else if (w.key.startsWith('mat:')) {
+    const line = (M.lines || []).find(l => `mat:${l.id}` === w.key);
+    const i = document.querySelector(`#tbody [data-key="${CSS.escape(w.key)}"]`);
+    if (line && i) {
+      i.value = text;
+      const before = seq;
+      commitMaterial(line, i);
+      if (seq !== before) optimistic[w.key] = i.value;   // tampil sampai DB membalas (sama dengan cellInput)
+    }
+  }
+}
+
 function commitMaterial(line, input) {
   const r = resolveMaterial(input.value);
-  if (r.error) return fail(input, r.error);
+  if (r.error) return materialMissing(`mat:${line.id}`, input, r);
   if (matKey(r.mat.material_id, r.mat.thickness) === matKey(line.material_id, line.thickness)) {
     input.value = input.dataset.orig;
     return;
@@ -413,7 +650,7 @@ function commitCell(line, article, input) {
   let color = tidy(input.value);
   const v = variantByCode(color);
   if (v) {
-    if (v.material_id !== line.material_id || norm(v.thickness) !== norm(line.thickness)) {
+    if (v.material_id !== line.material_id || thickKey(v.thickness) !== thickKey(line.thickness)) {
       return fail(input, `Code ${v.code} is ${v.material_name || 'another material'} · ${v.thickness || 'no thickness'} · ${v.color}. It does not match the material / thickness of this line.`);
     }
     color = v.color;
@@ -492,6 +729,7 @@ function formInputs(prefix, state, isSub) {
     mk('no', { placeholder: 'No.', label: 'Local component no.', title: 'Only for a new component that is not in the master' });
   }
   mk('mat', { list: 'dlMaterials', placeholder: 'Name · thickness / Material Code…', label: 'Material' });
+  f.mat.addEventListener('input', () => clearMissing(`${prefix}:mat`, f.mat));
   mk('sup', { list: supplierListId(null), placeholder: 'Supplier…', label: 'Supplier' });
   mk('rem', { placeholder: 'Remarks', label: 'Remarks', keepLines: true, title: 'Shift+Enter / Alt+Enter = new line' });
   f.uom = el('span', 'ro none', '-');
@@ -512,8 +750,10 @@ function formInputs(prefix, state, isSub) {
     const r = resolveMaterial(f.mat.value);
     const mat = r.mat || null;
     f.uom.textContent = mat ? mat.uom : '-';
-    f.thk.textContent = mat && mat.thickness ? mat.thickness : '-';
-    if (mat && r.color) {                     // kode diketik -> tampilkan sebagai NAMA · THICKNESS
+    f.thk.textContent = mat && mat.thickness ? mat.thickness + (mat.isNew ? ' (new)' : '') : '-';
+    f.thk.title = mat && mat.isNew
+      ? 'New thickness for this material: no variants yet. Color cells stay yellow until their Material Codes are registered.' : '';
+    if (mat && (r.color || r.reparsed)) {     // kode / "NAMA . THICKNESS" diketik -> tampilkan sebagai NAMA · THICKNESS
       f.mat.value = matLabel(mat);
       state.mat = f.mat.value;
     }
@@ -565,7 +805,7 @@ function submitAdd(f) {
     data.local_name = c.local;
   }
   const m = resolveMaterial(f.mat.value);
-  if (m.error) return fail(f.mat, m.error);
+  if (m.error) return materialMissing('add:mat', f.mat, m);
   const s = resolveSupplier(f.sup.value);
   if (s.error) return fail(f.sup, s.error);
   const fill = addState.fillColor && addState.fill !== false ? addState.fillColor : '';
@@ -579,7 +819,7 @@ function submitSub(parent, f) {
   Object.values(f).forEach(i => i.classList && i.classList.remove('invalid'));
   if (!tidy(f.name.value)) return fail(f.name, 'Subcomponent name is required.');
   const m = resolveMaterial(f.mat.value);
-  if (m.error) return fail(f.mat, m.error);
+  if (m.error) return materialMissing('sub:mat', f.mat, m);
   const s = resolveSupplier(f.sup.value);
   if (s.error) return fail(f.sup, s.error);
   send('addSub', {
@@ -625,17 +865,20 @@ function materialCell(line, editable) {
   const label = matLabel({ name: line.material_name, thickness: line.thickness });
   const title = [line.uom, line.material_code].filter(x => x).join(' · ');
   if (editable) {
-    c.appendChild(cellInput(`mat:${line.id}`, label, {
+    const mi = cellInput(`mat:${line.id}`, label, {
       col: 'mat', list: 'dlMaterials', label: 'Material',
       title: `${title}. Type another material / thickness (or Material Code) to Replace Material.`,
       onCommit: i => commitMaterial(line, i),
-    }));
+    });
+    mi.addEventListener('input', () => clearMissing(`mat:${line.id}`, mi));
+    c.appendChild(mi);
   } else {
     const s = el('span', 'ro', label);
     s.title = title;
     c.appendChild(s);
   }
   if (line.material_status === 'INACTIVE') c.appendChild(el('span', 'badge inactive', '⚠ material INACTIVE'));
+  if (editable && M.canAddMaterial && nfFor && nfFor.key === `mat:${line.id}`) c.appendChild(newMaterialBox(nfFor.key));
   return c;
 }
 
@@ -737,6 +980,7 @@ function formRow(cls, f, first, button, cancel, arts) {
   const mat = el('td', 'c-mat');
   mat.appendChild(f.mat);
   if (f.fill) mat.appendChild(f.fill);
+  if (M.canAddMaterial && nfFor && nfFor.key === f.mat.dataset.key) mat.appendChild(newMaterialBox(nfFor.key));
   tr.appendChild(mat);
   const sup = el('td', 'c-sup');
   sup.appendChild(f.sup);
@@ -788,6 +1032,7 @@ function render(model, keepState) {
         addState = {};
         subState = {};
         subParent = null;
+        if (nfFor && /^(add|sub):/.test(nfFor.key)) nfFor = null;
       }
       lastOkKey = M.okKey;
     }
@@ -836,11 +1081,14 @@ function render(model, keepState) {
     tr.appendChild(c);
     tbody.appendChild(tr);
   }
+  curAdd = null;
+  curSub = null;
   const parents = new Set(lines.filter(l => l.is_sub).map(l => l.parent_line_key));
   lines.forEach(line => {
     tbody.appendChild(lineRow(line, arts, editable, !line.is_sub && parents.has(line.line_key)));
     if (editable && subParent === line.id) {
       const f = formInputs('sub', subState, true);
+      curSub = { parent: line, f };
       const ok = el('button', 'btn', 'Add');
       ok.type = 'button';
       ok.disabled = !!M.busy;
@@ -853,6 +1101,7 @@ function render(model, keepState) {
   });
   if (editable) {
     const f = formInputs('add', addState, false);
+    curAdd = f;
     const ok = el('button', 'btn', '+ Add');
     ok.type = 'button';
     ok.disabled = !!M.busy;
@@ -891,17 +1140,29 @@ function render(model, keepState) {
     + `${n} lines · ${arts.length} article(s)` + (yellow ? ` · ${yellow} yellow cells` : '') + (editable ? '' : ' · read only');
   $('btnSupplier').hidden = !(editable && M.canAddSupplier);
   $('btnSupplier').disabled = !!M.busy;
+  $('btnMaterial').hidden = !(editable && M.canAddMaterial);
+  $('btnMaterial').disabled = !!M.busy;
   showMessage();
 }
 
 appsmith.onReady(() => {
   applyTheme(appsmith.theme);
   $('btnSupplier').addEventListener('click', () => send('newSupplier', {}));
+  // "+ New material": nama dari ketikan terakhir yang tidak ketemu, atau isi kolom Material baris tambah
+  $('btnMaterial').addEventListener('click', () => {
+    const r = resolveMaterial(addState.mat || '');
+    const nf = r.notFound || lastNotFound;
+    lastNotFound = null;
+    awaitNew = r.notFound ? { key: 'add:mat', thick: r.notFound.thickness } : null;   // baris tambah dilanjutkan setelah simpan
+    send('newMaterial', { name: nf ? nf.name : tidy(String(addState.mat || '').split(/\s*·\s*/)[0]) });
+  });
   $('scroll').addEventListener('scroll', hideSuggest);
   render(appsmith.model);
+  lastMatAdded = (M.matAdded || {}).key;
   appsmith.onModelChange(m => {
     onAck(m);
     render(m);
+    resumeAfterNewMaterial();
   });
   if (typeof appsmith.onThemeChange === 'function') appsmith.onThemeChange(applyTheme);
 });

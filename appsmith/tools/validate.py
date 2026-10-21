@@ -58,6 +58,7 @@ for c in d['actionCollectionList']:
         coll_members[(pg, nm)] = {(p.key.name if p.key.type == 'Identifier' else p.key.value) for p in props}
     except Exception as e:
         err(f'{pg}/{nm}: sintaks JS {e}')
+        continue
     entries = [a['unpublishedAction']['name'] for a in d['actionList'] if a['unpublishedAction'].get('collectionId') == c['id']]
     base_had = any(a['unpublishedAction'].get('collectionId') == c['id'] for a in base.d['actionList'])
     if base_had:
