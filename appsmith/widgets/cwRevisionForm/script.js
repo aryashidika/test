@@ -99,7 +99,7 @@ function fillSources() {
   src.classList.remove('invalid');
   $('sourceLabel').innerHTML = `${cross ? 'Source model & season' : 'Source season'} <span class="req">*</span>`;
   $('sourceHint').textContent = cross
-    ? 'BOM lines of the latest published revision of the source model are copied (material, thickness, supplier). This season\'s articles are loaded with empty colors.'
+    ? 'BOM lines of the latest published revision of the source model are copied (material, dimension, supplier). This season\'s articles are loaded with empty colors.'
     : 'BOM lines of the latest published revision of the source season are copied. This season\'s articles are loaded with empty colors.';
   showSummary();
 }

@@ -90,7 +90,7 @@ function canonThickness(s) {
   return t;
 }
 const cleanThick = canonThickness;   // R16: thickness dibandingkan dalam bentuk baku ("44 \"" = '44"')
-const thickLabel = s => cleanThick(s) || 'no thickness';
+const thickLabel = s => cleanThick(s) || 'no dimension';
 const parts = s => String(s || '').split(',').filter(x => x);
 const el = (tag, cls, text) => Object.assign(document.createElement(tag), { className: cls || '', textContent: text || '' });
 
@@ -138,7 +138,7 @@ function applyHint(h) {
       }
       setNote(field, `Code ${part[field]} = ${shown} (recorded in ${ref}).`);
     } else {
-      setNote(field, `${field === 'thickness' ? 'Thickness' : 'Color'} code ${part[field]} is new. It fills in automatically next time.`);
+      setNote(field, `${field === 'thickness' ? 'Dimension' : 'Color'} code ${part[field]} is new. It fills in automatically next time.`);
     }
   });
   updateChecks();
@@ -221,7 +221,7 @@ function renderSuggest() {
   }
   box.appendChild(el('div', '', 'Suggested from recorded codes. Check against ERP before saving:'));
   [['p', 'Material prefix', 'no other variants in this material yet. Type 4 characters'],
-   ['t', 'Thickness', 'never used yet. Type 3 characters'],
+   ['t', 'Dimension', 'never used yet. Type 3 characters'],
    ['c', 'Color', 'new color. Type the last 3 characters']].forEach(([k, label, none]) => {
     const row = el('div', 'sug-row');
     row.appendChild(el('span', 'sug-label', `${label}:`));
@@ -245,7 +245,7 @@ function conflicts() {
     const color = tidyText($('color').value);
     const thick = cleanThick($('thickness').value);
     if (hint.thickness_known && cleanThick(hint.thickness) !== thick) {
-      out.push(`Thickness code ${code.substr(4, 3)} is already recorded as ${thickLabel(hint.thickness)} (code ${hint.thickness_ref}), not ${thickLabel(thick)}.`);
+      out.push(`Dimension code ${code.substr(4, 3)} is already recorded as ${thickLabel(hint.thickness)} (code ${hint.thickness_ref}), not ${thickLabel(thick)}.`);
     }
     if (hint.color_known && color && tidyText(hint.color) !== color) {
       out.push(`Color code ${code.substr(7, 3)} is already recorded as ${hint.color} (code ${hint.color_ref}), not ${color}.`);
@@ -265,7 +265,7 @@ function infos() {
   const key = `${tidyText($('color').value)}|${cleanThick($('thickness').value)}`;
   if (sug && sug.key === key && code.length === 10) {
     if (sug.t.length && !sug.t.includes(code.substr(4, 3))) {
-      out.push(`Thickness ${thickLabel($('thickness').value)} usually has code ${sug.t.join(' / ')}. Make sure ${code.substr(4, 3)} matches ERP.`);
+      out.push(`Dimension ${thickLabel($('thickness').value)} usually has code ${sug.t.join(' / ')}. Make sure ${code.substr(4, 3)} matches ERP.`);
     }
     if (sug.c.length && !sug.c.includes(code.substr(7, 3))) {
       out.push(`Color ${tidyText($('color').value)} usually has code ${sug.c.join(' / ')}. Make sure ${code.substr(7, 3)} matches ERP.`);

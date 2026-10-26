@@ -134,7 +134,7 @@ function batchCard(b, focus) {
   });
   thAll.appendChild(all);
   hr.appendChild(thAll);
-  [['Material Code'], ['Color'], ['Thickness'], ['Supplier'], ['Active price', 'num'], ['Proposal', 'num'],
+  [['Material Code'], ['Color'], ['Dimension'], ['Supplier'], ['Active price', 'num'], ['Proposal', 'num'],
    ['Difference', 'num'], ['Valid from'], ['Reference'], ['']].forEach(([t, c]) => hr.appendChild(el('th', c || '', t)));
   thead.appendChild(hr);
   table.appendChild(thead);

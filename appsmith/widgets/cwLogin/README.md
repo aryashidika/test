@@ -19,7 +19,7 @@ dan function DB (`fn_login`, `fn_change_password`).
   busy: LoginCtrl.busy,         // true saat query berjalan -> tombol nonaktif
   forced: LoginCtrl.forced,     // true = wajib ganti password (tombol Batal jadi "Keluar")
   message: LoginCtrl.message,   // null | { type: 'error' | 'info' | 'success', text }
-  email: LoginCtrl.lastEmail    // isi awal field email
+  email: LoginCtrl.lastEmail || appsmith.store.lastEmail || ''   // isi awal field email (R17: email terakhir diingat)
 } }}
 ```
 
@@ -27,7 +27,7 @@ dan function DB (`fn_login`, `fn_change_password`).
 
 | Field | Diisi saat | Dibaca oleh |
 |---|---|---|
-| `cwLogin.model.email`, `cwLogin.model.password` | klik **Masuk** / Enter | `LoginCtrl.login()` |
+| `cwLogin.model.email`, `cwLogin.model.password`, `cwLogin.model.remember` (R17, checkbox Remember me) | klik **Masuk** / Enter | `LoginCtrl.login()` |
 | `cwLogin.model.oldPass`, `cwLogin.model.newPass` | klik **Simpan** di Ganti Password | `LoginCtrl.changePassword()` |
 
 ## Event (tambahkan di property pane → Events)

@@ -10,7 +10,7 @@
 
   <label for="code">Material Code <span class="req">*</span></label>
   <input id="code" type="text" maxlength="40" autocomplete="off" placeholder="e.g. 205Q404A52 (from ERP)">
-  <div class="hint">10-character ERP code: 4 material type · 3 thickness · 3 color. Filled in from color &amp; thickness when those code parts were used before (or the other way round). Still check against ERP.</div>
+  <div class="hint">10-character ERP code: 4 material type · 3 dimension · 3 color. Filled in from color &amp; dimension when those code parts were used before (or the other way round). Still check against ERP.</div>
   <div class="sug" id="sugBox" hidden></div>
   <div class="conf-box" id="confBox" hidden>
     <div id="confText"></div>
@@ -22,7 +22,7 @@
   <input id="color" type="text" maxlength="80" autocomplete="off" placeholder="e.g. WHITE">
   <div class="hint" id="colorNote" hidden></div>
 
-  <label for="thickness">Thickness</label>
+  <label for="thickness">Dimension</label>
   <input id="thickness" type="text" maxlength="60" autocomplete="off" placeholder="exactly as ERP, e.g. 44&quot; or 1.2MMX54&quot;. Empty / . = none">
   <div class="hint" id="thicknessNote" hidden></div>
 

@@ -1,7 +1,10 @@
 // cwCbdPriceForm - modal harga baris CBD (mdlCbdHarga, page Cost Breakdown (CBD)). Hanya tampilan.
 // mode QUOTATION: harga quotation material proses (kosong = tidak dihargai terpisah), referensi opsional.
+// mode ESTIMATE : (R17) harga perkiraan baris tanpa Material Code di Pullover / Preview; aturan isian sama dengan QUOTATION.
 // mode PROPOSE  : (R8, ganti OVERRIDE yang dihapus F10b) ajukan harga MASTER untuk Material Code + supplier baris ini:
 //   harga, currency & tanggal berlaku wajib, referensi opsional. model.direct (Manager Costing) = langsung berlaku.
+// model.suggestion (R17) = estimasi terakhir material + thickness + supplier yang sama: tombol Use mengisi harga & currency.
+// model.form.currency (R17) = currency isian awal (dari estimasi); selain itu currency sengaja kosong.
 // Simpan lewat CbdGridCtrl.savePrice() -> fn_cbd_set_quotation / fn_cbd_price_propose (aturan final di DB).
 const $ = id => document.getElementById(id);
 let lastKey = null;
@@ -9,6 +12,7 @@ let busy = false;
 let mode = 'QUOTATION';
 let direct = false;
 let currency = '';
+let sugg = null;
 
 function applyTheme(t) {
   t = t || {};
@@ -56,7 +60,9 @@ function updateHint() {
   const p = parsePrice(raw);
   $('priceHint').classList.toggle('warn', !!raw && (!p || isAmbiguous(raw)));
   $('priceHint').textContent = !raw
-    ? (mode === 'QUOTATION' ? 'Empty = this line is not priced separately (cost 0).' : 'No thousand separators; use a comma or dot for decimals.')
+    ? (mode === 'QUOTATION' ? 'Empty = this line is not priced separately (cost 0).'
+      : mode === 'ESTIMATE' ? 'Empty = no estimate (cost 0, shown as a warning).'
+      : 'No thousand separators; use a comma or dot for decimals.')
     : isAmbiguous(raw) ? `"${raw}" is ambiguous. Write it without thousand separators (e.g. 47500), with a comma for decimals (e.g. 47,5).`
     : p ? `Read as: ${fmt(p)}${currency ? ' ' + currency : ''}`
     : 'Not a valid number (max 4 decimals).';
@@ -64,28 +70,35 @@ function updateHint() {
 
 // Isi ulang hanya saat modal dibuka (key berubah) - busy/message tidak menghapus isian user
 function fillForm(m) {
-  mode = m.mode === 'PROPOSE' ? 'PROPOSE' : 'QUOTATION';
+  mode = m.mode === 'PROPOSE' || m.mode === 'ESTIMATE' ? m.mode : 'QUOTATION';
   direct = !!m.direct;
-  $('title').textContent = m.title || (mode === 'QUOTATION' ? 'Quotation Price' : 'Propose Master Price');
+  $('title').textContent = m.title || ({ QUOTATION: 'Quotation Price', ESTIMATE: 'Estimate Price' }[mode] || 'Propose Master Price');
   $('lineLabel').textContent = m.lineLabel || '';
   $('current').textContent = m.current || '';
   $('current').hidden = !m.current;
   const f = m.form || {};
   $('price').value = f.price || '';
-  setCurrency('');                       // sengaja kosong: currency wajib dipilih
+  setCurrency(f.currency || '');         // sengaja kosong (wajib dipilih), kecuali isian awal dari estimasi (R17)
+  sugg = m.suggestion && m.suggestion.price != null ? m.suggestion : null;
+  $('sugg').hidden = !sugg;
+  $('suggText').textContent = sugg ? `Last estimate: ${fmt(sugg.price)} ${sugg.currency || ''} · ${sugg.label || ''}` : '';
   $('text').value = f.text || '';
-  $('priceReq').hidden = mode === 'QUOTATION';
+  $('priceReq').hidden = mode !== 'PROPOSE';
   $('validBox').hidden = mode !== 'PROPOSE';
   $('validFrom').value = m.today || '';
   $('validFrom').classList.remove('invalid');
   $('textLabel').textContent = 'Reference';
   $('textReq').hidden = true;
-  $('text').placeholder = mode === 'QUOTATION' ? 'quotation / offer no. (optional)' : 'supplier offer no. (optional)';
+  $('text').placeholder = { QUOTATION: 'quotation / offer no. (optional)', ESTIMATE: 'source, e.g. supplier quote / purchasing (optional)' }[mode]
+    || 'supplier offer no. (optional)';
   $('textHint').textContent = mode === 'QUOTATION' ? ''
+    : mode === 'ESTIMATE' ? 'Used only in this CBD, and carried to the next revision while the line has no Material Code. '
+      + 'From SMS the Material Code and master price are required.'
     : direct ? 'Active right away as the master price (you are Manager Costing) for all CBDs using this Material Code + supplier.'
       : 'Sent to Manager Costing as a master price proposal (not an override). After approval it applies to all CBDs '
         + 'using this Material Code + supplier; then click Refresh Prices from Master.';
   $('textHint').hidden = mode === 'QUOTATION';
+  $('btnUse').disabled = false;
   $('info').textContent = m.info || '';
   $('info').hidden = !m.info;
   ['price', 'text'].forEach(id => $(id).classList.remove('invalid'));
@@ -98,6 +111,7 @@ function setBusy(v) {
   $('btnSave').disabled = v;
   $('btnCancel').disabled = v;
   $('btnX').disabled = v;
+  $('btnUse').disabled = v;
   $('btnSave').textContent = v ? 'Saving…' : (mode === 'PROPOSE' && !direct ? 'Propose' : 'Save');
 }
 
@@ -139,6 +153,15 @@ function submit() {
   appsmith.triggerEvent('onSave');
 }
 
+// R17: isi dari estimasi terakhir (referensi diisi bila masih kosong)
+function useSuggestion() {
+  if (busy || !sugg) return;
+  $('price').value = String(Number(sugg.price)).replace('.', ',');
+  $('price').classList.remove('invalid');
+  if (sugg.reference && !$('text').value.trim()) $('text').value = sugg.reference;
+  setCurrency(sugg.currency);
+}
+
 function cancel() {
   if (!busy) appsmith.triggerEvent('onCancel');
 }
@@ -147,6 +170,7 @@ appsmith.onReady(() => {
   $('btnSave').addEventListener('click', submit);
   $('btnCancel').addEventListener('click', cancel);
   $('btnX').addEventListener('click', cancel);
+  $('btnUse').addEventListener('click', useSuggestion);
   document.querySelectorAll('#currency button').forEach(b => b.addEventListener('click', () => setCurrency(b.dataset.v)));
   $('price').addEventListener('input', () => {
     $('price').classList.remove('invalid');

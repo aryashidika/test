@@ -6,13 +6,15 @@
 //   (bukan lewat URL ?mode=keluar - URL itu tersimpan di riwayat browser sehingga tombol
 //   Back setelah login ulang akan ikut logout).
 // URL: ?mode=ganti -> tampilan ganti password.
+// Remember me (R17): dicentang = sesi 7 hari tanpa dibuka, paling lama 30 hari (aturan di fn_login / fn_me).
+//   Email terakhir selalu diingat di browser (appsmith.store.lastEmail, tidak dihapus saat Log out).
 export default {
 	// State yang dikirim ke cwLogin lewat Default model
 	view: 'login',      // 'login' | 'change'
 	busy: false,
 	forced: false,      // wajib ganti password (password sementara)
 	message: null,      // { type, text }
-	lastEmail: '',
+	lastEmail: '',      // email terakhir (isi awal field email)
 
 	setMessage(type, text) {
 		this.message = text ? { type, text } : null;
@@ -43,6 +45,7 @@ export default {
 		this.busy = false;
 		this.forced = false;
 		this.setMessage(null);
+		this.lastEmail = appsmith.store.lastEmail || this.lastEmail;
 		if (appsmith.store.doLogout) {
 			await removeValue('doLogout');
 			await this.logout();
@@ -74,6 +77,7 @@ export default {
 		// Baca dulu dari model sebelum state berubah (model di-reset saat Default model berubah)
 		const email = (cwLogin.model.email || '').trim().toLowerCase();
 		const password = cwLogin.model.password || '';
+		const remember = cwLogin.model.remember === true;
 		if (!email || !password) {
 			this.setMessage('error', 'Enter email and password.');
 			return;
@@ -82,7 +86,7 @@ export default {
 		this.setMessage(null);
 		this.busy = true;
 		try {
-			await a_login.run({ email, password });
+			await a_login.run({ email, password, remember });
 		} catch (e) {
 			this.setMessage('error', Util.cleanError(e && e.message));
 			return;
@@ -95,6 +99,7 @@ export default {
 			return;
 		}
 		await storeValue('token', r.token, true);
+		await storeValue('lastEmail', email, true);
 		if (r.must_change_password) {
 			await this.loadMe();
 			this.openChange(true);

@@ -10,6 +10,7 @@ export default {
 	step: '',      // langkah export yang sedang berjalan (untuk pesan error)
 
 	NAVY: 'FF122A52',
+	YELLOW: 'FFFEF08A',   // R17: baris tanpa Material Code (sama dengan sel kuning Excel specsheet)
 	GROUP_FILL: 'FFDCE4F3',
 	MISSING_FILL: 'FFFCEFD8',
 	RP: '_-"Rp"* #,##0.00_-;\\-"Rp"* #,##0.00_-;_-"Rp"* "-"??_-;_-@_-',
@@ -140,7 +141,7 @@ export default {
 		// ---- header tabel (baris 10–11) ----
 		const h1 = ws.getRow(10);
 		const h2 = ws.getRow(11);
-		['No', 'Component Name', 'Material description', 'Thickness', 'Unit', 'Color', 'Yield', 'Usage', 'Loss %',
+		['No', 'Component Name', 'Material description', 'Dimension', 'Unit', 'Color', 'Yield', 'Usage', 'Loss %',
 			'Unit Price', '', 'Cost/pr (Rp)', 'Supplier', 'Remarks', 'Source'].forEach((t, i) => { h1.getCell(i + 1).value = t; });
 		h2.getCell(10).value = 'USD';
 		h2.getCell(11).value = 'IDR';
@@ -163,7 +164,8 @@ export default {
 			const p = this.n(l.price_original);
 			row.getCell(1).value = l.is_sub ? '' : (l.display_no || '');
 			row.getCell(2).value = (l.is_sub ? '↳ ' : '') + (l.display_name || '') + (l.is_local ? ' (local)' : '');
-			row.getCell(3).value = `${l.material_name || ''}${l.material_code ? ' [' + l.material_code + ']' : ''}`;
+			row.getCell(3).value = `${l.material_name || ''}${l.material_code ? ' [' + l.material_code + ']'
+				: l.price_method === 'CATALOG' ? ' (no code)' : ''}`;
 			row.getCell(4).value = l.thickness || '';
 			row.getCell(5).value = l.uom || '';
 			row.getCell(6).value = l.color || '';
@@ -183,7 +185,7 @@ export default {
 			}
 			row.getCell(13).value = l.supplier_name || '';
 			row.getCell(14).value = l.remarks || '';
-			const src = { MASTER: 'master price', OVERRIDE: 'override', QUOTATION: 'quotation' }[l.price_source] || 'no price';
+			const src = { MASTER: 'master price', OVERRIDE: 'override', QUOTATION: 'quotation', ESTIMATE: 'estimate' }[l.price_source] || 'no price';
 			const org = { INPUT: '', COPIED: ' · copy', CARRIED_FROM_REPLACED: ' · replaced material' }[l.value_origin] || '';
 			row.getCell(15).value = l.no_charge ? `no charge: ${l.no_charge_reason || '-'}`
 				: src + org + (l.price_source === 'OVERRIDE' && l.price_override_reason ? `: ${l.price_override_reason}` : '');
@@ -196,6 +198,8 @@ export default {
 			this.box(row, 1, N);
 			for (let c = 1; c <= N; c++) row.getCell(c).alignment = { vertical: 'top', wrapText: c <= 6 || c >= 13 };
 			if (!counted) for (let c = 1; c <= N; c++) row.getCell(c).font = { color: { argb: 'FF9CA3AF' } };
+			// R17: baris tanpa Material Code (Pullover / Preview) kuning, sama dengan sel kuning di Excel specsheet
+			if (counted && !l.material_code && l.price_method === 'CATALOG') this.fill(row, 1, N, this.YELLOW);
 			return i;
 		};
 

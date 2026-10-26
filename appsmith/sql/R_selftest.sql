@@ -1,6 +1,6 @@
 -- ============================================================================
--- R_selftest: uji alur inti R3–R16 langsung di database, lalu DIBATALKAN (ROLLBACK): tidak ada data yang tersimpan.
--- Jalankan SETELAH sql/R_revisi_semua.sql, sql/R8_catatan_uji.sql, R9_kode_varian.sql R10_hapus_varian.sql, R11_perbaikan.sql, R11b_harga_batal.sql, R12_golive.sql, R13_cbd_stage.sql, R14_audit_stage.sql, R15_english.sql DAN R16_baku_thickness.sql, lewat z_run_sql di app "DB Tools" (Use prepared statements = OFF),
+-- R_selftest: uji alur inti R3–R17 langsung di database, lalu DIBATALKAN (ROLLBACK): tidak ada data yang tersimpan.
+-- Jalankan SETELAH sql/R_revisi_semua.sql, sql/R8_catatan_uji.sql, R9_kode_varian.sql R10_hapus_varian.sql, R11_perbaikan.sql, R11b_harga_batal.sql, R12_golive.sql, R13_cbd_stage.sql, R14_audit_stage.sql, R15_english.sql, R16_baku_thickness.sql DAN R17_remember_estimate.sql, lewat z_run_sql di app "DB Tools" (Use prepared statements = OFF),
 -- SEBELUM import app. Hasil yang diharapkan: baris terakhir "SELFTEST LOLOS". Kalau ada yang salah, query berhenti
 -- dengan pesan "SELFTEST GAGAL: ..." — kirim pesan itu ke pengembang.
 -- Aman di DB yang sudah berisi data: pabrik SELFTEST PABRIK A/B, email @selftest.invalid; master BERSAMA (supplier,
@@ -415,7 +415,7 @@ BEGIN
   PERFORM pg_temp.must_fail(format('SELECT fn_variant_save(%L, NULL, %L, ''LINU200WHT'', ''CREAM'', ''2MM'', ''ACTIVE'')', t_spec, v_mat3),
             'Confirmation needed: color code WHT%', 'R9 kode warna sudah berarti WHITE dipakai untuk CREAM -> perlu konfirmasi');
   PERFORM pg_temp.must_fail(format('SELECT fn_variant_save(%L, NULL, %L, ''LINU100GRN'', ''GREEN'', ''2MM'', ''ACTIVE'')', t_spec, v_mat3),
-            'Confirmation needed: thickness code 100%', 'R9 kode thickness sudah berarti 1MM dipakai untuk 2MM -> perlu konfirmasi');
+            'Confirmation needed: dimension code 100%', 'R9 kode thickness sudah berarti 1MM dipakai untuk 2MM -> perlu konfirmasi');
   x3 := fn_variant_save(t_spec, NULL, v_mat3, 'LINU200WHT', 'CREAM', '2MM', 'ACTIVE', true);
   PERFORM pg_temp.ok(x3 IS NOT NULL, 'R9 dengan konfirmasi tetap bisa disimpan (kode ERP yang menyimpang)');
   PERFORM fn_variant_save(t_spec, x3, v_mat3, 'LINU200WHT', 'CREAM', '2MM', 'INACTIVE');
@@ -654,21 +654,18 @@ BEGIN
             jsonb_build_array(jsonb_build_object('key', 'x', 'category', 'NGAWUR'))), '%is published%',
             'R11/A4 revisi terbit tidak bisa diterbitkan ulang');
 
-  -- ===== A1/T56: baris belum berharga = peringatan (tidak memblokir); Tanpa biaya (alasan wajib) =====
+  -- ===== A1/T56: baris belum berharga; Tanpa biaya (alasan wajib) =====
+  -- R17: CBD ini stage SMS -> baris ber-Yield tanpa harga MEMBLOKIR (peringatan saja di Pullover / Preview: bagian R17)
   c4 := fn_cbd_create(t_cbd, a1, 'NEXT', NULL);
   PERFORM fn_material_update(t_cbd, v_mat2, 'UJI EVA', 'FOAM', 'SHT', 'ACTIVE', 'QUOTATION');
   n := fn_cbd_refresh_prices(t_cbd, c4);
   SELECT id INTO l_eva FROM cbd_line WHERE cbd_revision_id = c4 AND status = 'ACTIVE' AND material_id = v_mat2;
   PERFORM pg_temp.ok((SELECT yield_value IS NOT NULL AND price_original IS NULL FROM v_cbd_line WHERE id = l_eva)
-                     AND (SELECT unpriced_count = 1 AND blank_count = 0 AND NOT blocked AND unpriced_list LIKE '%UJI EVA%'
+                     AND (SELECT unpriced_count = 1 AND blank_count = 0 AND blocked AND price_required AND unpriced_list LIKE '%UJI EVA%'
                             FROM v_cbd_checklist WHERE cbd_revision_id = c4),
-                     'R11/T56 baris ber-Yield belum berharga: peringatan + daftar baris, tidak memblokir');
-  BEGIN                                   -- terbit lolos (lalu dibatalkan lewat exception)
-    PERFORM fn_cbd_publish(t_cbd, c4, 'OTHER', 'uji', NULL);
-    RAISE EXCEPTION 'uji_batal';
-  EXCEPTION WHEN OTHERS THEN
-    PERFORM pg_temp.ok(SQLERRM = 'uji_batal', 'R11/T56 terbit tetap bisa dengan baris belum berharga (cost 0) — ' || SQLERRM);
-  END;
+                     'R17 (dulu R11/T56) CBD SMS: baris ber-Yield belum berharga didaftar dan memblokir');
+  PERFORM pg_temp.must_fail(format('SELECT fn_cbd_publish(%L, %L, ''OTHER'', ''uji'', NULL)', t_cbd, c4),
+            'From SMS every line with a Yield needs a price. 1 line(s) have no price:%UJI EVA%', 'R17 CBD SMS tidak terbit dengan baris belum berharga');
   BEGIN                                   -- Yield dikosongkan sementara (dibatalkan lewat exception)
     UPDATE cbd_line SET yield_value = NULL WHERE id = l_eva;
     PERFORM pg_temp.ok((SELECT unpriced_count = 0 AND blank_count = 1 AND NOT blocked AND unpriced_list IS NULL
@@ -970,7 +967,7 @@ BEGIN
   sh := fn_season_add(t_spec, m, 'FH27');
   a1 := fn_article_save(t_spec, NULL, sh, 'UJI-BAKU1', 'BLACK');
   a2 := fn_article_save(t_spec, NULL, sh, 'UJI-BAKU2', 'WHITE');
-  rv := fn_revision_create(t_spec, sh, 'EMPTY', NULL, NULL);
+  rv := fn_revision_create(t_spec, sh, 'EMPTY', 'SMS', NULL);      -- R17: kode wajib mulai SMS
 
   -- thickness diketik "2,0mm" -> disimpan "2 MM"; warna " Black " / "white" -> huruf besar
   l1 := fn_bom_add_line(t_spec, rv, v_comp, NULL, NULL, v_mat, '2,0mm', v_sup, NULL, NULL);
@@ -1000,7 +997,7 @@ BEGIN
   PERFORM fn_variant_save(t_spec, NULL, v_mat, 'UBTK200GRN', 'GREEN', '9 MM', 'ACTIVE', true);
   PERFORM fn_variant_save(t_spec, NULL, v_mat, 'UBTK200GRY', 'GREY', '2,0 mm', 'ACTIVE');
   PERFORM pg_temp.must_fail(format('SELECT fn_variant_save(%L, NULL, %L, ''UBTK200PNK'', ''PINK'', ''9 MM'', ''ACTIVE'')', t_spec, v_mat),
-            'Confirmation needed: thickness code 200 is recorded as "2 MM"%', 'R16 arti kode = paling banyak dipakai: pengecualian baru tetap diminta konfirmasi');
+            'Confirmation needed: dimension code 200 is recorded as "2 MM"%', 'R16 arti kode = paling banyak dipakai: pengecualian baru tetap diminta konfirmasi');
 
   -- thickness baru untuk induk yang sama: baris baru, kuning lagi sampai kodenya ada
   l2 := fn_bom_add_line(t_spec, rv, NULL, 91, 'Uji lokal baku', v_mat, '3mm', v_sup, NULL, 'Black');
@@ -1066,6 +1063,230 @@ BEGIN
   PERFORM fn_option_save(t_spec, NULL, 'UKURAN', '96', 5, 'ACTIVE');
   PERFORM pg_temp.ok((SELECT sort_order FROM model_option WHERE kind = 'UKURAN' AND value = '96') = 96,
                      'R16 UKURAN: Order tetap = angka ukuran (tidak ikut posisi)');
+END;
+$$;
+
+-- ---------------------------------------------------------------- R17: remember me (sesi 7 hari geser, maks 30 hari)
+-- now() tetap selama transaksi: geser waktu dengan mengubah expires_at / max_expires_at langsung.
+DO $$
+DECLARE
+  v  record;
+  t1 text; t2 text; t3 text;
+  h  text;
+BEGIN
+  SELECT * INTO v FROM fn_login('spec.a@selftest.invalid', 'Uji-12345');            -- tanpa parameter ke-3 (app lama)
+  t1 := v.token;
+  PERFORM pg_temp.ok(v.ok AND (SELECT NOT remember AND max_expires_at IS NULL AND expires_at = now() + interval '12 hours'
+                                 FROM app_session WHERE token_hash = fn_token_hash(t1)),
+                     'R17 login tanpa Remember me: sesi 12 jam, tanpa batas 30 hari');
+  SELECT * INTO v FROM fn_login('spec.a@selftest.invalid', 'Uji-12345', false);
+  PERFORM pg_temp.ok((SELECT NOT remember FROM app_session WHERE token_hash = fn_token_hash(v.token)), 'R17 Remember me false = sesi biasa');
+  SELECT * INTO v FROM fn_login('spec.a@selftest.invalid', 'Uji-12345', true);
+  t2 := v.token; h := fn_token_hash(t2);
+  PERFORM pg_temp.ok((SELECT remember AND expires_at = now() + interval '7 days' AND max_expires_at = now() + interval '30 days'
+                        FROM app_session WHERE token_hash = h),
+                     'R17 login dengan Remember me: sesi 7 hari, batas 30 hari');
+  SELECT * INTO v FROM fn_login('spec.a@selftest.invalid', 'salah', true);
+  PERFORM pg_temp.ok(NOT v.ok AND v.token IS NULL, 'R17 Remember me tidak melewati cek password');
+
+  -- sesi biasa tidak diperpanjang
+  UPDATE app_session SET expires_at = now() + interval '1 hour' WHERE token_hash = fn_token_hash(t1);
+  PERFORM pg_temp.ok((SELECT count(*) FROM fn_me(t1)) = 1, 'R17 fn_me sesi biasa tetap jalan');
+  PERFORM pg_temp.ok((SELECT expires_at FROM app_session WHERE token_hash = fn_token_hash(t1)) = now() + interval '1 hour',
+                     'R17 sesi biasa TIDAK diperpanjang saat app dibuka');
+
+  -- sesi remember: dibuka lagi setelah 3 hari -> mundur jadi 7 hari dari sekarang
+  UPDATE app_session SET expires_at = now() + interval '4 days' WHERE token_hash = h;
+  PERFORM pg_temp.ok((SELECT expires_at FROM fn_me(t2)) = now() + interval '7 days', 'R17 fn_me memperpanjang sesi remember ke 7 hari');
+  PERFORM pg_temp.ok((SELECT expires_at FROM app_session WHERE token_hash = h) = now() + interval '7 days', 'R17 perpanjangan tersimpan');
+  -- baru diperpanjang (kurang dari 1 jam) -> tidak menulis ulang
+  UPDATE app_session SET expires_at = now() + interval '7 days' - interval '30 minutes' WHERE token_hash = h;
+  PERFORM fn_me(t2);
+  PERFORM pg_temp.ok((SELECT expires_at FROM app_session WHERE token_hash = h) = now() + interval '7 days' - interval '30 minutes',
+                     'R17 perpanjangan paling sering sekali per jam');
+  -- mendekati batas 30 hari -> tidak melewati max_expires_at
+  UPDATE app_session SET expires_at = now() + interval '1 day', max_expires_at = now() + interval '2 days' WHERE token_hash = h;
+  PERFORM fn_me(t2);
+  PERFORM pg_temp.ok((SELECT expires_at = max_expires_at FROM app_session WHERE token_hash = h),
+                     'R17 perpanjangan berhenti di batas 30 hari sejak login');
+  -- sudah habis -> tidak hidup lagi
+  UPDATE app_session SET expires_at = now() - interval '1 minute', max_expires_at = now() + interval '20 days' WHERE token_hash = h;
+  PERFORM pg_temp.ok((SELECT count(*) FROM fn_me(t2)) = 0
+                     AND (SELECT expires_at FROM app_session WHERE token_hash = h) = now() - interval '1 minute',
+                     'R17 sesi remember yang sudah habis tidak diperpanjang');
+  PERFORM pg_temp.must_fail(format('SELECT fn_auth(%L, NULL)', t2), '%SESI_HABIS%', 'R17 sesi habis ditolak fn_auth');
+
+  -- sesi remember tetap diputus oleh Log out
+  SELECT * INTO v FROM fn_login('spec.a@selftest.invalid', 'Uji-12345', true);
+  t3 := v.token;
+  PERFORM fn_logout(t3);
+  PERFORM pg_temp.ok((SELECT count(*) FROM fn_me(t3)) = 0, 'R17 Log out menutup sesi remember');
+END;
+$$;
+
+-- ---------------------------------------------------------------- R17: kode wajib mulai SMS + harga ESTIMATE (skenario user 22 Okt)
+-- Baris 1 MESH: kode + harga master. Baris 2 TRICOT: kode, harga belum ada. Baris 3 TOE PUFF: belum ada kode.
+DO $$
+DECLARE
+  t_spec text := pg_temp.tok('spec.a@selftest.invalid');
+  t_cbd  text := pg_temp.tok('cbd.a@selftest.invalid');
+  t_mc   text := pg_temp.tok('mc.a@selftest.invalid');
+  v_cat uuid; v_sup uuid; v_comp uuid; v_b uuid;
+  m1 uuid; m2 uuid; m3 uuid; v1 uuid; v2 uuid; v3 uuid; k1 uuid; k2 uuid; k3 uuid;
+  m uuid; sh uuid; x1 uuid; rv0 uuid; rs0 uuid; l3s uuid;
+  cv0 uuid; cv1 uuid; cs0 uuid; c1 uuid; c2 uuid; c3 uuid; h record;
+BEGIN
+  PERFORM pg_temp.ok(NOT fn_stage_code_required('PULL') AND NOT fn_stage_code_required('PREV') AND fn_stage_code_required('SMS')
+                     AND fn_stage_code_required('GTM') AND fn_stage_code_required('PROD'),
+                     'R17 kode wajib mulai SMS (Pullover / Preview tidak)');
+
+  SELECT pm.category_id INTO v_cat FROM product_model pm JOIN factory f ON f.id = pm.factory_id
+   WHERE f.name = 'SELFTEST PABRIK A' LIMIT 1;
+  SELECT id INTO v_sup FROM supplier WHERE name = 'SELFTEST SUPPLIER SATU';
+  SELECT id INTO v_comp FROM component WHERE name = 'SELFTEST VAMP';
+  m1 := fn_material_add(t_spec, 'UJI R17 MESH', 'TEXTILE', 'YD');
+  m2 := fn_material_add(t_spec, 'UJI R17 TRICOT', 'TEXTILE', 'YD');
+  m3 := fn_material_add(t_spec, 'UJI R17 TOE PUFF', 'CHEMICAL', 'SHT');
+  v1 := fn_variant_save(t_spec, NULL, m1, 'R17A100BLK', 'BLACK', '1MM', 'ACTIVE');
+  v2 := fn_variant_save(t_spec, NULL, m2, 'R17B100BLK', 'BLACK', '1MM', 'ACTIVE');
+  k1 := fn_link_save(t_spec, NULL, m1, v_sup, true, 'ACTIVE');
+  k2 := fn_link_save(t_spec, NULL, m2, v_sup, true, 'ACTIVE');
+  k3 := fn_link_save(t_spec, NULL, m3, v_sup, true, 'ACTIVE');
+  v_b := fn_price_propose(t_cbd, k1, jsonb_build_array(v1), 45000, 'IDR', fn_today(), 'Q-MESH');
+  PERFORM fn_price_decide(t_mc, (SELECT jsonb_agg(id) FROM material_price WHERE batch_id = v_b), 'APPROVE', NULL);
+
+  m  := fn_model_save(t_spec, NULL, 'Uji R17 Estimasi', v_cat, NULL, NULL, NULL, NULL, '[40]', NULL);
+  sh := fn_season_add(t_spec, m, 'FH27');
+  x1 := fn_article_save(t_spec, NULL, sh, 'UJI-R17A', 'BLACK');
+
+  -- ===== 1. specsheet Preview: sel tanpa kode = peringatan, boleh terbit =====
+  rv0 := fn_revision_create(t_spec, sh, 'EMPTY', 'PREV', NULL);
+  PERFORM fn_bom_add_line(t_spec, rv0, v_comp, NULL, NULL, m1, '1MM', v_sup, NULL, 'black');
+  PERFORM fn_bom_add_line(t_spec, rv0, NULL, 91, 'Uji lining', m2, '1MM', v_sup, NULL, 'black');
+  PERFORM fn_bom_add_line(t_spec, rv0, NULL, 92, 'Uji toe puff', m3, '0.8MM', v_sup, NULL, 'black');
+  PERFORM pg_temp.ok((SELECT yellow_cells = 1 AND NOT code_required AND NOT blocked FROM v_revision_checklist WHERE revision_id = rv0),
+                     'R17 Preview: 1 sel kuning, kode belum wajib, tidak memblokir');
+  PERFORM fn_revision_publish(t_spec, rv0, 'OTHER', NULL);
+  PERFORM pg_temp.ok((SELECT status FROM specsheet_revision WHERE id = rv0) = 'PUBLISHED'
+                     AND (SELECT yellow_cells FROM v_revision_checklist WHERE revision_id = rv0) = 1,
+                     'R17 specsheet Preview terbit dengan sel tanpa kode');
+
+  -- ===== 2. CBD Preview: master / belum ada harga / estimasi =====
+  cv0 := fn_cbd_create(t_cbd, x1, 'NEW', NULL, 'PREV');
+  PERFORM fn_cbd_header_set(t_cbd, cv0, 'RATE', 16300);
+  PERFORM fn_cbd_line_set(t_cbd, l.id, 'YIELD', 1) FROM cbd_line l WHERE l.cbd_revision_id = cv0;
+  SELECT id INTO c1 FROM cbd_line WHERE cbd_revision_id = cv0 AND material_id = m1;
+  SELECT id INTO c2 FROM cbd_line WHERE cbd_revision_id = cv0 AND material_id = m2;
+  SELECT id INTO c3 FROM cbd_line WHERE cbd_revision_id = cv0 AND material_id = m3;
+  PERFORM pg_temp.ok((SELECT price_source || ':' || price_original FROM cbd_line WHERE id = c1) = 'MASTER:45000.0000'
+                     AND (SELECT price_gap || ':' || can_estimate FROM v_cbd_price_check WHERE line_id = c2) = 'NO_PRICE:false'
+                     AND (SELECT price_gap || ':' || can_estimate FROM v_cbd_price_check WHERE line_id = c3) = 'NO_CODE:true'
+                     AND (SELECT variant_id IS NULL FROM cbd_line WHERE id = c3),
+                     'R17 CBD Preview: baris kode+harga = MASTER, kode tanpa harga = NO_PRICE, tanpa kode = NO_CODE (bisa estimasi)');
+  PERFORM pg_temp.ok((SELECT unpriced_count = 2 AND NOT price_required AND NOT blocked FROM v_cbd_checklist WHERE cbd_revision_id = cv0),
+                     'R17 CBD Preview: 2 baris belum berharga = peringatan saja (T56)');
+  PERFORM pg_temp.must_fail(format('SELECT fn_cbd_set_quotation(%L, %L, 9000, ''IDR'', NULL)', t_cbd, c2),
+            '%has a Material Code: it uses the master price%', 'R17 baris yang punya kode tidak bisa diberi estimasi');
+  PERFORM pg_temp.must_fail(format('SELECT fn_cbd_set_quotation(%L, %L, 9000, ''IDR'', NULL)', t_spec, c3),
+            '%has no access%', 'R17 Vendor Spec tidak bisa mengisi estimasi');
+  PERFORM pg_temp.must_fail(format('SELECT fn_cbd_set_quotation(%L, %L, 9000, NULL, NULL)', t_cbd, c3),
+            '%urrency%', 'R17 estimasi wajib currency');
+  PERFORM fn_cbd_set_quotation(t_cbd, c3, 12500, 'IDR', ' perkiraan purchasing ');
+  PERFORM pg_temp.ok((SELECT price_source || ':' || price_original || ':' || currency || ':' || price_reference FROM cbd_line WHERE id = c3)
+                       = 'ESTIMATE:12500.0000:IDR:perkiraan purchasing'
+                     AND (SELECT cost_per_pair FROM v_cbd_line WHERE id = c3) = 12500
+                     AND (SELECT price_gap IS NULL AND NOT master_stale FROM v_cbd_price_check WHERE line_id = c3),
+                     'R17 estimasi tersimpan (sumber ESTIMATE), dihitung di cost/pair, tidak dianggap harga master berubah');
+  PERFORM pg_temp.ok((SELECT unpriced_count = 1 AND estimate_count = 1 AND NOT blocked FROM v_cbd_checklist WHERE cbd_revision_id = cv0),
+                     'R17 checklist: 1 estimasi, 1 belum berharga, tidak memblokir');
+  PERFORM pg_temp.ok((SELECT count(*) FROM fn_cbd_estimate_hint(t_cbd, c3)) = 0, 'R17 saran estimasi tidak menyarankan baris itu sendiri');
+  PERFORM pg_temp.must_fail(format('SELECT fn_cbd_refresh_prices(%L, %L)', t_cbd, cv0), '%already match%',
+            'R17 Refresh Prices tidak menyentuh estimasi');
+  PERFORM fn_cbd_publish(t_cbd, cv0, 'OTHER', NULL);
+  PERFORM pg_temp.ok((SELECT status FROM cbd_revision WHERE id = cv0) = 'PUBLISHED', 'R17 CBD Preview r0 terbit dengan estimasi + baris tanpa harga');
+
+  -- ===== 3. revisi berikutnya di Preview: estimasi ikut; saran = estimasi terakhir =====
+  cv1 := fn_cbd_create(t_cbd, x1, 'NEXT', NULL, 'PREV');
+  SELECT id INTO c3 FROM cbd_line WHERE cbd_revision_id = cv1 AND material_id = m3;
+  PERFORM pg_temp.ok((SELECT price_source || ':' || price_original || ':' || price_reference FROM cbd_line WHERE id = c3)
+                       = 'ESTIMATE:12500.0000:perkiraan purchasing',
+                     'R17 estimasi ikut ke CBD Preview r1 (baris masih tanpa kode)');
+  SELECT * INTO h FROM fn_cbd_estimate_hint(t_cbd, c3);
+  PERFORM pg_temp.ok(h.price = 12500 AND h.currency = 'IDR' AND h.reference = 'perkiraan purchasing'
+                     AND h.source_label = 'UJI R17 ESTIMASI · UJI-R17A · Preview r0',
+                     'R17 saran estimasi terakhir: 12500 IDR dari Preview r0 (nama model, article, revisi) - ' || coalesce(h.source_label, '-'));
+  PERFORM fn_cbd_set_quotation(t_cbd, c3, NULL, NULL, NULL);
+  PERFORM pg_temp.ok((SELECT price_source IS NULL AND price_original IS NULL FROM cbd_line WHERE id = c3)
+                     AND (SELECT price_gap FROM v_cbd_price_check WHERE line_id = c3) = 'NO_CODE',
+                     'R17 estimasi bisa dikosongkan');
+  PERFORM fn_cbd_delete_draft(t_cbd, cv1);
+
+  -- ===== 4. specsheet SMS: kode wajib =====
+  rs0 := fn_revision_create(t_spec, sh, 'NEXT_STAGE', 'SMS', NULL);
+  PERFORM pg_temp.ok((SELECT yellow_cells = 1 AND code_required AND blocked FROM v_revision_checklist WHERE revision_id = rs0),
+                     'R17 SMS: sel tanpa kode ikut tersalin dan memblokir');
+  PERFORM pg_temp.must_fail(format('SELECT fn_revision_publish(%L, %L, ''OTHER'', ''uji'')', t_spec, rs0),
+            'From SMS every color needs a Material Code. 1 color cell(s)%UJI R17 TOE PUFF%', 'R17 specsheet SMS tidak terbit tanpa kode');
+  v3 := fn_variant_save(t_spec, NULL, m3, 'R17C080BLK', 'BLACK', '0.8MM', 'ACTIVE');
+  PERFORM pg_temp.ok((SELECT yellow_cells FROM v_revision_checklist WHERE revision_id = rs0) = 0
+                     AND (SELECT yellow_cells FROM v_revision_checklist WHERE revision_id = rv0) = 1,
+                     'R17 kode didaftarkan: draft SMS tersambung otomatis, Preview terbit tetap seperti semula');
+  PERFORM fn_revision_publish(t_spec, rs0, 'OTHER', 'kode keluar');
+
+  -- ===== 5. CBD SMS: semua harga master; estimasi tidak bisa =====
+  cs0 := fn_cbd_create(t_cbd, x1, 'NEXT', NULL, 'SMS');
+  PERFORM fn_cbd_header_set(t_cbd, cs0, 'RATE', 16300);
+  SELECT id INTO c2 FROM cbd_line WHERE cbd_revision_id = cs0 AND material_id = m2;
+  SELECT id INTO c3 FROM cbd_line WHERE cbd_revision_id = cs0 AND material_id = m3;
+  PERFORM pg_temp.ok((SELECT stage FROM cbd_revision WHERE id = cs0) = 'SMS'
+                     AND (SELECT variant_id = v3 AND price_source IS NULL AND yield_value = 1 FROM cbd_line WHERE id = c3)
+                     AND (SELECT price_gap || ':' || can_estimate FROM v_cbd_price_check WHERE line_id = c3) = 'NO_PRICE:false',
+                     'R17 CBD SMS: baris toe puff punya kode, estimasi tidak ikut (Yield tetap), perlu harga master');
+  PERFORM pg_temp.ok((SELECT unpriced_count = 2 AND price_required AND blocked FROM v_cbd_checklist WHERE cbd_revision_id = cs0),
+                     'R17 CBD SMS: 2 baris belum berharga memblokir');
+  PERFORM pg_temp.must_fail(format('SELECT fn_cbd_publish(%L, %L, ''OTHER'', ''uji'', NULL)', t_cbd, cs0),
+            'From SMS every line with a Yield needs a price. 2 line(s)%', 'R17 CBD SMS tidak terbit selama baris ber-Yield belum berharga');
+  PERFORM pg_temp.must_fail(format('SELECT fn_cbd_set_quotation(%L, %L, 9000, ''IDR'', NULL)', t_cbd, c3),
+            '%has a Material Code%', 'R17 CBD SMS: estimasi ditolak');
+  SELECT * INTO h FROM fn_cbd_estimate_hint(t_cbd, c3);
+  PERFORM pg_temp.ok(h.price = 12500 AND h.currency = 'IDR' AND h.source_label LIKE '%Preview r0',
+                     'R17 isian awal Propose master price = estimasi Preview (12500 IDR)');
+  BEGIN                                   -- jaga-jaga: estimasi di SMS (tidak bisa lewat app) tetap ditolak saat terbit
+    UPDATE cbd_line SET price_source = 'ESTIMATE', price_original = 1, currency = 'IDR' WHERE id = c3;
+    PERFORM pg_temp.ok((SELECT estimate_count = 1 AND blocked FROM v_cbd_checklist WHERE cbd_revision_id = cs0),
+                       'R17 estimasi di CBD SMS terhitung dan memblokir');
+    PERFORM pg_temp.must_fail(format('SELECT fn_cbd_publish(%L, %L, ''OTHER'', ''uji'', NULL)', t_cbd, cs0),
+              'From SMS estimate prices are not allowed%', 'R17 CBD SMS dengan estimasi tidak terbit');
+    RAISE EXCEPTION 'uji_batal';
+  EXCEPTION WHEN OTHERS THEN
+    IF SQLERRM <> 'uji_batal' THEN RAISE; END IF;
+  END;
+  -- ajukan harga master (Vendor CBD) -> disetujui Manager Costing -> refresh -> terbit, PO SMS x1,25
+  v_b := fn_cbd_price_propose(t_cbd, c2, 9000, 'IDR', NULL, 'Q-TRICOT');
+  PERFORM fn_price_decide(t_mc, (SELECT jsonb_agg(id) FROM material_price WHERE batch_id = v_b), 'APPROVE', NULL);
+  v_b := fn_cbd_price_propose(t_cbd, c3, 12500, 'IDR', NULL, 'Q-TOE');
+  PERFORM pg_temp.ok((SELECT pending_prices = 1 AND blocked FROM v_cbd_checklist WHERE cbd_revision_id = cs0),
+                     'R17 harga pending tetap memblokir');
+  PERFORM fn_price_decide(t_mc, (SELECT jsonb_agg(id) FROM material_price WHERE batch_id = v_b), 'APPROVE', NULL);
+  PERFORM fn_cbd_refresh_prices(t_cbd, cs0);
+  PERFORM pg_temp.ok((SELECT string_agg(price_source, ',' ORDER BY price_source) FROM cbd_line WHERE cbd_revision_id = cs0) = 'MASTER,MASTER,MASTER'
+                     AND (SELECT unpriced_count = 0 AND NOT blocked FROM v_cbd_checklist WHERE cbd_revision_id = cs0),
+                     'R17 CBD SMS: semua harga master, tidak memblokir');
+  PERFORM fn_cbd_publish(t_cbd, cs0, 'OTHER', 'harga resmi');
+  PERFORM pg_temp.ok((SELECT status || ':' || po_factor FROM cbd_revision WHERE id = cs0) = 'PUBLISHED:1.2500'
+                     AND (SELECT po_price FROM v_cbd_recap WHERE cbd_revision_id = cs0) = round((45000 + 9000 + 12500) * 1.25, 2),
+                     'R17 CBD SMS terbit, PO SMS x1,25 dari harga resmi');
+
+  -- ===== 6. stage melompat (Pullover -> GTM) juga wajib kode =====
+  sh := fn_season_add(t_spec, m, 'SS28');
+  x1 := fn_article_save(t_spec, NULL, sh, 'UJI-R17B', 'BLACK');
+  rv0 := fn_revision_create(t_spec, sh, 'EMPTY', NULL, NULL);
+  PERFORM fn_bom_add_line(t_spec, rv0, v_comp, NULL, NULL, m3, '0.8MM', v_sup, NULL, 'white');
+  PERFORM fn_revision_publish(t_spec, rv0, 'OTHER', NULL);
+  rs0 := fn_revision_create(t_spec, sh, 'NEXT_STAGE', 'GTM', NULL);
+  PERFORM pg_temp.ok((SELECT stage FROM specsheet_revision WHERE id = rv0) = 'PULL'
+                     AND (SELECT stage || ':' || yellow_cells || ':' || blocked FROM v_revision_checklist WHERE revision_id = rs0) = 'GTM:1:true',
+                     'R17 Pullover terbit tanpa kode, lompat ke GTM: kode wajib');
 END;
 $$;
 

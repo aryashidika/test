@@ -2,7 +2,8 @@
 // MISSING_IN_SPEC, dengan panel ringkasan menempel di atas grid, banner refresh (F8), dan di bawah grid tabel
 // Cost recapitulation (baris biaya) + Harga jual (F8b).
 // Hanya tampilan & input: Yield, Loss %, dan nilai rekap diedit di sel (revisi DRAFT); harga lewat tombol
-// Isi harga (quotation) / Ajukan harga master (R8) (modal di luar widget). R11: Tanpa biaya
+// Isi harga (quotation) / Isi estimasi (R17: baris tanpa Material Code di Pullover / Preview) / Ajukan harga master (R8)
+// (modal di luar widget). R11: Tanpa biaya
 // (alasan diisi di sel, cost/pair 0 - mis. printing yang harganya sudah termasuk baris lain). Setiap aksi dikirim sebagai model.action + event
 // onAction (CbdGridCtrl.onAction()); aturan final di DB. Usage, harga IDR/USD, cost/pair, dan rekap dihitung
 // di DB (v_cbd_line, v_cbd_recap) - di sini hanya diformat.
@@ -21,7 +22,7 @@ let ncOpen = null;           // R11: id baris yang form "Tanpa biaya"-nya terbuk
 let ncText = '';
 
 const COLS = [
-  ['c-no', 'No'], ['c-comp', 'Component'], ['c-mat', 'Material'], ['c-thk', 'Thickness'], ['c-col', 'Color'],
+  ['c-no', 'No'], ['c-comp', 'Component'], ['c-mat', 'Material'], ['c-thk', 'Dimension'], ['c-col', 'Color'],
   ['c-sup', 'Supplier'], ['c-uom', 'UoM'], ['c-rem', 'Remarks'], ['c-num', 'Yield'], ['c-num', 'Usage'],
   ['c-num', 'Loss %'], ['c-price', 'Price'], ['c-cur', 'Cur'], ['c-num', 'USD'], ['c-num', 'IDR'],
   ['c-num', 'Cost/pr (Rp)'], ['c-src', 'Source'],
@@ -281,6 +282,7 @@ function gapText(line) {
   switch (line.price_gap) {
     case 'QUOTATION': return ['quotation material, not filled in (cost 0)', ''];
     case 'NO_SUPPLIER': return ['no supplier selected in the specsheet', ''];
+    case 'NO_CODE': return ['no Material Code yet. Enter an estimate', 'warn'];
     case 'AVAILABLE': return ['master price available. Click Refresh Prices', 'warn'];
     case 'PENDING': return ['master price waiting for Manager Costing approval', 'warn'];
     case 'NO_PRICE': return ['no master price for this Material Code + supplier', 'warn'];
@@ -300,7 +302,7 @@ function priceCell(line, editable) {
     box.appendChild(el('span', 'hint', line.no_charge_reason || ''));
   } else if (p !== null) {
     box.appendChild(el('span', 'ro', fmt(p, line.currency === 'USD' ? 4 : 2)));
-    const src = { MASTER: 'master', OVERRIDE: 'override', QUOTATION: 'quotation' }[line.price_source] || '';
+    const src = { MASTER: 'master', OVERRIDE: 'override', QUOTATION: 'quotation', ESTIMATE: 'estimate' }[line.price_source] || '';
     if (src) {
       const b = el('span', `badge ${src}`, src);
       if (line.price_source === 'MASTER' && line.master_price_valid_from) {
@@ -308,6 +310,7 @@ function priceCell(line, editable) {
       }
       if (line.price_source === 'OVERRIDE' && line.price_override_reason) b.title = `Reason: ${line.price_override_reason}`;
       if (line.price_source === 'QUOTATION' && line.price_reference) b.title = `Reference: ${line.price_reference}`;
+      if (line.price_source === 'ESTIMATE') b.title = `Estimate (no Material Code yet)${line.price_reference ? '. Reference: ' + line.price_reference : ''}`;
       box.appendChild(b);
     }
   } else if (missing) {
@@ -325,6 +328,12 @@ function priceCell(line, editable) {
     if (line.price_method === 'QUOTATION') {
       acts.appendChild(linkBtn(p !== null ? 'Edit price' : 'Enter price', 'Quotation price of the process material',
         () => send('editPrice', { line_id: line.id, mode: 'QUOTATION' })));
+    }
+    // R17: baris Catalog tanpa Material Code di Pullover / Preview (can_estimate dari v_cbd_price_check)
+    if (line.can_estimate && !line.no_charge) {
+      acts.appendChild(linkBtn(p !== null ? 'Edit estimate' : 'Enter estimate',
+        'No Material Code yet: estimate price for Pullover / Preview. From SMS the master price is required',
+        () => send('editPrice', { line_id: line.id, mode: 'ESTIMATE' })));
     }
     if (line.no_charge) {
       acts.appendChild(linkBtn('Undo no charge', 'This line is counted again with its price',
@@ -418,7 +427,8 @@ function lineRow(line, editable) {
   tr.appendChild(td('c-comp', comp));
   const mat = el('span', 'ro');
   mat.appendChild(document.createTextNode(line.material_name || '-'));
-  mat.appendChild(el('span', 'code', line.material_code || ''));
+  if (line.material_code || line.price_method !== 'CATALOG') mat.appendChild(el('span', 'code', line.material_code || ''));
+  else mat.appendChild(el('span', 'code nocode', 'no Material Code'));     // R17: hanya mungkin di Pullover / Preview
   tr.appendChild(td('c-mat', mat));
   tr.appendChild(td('c-thk', roText(line.thickness)));
   tr.appendChild(td('c-col', roText(line.color)));

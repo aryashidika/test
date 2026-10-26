@@ -207,6 +207,15 @@ tr.sub .c-comp .name::before {
   color: var(--muted);
 }
 
+.code.nocode {
+  display: inline-block;
+  margin-top: 2px;
+  padding: 0 5px;
+  border-radius: 4px;
+  background: #FFF3B0;
+  color: #7A5B00;
+}
+
 input.cell {
   width: 100%;
   height: 28px;
@@ -246,6 +255,7 @@ input.cell.need {
 
 .badge.master { background: var(--info-bg); color: var(--primary); }
 .badge.override, .badge.quotation { background: var(--warn-bg); color: var(--warn); }
+.badge.estimate { background: #FFF3B0; color: #7A5B00; border: 1px solid #E8C547; }   /* R17: kuning seperti sel tanpa kode */
 .badge.nocharge { background: var(--surface-alt); color: var(--muted); border: 1px dashed var(--border); }
 
 /* R11: form alasan Tanpa biaya di sel Harga */

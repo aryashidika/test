@@ -214,7 +214,7 @@ export default {
 		return {
 			key: this.varKey,
 			mode: 'add',
-			materialLabel: c.material_name ? `${c.material_name} (${c.uom || '-'}) · ${c.thickness || 'no thickness'}` : '',
+			materialLabel: c.material_name ? `${c.material_name} (${c.uom || '-'}) · ${c.thickness || 'no dimension'}` : '',
 			form: { code: '', color: c.color, thickness: c.thickness, status: 'ACTIVE' },
 			fixed: { color: c.color, thickness: c.thickness },
 			statusOptions: this.statusOptions,

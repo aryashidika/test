@@ -165,7 +165,7 @@ function didYouMean(raw) {
       .filter(x => x.d <= 2)
       .sort((x, y) => x.d - y.d)
       .slice(0, 3)
-      .map(x => `${x.v.code} (${x.v.material_name} · ${x.v.thickness || 'no thickness'} · ${x.v.color})`);
+      .map(x => `${x.v.code} (${x.v.material_name} · ${x.v.thickness || 'no dimension'} · ${x.v.color})`);
     if (codes.length) return codes;
   }
   const names = [...new Set((M.materials || []).map(x => x.name))];
@@ -258,7 +258,7 @@ function resolveMaterial(text) {
   if (!hasThick) {
     const byName = mats.filter(x => nameKey === norm(x.name));
     if (byName.length === 1) return { mat: byName[0] };
-    if (byName.length > 1) return { error: `Material "${raw}" has several thicknesses. Pick from the list (NAME · THICKNESS) or type the Material Code.` };
+    if (byName.length > 1) return { error: `Material "${raw}" has several dimensions. Pick from the list (NAME · DIMENSION) or type the Material Code.` };
   }
   // 4. R16: tanpa titik tengah ("NAMA . 1,5 mm", "NAMA 1,5mm") -> dibaca ulang sebagai "NAMA · THICKNESS"
   const alt = altSplit(raw);
@@ -651,7 +651,7 @@ function commitCell(line, article, input) {
   const v = variantByCode(color);
   if (v) {
     if (v.material_id !== line.material_id || thickKey(v.thickness) !== thickKey(line.thickness)) {
-      return fail(input, `Code ${v.code} is ${v.material_name || 'another material'} · ${v.thickness || 'no thickness'} · ${v.color}. It does not match the material / thickness of this line.`);
+      return fail(input, `Code ${v.code} is ${v.material_name || 'another material'} · ${v.thickness || 'no dimension'} · ${v.color}. It does not match the material / dimension of this line.`);
     }
     color = v.color;
     input.value = color;
@@ -728,7 +728,7 @@ function formInputs(prefix, state, isSub) {
     mk('comp', { list: 'dlComponents', placeholder: 'Type a component…', label: 'Component' });
     mk('no', { placeholder: 'No.', label: 'Local component no.', title: 'Only for a new component that is not in the master' });
   }
-  mk('mat', { list: 'dlMaterials', placeholder: 'Name · thickness / Material Code…', label: 'Material' });
+  mk('mat', { list: 'dlMaterials', placeholder: 'Name · dimension / Material Code…', label: 'Material' });
   f.mat.addEventListener('input', () => clearMissing(`${prefix}:mat`, f.mat));
   mk('sup', { list: supplierListId(null), placeholder: 'Supplier…', label: 'Supplier' });
   mk('rem', { placeholder: 'Remarks', label: 'Remarks', keepLines: true, title: 'Shift+Enter / Alt+Enter = new line' });
@@ -752,7 +752,7 @@ function formInputs(prefix, state, isSub) {
     f.uom.textContent = mat ? mat.uom : '-';
     f.thk.textContent = mat && mat.thickness ? mat.thickness + (mat.isNew ? ' (new)' : '') : '-';
     f.thk.title = mat && mat.isNew
-      ? 'New thickness for this material: no variants yet. Color cells stay yellow until their Material Codes are registered.' : '';
+      ? 'New dimension for this material: no variants yet. Color cells stay yellow until their Material Codes are registered.' : '';
     if (mat && (r.color || r.reparsed)) {     // kode / "NAMA . THICKNESS" diketik -> tampilkan sebagai NAMA · THICKNESS
       f.mat.value = matLabel(mat);
       state.mat = f.mat.value;
@@ -867,7 +867,7 @@ function materialCell(line, editable) {
   if (editable) {
     const mi = cellInput(`mat:${line.id}`, label, {
       col: 'mat', list: 'dlMaterials', label: 'Material',
-      title: `${title}. Type another material / thickness (or Material Code) to Replace Material.`,
+      title: `${title}. Type another material / dimension (or Material Code) to Replace Material.`,
       onCommit: i => commitMaterial(line, i),
     });
     mi.addEventListener('input', () => clearMissing(`mat:${line.id}`, mi));
@@ -952,12 +952,12 @@ function lineRow(line, arts, editable, hasSubs) {
       c.appendChild(el('span', 'vcode', code));
     } else if (yellow) {
       const note = el('span', 'vcode warn', 'no Material Code');
-      note.title = 'This color is not registered as a variant of this material + thickness. The specsheet cannot be published.';
+      note.title = 'This color is not registered as a variant of this material + dimension. The specsheet cannot be published.';
       c.appendChild(note);
       if (editable && M.canRegister) {
         const b = el('button', 'link reg', 'Register');
         b.type = 'button';
-        b.title = `Register variant ${line.material_name} · ${line.thickness || 'no thickness'} · ${v}`;
+        b.title = `Register variant ${line.material_name} · ${line.thickness || 'no dimension'} · ${v}`;
         b.addEventListener('click', () => send('registerVariant', {
           line_id: line.id, material_id: line.material_id, material_name: line.material_name, uom: line.uom,
           thickness: line.thickness || '', color: v,
@@ -1046,7 +1046,7 @@ function render(model, keepState) {
   const thead = $('thead');
   thead.innerHTML = '';
   const hr = el('tr');
-  [['c-no', 'No'], ['c-comp', 'Component'], ['c-mat', 'Material'], ['c-sup', 'Supplier'], ['c-uom', 'UoM'], ['c-thk', 'Thickness'], ['c-rem', 'Remarks']]
+  [['c-no', 'No'], ['c-comp', 'Component'], ['c-mat', 'Material'], ['c-sup', 'Supplier'], ['c-uom', 'UoM'], ['c-thk', 'Dimension'], ['c-rem', 'Remarks']]
     .forEach(([c, t]) => hr.appendChild(el('th', c, t)));
   if (editable) hr.appendChild(el('th', 'c-act', ''));
   arts.forEach(a => {

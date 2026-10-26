@@ -45,6 +45,8 @@ Legenda status: ⬜ belum · 🟡 dibuat (belum diverifikasi dari export) · ✅
 | R10 | Hapus varian yang tidak dipakai (manual, tanpa build) | – (tempel manual: SQL R10, `q_variants`, `a_variant_delete`, `MaterialDetailCtrl.deleteVariant`, kolom Hapus `tblVariants`) | 🟡 dibuat 12 Okt 2026 · self-test 121 cek lolos |
 | R9 | Material Code: isi otomatis (usulan) + kamus kode tiga tingkat (tolak / konfirmasi / info); awalan kembali info - panduan `steps/R9_uji.md` | **`build_r9.json` (di-import)** (base `build_r8.json`) | 🟡 dibuat 12 Okt 2026 · self-test 113 cek lolos (DB bersih & DB tiruan data user) · 845 kode ERP: 844 masuk, 1 ditolak (T-160 WHITE dobel) · 139 query EXPLAIN · harness |
 | R8 | Catatan uji E2E-R: Manager Costing langsung berlaku, riwayat harga, article tanpa batas, awalan Material Code wajib sama, ajukan harga master dari CBD - panduan `steps/R8_uji.md` | **`build_r8.json` (di-import)** | 🟡 dibuat 12 Okt 2026 · R8 2× tanpa error · self-test 102 cek lolos · 137 query EXPLAIN · harness widget & JSObject |
+| R18 | Ganti teks (permintaan user 26 Okt 2026): tombol Specsheet `+ Create Revision` → `+ Create` (+ pesan kosong), **Thickness → Dimension** di semua teks yang terlihat + header Excel + pesan DB; nama kolom / fungsi / variabel tetap (lihat §6 R18) · panduan `steps/R18_uji.md` | `sql/R18_dimension.sql` + **`exports/build_r18.json`** (base **`export_r17.json`** = export user 26 Okt 2026, sama dengan build R17 kecuali format ulang Appsmith) | ✅ lolos uji user 26 Okt 2026 · R18 SQL 2× + self-test LOLOS di PostgreSQL lokal (salinan DB R17) · validator **LOLOS** (0 error baru) · sisa kata thickness di build hanya nama internal / komentar |
+| R17 | **Remember me** di halaman Login (permintaan user 22 Okt 2026, app hanya lewat VPN): dicentang = sesi 7 hari tanpa dibuka, diperpanjang tiap app dibuka, maks 30 hari sejak login; tidak dicentang = 12 jam seperti dulu; email terakhir diingat di browser; **bagian 2 (22 Okt 2026): Material Code wajib mulai SMS + harga ESTIMATE untuk baris CBD tanpa kode di Pullover / Preview, baris ber-Yield tanpa harga memblokir mulai SMS** (lihat §6 R17) · panduan `steps/R17_uji.md` | `sql/R17_remember_estimate.sql` (dulu `R17_remember_me.sql`) + **`exports/build_r17.json`** (base **`export_r16.json`** = export user 22 Okt 2026: sama dengan build R16, hanya tata letak tabel Model List / Master Material / Master Component / Master Options / Master Supplier / Material Detail, kolom Factory `tblMaterials` disembunyikan, nama material wrap) | ✅ lolos uji user 26 Okt 2026 · R16 + R17 2× tanpa error di PostgreSQL lokal · self-test **280 cek** (13 baru R17) · `fn_login` dipanggil seperti app lama (2 parameter) dan baru (teks → boolean) · harness `cwLogin` (checkbox, nilai `remember` di event, email tersimpan datang setelah render pertama, tidak mengisi ulang email yang dihapus user) · validator **LOLOS** (0 error baru) · **bagian 2:** PostgreSQL lokal baru (F1 s.d. R16 dari file SQL, lalu R17 2× tanpa error), self-test **310 cek** (30 baru: skenario Preview → SMS user + lompat Pullover → GTM; 2 tes lama disesuaikan: T56 di SMS kini memblokir, tes sel kuning R16 pindah ke SMS), 145 query EXPLAIN tanpa error, query baru/diubah dijalankan dengan token per role pada data uji, harness `cwCbdGrid` + `cwCbdPriceForm` + `CbdGridCtrl` asli (tombol Enter / Edit estimate, badge, tanda no Material Code, saran Use, isian awal Propose), validator **LOLOS** |
 | R16 | Specsheet boleh disusun dengan material tanpa Material Code (sel kuning, terbit tetap diblokir), **+ New material** (bar atas & di baris yang tidak ketemu, baris dilanjutkan otomatis), saran "Did you mean", sel kuning di Export Excel, thickness baku (gaya berspasi tim material; 20 Okt: nol belakang dibuang, kutip miring / INCH, rentang), Order master option = posisi; review seluruh app 20 Okt 2026: T74–T86 (lihat §6 R16 & §9) · panduan `steps/R16_uji.md` | `sql/R16_baku_thickness.sql` + **`exports/build_r16.json`** (base `build_r15.json`) | ✅ lolos uji user 21 Okt 2026 · self-test **267 cek** (DB kosong & data sintetis 1 tahun) · 144 query dijalankan per role tanpa error · pembakuan thickness SQL = JS pada 239 teks · pindah Order 42/42 · alur panduan bagian 1–6 lewat fungsi DB 19/19 · uji browser `cwBomGrid` + `BomCtrl` + `cwVariantForm` + `cwCbdGrid` asli · validator **LOLOS** |
 | R15 | Seluruh app ke bahasa Inggris sederhana + tanpa em dash (keputusan user 13 Okt 2026): label, tombol, pesan, isi Custom Widget, pesan error DB, Tugas Saya, export Excel; nama page Home / Master Component / Master Options / Price Approval; kode status harga bahasa Inggris; PURPOSE Excel specsheet 5 stage (catatan uji R14); T72, T73 (lihat §6 R15) · panduan `steps/R15_uji.md` | `sql/R15_english.sql` + **`exports/build_r15.json`** (base `build_r14.json`: app R14 user tidak diubah) | ✅ lolos uji user 14 Okt 2026 (commit 33b943d) · R15 2× tanpa error (DB bersih & DB data uji) · logika 88 fungsi/view identik (dibandingkan tanpa teks & komentar) · 0 teks Indonesia tersisa di literal DB · self-test **204 cek** (pola pesan bahasa Inggris) · 143 query EXPLAIN · query kode status harga per role 11/11 · harness 45/45 (28 Custom Widget dirender tanpa error, Material Detail dengan data DB, PURPOSE 5 stage) · validator **LOLOS** · em dash di app & dokumen: 0 · tinjauan kalimat utuh (906 baris) + perbaikan frasa · **14 Okt: uji user menemukan T73 (data tidak tampil), build diperbaiki, Auth per page dicek sama dengan R14, validator LOLOS** |
 | R14 | Detail audit (panel `cwAuditDetail` di Admin, tab Audit Log: UPDATE kolom berubah lama → baru, INSERT keterangan, DELETE isi lengkap, kolom teknis diringkas, password tidak pernah tampil) + T71 (kolom Waktu audit) + **5 stage** Pullover, Preview, SMS, GTM, Production (kode `PULL`/`PREV`/`SMS`/`GTM`/`PROD`, label di app, stage berikutnya boleh melompat) (lihat §6 R14) · panduan `steps/R14_uji.md` | `sql/R14_audit_stage.sql` + **`exports/build_r14.json`** (base `build_r13.json`: app R13 user tidak diubah, hanya di-deploy) | ✅ lolos uji user 13 Okt 2026 (catatan: PURPOSE di Excel specsheet dibuat 5 stage → R15) · dibuat 13 Okt 2026 · R14 2× tanpa error (DB bersih & DB data uji, data lama dinomori ulang tanpa audit) · self-test **204 cek** · 143 query EXPLAIN · query baru/diubah per role 24/24 · harness (AdminCtrl, Util, SpecCtrl, CbdCtrl, SpecExportCtrl asli + `cwAuditDetail`, `cwRevisionForm`, `cwStepper`, `cwCbdForm` asli, data `q_audit` asli) 41/41 · scan fungsi menganggur: tidak ada yang baru · validator **LOLOS** |
@@ -812,6 +814,48 @@ tidak ada status "menunggu kode" baru (sel kuning sudah itu).
 **Selesai bila:** semua uji `steps/R16_uji.md` lolos, selftest lolos, migrasi pada data lama tidak mengubah Material Code di
 dokumen terbit.
 
+### R17: Remember me di halaman Login (22 Okt 2026)
+Permintaan user: app hanya bisa dibuka lewat VPN (user login VPN setiap kali), jadi ketikan login app dikurangi. Didiskusikan: ingat email saja
+vs ingat sesi; user memilih ingat sesi dengan angka **7 hari tanpa dibuka, maks 30 hari** (alasan: VPN = lapisan pertama, admin tetap bisa memutus
+sesi lewat reset password / nonaktifkan / ubah role atau pabrik; tidak menyimpan password di app, sesi tanpa batas tidak dipakai).
+- [x] `app_session.remember` (boolean, default false) + `app_session.max_expires_at` (login + 30 hari, NULL untuk sesi biasa)
+- [x] `fn_login(p_email, p_password, p_remember DEFAULT false)`: versi 2 parameter di-DROP (kalau tidak, panggilan 2 argumen ambigu); app lama tetap jalan
+- [x] `fn_me` jadi plpgsql VOLATILE: sesi remember yang masih hidup diperpanjang ke `least(now() + 7 hari, max_expires_at)`, paling sering sekali
+      per jam (tidak menulis di setiap page). Kolom hasil sama dengan R1. `fn_auth` tidak diubah (tidak memperpanjang, cukup dari `fn_me` di setiap page)
+- [x] `cwLogin`: checkbox **Remember me** (tidak dicentang default, tidak diingat) + catatan; `updateModel({ email, password, remember })`; email
+      dari model diisikan juga bila datang setelah render pertama (`fillEmail`, `filledEmail`), tidak mengisi ulang bila user menghapusnya
+- [x] `LoginCtrl`: kirim `remember` ke `a_login`; `storeValue('lastEmail', email, true)` setelah login berhasil (tidak dihapus saat Log out);
+      `onPageLoad` membaca `appsmith.store.lastEmail`. Default model `cwLogin`: `email: LoginCtrl.lastEmail || appsmith.store.lastEmail || ''`
+- [x] `a_login`: `fn_login(email, password, {{this.params.remember === true ? 'true' : 'false'}}::boolean)` (pola `confirm` yang sudah dipakai)
+- Keputusan detail (Claude): token tetap disimpan permanen di browser untuk dua pilihan (sama seperti dulu); "tidak dicentang = keluar saat
+  browser ditutup" tidak dipakai karena refresh (F5) juga akan logout. Audit login tetap `LOGIN` (tidak dibedakan remember).
+
+#### R17 bagian 2: Material Code wajib mulai SMS + harga ESTIMATE (22 Okt 2026)
+Latar (user): di Pullover / Preview purchasing belum membuat Material Code karena barang belum dibeli, tetapi specsheet **dan CBD harus tetap
+terbit dari stage awal**. Keputusan user 22 Okt 2026 (setelah diskusi opsi A = estimasi di CBD vs B = harga master tanpa kode; B ditolak karena
+mulai SMS harga pasti dari master, jadi estimasi hanya sementara dan tidak perlu dipindah ke master):
+- **Specsheet**: sel kuning (tanpa kode) memblokir terbit hanya mulai **SMS** (SMS, GTM, Production; menurut urutan stage, jadi lompatan
+  Pullover → GTM juga terkunci). Pullover / Preview = peringatan di checklist. Revisi Pullover / Preview yang sudah terbit tetap tanpa kode.
+- **CBD baris tanpa kode di Pullover / Preview**: harga **ESTIMATE** diketik Vendor CBD (harga, currency, referensi), tanpa approval, dihitung
+  di cost/pair, ikut ke revisi CBD berikutnya selama barisnya masih tanpa kode (supplier, material, thickness sama), kuning di Excel CBD.
+  Saran = estimasi terakhir material + thickness + supplier yang sama (warna sama didahulukan), tombol **Use**.
+- **Baris yang punya kode**: tetap harga master (tidak bisa estimasi; "kode ada = harga harus didaftarkan"). Pending tetap memblokir.
+- **Baris ber-Yield tanpa harga** (mengubah T56 untuk SMS ke atas, keputusan user): Pullover / Preview tetap peringatan; **mulai SMS memblokir**
+  (kecuali No charge), karena PO SMS ×1,25 dipakai untuk pembelian. Baris tanpa harga & tanpa Yield tetap tidak diperiksa.
+- Kode & harga datang terpisah: harga menyusul lewat Tugas Saya Vendor CBD (harga belum ada, sudah ada). Saat *Propose master price* untuk
+  kode baru, angka estimasi terakhir menjadi **isian awal** (harga + currency; referensi tidak ikut), tetap perlu approval.
+- [x] (dibuat) `fn_stage_code_required(stage)` = urutan stage ≥ SMS; CHECK `cbd_line.price_source` + `ESTIMATE`; index `ix_cbd_line_estimate`
+- [x] (dibuat) `v_revision_checklist` (+ `code_required`, blocked: kuning hanya bila wajib), `fn_revision_publish` (pesan `From SMS every color needs a Material Code...`)
+- [x] (dibuat) `v_cbd_price_check` (price_gap `NO_CODE`, + `can_estimate`), `v_cbd_checklist` (+ `price_required`, `estimate_count`; blocked: belum
+  berharga / estimasi mulai SMS), `fn_cbd_publish` (2 pesan baru), `fn_cbd_populate` (estimasi ikut), `fn_cbd_set_quotation` (satu pintu:
+  material Quotation = QUOTATION, baris Catalog tanpa kode di Pullover / Preview = ESTIMATE, selain itu ditolak), `fn_cbd_estimate_hint` (baru)
+- [x] (dibuat) App: `cwCbdGrid` (badge **estimate**, tombol **Enter / Edit estimate**, tanda **no Material Code**, teks `NO_CODE`), `cwCbdPriceForm`
+  (mode ESTIMATE, kotak saran + **Use**, currency isian awal), `CbdGridCtrl` (openPrice memuat `q_cbd_estimate_hint`, form model, banner per stage),
+  `CbdCtrl` (checklist terbit: harga wajib mulai SMS, baris estimasi), `SpecCtrl` (checklist sel kuning per stage), `CbdExportCtrl` (baris tanpa
+  kode kuning, `(no code)`, sumber `estimate`), `q_cbd_lines` (+ `can_estimate`), `q_cbd_estimate_hint` (baru)
+- Keputusan detail (Claude): estimasi tidak bisa di material metode Quotation (sudah punya harga quotation sendiri); estimasi di CBD SMS (tidak
+  bisa lewat app) tetap ditolak saat terbit; batas stage di banner grid ditulis ulang di JS (`SMS/GTM/PROD`) dengan komentar ke fungsi DB.
+
 ### Opsional (setelah F10, bila diminta)
 - [ ] Tab Material: **Dipakai di** (where-used) & **Histori Harga**
 - [ ] Diff BOM/CBD saat terbit (isi kolom `change_log.diff`)
@@ -825,6 +869,17 @@ dokumen terbit.
 - [ ] ~~**Pemisahan data per pabrik**~~ → **dipindah ke R1–R6** (8 Okt 2026, persiapan lebih dari 1 vendor); teks asli disimpan sebagai riwayat. - **tidak dikerjakan** (keputusan user 7 Okt 2026: saat ini hanya 1 pabrik). Bila ada pabrik kedua: tabel `factory`, `app_user.factory_id` (kosong = user Brand, lihat semua), `fn_visible_models(token)` di ±40 query baca, `fn_assert_model` di ±35 fungsi tulis; putuskan dulu apakah harga material per pabrik. Copy lintas model otomatis terbatas pabrik yang sama.
 
 ---
+
+### R18: Create + Dimension (26 Okt 2026)
+Permintaan user: ubah "create revision" jadi "create" dan semua thickness di aplikasi jadi dimension. Keputusan user 26 Okt 2026:
+- **Create:** tombol `btnBuatRevisi` (`+ Create`) + pesan kosong `SpecCtrl` (`No revisions yet. Click "+ Create".`, user 26 Okt 2026).
+  Judul `cwRevisionForm` (`Create Revision: <season>`) dan catatan `cwPublishForm` tetap.
+- **Dimension:** hanya teks yang terlihat (label, kolom `tblVariants` / `tblPrices`, pesan, placeholder, tooltip, header Excel specsheet
+  `DIMENSION` dan CBD `Dimension`). Kolom DB `thickness`, `fn_clean_thickness`, `fn_thickness_label`, id / variabel JS tetap: tanpa migrasi data.
+- Pesan DB ikut (terlihat user): `sql/R18_dimension.sql` = definisi R17 dari 6 fungsi (`fn_thickness_label` → `no dimension`,
+  `fn_bom_add_line`, `fn_bom_cell_set`, `fn_bom_replace_material`, `fn_variant_save`, `fn_material_variant_check`), hanya teks pesan diganti.
+  Self-test: 2 cek pesan `Confirmation needed: dimension code ...` disesuaikan.
+- `tools/build_r18.py`: tabel PAIRS (teks lama → baru, tepat 1x) diterapkan ke file repo (`--repo`) dan ke isi app; build memastikan hasil = repo.
 
 ## 7. Perubahan database (DDL tabel per fase)
 
@@ -1271,6 +1326,7 @@ ALTER TABLE cbd_revision ADD COLUMN po_factor numeric(6,4), DROP COLUMN selling_
 ALTER TABLE cbd_line ADD COLUMN variant_id uuid REFERENCES material_variant(id);  -- menggantikan color
 ```
 R7: `ALTER TABLE product_model ADD COLUMN parent_model_id uuid REFERENCES product_model(id);`
+R17: `ALTER TABLE app_session ADD COLUMN remember boolean NOT NULL DEFAULT false, ADD COLUMN max_expires_at timestamptz;`
 
 ---
 
@@ -1397,6 +1453,12 @@ ORDER BY 1, 2;
 | Semua 28 Custom Widget: teks bahasa Inggris (R15); `cwCbdGrid` CSS `.vl.match` | semua page | R15 | 🟡 build_r15 (harness) | ⬜ |
 | `cwAuditDetail` (baru, panel detail audit; tanpa event) | `Admin` (tab Audit Log, sebelah `tblAudit`) | R14 | 🟡 build_r14 (harness) | ⬜ |
 | `cwStepper` (5 stage berlabel) · `cwRevisionForm` (Target stage) · `cwCbdForm` (label tombol stage) | `Specsheet`, `CBD` | R14 | 🟡 build_r14 (harness) | ⬜ |
+| `fn_login(text, text, boolean)` (ganti `fn_login(text, text)`), `fn_me` plpgsql (perpanjang sesi remember), kolom `app_session.remember` / `max_expires_at` | function/tabel | R17 | ✅ | ✅ lolos uji user 26 Okt 2026 |
+| `cwLogin` (Remember me) · `LoginCtrl` (remember, `lastEmail`) · `a_login` (parameter ke-3) | `Login` | R17 | ✅ | ✅ lolos uji user 26 Okt 2026 |
+| `fn_stage_code_required`, `fn_cbd_estimate_hint` (baru), `cbd_line.price_source` + ESTIMATE, `ix_cbd_line_estimate`; `v_revision_checklist`, `v_cbd_price_check`, `v_cbd_checklist`, `fn_revision_publish`, `fn_cbd_publish`, `fn_cbd_populate`, `fn_cbd_set_quotation` diganti | function/view/tabel | R17 (bagian 2) | ✅ | ✅ lolos uji user 26 Okt 2026 |
+| `cwCbdGrid` · `cwCbdPriceForm` · `CbdGridCtrl` · `CbdCtrl` · `CbdExportCtrl` · `q_cbd_lines` · `q_cbd_estimate_hint` (baru) · `SpecCtrl` | `Cost Breakdown (CBD)`, `Specsheet` | R17 (bagian 2) | ✅ | ✅ lolos uji user 26 Okt 2026 |
+| `fn_thickness_label`, `fn_bom_add_line`, `fn_bom_cell_set`, `fn_bom_replace_material`, `fn_variant_save`, `fn_material_variant_check` (teks pesan Dimension) | function | R18 | ✅ | ✅ lolos uji user 26 Okt 2026 |
+| Teks Dimension: `cwBomGrid`, `cwVariantForm`, `cwMaterialForm`, `cwCbdGrid`, `cwPriceApproval`, `cwPriceForm`, `cwRevisionForm`, `BomCtrl`, `CbdCtrl`, `CbdExportCtrl`, `SpecExportCtrl`, kolom `tblVariants` / `tblPrices`; tombol `btnBuatRevisi` `+ Create`, pesan kosong `SpecCtrl` | `Specsheet`, `Material Detail`, `Master Material`, `Price Approval`, `Cost Breakdown (CBD)` | R18 | ✅ | ✅ lolos uji user 26 Okt 2026 |
 
 ---
 

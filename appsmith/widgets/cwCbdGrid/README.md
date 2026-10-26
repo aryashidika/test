@@ -43,7 +43,8 @@ Ukuran: lebar penuh, tinggi ±800 px (F8b: tabel Cost recapitulation & Harga jua
 ```js
 {
   editable,       // true = revisi DRAFT, article ACTIVE di specsheet terbit, role edit_cbd
-  lines,          // baris q_cbd_lines (v_cbd_line + master_stale, price_gap, other_colors, master_price, master_currency)
+  lines,          // baris q_cbd_lines (v_cbd_line + master_stale, price_gap, other_colors, master_price, master_currency,
+                  //   can_estimate (R17): baris katalog tanpa Material Code di Pullover / Preview -> tombol Enter / Edit estimate)
                   // urut: ACTIVE dulu, grup, nomor komponen, urutan
   recap,          // baris q_cbd_recap (v_cbd_recap, + group_costs { a: subtotal, … }) atau null
   costItems,      // baris q_cbd_cost_items [{ id, item_type, name, amount, remarks, is_default }] (F8b)
@@ -68,7 +69,7 @@ Satu event **`onAction`** → `{{CbdGridCtrl.onAction()}}`. Sebelumnya widget me
 | `addCost` | `item_type`, `name`, `amount` (`''` = 0), `remarks` | `a_cbd_cost_add` (F8b) |
 | `setCost` | `item_id`, `field` (`NAME`/`AMOUNT`/`REMARKS`), `value` | `a_cbd_cost_set` (F8b) |
 | `deleteCost` | `item_id` | `a_cbd_cost_delete` (konfirmasi ON, F8b) |
-| `editPrice` | `line_id`, `mode` (`QUOTATION`/`OVERRIDE`) | buka modal `mdlCbdHarga` (`cwCbdPriceForm`) |
+| `editPrice` | `line_id`, `mode` (`QUOTATION`/`ESTIMATE`) | buka modal `mdlCbdHarga` (`cwCbdPriceForm`) |
 | `refreshPrices` | – | `a_cbd_refresh_prices` |
 | `refreshSpec` | – | `a_cbd_refresh_spec` (konfirmasi ON) |
 

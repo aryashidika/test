@@ -158,7 +158,7 @@ export default {
 
 		// ---- baris 9–11: header tabel ----
 		const hd = { font: { bold: true, size: 10 }, alignment: { horizontal: 'center', vertical: 'middle', wrapText: true } };
-		[['NO.', 1], ['COMPONENT NAME', 2], ['MATERIAL DESCRIPTION', 3], ['SOURCE OF MATERIAL', 4], ['UNIT OF MSRMNT', UOM], ['THICKNESS', THK], ['PROCESS', PROC]]
+		[['NO.', 1], ['COMPONENT NAME', 2], ['MATERIAL DESCRIPTION', 3], ['SOURCE OF MATERIAL', 4], ['UNIT OF MSRMNT', UOM], ['DIMENSION', THK], ['PROCESS', PROC]]
 			.forEach(([t, c]) => { cell(9, c, t, hd); merge(9, c, 11, c); });
 		cell(9, A0, 'ARTICLE NO.', hd);
 		merge(9, A0, 9, A0 + K - 1);

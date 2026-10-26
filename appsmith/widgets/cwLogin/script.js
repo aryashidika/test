@@ -6,6 +6,7 @@ const PASSWORD_FIELDS = ['password', 'oldPass', 'newPass', 'newPass2'];
 
 let currentView = null;
 let busy = false;
+let filledEmail = '';   // email dari model yang terakhir diisikan (email tersimpan bisa datang setelah render pertama)
 
 function applyTheme(theme) {
   const t = theme || {};
@@ -45,6 +46,13 @@ function setBusy(value) {
   if (wasBusy && !busy) clearPasswords();
 }
 
+function fillEmail(email) {
+  if (email && !$('email').value) {
+    $('email').value = email;
+    filledEmail = email;
+  }
+}
+
 function render(model) {
   const m = model || {};
   const view = m.view === 'change' ? 'change' : 'login';
@@ -57,11 +65,14 @@ function render(model) {
     $('viewChange').hidden = view !== 'change';
     clearPasswords();
     if (view === 'login') {
-      if (m.email && !$('email').value) $('email').value = m.email;
+      fillEmail(m.email);
       ($('email').value ? $('password') : $('email')).focus();
     } else {
       $('oldPass').focus();
     }
+  } else if (view === 'login' && m.email && m.email !== filledEmail && !$('email').value) {
+    fillEmail(m.email);
+    if (document.activeElement === $('email')) $('password').focus();
   }
 
   $('btnCancel').textContent = m.forced ? 'Log out' : 'Cancel';
@@ -81,7 +92,7 @@ function submitLogin() {
     showMessage({ type: 'error', text: 'Enter email and password.' });
     return;
   }
-  appsmith.updateModel({ email, password });
+  appsmith.updateModel({ email, password, remember: $('remember').checked });
   appsmith.triggerEvent('onLogin');
 }
 

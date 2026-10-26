@@ -6,6 +6,7 @@ export default {
 
 	priceKey: 0, priceBusy: false, priceMsg: null,
 	priceLineId: '', priceMode: '',
+	priceHint: null, // R17: estimasi terakhir material + thickness + supplier yang sama (q_cbd_estimate_hint)
 	costOkKey: 0,    // naik setelah tambah biaya berhasil -> cwCbdGrid mengosongkan form tambah
 	loadGen: 0,      // R12: nomor pemuatan grid terakhir yang dimulai
 	doneGen: 0,      // R12: nomor pemuatan grid terbaru yang sudah selesai
@@ -89,14 +90,20 @@ export default {
 		}
 		// R11 (T56, keputusan user 13 Okt 2026): peringatan saja, untuk baris ber-Yield yang belum berharga (kemungkinan
 		// lupa). Baris tanpa harga & tanpa Yield dianggap memang tanpa biaya - tidak diperingatkan.
+		// R17: mulai SMS memblokir (sama dengan fn_stage_code_required di DB); Pullover / Preview tetap peringatan
 		const unpriced = lines.filter(l => l.price_original == null && l.yield_value != null && !l.no_charge);
 		if (unpriced.length) {
+			const required = ['SMS', 'GTM', 'PROD'].includes(r.stage);
 			const gaps = unpriced.filter(l => l.price_gap === 'NO_PRICE').length;
 			const noSup = unpriced.filter(l => l.price_gap === 'NO_SUPPLIER').length;
-			const parts = [`${unpriced.length} lines have a Yield but no price. They can still publish with cost 0. Fill in the price if it was missed.`];
-			if (gaps) parts.push(`${gaps} of them have no master price for their Material Code + supplier (propose it in Material Detail).`);
+			const noCode = unpriced.filter(l => l.price_gap === 'NO_CODE').length;
+			const parts = [required
+				? `${unpriced.length} lines have a Yield but no price. From SMS the CBD cannot be published until they have a price (or are marked No charge).`
+				: `${unpriced.length} lines have a Yield but no price. They can still publish with cost 0. Fill in the price if it was missed.`];
+			if (gaps) parts.push(`${gaps} of them have no master price for their Material Code + supplier (Propose master price in the Price column).`);
+			if (noCode && !required) parts.push(`${noCode} have no Material Code yet: click Enter estimate in the Price column.`);
 			if (noSup) parts.push(`${noSup} have no supplier in the specsheet.`);
-			out.push({ tone: 'warn', text: parts.join(' ') });
+			out.push({ tone: required ? 'danger' : 'warn', text: parts.join(' ') });
 		}
 		const rc = this.recap();
 		if (rc && rc.usd_no_rate_count) {
@@ -189,11 +196,11 @@ export default {
 			case 'deleteCost':      // a_cbd_cost_delete: Request confirmation = ON
 				await this.exec(a_cbd_cost_delete, { item_id: a.item_id });
 				break;
-			case 'editPrice':
-				this.openPrice(a.line_id, a.mode);
+			case 'editPrice':       // mode QUOTATION / ESTIMATE (R17)
+				await this.openPrice(a.line_id, a.mode);
 				break;
 			case 'proposePrice':    // R8: harga master untuk varian × supplier baris ini
-				this.openPrice(a.line_id, 'PROPOSE');
+				await this.openPrice(a.line_id, 'PROPOSE');
 				break;
 			case 'setNoCharge':     // R11: tanpa biaya (alasan wajib) / batalkan
 				if (await this.exec(a_cbd_no_charge, { line_id: a.line_id, on: a.on ? 'true' : 'false', reason: a.reason || '' })) {
@@ -220,9 +227,19 @@ export default {
 		return this.lines().find(l => l.id === this.priceLineId) || null;
 	},
 
-	openPrice(lineId, mode) {
+	// R17: ESTIMATE & PROPOSE memuat estimasi terakhir dulu (saran / isian awal); gagal dimuat = tanpa saran
+	async openPrice(lineId, mode) {
 		this.priceLineId = lineId || '';
-		this.priceMode = mode === 'PROPOSE' ? 'PROPOSE' : 'QUOTATION';
+		this.priceMode = mode === 'PROPOSE' || mode === 'ESTIMATE' ? mode : 'QUOTATION';
+		this.priceHint = null;
+		if (this.priceMode !== 'QUOTATION' && lineId) {
+			try {
+				await q_cbd_estimate_hint.run({ line_id: lineId });
+				this.priceHint = (q_cbd_estimate_hint.data && q_cbd_estimate_hint.data[0]) || null;
+			} catch (e) {
+				this.priceHint = null;
+			}
+		}
 		this.priceBusy = false;
 		this.priceMsg = null;
 		this.priceKey = this.priceKey + 1;
@@ -231,36 +248,47 @@ export default {
 
 	priceFormModel() {
 		const l = this.priceLine();
-		const q = this.priceMode === 'QUOTATION';
+		const mode = this.priceMode;
+		const q = mode === 'QUOTATION';
+		const est = mode === 'ESTIMATE';
+		const h = this.priceHint && this.priceHint.price != null ? this.priceHint : null;
+		const hintLabel = h ? `${h.source_label || ''}${h.entered_on ? ', ' + h.entered_on : ''}` : '';
 		const direct = Auth.can('approve_price');
 		const fmt = (v, cur) => `${Util.fmtNum(v, cur === 'USD' ? 4 : 2)} ${cur || ''}`.trim();
 		let current = '';
 		let info = '';
 		if (l) {
 			if (l.price_original != null) {
-				const src = { MASTER: 'master price', OVERRIDE: 'override', QUOTATION: 'quotation' }[l.price_source] || '';
+				const src = { MASTER: 'master price', OVERRIDE: 'override', QUOTATION: 'quotation', ESTIMATE: 'estimate' }[l.price_source] || '';
 				current = `Price in this CBD: ${fmt(l.price_original, l.currency)}${src ? ' (' + src + ')' : ''}`;
 			} else {
 				current = 'Price in this CBD: empty';
 			}
-			if (!q) {
+			if (est) {
+				info = 'No Material Code yet. Estimates are allowed in Pullover and Preview only; from SMS the master price is required.';
+			} else if (!q) {
 				info = l.master_price != null ? `Current master price: ${fmt(l.master_price, l.master_currency)}.`
 					: 'No active master price for this Material Code + supplier.';
+				if (h) info += ` Price filled in from the estimate ${fmt(h.price, h.currency)} (${hintLabel}). Check it before saving.`;
 			}
 		}
+		const own = l && l.price_original != null && l.price_source === (q ? 'QUOTATION' : est ? 'ESTIMATE' : 'OVERRIDE');
+		const prefill = !q && !est && h;     // R17: isian awal Propose master price = estimasi terakhir
 		return {
 			key: this.priceKey,
 			mode: this.priceMode,
 			direct,
 			today: moment().utcOffset(7).format('YYYY-MM-DD'),
-			title: q ? 'Quotation Price' : (direct ? 'New Master Price' : 'Propose Master Price'),
-			lineLabel: l ? [l.display_no, l.display_name, `${l.material_code} ${l.material_name}`, l.color, l.supplier_name]
+			title: q ? 'Quotation Price' : est ? 'Estimate Price' : (direct ? 'New Master Price' : 'Propose Master Price'),
+			lineLabel: l ? [l.display_no, l.display_name, [l.material_code, l.material_name].filter(x => x).join(' '), l.color, l.supplier_name]
 				.filter(x => x).join(' · ') : '',
 			current,
 			form: {
-				price: l && l.price_source === (q ? 'QUOTATION' : 'OVERRIDE') && l.price_original != null ? String(Number(l.price_original)) : '',
-				text: l && q ? (l.price_reference || '') : '',
+				price: own ? String(Number(l.price_original)) : prefill ? String(Number(h.price)) : '',
+				currency: own && est ? l.currency : prefill ? h.currency : '',
+				text: l && (q || est) ? (l.price_reference || '') : '',   // referensi master = no. penawaran supplier (tidak dari estimasi)
 			},
+			suggestion: est && h ? { price: Number(h.price), currency: h.currency, label: hintLabel, reference: h.reference || '' } : null,
 			info,
 			busy: this.priceBusy,
 			message: this.priceMsg,
@@ -271,7 +299,8 @@ export default {
 		const f = cwCbdPriceForm.model || {};   // baca dulu
 		const l = this.priceLine();
 		if (!l) return;
-		const q = this.priceMode === 'QUOTATION';     // selain itu PROPOSE (R8); override dihapus F10b
+		const q = this.priceMode !== 'PROPOSE';      // QUOTATION / ESTIMATE (R17) lewat satu fungsi DB; override dihapus F10b
+		const est = this.priceMode === 'ESTIMATE';
 		this.priceMsg = null;
 		this.priceBusy = true;
 		try {
@@ -297,7 +326,8 @@ export default {
 			this.priceBusy = false;
 		}
 		closeModal('mdlCbdHarga');
-		showAlert(q ? (f.price ? 'Quotation price saved.' : 'Quotation price cleared.')
+		showAlert(est ? (f.price ? 'Estimate saved.' : 'Estimate cleared.')
+			: q ? (f.price ? 'Quotation price saved.' : 'Quotation price cleared.')
 			: Auth.can('approve_price') ? 'Master price saved and active now. Vendor CBD needs to click Refresh Prices from Master.'
 				: 'Master price proposal sent to Manager Costing. After approval, click Refresh Prices from Master.', 'success');
 		this.message = null;

@@ -61,6 +61,12 @@ input {
 input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(59, 111, 224, .18); }
 
 .pw { position: relative; }
+
+.check {
+  display: flex; align-items: center; gap: 8px;
+  margin: 14px 0 0; font-weight: 400; font-size: 13px; cursor: pointer;
+}
+.check input { width: 16px; height: 16px; margin: 0; padding: 0; accent-color: var(--primary); cursor: pointer; }
 .pw input { padding-right: 64px; }
 .pw-toggle {
   position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
@@ -83,6 +89,7 @@ button:disabled { opacity: .6; cursor: default; }
 .actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 22px; }
 .hint { color: var(--muted); font-size: 12.5px; margin: 14px 0 0; }
 .hint-top { margin: 0 0 4px; }
+.hint-check { margin: 4px 0 0 24px; font-size: 12px; }
 
 .msg { border-radius: var(--radius); padding: 10px 12px; font-size: 13px; margin-bottom: 16px; line-height: 1.4; }
 .msg.error { background: var(--danger-bg); color: var(--danger); }

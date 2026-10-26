@@ -423,7 +423,7 @@ export default {
 					v: 'COPY', title: 'Copy from another article (same model / origin model)', needsSource: true, disabled: !sources.length,
 					desc: sources.length
 						? 'Lines, colors & suppliers come from this article\'s specsheet; Yield, Loss %, quotation prices, and recap are copied. '
-							+ 'From the origin model (cross-model copy): Yield/Loss only for origin lines with the same material + thickness; only rate & LOP are copied.'
+							+ 'From the origin model (cross-model copy): Yield/Loss only for origin lines with the same material + dimension; only rate & LOP are copied.'
 						: 'No other article of this model (or its origin model) has a published CBD.',
 				},
 			];
@@ -517,10 +517,18 @@ export default {
 			{ label: 'Priced lines have a Yield', ok: c.no_yield_count === 0, blocking: true,
 				detail: c.no_yield_count ? `${c.no_yield_count} lines without Yield (yellow box)` : '' },
 			// R11 (T56, keputusan user 13 Okt 2026): peringatan saja - baris ber-Yield yang belum berharga didaftar
-			// (kemungkinan lupa); baris tanpa harga & tanpa Yield tidak didaftar (memang tanpa biaya)
-			{ label: 'Lines with Yield have a price', ok: c.unpriced_count === 0, blocking: false,
-				detail: c.unpriced_count ? `${c.unpriced_count} lines will publish with cost 0: ${c.unpriced_list || ''}. Fill in the price if it was missed` : '' },
+			// (kemungkinan lupa); baris tanpa harga & tanpa Yield tidak didaftar (memang tanpa biaya).
+			// R17 (keputusan user 22 Okt 2026): mulai SMS memblokir (price_required), Pullover / Preview tetap peringatan
+			{ label: 'Lines with Yield have a price', ok: c.unpriced_count === 0, blocking: !!c.price_required,
+				detail: !c.unpriced_count ? ''
+					: c.price_required ? `${c.unpriced_count} lines without price: ${c.unpriced_list || ''}. From SMS every line with a Yield needs a price (or No charge)`
+					: `${c.unpriced_count} lines will publish with cost 0: ${c.unpriced_list || ''}. Fill in the price if it was missed` },
 		];
+		if (c && c.estimate_count) {
+			checks.push({ label: `${c.estimate_count} lines use an estimate price (no Material Code yet)`, ok: !c.price_required,
+				blocking: !!c.price_required,
+				detail: c.price_required ? 'Estimates are not allowed from SMS' : 'Allowed in Pullover and Preview. From SMS the master price is required.' });
+		}
 		if (c && c.no_charge_count) {
 			checks.push({ label: `${c.no_charge_count} lines with no charge (cost 0)`, ok: true, blocking: false,
 				detail: 'The reason shows in the grid & Excel export.' });

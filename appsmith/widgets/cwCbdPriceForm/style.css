@@ -223,6 +223,30 @@ button:disabled {
   cursor: not-allowed;
 }
 
+/* R17: saran estimasi terakhir (tombol Use) */
+.sugg {
+  margin-top: 8px;
+  padding: 8px 12px;
+  border-radius: var(--radius);
+  background: #FFF3B0;
+  color: #7A5B00;
+  font-size: 12.5px;
+}
+
+.lnk {
+  border: none;
+  background: none;
+  padding: 0 0 0 6px;
+  color: var(--accent);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.lnk:hover:not(:disabled) {
+  text-decoration: underline;
+}
+
 .current {
   margin-top: 12px;
   padding: 10px 12px;

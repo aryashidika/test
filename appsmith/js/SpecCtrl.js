@@ -245,7 +245,7 @@ export default {
 			selectedId: this.revisionId,
 			emptyText: !this.modelId ? 'Select a model first.'
 				: !this.seasonId ? 'This model has no seasons yet.'
-				: (this.canEdit() ? 'No revisions yet. Click "+ Create Revision".' : 'No published revisions yet.'),
+				: (this.canEdit() ? 'No revisions yet. Click "+ Create".' : 'No published revisions yet.'),
 		};
 	},
 
@@ -414,8 +414,11 @@ export default {
 				detail: c.inactive_materials || '' },
 			{ label: 'All lines have a supplier', ok: c.no_supplier_lines === 0, blocking: true,
 				detail: c.no_supplier_lines ? `${c.no_supplier_lines} lines without supplier. Fill in the supplier in the BOM grid` : '' },
-			{ label: 'All colors have a Material Code (no yellow cells)', ok: !c.yellow_cells, blocking: true,
-				detail: c.yellow_cells ? `${c.yellow_cells} yellow cells: ${c.yellow_list || ''}. Click Register in that cell` : '' },
+			// R17 (keputusan user 22 Okt 2026): wajib mulai SMS (code_required); Pullover / Preview = peringatan
+			{ label: 'All colors have a Material Code (no yellow cells)', ok: !c.yellow_cells, blocking: !!c.code_required,
+				detail: !c.yellow_cells ? ''
+					: c.code_required ? `${c.yellow_cells} yellow cells: ${c.yellow_list || ''}. Required from SMS. Click Register in that cell`
+					: `${c.yellow_cells} yellow cells: ${c.yellow_list || ''}. Allowed in Pullover and Preview; required from SMS` },
 			{ label: 'No inactive suppliers', ok: !c.inactive_suppliers, blocking: true,
 				detail: c.inactive_suppliers ? `${c.inactive_suppliers}. Change the supplier in the BOM grid` : '' },
 		];
