@@ -1,6 +1,6 @@
 -- ============================================================================
 -- R_selftest: uji alur inti R3–R19 langsung di database, lalu DIBATALKAN (ROLLBACK): tidak ada data yang tersimpan.
--- Jalankan SETELAH sql/R_revisi_semua.sql, sql/R8_catatan_uji.sql, R9_kode_varian.sql R10_hapus_varian.sql, R11_perbaikan.sql, R11b_harga_batal.sql, R12_golive.sql, R13_cbd_stage.sql, R14_audit_stage.sql, R15_english.sql, R16_baku_thickness.sql, R17_remember_estimate.sql, R18_dimension.sql DAN R19_catatan_uji.sql, lewat z_run_sql di app "DB Tools" (Use prepared statements = OFF),
+-- Jalankan SETELAH sql/R_revisi_semua.sql, sql/R8_catatan_uji.sql, R9_kode_varian.sql R10_hapus_varian.sql, R11_perbaikan.sql, R11b_harga_batal.sql, R12_golive.sql, R13_cbd_stage.sql, R14_audit_stage.sql, R15_english.sql, R16_baku_thickness.sql, R17_remember_estimate.sql, R18_dimension.sql, R19_catatan_uji.sql DAN SQL R20 (steps/R20_uji.md §0a), lewat z_run_sql di app "DB Tools" (Use prepared statements = OFF),
 -- SEBELUM import app. Hasil yang diharapkan: baris terakhir "SELFTEST LOLOS". Kalau ada yang salah, query berhenti
 -- dengan pesan "SELFTEST GAGAL: ..." — kirim pesan itu ke pengembang.
 -- Aman di DB yang sudah berisi data: pabrik SELFTEST PABRIK A/B, email @selftest.invalid; master BERSAMA (supplier,
@@ -235,14 +235,16 @@ BEGIN
   l1 := fn_bom_add_line(t_spec, v_rev, v_comp, NULL, NULL, v_mat, '1.2mm', v_sup, NULL, 'black');
   PERFORM pg_temp.ok((SELECT count(*) FROM bom_cell WHERE bom_line_id = l1 AND color = 'BLACK' AND variant_id = v1) = 3,
                      'R4 isi warna dari kode -> 3 sel BLACK tersambung ke MSHU120BLK');
+  -- R20 (keputusan user 27 Okt 2026): Material Code hanya lewat Register; kode yang diketik di sel = teks warna biasa (kuning)
   PERFORM fn_bom_cell_set(t_spec, l1, a2, 'mshu120wht');
-  PERFORM pg_temp.ok((SELECT color FROM bom_cell WHERE bom_line_id = l1 AND article_id = a2) = 'WHITE'
-                     AND (SELECT variant_id FROM bom_cell WHERE bom_line_id = l1 AND article_id = a2) = v2,
-                     'R4 Material Code diketik di sel -> warna WHITE');
+  PERFORM pg_temp.ok((SELECT color FROM bom_cell WHERE bom_line_id = l1 AND article_id = a2) = 'MSHU120WHT'
+                     AND (SELECT variant_id FROM bom_cell WHERE bom_line_id = l1 AND article_id = a2) IS NULL,
+                     'R20 Material Code diketik di sel = teks warna biasa (kuning), bukan WHITE');
+  PERFORM fn_bom_cell_set(t_spec, l1, a2, 'white');
+  PERFORM pg_temp.ok((SELECT variant_id FROM bom_cell WHERE bom_line_id = l1 AND article_id = a2) = v2,
+                     'R4 warna terdaftar langsung tersambung ke kodenya');
   v_mat2 := fn_material_add(t_spec, 'UJI EVA', 'FOAM', 'SHT');
   ve := fn_variant_save(t_spec, NULL, v_mat2, 'EVAU030BLK', 'BLACK', '3MM', 'ACTIVE');
-  PERFORM pg_temp.must_fail(format('SELECT fn_bom_cell_set(%L, %L, %L, ''EVAU030BLK'')', t_spec, l1, a2),
-            '%does not match%', 'R4 kode material lain di sel ditolak');
   PERFORM fn_bom_cell_set(t_spec, l1, a3, 'Grey');
   PERFORM pg_temp.ok((SELECT yellow FROM v_bom_grid WHERE id = l1) = 1, 'R4 warna belum terdaftar = 1 sel kuning');
   PERFORM pg_temp.ok((SELECT yellow_cells FROM v_revision_checklist WHERE revision_id = v_rev) = 1
@@ -434,30 +436,33 @@ BEGIN
   PERFORM pg_temp.ok((SELECT price FROM fn_price_lookup(x1, v_sup)) = 10000, 'R8 harga Manager Costing langsung berlaku');
   PERFORM pg_temp.ok((SELECT count(*) FROM v_worklist_admin WHERE ref_id = v_b) = 0, 'R8 tidak muncul di Persetujuan Harga');
 
-  -- 4. awalan Material Code (R9: peringatan saja, tidak ditolak — kasus ERP CANVAS 6 OZ)
-  PERFORM pg_temp.ok((SELECT other_prefixes FROM fn_variant_code_hint(t_spec, v_mat3, 'LINX100CRM', NULL)) = 'LINU',
-                     'R9 awalan beda diberi peringatan (hint other_prefixes)');
-  PERFORM pg_temp.ok(fn_variant_save(t_spec, NULL, v_mat3, 'LINX100CRM', 'CREAM', '1MM', 'ACTIVE') IS NOT NULL,
-                     'R9 awalan beda tetap bisa disimpan');
+  -- 4. awalan Material Code (R20: satu material = satu awalan, ditolak; R9 dulu hanya peringatan)
+  PERFORM pg_temp.ok((SELECT other_prefixes FROM fn_variant_code_hint(t_spec, v_mat3, 'LINX100CRM', NULL)) = 'LINU'
+                     AND (SELECT array_to_string(problems, ' ') FROM fn_variant_code_hint(t_spec, v_mat3, 'LINX100CRM', NULL, 'CREAM', '1MM'))
+                         LIKE '%uses prefix LINU%',
+                     'R20 awalan beda tampil sebagai masalah di form (hint problems)');
+  PERFORM pg_temp.must_fail(format('SELECT fn_variant_save(%L, NULL, %L, ''LINX100CRM'', ''CREAM'', ''1MM'', ''ACTIVE'')', t_spec, v_mat3),
+            '%uses prefix LINU%', 'R20 awalan beda dari varian lain material ini ditolak');
   x2 := fn_variant_save(t_spec, NULL, v_mat3, 'linu100wht', 'WHITE', '1MM', 'ACTIVE');
   PERFORM pg_temp.ok(x2 IS NOT NULL, 'R8 awalan sama diterima');
   -- R9: usulan Material Code dari varian yang sudah tercatat
   PERFORM pg_temp.ok((SELECT prefixes || '|' || thickness_codes || '|' || color_codes
-                        FROM fn_variant_code_suggest(t_spec, v_mat3, ' black ', '1mm')) = 'LINU,LINX|100|BLK',
+                        FROM fn_variant_code_suggest(t_spec, v_mat3, ' black ', '1mm')) = 'LINU|100|BLK',
                      'R9 usulan kode: awalan material (paling sering dulu), kode thickness & warna se-pabrik');
   PERFORM pg_temp.ok((SELECT color_codes IS NULL AND thickness_codes = '100'
                         FROM fn_variant_code_suggest(t_spec, v_mat3, 'UNGU MUDA', '1MM')),
                      'R9 warna baru: kode warna kosong, bagian lain tetap diusulkan');
   PERFORM pg_temp.ok(NOT EXISTS (SELECT 1 FROM fn_variant_code_suggest(t_specb, v_mat3, 'BLACK', '1MM')),
                      'R9 usulan kode tidak bisa dibaca pabrik lain');
-  -- R9: tiga tingkat — TOLAK (kode / varian dobel), KONFIRMASI (arti bagian kode beda), INFO (hanya di form)
+  -- R20: bagian kode yang sudah berarti lain DITOLAK (R9 dulu: konfirmasi); centang konfirmasi tidak berlaku lagi
   PERFORM pg_temp.must_fail(format('SELECT fn_variant_save(%L, NULL, %L, ''LINU200WHT'', ''CREAM'', ''2MM'', ''ACTIVE'')', t_spec, v_mat3),
-            'Confirmation needed: color code WHT%', 'R9 kode warna sudah berarti WHITE dipakai untuk CREAM -> perlu konfirmasi');
+            '%Color code WHT means WHITE%', 'R20 kode warna yang sudah berarti WHITE dipakai untuk CREAM -> ditolak');
   PERFORM pg_temp.must_fail(format('SELECT fn_variant_save(%L, NULL, %L, ''LINU100GRN'', ''GREEN'', ''2MM'', ''ACTIVE'')', t_spec, v_mat3),
-            'Confirmation needed: dimension code 100%', 'R9 kode thickness sudah berarti 1MM dipakai untuk 2MM -> perlu konfirmasi');
-  x3 := fn_variant_save(t_spec, NULL, v_mat3, 'LINU200WHT', 'CREAM', '2MM', 'ACTIVE', true);
-  PERFORM pg_temp.ok(x3 IS NOT NULL, 'R9 dengan konfirmasi tetap bisa disimpan (kode ERP yang menyimpang)');
-  PERFORM fn_variant_save(t_spec, x3, v_mat3, 'LINU200WHT', 'CREAM', '2MM', 'INACTIVE');
+            '%Dimension code 100 means 1 MM%', 'R20 kode dimension yang sudah berarti 1 MM dipakai untuk 2 MM -> ditolak');
+  PERFORM pg_temp.must_fail(format('SELECT fn_variant_save(%L, NULL, %L, ''LINU200WHT'', ''CREAM'', ''2MM'', ''ACTIVE'', true)', t_spec, v_mat3),
+            '%Color code WHT means WHITE%', 'R20 centang konfirmasi tidak membuka penolakan');
+  x3 := fn_variant_save(t_spec, NULL, v_mat3, 'LINU200CRM', 'CREAM', '2MM', 'ACTIVE');
+  PERFORM fn_variant_save(t_spec, x3, v_mat3, 'LINU200CRM', 'CREAM', '2MM', 'INACTIVE');
   PERFORM pg_temp.ok((SELECT status FROM material_variant WHERE id = x3) = 'INACTIVE', 'R9 ubah status saja tidak ditanya konfirmasi lagi');
   PERFORM pg_temp.must_fail(format('SELECT fn_variant_save(%L, NULL, %L, ''LINU100BLK'', ''NAVY'', ''1MM'', ''ACTIVE'', true)', t_spec, v_mat3),
             '%already used%', 'R9 kode lengkap dobel tetap ditolak walau dikonfirmasi');
@@ -474,11 +479,11 @@ BEGIN
                      'R10 varian dipakai specsheet & CBD tidak bisa dihapus');
   PERFORM pg_temp.must_fail(format('SELECT fn_variant_delete(%L, %L)', t_cbd, x3), '%has no access%', 'R10 hapus varian butuh manage_master');
   PERFORM pg_temp.must_fail(format('SELECT fn_variant_delete(%L, %L)', t_specb, x3), '%another factory%', 'R10 hapus varian pabrik lain ditolak');
-  PERFORM fn_variant_save(t_spec, x3, v_mat3, 'LINU200WHT', 'CREAM', '2MM', 'ACTIVE');
+  PERFORM fn_variant_save(t_spec, x3, v_mat3, 'LINU200CRM', 'CREAM', '2MM', 'ACTIVE');
   v_b := fn_price_propose(t_cbd, v_link3, jsonb_build_array(x3), 500, 'IDR', NULL, NULL);
   PERFORM fn_price_decide(t_mc, (SELECT jsonb_agg(id) FROM material_price WHERE batch_id = v_b), 'REJECT', 'uji hapus');
   PERFORM pg_temp.ok(fn_variant_delete_block(x3) IS NULL, 'R10 varian tanpa pemakaian (harga ditolak saja) boleh dihapus');
-  PERFORM pg_temp.ok(fn_variant_delete(t_spec, x3) = 'LINU200WHT', 'R10 hapus varian mengembalikan kodenya');
+  PERFORM pg_temp.ok(fn_variant_delete(t_spec, x3) = 'LINU200CRM', 'R10 hapus varian mengembalikan kodenya');
   PERFORM pg_temp.ok(NOT EXISTS (SELECT 1 FROM material_variant WHERE id = x3)
                      AND NOT EXISTS (SELECT 1 FROM material_price WHERE variant_id = x3)
                      AND EXISTS (SELECT 1 FROM audit_log WHERE entity_id = x3::text AND action = 'DELETE'),
@@ -1032,11 +1037,10 @@ BEGIN
             '%already exists%', 'R16 varian dobel beda cara tulis thickness (2,0MM = 2 MM) ditolak');
   v_v2 := fn_variant_save(t_spec, NULL, v_mat, 'UBTK200WHT', 'White', '2MM', 'ACTIVE');
   PERFORM pg_temp.ok((SELECT yellow_cells FROM v_revision_checklist WHERE revision_id = rv) = 0, 'R16 semua kuning hilang setelah kode lengkap');
-  -- arti kode = yang paling banyak dipakai: pengecualian yang dikonfirmasi (200 = 9 MM) tidak membuat kode 200 normal (2 MM) diminta konfirmasi
-  PERFORM fn_variant_save(t_spec, NULL, v_mat, 'UBTK200GRN', 'GREEN', '9 MM', 'ACTIVE', true);
+  -- R20: kode 200 sudah berarti 2 MM -> 9 MM ditolak walau dicentang; 2,0 mm (= 2 MM) tetap diterima
+  PERFORM pg_temp.must_fail(format('SELECT fn_variant_save(%L, NULL, %L, ''UBTK200GRN'', ''GREEN'', ''9 MM'', ''ACTIVE'', true)', t_spec, v_mat),
+            'Material Code UBTK200GRN cannot be saved: Dimension code 200 means 2 MM%', 'R20 kode dimension yang sudah berarti 2 MM ditolak untuk 9 MM');
   PERFORM fn_variant_save(t_spec, NULL, v_mat, 'UBTK200GRY', 'GREY', '2,0 mm', 'ACTIVE');
-  PERFORM pg_temp.must_fail(format('SELECT fn_variant_save(%L, NULL, %L, ''UBTK200PNK'', ''PINK'', ''9 MM'', ''ACTIVE'')', t_spec, v_mat),
-            'Confirmation needed: dimension code 200 is recorded as "2 MM"%', 'R16 arti kode = paling banyak dipakai: pengecualian baru tetap diminta konfirmasi');
 
   -- thickness baru untuk induk yang sama: baris baru, kuning lagi sampai kodenya ada
   l2 := fn_bom_add_line(t_spec, rv, NULL, 91, 'Uji lokal baku', v_mat, '3mm', v_sup, NULL, 'Black');
@@ -1045,8 +1049,8 @@ BEGIN
                      'R16 thickness baru (3mm) untuk induk yang sama: baris baru, 2 sel kuning');
   PERFORM pg_temp.must_fail(format('SELECT fn_revision_publish(%L, %L, ''OTHER'', NULL)', t_spec, rv),
             '%no Material Code%', 'R16 thickness baru tanpa kode tidak boleh terbit');
-  PERFORM fn_variant_save(t_spec, NULL, v_mat, 'UBTK300BLK', 'BLACK', '3MM', 'ACTIVE');
-  PERFORM fn_variant_save(t_spec, NULL, v_mat, 'UBTK300WHT', 'WHITE', '3 mm', 'ACTIVE');
+  PERFORM fn_variant_save(t_spec, NULL, v_mat, 'UBTK030BLK', 'BLACK', '3MM', 'ACTIVE');
+  PERFORM fn_variant_save(t_spec, NULL, v_mat, 'UBTK030WHT', 'WHITE', '3 mm', 'ACTIVE');
   PERFORM pg_temp.ok((SELECT yellow_cells FROM v_revision_checklist WHERE revision_id = rv) = 0,
                      'R16 kode thickness baru lengkap, tidak ada kuning');
   PERFORM fn_revision_publish(t_spec, rv, 'OTHER', NULL);
@@ -1491,7 +1495,7 @@ BEGIN
   PERFORM pg_temp.must_fail(format('SELECT fn_material_update(%L, %L, ''UJI R19 PRINTING'', ''PROCESS'', ''PRS'', ''ACTIVE'', ''QUOTATION'', false)', t_cbd, mp),
             '%Process cannot be changed%published%', 'R19 tanda Process terkunci juga untuk tim CBD');
   mc := fn_material_add(t_spec, 'UJI R19 EMBOSS', 'PROCESS', 'PRS');
-  vv := fn_variant_save(t_spec, NULL, mc, 'R19E100BLK', 'BLACK', '', 'ACTIVE', true);
+  vv := fn_variant_save(t_spec, NULL, mc, 'R19E800BLK', 'BLACK', '', 'ACTIVE', true);
   PERFORM pg_temp.must_fail(format('SELECT fn_material_update(%L, %L, ''UJI R19 EMBOSS'', ''PROCESS'', ''PRS'', ''ACTIVE'', ''CATALOG'', true)', t_spec, mc),
             '%already has variants%', 'R19 tanda Process ditolak bila material sudah punya varian');
   PERFORM fn_variant_delete(t_spec, vv);
@@ -1545,6 +1549,163 @@ BEGIN
    AND component_id = v_comp LIMIT 1;
   PERFORM pg_temp.must_fail(format('SELECT fn_bom_change_component(%L, %L, %L)', t_spec, l1, ca),
             '%published and cannot be changed%', 'R19 revisi terbit tidak bisa diganti komponennya');
+END;
+$$;
+
+-- ---------------------------------------------------------------- R20 (nama material seragam, kode ketat, Use)
+DO $$
+DECLARE
+  t_spec  text := pg_temp.tok('spec.a@selftest.invalid');
+  t_cbd   text := pg_temp.tok('cbd.a@selftest.invalid');
+  t_specb text := pg_temp.tok('spec.b@selftest.invalid');
+  v_cat uuid; v_sup uuid; v_comp uuid;
+  mb uuid; ma uuid; mk uuid; mk2 uuid; mo uuid; vb uuid; vn uuid; vo uuid; vk uuid;
+  m1 uuid; m2 uuid; sh1 uuid; sh2 uuid; a1 uuid; a2 uuid; b1 uuid; r1 uuid; r2 uuid; rp uuid;
+  l1 uuid; l2 uuid; l3 uuid; lp uuid; j jsonb; h record; n integer;
+BEGIN
+  SELECT pm.category_id INTO v_cat FROM product_model pm JOIN factory f ON f.id = pm.factory_id
+   WHERE f.name = 'SELFTEST PABRIK A' LIMIT 1;
+  SELECT id INTO v_sup FROM supplier WHERE name = 'SELFTEST SUPPLIER SATU';
+  SELECT id INTO v_comp FROM component WHERE name = 'SELFTEST VAMP';
+
+  -- ===== 1. nama material: beda spasi / tanda baca = sama =====
+  mb := fn_material_add(t_spec, 'UJI R20 PU LEATHER', 'LEATHER', 'ME');
+  PERFORM pg_temp.must_fail(format('SELECT fn_material_add(%L, ''uji r20 p.u-leather'', ''LEATHER'', ''ME'')', t_spec),
+            '%UJI R20 PU LEATHER%only spaces or punctuation differ%', 'R20 nama beda tanda baca / spasi = material yang sama, ditolak');
+  PERFORM pg_temp.ok(fn_material_add(t_spec, 'UJI R20 PU-LEATHER', 'LEATHER', 'PRS') IS NOT NULL,
+                     'R20 nama rapat sama tapi UoM beda tetap boleh');
+  ma := fn_material_add(t_spec, 'UJI R20 PU LEATHR', 'LEATHER', 'ME');   -- material "baru" hasil salah ketik (tanpa kode)
+  PERFORM pg_temp.must_fail(format('SELECT fn_material_update(%L, %L, ''UJI R20 PU  LEATHER.'', ''LEATHER'', ''ME'', ''ACTIVE'', ''CATALOG'')', t_spec, ma),
+            '%only spaces or punctuation differ%', 'R20 ganti nama ke nama rapat yang sudah ada ditolak');
+
+  -- ===== 2. kode ketat dua arah =====
+  vb := fn_variant_save(t_spec, NULL, mb, 'R20P160BLK', 'BLACK', '1.6MM', 'ACTIVE');
+  vn := fn_variant_save(t_spec, NULL, mb, 'R20P160NVY', 'NAVY', '1.6 mm', 'ACTIVE');
+  PERFORM pg_temp.must_fail(format('SELECT fn_variant_save(%L, NULL, %L, ''R20Q160RED'', ''RED'', ''1.6MM'', ''ACTIVE'')', t_spec, mb),
+            '%Material UJI R20 PU LEATHER uses prefix R20P%', 'R20 satu material = satu awalan');
+  mo := fn_material_add(t_spec, 'UJI R20 MESH', 'TEXTILE', 'ME');
+  PERFORM pg_temp.must_fail(format('SELECT fn_variant_save(%L, NULL, %L, ''R20P404WHT'', ''WHITE'', ''44"'', ''ACTIVE'')', t_spec, mo),
+            '%Prefix R20P belongs to material UJI R20 PU LEATHER%', 'R20 awalan milik material lain ditolak');
+  PERFORM pg_temp.must_fail(format('SELECT fn_variant_save(%L, NULL, %L, ''R20M160WHT'', ''WHITE'', ''44"'', ''ACTIVE'')', t_spec, mo),
+            '%Dimension code 160 means 1.6 MM%', 'R20 kode dimension = satu dimension');
+  PERFORM pg_temp.must_fail(format('SELECT fn_variant_save(%L, NULL, %L, ''R20M161BLK'', ''BLACK'', ''1.6mm'', ''ACTIVE'')', t_spec, mo),
+            '%Dimension 1.6 MM uses dimension code 160%', 'R20 satu dimension = satu kode tengah');
+  PERFORM pg_temp.must_fail(format('SELECT fn_variant_save(%L, NULL, %L, ''R20M404BLK'', ''CHARCOAL'', ''44"'', ''ACTIVE'')', t_spec, mo),
+            '%Color code BLK means BLACK%', 'R20 kode warna = satu warna (semua material)');
+  vo := fn_variant_save(t_spec, NULL, mo, 'R20M404B01', 'BLACK', '44"', 'ACTIVE');
+  PERFORM pg_temp.ok(vo IS NOT NULL, 'R20 warna sama di material lain boleh kode warna lain (BLACK = B01 di MESH)');
+  PERFORM pg_temp.must_fail(format('SELECT fn_variant_save(%L, NULL, %L, ''R20P172B02'', ''BLACK'', ''1.72MM'', ''ACTIVE'')', t_spec, mb),
+            '%Color BLACK in material UJI R20 PU LEATHER uses color code BLK%', 'R20 satu warna di satu material = satu kode akhir');
+  PERFORM pg_temp.must_fail(format('SELECT fn_variant_save(%L, NULL, %L, ''R20P160B01'', ''GREY'', ''1.6MM'', ''ACTIVE'', true)', t_spec, mb),
+            '%Color code B01 means BLACK%', 'R20 centang konfirmasi lama tidak membuka penolakan');
+  -- dimension kosong: kode tengah per UoM
+  mk := fn_material_add(t_spec, 'UJI R20 COMPOUND', 'RUBBER', 'KG');
+  vk := fn_variant_save(t_spec, NULL, mk, 'R20CK00WHT', 'WHITE', '', 'ACTIVE');
+  mk2 := fn_material_add(t_spec, 'UJI R20 TPR', 'RUBBER', 'KG');
+  PERFORM pg_temp.must_fail(format('SELECT fn_variant_save(%L, NULL, %L, ''R20T800WHT'', ''WHITE'', ''.'', ''ACTIVE'')', t_spec, mk2),
+            '%No dimension (KG) uses dimension code K00%', 'R20 dimension kosong + KG = K00');
+  PERFORM pg_temp.ok((SELECT thickness_codes FROM fn_variant_code_suggest(t_spec, mk2, 'WHITE', '')) = 'K00',
+                     'R20 usulan kode dimension kosong mengikuti UoM');
+  PERFORM pg_temp.ok((SELECT thickness_codes IS NULL FROM fn_variant_code_suggest(t_spec, (SELECT id FROM material WHERE name = 'UJI R20 PU-LEATHER'), 'WHITE', '')),
+                     'R20 dimension kosong UoM lain (PRS) belum punya kode');
+  -- hint di form: masalah tampil sebelum simpan; kode yang sudah dipakai -> tombol Use
+  SELECT * INTO h FROM fn_variant_code_hint(t_spec, mo, 'R20P404WHT', NULL, 'WHITE', '44"');
+  PERFORM pg_temp.ok(h.used_id IS NULL AND array_to_string(h.problems, ' ') LIKE 'Prefix R20P belongs to material UJI R20 PU LEATHER%',
+                     'R20 hint: masalah kode ditampilkan form');
+  SELECT * INTO h FROM fn_variant_code_hint(t_spec, ma, 'r20p160blk', NULL, 'BLK', '1.5MM');
+  PERFORM pg_temp.ok(h.used_id = vb AND h.used_label = 'UJI R20 PU LEATHER · 1.6 MM · BLACK' AND h.used_active AND cardinality(h.problems) = 0,
+                     'R20 hint: kode sudah dipakai -> varian itu (untuk tombol Use)');
+  PERFORM pg_temp.ok(NOT EXISTS (SELECT 1 FROM fn_variant_code_hint(t_specb, ma, 'R20P160BLK', NULL, 'BLK', '')),
+                     'R20 hint tidak bisa dibaca pabrik lain');
+
+  -- ===== 3. Use =====
+  m1  := pg_temp.mk_model(t_spec, 'Uji R20 Satu', v_cat);
+  sh1 := fn_season_add(t_spec, m1, 'SS28');
+  a1  := fn_article_save(t_spec, NULL, sh1, 'UJI-R20A', 'BLACK');
+  a2  := fn_article_save(t_spec, NULL, sh1, 'UJI-R20B', 'NAVY');
+  rp  := fn_revision_create(t_spec, sh1, 'EMPTY', 'PREV', NULL);
+  l1  := fn_bom_add_line(t_spec, rp, v_comp, NULL, NULL, ma, '1,5mm', v_sup, NULL, NULL);
+  PERFORM fn_bom_cell_set(t_spec, l1, a1, 'blk');
+  PERFORM fn_bom_cell_set(t_spec, l1, a2, 'navy');
+  PERFORM fn_revision_publish(t_spec, rp, 'OTHER', NULL);                -- Preview terbit dengan sel kuning
+  r1  := fn_revision_create(t_spec, sh1, 'NEXT_STAGE', 'SMS', NULL);
+  SELECT id INTO l1 FROM bom_line WHERE revision_id = r1 AND is_active AND material_id = ma;
+  m2  := pg_temp.mk_model(t_spec, 'Uji R20 Dua', v_cat);
+  sh2 := fn_season_add(t_spec, m2, 'SS28');
+  b1  := fn_article_save(t_spec, NULL, sh2, 'UJI-R20C', 'BLACK');
+  r2  := fn_revision_create(t_spec, sh2, 'EMPTY', 'PREV', NULL);
+  l2  := fn_bom_add_line(t_spec, r2, v_comp, NULL, NULL, ma, '1.5 MM', v_sup, NULL, 'BLK');
+  PERFORM pg_temp.must_fail(format('SELECT fn_bom_use_variant(%L, %L, %L, %L)', t_cbd, l1, a1, vb), '%has no access%',
+            'R20 Use butuh hak edit specsheet');
+  PERFORM pg_temp.must_fail(format('SELECT fn_bom_use_variant(%L, %L, %L, %L)', t_specb, l1, a1, vb), '%another factory%',
+            'R20 Use pabrik lain ditolak');
+  j := fn_bom_use_variant(t_spec, l1, a1, vb);
+  PERFORM pg_temp.ok(j->>'code' = 'R20P160BLK' AND (j->>'cells')::int = 2 AND (j->>'lines')::int = 2 AND (j->>'revisions')::int = 1
+                     AND j->>'inactivated' = 'UJI R20 PU LEATHR',
+                     'R20 Use: 2 sel BLK di 2 draft pindah, material salah ketik jadi INACTIVE');
+  SELECT id INTO l3 FROM bom_line WHERE revision_id = r1 AND is_active AND component_id = v_comp AND material_id = mb;
+  PERFORM pg_temp.ok((SELECT thickness FROM bom_line WHERE id = l3) = '1.6 MM'
+                     AND (SELECT variant_id FROM bom_cell WHERE bom_line_id = l3 AND article_id = a1) = vb
+                     AND (SELECT color FROM bom_cell WHERE bom_line_id = l3 AND article_id = a2) = 'NAVY'
+                     AND (SELECT variant_id FROM bom_cell WHERE bom_line_id = l3 AND article_id = a2) = vn
+                     AND (SELECT undo_replace FROM v_bom_grid WHERE id = l3),
+                     'R20 Use: baris pindah ke PU LEATHER 1.6 MM, NAVY ikut tersambung, Undo replace tersedia');
+  PERFORM pg_temp.ok((SELECT b.variant_id FROM bom_line l JOIN bom_cell b ON b.bom_line_id = l.id
+                       WHERE l.revision_id = r2 AND l.is_active AND b.article_id = b1) = vb,
+                     'R20 Use: draft model lain ikut pindah');
+  PERFORM pg_temp.ok((SELECT material_id FROM bom_line WHERE revision_id = rp AND component_id = v_comp) = ma
+                     AND (SELECT color FROM bom_cell b JOIN bom_line l ON l.id = b.bom_line_id WHERE l.revision_id = rp AND b.article_id = a1) = 'BLK',
+                     'R20 Use: revisi Preview yang sudah terbit tidak berubah');
+  PERFORM pg_temp.ok((SELECT status FROM material WHERE id = ma) = 'INACTIVE', 'R20 material lama INACTIVE');
+  -- sel lain sudah berkode -> hanya sel ini pindah ke baris baru komponen yang sama
+  PERFORM fn_bom_cell_set(t_spec, l3, a2, 'teal');
+  j := fn_bom_use_variant(t_spec, l3, a2, vo);
+  PERFORM pg_temp.ok((j->>'cells')::int = 1 AND j->>'inactivated' IS NULL
+                     AND (SELECT color FROM bom_cell WHERE bom_line_id = l3 AND article_id = a2) IS NULL
+                     AND (SELECT variant_id FROM bom_cell WHERE bom_line_id = l3 AND article_id = a1) = vb
+                     AND (SELECT b.variant_id FROM bom_line l JOIN bom_cell b ON b.bom_line_id = l.id
+                           WHERE l.revision_id = r1 AND l.is_active AND l.component_id = v_comp AND l.material_id = mo AND b.article_id = a2) = vo,
+                     'R20 Use dengan sel berkode lain di baris: sel pindah ke baris baru MESH 44" (komponen sama)');
+  -- material + dimension sama: hanya warna diganti
+  PERFORM fn_bom_cell_set(t_spec, l3, a2, 'navy blue');
+  PERFORM fn_bom_cell_set(t_spec, (SELECT id FROM bom_line WHERE revision_id = r1 AND is_active AND material_id = mo), a2, 'grey');
+  PERFORM pg_temp.must_fail(format('SELECT fn_bom_use_variant(%L, %L, %L, %L)', t_spec, l3, a2, vo),
+            '%already has another color%', 'R20 Use ke baris yang sudah berwarna lain untuk article itu ditolak');
+  j := fn_bom_use_variant(t_spec, l3, a2, vn);
+  PERFORM pg_temp.ok((SELECT variant_id FROM bom_cell WHERE bom_line_id = l3 AND article_id = a2) = vn,
+                     'R20 Use material + dimension sama: warna NAVY BLUE jadi NAVY');
+  PERFORM fn_variant_save(t_spec, vo, mo, 'R20M404B01', 'BLACK', '44"', 'INACTIVE');
+  PERFORM pg_temp.must_fail(format('SELECT fn_bom_use_variant(%L, %L, %L, %L)', t_spec, l3, a2, vo), '%INACTIVE%',
+            'R20 Use varian INACTIVE ditolak');
+  PERFORM pg_temp.must_fail(format('SELECT fn_bom_use_variant(%L, %L, %L, %L)', t_spec,
+            (SELECT id FROM bom_line WHERE revision_id = rp AND component_id = v_comp), a1, vb),
+            '%published and cannot be changed%', 'R20 Use di revisi terbit ditolak');
+  -- draft lain yang bentrok dilewati (tetap kuning), Use di draft ini tetap jalan
+  ma := fn_material_add(t_spec, 'UJI R20 PU LETHER X', 'LEATHER', 'ME');
+  l1 := fn_bom_add_line(t_spec, r1, (SELECT id FROM component WHERE name = 'SELFTEST R19 B'), NULL, NULL, ma, '1.6MM', v_sup, NULL, 'blk');
+  l2 := fn_bom_add_line(t_spec, r2, v_comp, NULL, NULL, ma, '1.6MM', v_sup, NULL, 'blk');
+  PERFORM fn_bom_cell_set(t_spec, (SELECT id FROM bom_line WHERE revision_id = r2 AND is_active AND material_id = mb), b1, 'navy');
+  PERFORM fn_bom_cell_set(t_spec, l2, b1, 'blk');
+  -- model B: baris PU LEATHER 1.6 MM komponen VAMP sudah ada dengan article b1 = NAVY -> bentrok, dilewati
+  j := fn_bom_use_variant(t_spec, l1, a1, vb);
+  PERFORM pg_temp.ok((j->>'cells')::int = 2 AND (j->>'skipped')::int = 1 AND j->>'inactivated' IS NULL   -- 2 = article a1 + a2 (diisi semua)
+                     AND (SELECT variant_id FROM bom_cell WHERE bom_line_id = l2 AND article_id = b1) IS NULL
+                     AND (SELECT color FROM bom_cell WHERE bom_line_id = l2 AND article_id = b1) = 'BLK',
+                     'R20 Use: draft lain yang bentrok dilewati (tetap kuning), draft ini tetap pindah');
+  -- Undo replace setelah Use: kembali ke material lama, material itu aktif lagi
+  ma := fn_material_add(t_spec, 'UJI R20 PU LETHR', 'LEATHER', 'ME');
+  l1 := fn_bom_add_line(t_spec, r1, (SELECT id FROM component WHERE name = 'SELFTEST R19 A'), NULL, NULL, ma, '1.6MM', v_sup, NULL, 'blk');
+  j := fn_bom_use_variant(t_spec, l1, a1, vb);
+  SELECT id INTO l2 FROM bom_line WHERE revision_id = r1 AND is_active AND component_id = (SELECT id FROM component WHERE name = 'SELFTEST R19 A');
+  PERFORM pg_temp.ok(j->>'inactivated' = 'UJI R20 PU LETHR' AND (SELECT material_id FROM bom_line WHERE id = l2) = mb,
+                     'R20 (prasyarat) Use memindah baris dan meng-INACTIVE material salah ketik');
+  PERFORM fn_bom_delete_line(t_spec, l2);
+  PERFORM pg_temp.ok((SELECT material_id FROM bom_line WHERE id = l1 AND is_active) = ma AND (SELECT status FROM material WHERE id = ma) = 'ACTIVE',
+                     'R20 Undo replace setelah Use: kembali ke material lama dan material itu ACTIVE lagi');
+  -- ubah status varian lama yang menyimpang tetap bisa (aturan ketat hanya saat kode / warna / dimension berubah)
+  PERFORM pg_temp.ok((SELECT count(*) FROM material_variant v WHERE v.factory_id = (SELECT id FROM factory WHERE name = 'SELFTEST PABRIK A')
+                        AND cardinality(fn_variant_code_problems(v.factory_id, v.material_id, v.code, v.color, v.thickness, v.id)) > 0) >= 0,
+                     'R20 query cek data varian menyimpang bisa dijalankan');
 END;
 $$;
 

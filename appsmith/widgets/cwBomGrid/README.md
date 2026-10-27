@@ -124,3 +124,14 @@ R4 (specsheet per varian):
   di luar tanpa isian = batal.
 - **Material Process** (`lines[].is_process`, `materials[].is_process`): badge **process**, sel tidak kuning, tanpa tombol Register.
 - Header article tanpa nomor: `(no article no.)` miring (`articles[].no_code`).
+
+## R20: Material Code hanya di Register, nama rapat (27 Okt 2026)
+
+- **Material Code tidak dibaca di grid** (revisi user setelah hasil cek data): kolom Material menolak kode (`... is a Material Code ...
+  Type the material name here; Material Codes are entered with Register.`, tanpa + New material); sel warna menyimpan kode sebagai
+  teks warna biasa (kuning). Tawaran `Fill color ... into all articles` dan saran typo kode di "Did you mean" dihapus. Warna yang
+  terdaftar untuk material + dimension baris tetap langsung tersambung ke kodenya (DB). Tidak ada Pick code / Use di sel.
+- `registerVariant` membawa `article_id` (tombol **Use KODE in the specsheet** di modal Register, `BomCtrl.useFromRegister`).
+- **Nama rapat** (`tightKey` = `fn_tight_key`): `resolveName` mencocokkan nama yang hanya beda spasi / tanda baca ke material master tanpa
+  bertanya (lebih dari satu beda UoM -> pesan pilih). **`nearName`** (salinan di `BomCtrl.nearMaterialNames`): saran "Did you mean" hanya
+  untuk nama yang angkanya sama; urutan: beda tanda baca, kata sama urutan lain, typo 1 huruf di kata 5 huruf ke atas, nama memuat ketikan.

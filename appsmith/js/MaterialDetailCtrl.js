@@ -237,17 +237,22 @@ export default {
 	},
 
 	// cwVariantForm onLookup: arti 3 tengah (thickness) / 3 akhir (warna) kode yang sudah tercatat di pabrik ini
+	// + masalah aturan kode ketat untuk kode + warna + dimension yang diketik (R20)
 	async lookupVariantCode() {
-		if ((cwVariantForm.model || {}).lookupKind === 'suggest') return this.suggestVariantCode();
-		const code = String((cwVariantForm.model || {}).lookupCode || '');
+		const m = cwVariantForm.model || {};
+		if (m.lookupKind === 'suggest') return this.suggestVariantCode();
+		if (m.lookupKind !== 'code') return;      // R20: 'use' hanya di Specsheet
+		const code = String(m.lookupCode || '');
+		const color = String(m.lookupColor || '');
+		const thickness = String(m.lookupThickness || '');
 		const seq = this.varLookupSeq + 1;
 		this.varLookupSeq = seq;
 		try {
 			const rows = await q_code_hint.run({
-				material_id: appsmith.URL.queryParams.id, code, exclude_id: this.varIsNew ? '' : this.varForm.id,
+				material_id: appsmith.URL.queryParams.id, code, exclude_id: this.varIsNew ? '' : this.varForm.id, color, thickness,
 			});
 			if (seq !== this.varLookupSeq) return;
-			this.varHint = (rows && rows[0]) || null;
+			this.varHint = rows && rows[0] ? Object.assign({ for: `${code}|${color}|${thickness}` }, rows[0]) : null;
 		} catch (e) {
 			/* hanya bantuan isi otomatis - aturan final tetap di DB */
 		}
@@ -275,7 +280,6 @@ export default {
 		const params = {
 			id: isNew ? '' : this.varForm.id, material_id: appsmith.URL.queryParams.id,
 			code: f.code, color: f.color, thickness: f.thickness, status: isNew ? 'ACTIVE' : f.status,
-			confirm: f.confirm === true,   // R9: konfirmasi arti kode yang menyimpang
 		};
 		const ok = await this.runForm(a_variant_save, params,
 			v => { this.varMsg = v; }, v => { this.varBusy = v; }, 'mdlVarian');

@@ -373,7 +373,7 @@ input[type=number]::-webkit-inner-spin-button {
   color: #6B7280;
 }
 
-/* R9: konfirmasi arti kode */
+/* R9: konfirmasi arti kode. R20: kotak merah = masalah aturan kode (tanpa centang) + tombol Use */
 .conf-box {
   margin-top: 8px;
   border: 1px solid #F3B7B0;
@@ -384,17 +384,6 @@ input[type=number]::-webkit-inner-spin-button {
   font-size: 12.5px;
 }
 
-.conf-check {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 8px 0 0;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.conf-check input {
-  width: 16px;
-  height: 16px;
-  margin: 0;
+.use-row {
+  margin-top: 8px;
 }

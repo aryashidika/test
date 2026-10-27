@@ -10,11 +10,11 @@
 
   <label for="code">Material Code <span class="req">*</span></label>
   <input id="code" type="text" maxlength="40" autocomplete="off" placeholder="e.g. 205Q404A52 (from ERP)">
-  <div class="hint">10-character ERP code: 4 material type · 3 dimension · 3 color. Filled in from color &amp; dimension when those code parts were used before (or the other way round). Still check against ERP.</div>
+  <div class="hint">10-character ERP code: 4 material type · 3 dimension · 3 color. Each part has one meaning in this factory. Filled in from color &amp; dimension when those code parts were used before (or the other way round). Still check against ERP.</div>
   <div class="sug" id="sugBox" hidden></div>
   <div class="conf-box" id="confBox" hidden>
     <div id="confText"></div>
-    <label class="conf-check"><input type="checkbox" id="confChk"> I checked it. This code matches ERP</label>
+    <div class="use-row" id="useRow" hidden><button type="button" class="btn-primary" id="btnUse">Use this variant</button></div>
   </div>
   <div class="warn-box" id="infoBox" hidden></div>
 

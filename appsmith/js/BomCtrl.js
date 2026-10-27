@@ -7,6 +7,8 @@
 // R16: "+ New material" (mdlMaterialBaru / cwMaterialForm, induk baru tanpa kode, cari nama mirip dulu). Thickness baru = baris
 // baru, sel kuning. Sel kuning juga kuning di Export Excel (SpecExportCtrl) supaya kode yang harus diminta jelas.
 // R12 (T62): grid hanya menampilkan baris revisi yang dibuka; pemuatan yang tersalip dimuat ulang (fetch()).
+// R20: "Use KODE in the specsheet" di modal Register (kode sudah dipakai varian lain) = a_bom_use_variant (fn_bom_use_variant):
+// sel memakai varian itu, sel kuning yang sama di semua draft ikut pindah. Material Code hanya diketik di Register.
 export default {
 	okKey: 0,        // naik setelah tambah baris / subkomponen berhasil -> cwBomGrid mengosongkan form
 	busyCount: 0,
@@ -198,11 +200,26 @@ export default {
 		}
 	},
 
+	// R20: ringkasan hasil fn_bom_use_variant
+	useText(rows) {
+		let j = rows && rows[0] ? rows[0].result : null;
+		if (typeof j === 'string') {
+			try { j = JSON.parse(j); } catch (e) { j = null; }
+		}
+		if (!j) return 'Variant used.';
+		const n = Number(j.cells) || 0;
+		return `${j.code} (${j.label}) used in ${n} cell${n === 1 ? '' : 's'}.`
+			+ (Number(j.revisions) ? ` ${j.revisions} other draft${Number(j.revisions) === 1 ? '' : 's'} updated too.` : '')
+			+ (Number(j.skipped) ? ` ${j.skipped} yellow cell${Number(j.skipped) === 1 ? '' : 's'} in other drafts stayed yellow (that line already has another color there).` : '')
+			+ (j.inactivated ? ` Material ${j.inactivated} is no longer used in drafts and is now INACTIVE.` : '');
+	},
+
 	// ---- Daftarkan varian dari sel kuning (mdlVarianBaru / cwVariantForm) ----
 	openRegister(a) {
 		this.varCtx = {
 			material_id: a.material_id, material_name: a.material_name, uom: a.uom,
 			thickness: a.thickness || '', color: a.color,
+			line_id: a.line_id, article_id: a.article_id,   // R20: untuk tombol "Use this variant"
 		};
 		this.varHint = null;
 		this.varSuggest = null;
@@ -223,25 +240,59 @@ export default {
 			statusOptions: this.statusOptions,
 			hint: this.varHint,
 			suggest: this.varSuggest,    // R9: usulan Material Code
+			canUse: !!(c.line_id && c.article_id),   // R20: tombol "Use this variant"
 			busy: this.varBusy,
 			message: this.varMsg,
 		};
 	},
 
-	// cwVariantForm onLookup: arti bagian kode yang sudah tercatat di pabrik ini
+	// cwVariantForm onLookup: arti bagian kode yang sudah tercatat di pabrik ini + masalah aturan ketat (R20)
 	async lookupVariantCode() {
-		if ((cwVariantForm.model || {}).lookupKind === 'suggest') return this.suggestVariantCode();
-		const code = String((cwVariantForm.model || {}).lookupCode || '');
+		const m = cwVariantForm.model || {};
+		if (m.lookupKind === 'suggest') return this.suggestVariantCode();
+		if (m.lookupKind === 'use') return this.useFromRegister(m.useId, m.useCode);
+		const code = String(m.lookupCode || '');
+		const color = String(m.lookupColor || '');
+		const thickness = String(m.lookupThickness || '');
 		const c = this.varCtx || {};
 		const seq = this.varLookupSeq + 1;
 		this.varLookupSeq = seq;
 		try {
-			const rows = await q_code_hint.run({ material_id: c.material_id, code, exclude_id: '' });
+			const rows = await q_code_hint.run({ material_id: c.material_id, code, exclude_id: '', color, thickness });
 			if (seq !== this.varLookupSeq) return;
-			this.varHint = (rows && rows[0]) || null;
+			this.varHint = rows && rows[0] ? Object.assign({ for: `${code}|${color}|${thickness}` }, rows[0]) : null;
 		} catch (e) {
 			/* hanya bantuan - aturan final di DB */
 		}
+	},
+
+	// R20: modal Register -> kode sudah dipakai varian lain -> sel ini (dan sel kuning yang sama di semua draft) memakainya
+	async useFromRegister(variantId, code) {
+		const c = this.varCtx || {};
+		if (!variantId || !c.line_id || !c.article_id) return;
+		this.varMsg = null;
+		this.varBusy = true;
+		let res = null;
+		try {
+			res = await a_bom_use_variant.run({ line_id: c.line_id, article_id: c.article_id, variant_id: variantId });
+		} catch (e) {
+			const msg = e && e.message;
+			if (Util.isSessionError(msg)) {
+				closeModal('mdlVarianBaru');
+				await removeValue('token');
+				showAlert('Session expired. Please log in again.', 'warning');
+				navigateTo('Login');
+				return;
+			}
+			this.varMsg = { type: 'error', text: Util.cleanError(msg) };
+			return;
+		} finally {
+			this.varBusy = false;
+		}
+		closeModal('mdlVarianBaru');
+		this.message = { type: 'success', text: this.useText(res) };
+		showAlert(`${code} used.`, 'success');
+		await this.reload(['options', 'colors']);
 	},
 
 	// R9 cwVariantForm onLookup (lookupKind 'suggest'): usulan Material Code dari warna + thickness
@@ -274,7 +325,6 @@ export default {
 		try {
 			await a_variant_save.run({
 				id: '', material_id: c.material_id, code, color: c.color, thickness: c.thickness, status: 'ACTIVE',
-				confirm: f.confirm === true,   // R9: konfirmasi arti kode yang menyimpang
 			});
 		} catch (e) {
 			const msg = e && e.message;
@@ -422,10 +472,13 @@ export default {
 		}
 	},
 
-	// Nama material pabrik yang mirip teks (typo sampai ±25% panjang, atau semua kata ada dalam urutan lain)
+	// Nama material pabrik yang mirip teks. R20 (= cwBomGrid nearName): angka harus sama (FOAM 50 KG bukan FOAM 60 KG);
+	// hanya beda spasi / tanda baca, kata sama urutan lain, typo 1 huruf di kata 5 huruf ke atas, atau nama memuat ketikan.
 	nearMaterialNames(text) {
-		const clean = x => String(x ?? '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
-		const q = clean(text);
+		const tight = x => String(x ?? '').toLowerCase().replace(/[^a-z0-9]/g, '');
+		const nums = x => (String(x ?? '').replace(/,/g, '.').match(/\d+(?:\.\d+)?/g) || []).join(' ');
+		const words = x => String(x ?? '').toLowerCase().replace(/\d+(?:[.,]\d+)?/g, ' ').replace(/[^a-z]+/g, ' ').trim().split(' ').filter(w => w);
+		const q = tight(text);
 		if (q.length < 3) return [];
 		const dist = (a, b) => {
 			let prev = Array.from({ length: b.length + 1 }, (_, j) => j);
@@ -438,18 +491,24 @@ export default {
 			}
 			return prev[b.length];
 		};
-		const words = q.split(' ');
-		const limit = Math.max(1, Math.floor(q.length / 4));
+		const near = (a, b) => {
+			if (nums(a) !== nums(b)) return 0;
+			const ta = tight(a);
+			const tb = tight(b);
+			if (!ta || !tb) return 0;
+			if (ta === tb) return 1;
+			const wa = words(a);
+			const wb = words(b);
+			if (wa.length && wa.slice().sort().join(' ') === wb.slice().sort().join(' ')) return 2;
+			if (wa.length && wa.length === wb.length
+				&& wa.every((w, i) => w === wb[i] || (Math.min(w.length, wb[i].length) >= 5 && dist(w, wb[i]) === 1))) return 3;
+			if (ta.length >= 4 && tb.includes(ta)) return 4;
+			return 0;
+		};
 		const names = [...new Set((this.options().materials || []).map(x => x.name))];
 		return names
-			.map(n => ({ n, c: clean(n) }))
-			.map(x => {
-				const nw = x.c.split(' ');
-				const near = (a, b) => Math.abs(a.length - b.length) <= Math.max(1, Math.floor(a.length / 4)) && dist(a, b) <= Math.max(1, Math.floor(a.length / 4));
-				const wordsOk = words.every(w => nw.some(v => v.includes(w) || near(w, v)));
-				return { n: x.n, d: wordsOk ? 1 : (Math.abs(x.c.length - q.length) > limit ? limit + 1 : dist(q, x.c)) };
-			})
-			.filter(x => x.d <= limit)
+			.map(n => ({ n, d: near(text, n) }))
+			.filter(x => x.d > 0)
 			.sort((a, b) => a.d - b.d || a.n.localeCompare(b.n))
 			.slice(0, 5)
 			.map(x => x.n);

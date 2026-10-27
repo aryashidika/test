@@ -19,3 +19,13 @@ warna & thickness (dari sel specsheet); bila bagian kode tercatat dengan arti la
 Model keluar `onSave`: + `confirm`. Modal 760 px.
 
 Event: `onSave` (model `code, color, thickness, status, again`), `onCancel`, `onLookup` (model `lookupCode`).
+
+**R20 (27 Okt 2026, menggantikan tingkat Konfirmasi & Info awalan R9)** - kode 10 karakter ketat dua arah, tanpa centang:
+- `onLookup` `lookupKind: 'code'` kini juga mengirim `lookupColor`, `lookupThickness` (diulang saat warna / dimension diubah). Controller
+  mengisi `hint = { for: 'KODE|WARNA|DIMENSION', ..., used_id, used_label, used_active, problems }` (`q_code_hint`, `problems` = satu masalah
+  per baris dari `fn_variant_code_problems`). Hint hanya berlaku bila `for` sama dengan isian sekarang.
+- Kotak merah: `This Material Code cannot be saved: ...` atau `Material Code ... is already used: ...`; Save ditolak di form (DB juga).
+  Edit tanpa mengubah kode / warna / dimension = tidak dicek (ubah status saja boleh, sama dengan DB).
+- `model.canUse` (Specsheet) + kode sudah dipakai varian ACTIVE -> tombol **Use KODE in the specsheet** -> `onLookup` `lookupKind: 'use'`,
+  `useId`, `useCode` (`BomCtrl.useFromRegister`).
+- Centang konfirmasi dan `confirm` di `onSave` dihapus. Info kuning tinggal: kode bukan 10 karakter.

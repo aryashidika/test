@@ -2,8 +2,7 @@
 // F10b: sel warna & Remarks = kotak teks yang membungkus (terbaca semua); Remarks boleh beberapa baris (Shift+Enter);
 //   saran warna = daftar sendiri (panah atas/bawah lalu Enter memilih saran - ketikan setengah jadi tidak tersimpan).
 // R4: baris = material INDUK + thickness ("NAMA · THICKNESS"); sel = WARNA, varian (Material Code) dicari DB.
-//   Material Code boleh diketik di kolom Material (mengisi induk + thickness, menawarkan isi warna ke semua article
-//   di baris tambah) atau di sel (diganti warnanya; kode material/thickness lain ditolak). Sel berwarna tanpa varian =
+//   (R20: Material Code tidak lagi diketik di kolom Material / sel.) Sel berwarna tanpa varian =
 //   SEL KUNING + tombol Daftarkan (action registerVariant). Tombol "+ Supplier baru" (action newSupplier).
 // R16: thickness diketik apa adanya lalu dibakukan (= fn_clean_thickness, canonThickness); "NAMA · THICKNESS" dengan thickness
 //   baru untuk induk yang ada = baris baru, selnya kuning sampai kodenya didaftarkan. Induk yang belum ada: tombol
@@ -18,6 +17,10 @@
 //   Saran Material & Dimension = daftar sendiri yang membungkus (NAMA + UoM · dimension; nama sama beda UoM = "NAMA (UOM)").
 //   Tombol "Change" di kolom Component (baris induk) = ganti komponen ke komponen master lain (action changeComponent).
 //   Material Process (is_process): tanpa Material Code, sel tidak pernah kuning.
+// R20 (27 Okt 2026): Material Code HANYA diketik di Register (modal; di sana ada tombol Use bila kode sudah dipakai). Kolom Material
+//   dan sel warna tidak membaca kode lagi: kode yang diketik di sel = teks warna biasa (kuning). Warna yang sudah terdaftar untuk
+//   material + dimension baris tetap langsung dapat kode (DB). Nama material yang hanya beda spasi / tanda baca langsung dipakai nama
+//   master (PU-LEATHER = PU LEATHER). "Did you mean" hanya untuk nama yang angkanya sama (FOAM 50 KG bukan saran untuk FOAM 60 KG).
 // Hanya tampilan & input. Setiap perubahan dikirim sebagai model.action + event onAction (BomCtrl.onAction());
 // BomCtrl menjalankan query lalu memuat ulang data. Aturan final di DB (fn_bom_*).
 // Antrean aksi: aksi dikirim SATU PER SATU; berikutnya baru dikirim setelah BomCtrl membalas doneSeq >= seq aksi
@@ -25,7 +28,7 @@
 //   ditampilkan (optimistic) sampai antrean kosong, supaya render ulang tidak memunculkan nilai lama.
 // Teks yang diketik dicocokkan ke master di sini:
 //   komponen "10 - Vamp" / "10" / nama unik -> master ACTIVE; selain itu komponen lokal (No. wajib)
-//   material "NAMA · THICKNESS" / Material Code / nama unik; supplier = nama (kosong = tanpa supplier)
+//   material "NAMA · THICKNESS" / nama unik; supplier = nama (kosong = tanpa supplier)
 const $ = id => document.getElementById(id);
 const SEP = ' · ';
 let M = {};                 // model terakhir
@@ -115,6 +118,29 @@ function editDistance(a, b) {
   return prev[n];
 }
 
+// R20: kunci rapat = huruf + angka saja (= fn_tight_key): "P.U-LEATHER" = "PU LEATHER"
+const tightKey = s => String(s ?? '').toLowerCase().replace(/[^a-z0-9]/g, '');
+
+// R20: nama mirip yang layak disarankan (0 = tidak mirip, makin kecil makin mirip). Angka harus sama (FOAM 50 KG bukan
+// FOAM 60 KG); lalu: hanya beda spasi / tanda baca (1), kata sama urutan lain (2), typo 1 huruf di kata 5 huruf ke atas (3),
+// nama yang memuat ketikan (4). Salinan sama di BomCtrl.nearMaterialNames.
+function nearName(a, b) {
+  const nums = x => (String(x ?? '').replace(/,/g, '.').match(/\d+(?:\.\d+)?/g) || []).join(' ');
+  if (nums(a) !== nums(b)) return 0;
+  const ta = tightKey(a);
+  const tb = tightKey(b);
+  if (!ta || !tb) return 0;
+  if (ta === tb) return 1;
+  const words = x => String(x ?? '').toLowerCase().replace(/\d+(?:[.,]\d+)?/g, ' ').replace(/[^a-z]+/g, ' ').trim().split(' ').filter(w => w);
+  const wa = words(a);
+  const wb = words(b);
+  if (wa.length && wa.slice().sort().join(' ') === wb.slice().sort().join(' ')) return 2;
+  if (wa.length && wa.length === wb.length
+      && wa.every((w, i) => w === wb[i] || (Math.min(w.length, wb[i].length) >= 5 && editDistance(w, wb[i]) === 1))) return 3;
+  if (ta.length >= 4 && tb.includes(ta)) return 4;
+  return 0;
+}
+
 // Remarks: baris dipertahankan, spasi di dalam baris dirapatkan, baris kosong dibuang
 function tidyLines(s) {
   return String(s ?? '').split(/\r?\n/).map(x => x.replace(/\s+/g, ' ').trim()).filter(x => x).join('\n');
@@ -193,11 +219,6 @@ function variantsOf(materialId, thickness) {
   return (M.variants || []).filter(v => v.material_id === materialId && thickKey(v.thickness) === thickKey(thickness));
 }
 
-function variantByCode(text) {
-  const key = norm(text);
-  return key ? (M.variants || []).find(v => norm(v.code) === key) || null : null;
-}
-
 function resolveComponent(text) {
   const key = norm(text);
   if (!key) return { error: 'Component is required.' };
@@ -216,33 +237,11 @@ function resolveComponent(text) {
 function didYouMean(raw) {
   const q = norm(String(raw).split(/\s*·\s*/)[0]);
   if (q.length < 3) return [];
-  // typo di Material Code (tanpa spasi): kode terdekat
-  if (!/\s/.test(q) && q.length >= 6) {
-    const head = q.slice(0, 3);
-    const tail = q.slice(-3);
-    const codes = (M.variants || [])
-      .filter(v => { const c = norm(v.code); return Math.abs(c.length - q.length) <= 2 && (c.startsWith(head) || c.endsWith(tail)); })
-      .map(v => ({ v, d: editDistance(q, norm(v.code)) }))
-      .filter(x => x.d <= 2)
-      .sort((x, y) => x.d - y.d)
-      .slice(0, 3)
-      .map(x => `${x.v.code} (${x.v.material_name} · ${x.v.thickness || 'no dimension'} · ${x.v.color})`);
-    if (codes.length) return codes;
-  }
+  // R20: hanya nama yang angkanya sama (nearName)
   const names = [...new Set((M.materials || []).map(x => x.name))];
-  const limit = Math.max(1, Math.floor(q.length / 4));
-  const qw = q.replace(/[^a-z0-9]+/g, ' ').trim().split(' ');
   return names
-    .map(n => {
-      const nn = norm(n);
-      const nw = nn.replace(/[^a-z0-9]+/g, ' ').trim().split(' ');
-      const near = (a, b) => Math.abs(a.length - b.length) <= Math.max(1, Math.floor(a.length / 4)) && editDistance(a, b) <= Math.max(1, Math.floor(a.length / 4));
-      const wordsOk = qw.every(w => nw.some(v => v.includes(w) || near(w, v)));
-      const whole = nn.includes(q) || q.includes(nn) || wordsOk ? 1
-        : (Math.abs(nn.length - q.length) > limit ? limit + 1 : editDistance(q, nn));
-      return { n, d: whole };
-    })
-    .filter(x => x.d <= limit)
+    .map(n => ({ n, d: nearName(q, n) }))
+    .filter(x => x.d > 0)
     .sort((x, y) => x.d - y.d || x.n.localeCompare(y.n))
     .slice(0, 3)
     .map(x => x.n);
@@ -294,24 +293,27 @@ function resolveName(raw) {
   if (byName.length > 1) {
     return { error: `Several materials are named "${raw}" (different UoM): ${byName.map(m => m.label).join(' / ')}. Pick one from the list.` };
   }
+  // R20: hanya beda spasi / tanda baca = material itu (PU-LEATHER -> PU LEATHER), tanpa bertanya
+  const t = tightKey(raw);
+  const byTight = t ? MATS.filter(m => tightKey(m.name) === t || tightKey(m.label) === t) : [];
+  if (byTight.length === 1) return { m: byTight[0] };
+  if (byTight.length > 1) {
+    return { error: `Several materials match "${raw}" (different UoM): ${byTight.map(m => `${m.name} (${m.uom})`).join(' / ')}. Pick one from the list.` };
+  }
   return null;
 }
 
 // Material (kolom Material) + dimension (kolom Dimension) -> { mat: { material_id, name, label, uom, thickness, isNew, is_process },
-//   color?, split? } (color = Material Code diketik; split = ketikan lama "NAMA · DIMENSION": isi kedua kolom ditulis ulang).
+//   split? } (split = ketikan lama "NAMA · DIMENSION": isi kedua kolom ditulis ulang). R20: Material Code tidak dibaca di sini.
 //   Tidak ketemu -> { error, notFound: { name, thickness } } (tombol "+ New material"). Dimension kosong padahal material punya
 //   beberapa dimension -> { error, needDim: true }.
 function resolveMaterial(text, dimText) {
   const raw = tidy(text);
   if (!raw) return { error: 'Material is required.' };
-  // 1. Material Code: nama + dimension + warna varian
-  const v = variantByCode(raw);
-  if (v) {
-    const m = MAT_BY_ID[v.material_id];
-    if (!m) return { error: `Material Code ${v.code} belongs to an INACTIVE material.` };
-    return { mat: Object.assign({}, m, { thickness: v.thickness || '', isNew: false }), color: v.color, fromCode: true };
-  }
-  // 2. ketikan lama: "NAMA · DIMENSION" atau tanpa titik tengah ("NAMA . 1,5 mm", "NAMA 1,5mm")
+  // R20: Material Code bukan nama material (jangan sampai didaftarkan sebagai material baru)
+  const code = (M.variants || []).find(v => norm(v.code) === norm(raw));
+  if (code) return { error: `${code.code} is a Material Code (${code.material_name}). Type the material name here; Material Codes are entered with Register.` };
+  // ketikan lama: "NAMA · DIMENSION" atau tanpa titik tengah ("NAMA . 1,5 mm", "NAMA 1,5mm")
   let nameText = raw;
   let dim = dimText;
   let split = false;
@@ -736,7 +738,7 @@ function commitMaterial(line, input, newThick) {
   }
   const m = MAT_BY_ID[base.material_id];
   let thickness;
-  if (r.mat && (r.fromCode || r.split)) {
+  if (r.mat && r.split) {
     thickness = r.mat.thickness || '';
   } else if (base.material_id === line.material_id) {   // nama sama: dimension diubah di kolom Dimension
     input.value = input.dataset.orig;
@@ -828,17 +830,9 @@ function commitProcess(line, input) {
   send('setProcess', { line_id: line.id, process: tidyLines(input.value) });
 }
 
-// Material Code diketik di sel -> warna varian itu (harus induk + thickness baris ini)
+// R20: sel = teks warna saja (Material Code hanya lewat Register). Warna terdaftar -> DB menyambungkan kodenya.
 function commitCell(line, article, input) {
-  let color = tidy(input.value);
-  const v = variantByCode(color);
-  if (v) {
-    if (v.material_id !== line.material_id || thickKey(v.thickness) !== thickKey(line.thickness)) {
-      return fail(input, `Code ${v.code} is ${v.material_name || 'another material'} · ${v.thickness || 'no dimension'} · ${v.color}. It does not match the material / dimension of this line.`);
-    }
-    color = v.color;
-    input.value = color;
-  }
+  const color = tidy(input.value);
   input.dataset.orig = input.value;
   send('setCell', { line_id: line.id, article_id: article.id, color });
 }
@@ -911,9 +905,9 @@ function formInputs(prefix, state, isSub) {
     mk('comp', { list: 'dlComponents', placeholder: 'Type a component…', label: 'Component' });
     mk('no', { placeholder: 'No.', label: 'Local component no.', title: 'Only for a new component that is not in the master' });
   }
-  // R19: Material = nama (atau Material Code), Dimension di kolom sendiri
+  // R19: Material = nama, Dimension di kolom sendiri
   const curMat = () => { const r = resolveName(tidy(f.mat.value)); return r && r.m ? r.m.material_id : null; };
-  mk('mat', { multiline: true, suggest: materialSuggest, onPick: () => syncMaterial(), placeholder: 'Material name / Material Code…', label: 'Material' });
+  mk('mat', { multiline: true, suggest: materialSuggest, onPick: () => syncMaterial(), placeholder: 'Material name…', label: 'Material' });
   f.mat.addEventListener('input', () => clearMissing(`${prefix}:mat`, f.mat));
   mk('thk', { multiline: true, suggest: dimensionSuggest(curMat), onPick: () => syncDim(), placeholder: 'Dimension…', label: 'Dimension',
     title: 'Pick a registered dimension of this material, or type a new one (e.g. 1.2 MM)' });
@@ -921,17 +915,6 @@ function formInputs(prefix, state, isSub) {
   mk('rem', { placeholder: 'Remarks', label: 'Remarks', keepLines: true, title: 'Shift+Enter / Alt+Enter = new line' });
   f.uom = el('span', 'ro none', '-');
   f.thkNote = el('span', 'hint');
-  if (!isSub) {
-    // Material Code diketik -> tawarkan isi warnanya ke semua article
-    f.fill = el('label', 'fill');
-    f.fillCheck = el('input');
-    f.fillCheck.type = 'checkbox';
-    f.fillCheck.checked = state.fill !== false;
-    f.fillCheck.addEventListener('change', () => { state.fill = f.fillCheck.checked; });
-    f.fillText = el('span');
-    f.fill.append(f.fillCheck, f.fillText);
-    f.fill.hidden = true;
-  }
 
   // R19: dimension baru / Process -> catatan kecil di bawah kolom Dimension
   const syncDim = () => {
@@ -952,7 +935,7 @@ function formInputs(prefix, state, isSub) {
     const mat = r.mat || (named && named.m ? named.m : null);
     f.uom.textContent = mat ? mat.uom : '-';
     const setThk = v => { f.thk.value = v; state.thk = v; };
-    if (r.mat && (r.fromCode || r.split)) {    // kode / "NAMA · DIMENSION" diketik -> nama ke Material, dimension ke Dimension
+    if (r.mat && r.split) {    // "NAMA · DIMENSION" diketik -> nama ke Material, dimension ke Dimension
       f.mat.value = r.mat.label;
       state.mat = f.mat.value;
       setThk(r.mat.thickness || '');
@@ -974,14 +957,6 @@ function formInputs(prefix, state, isSub) {
     }
     autosize(f.mat);
     syncDim();
-    if (f.fill) {
-      // warna dari kode tetap ditawarkan selama material + thickness-nya tidak diganti
-      const key = r.mat ? matKey(r.mat.material_id, r.mat.thickness) : '';
-      if (r.color) state.fillKey = key;
-      state.fillColor = r.color || (key && key === state.fillKey ? state.fillColor || '' : '');
-      f.fill.hidden = !state.fillColor;
-      f.fillText.textContent = ` Fill color ${state.fillColor} into all articles`;
-    }
     f.sup.setAttribute('list', supplierListId(mat ? mat.material_id : null));
     if (mat && !tidy(f.sup.value)) {
       f.sup.value = defaultSupplier(mat.material_id);
@@ -1026,10 +1001,9 @@ function submitAdd(f) {
   if (m.error) return materialMissing('add:mat', f.mat, m);
   const s = resolveSupplier(f.sup.value);
   if (s.error) return fail(f.sup, s.error);
-  const fill = addState.fillColor && addState.fill !== false ? addState.fillColor : '';
   send('addLine', Object.assign(data, {
     material_id: m.mat.material_id, thickness: m.mat.thickness || '', supplier_id: s.id || '',
-    process: tidyLines(f.rem.value), fill_color: fill,
+    process: tidyLines(f.rem.value), fill_color: '',
   }));
 }
 
@@ -1087,7 +1061,7 @@ function materialCell(line, editable) {
   if (editable) {
     const mi = cellInput(`mat:${line.id}`, label, {
       col: 'mat', multiline: true, suggest: materialSuggest, label: 'Material',
-      title: `${title}. Type another material name (or Material Code) to Replace Material. The dimension is set in the Dimension column.`,
+      title: `${title}. Type another material name to Replace Material. The dimension is set in the Dimension column.`,
       onCommit: i => commitMaterial(line, i),
     });
     mi.addEventListener('input', () => clearMissing(`mat:${line.id}`, mi));
@@ -1232,7 +1206,7 @@ function lineRow(line, arts, editable, hasSubs) {
     if (editable) {
       c.appendChild(cellInput(`cell:${line.id}:${a.id}`, v, {
         col: `art:${a.id}`, multiline: true, suggest: colorSource(line), label: `Warna ${a.code}`,
-        title: 'Type a color or Material Code. Empty = not used in this article.',
+        title: 'Type a color. Empty = not used in this article. Material Codes are entered with Register.',
         onCommit: i => commitCell(line, a, i),
       }));
     } else {
@@ -1249,7 +1223,7 @@ function lineRow(line, arts, editable, hasSubs) {
         b.type = 'button';
         b.title = `Register variant ${line.material_name} · ${line.thickness || 'no dimension'} · ${v}`;
         b.addEventListener('click', () => send('registerVariant', {
-          line_id: line.id, material_id: line.material_id, material_name: line.material_name, uom: line.uom,
+          line_id: line.id, article_id: a.id, material_id: line.material_id, material_name: line.material_name, uom: line.uom,
           thickness: line.thickness || '', color: v,
         }));
         c.appendChild(b);
@@ -1269,7 +1243,6 @@ function formRow(cls, f, first, button, cancel, arts) {
   tr.appendChild(comp);
   const mat = el('td', 'c-mat');
   mat.appendChild(f.mat);
-  if (f.fill) mat.appendChild(f.fill);
   if (M.canAddMaterial && nfFor && nfFor.key === f.mat.dataset.key) mat.appendChild(newMaterialBox(nfFor.key));
   tr.appendChild(mat);
   const sup = el('td', 'c-sup');

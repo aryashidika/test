@@ -1,12 +1,13 @@
 // cwVariantForm - form satu varian material: mdlVarian (Material Detail, MaterialDetailCtrl) & mdlVarianBaru (Specsheet,
 // BomCtrl, dari Daftarkan di sel kuning). Hanya tampilan; simpan lewat saveVariant() -> fn_variant_save.
 // R2b: satu baris seperti ERP (Material Code 10 karakter = 4 awalan material · 3 thickness · 3 warna, warna, thickness).
-// R9 (keputusan user 12 Okt 2026) - "kamus kode" per pabrik, tiga tingkat:
-//   TOLAK      : kode dobel · material + thickness + warna dobel - pesan dari DB.
-//   KONFIRMASI : bagian kode sudah berarti lain (W01 = WHITE, diisi CREAM) - kotak merah + centang "Sudah saya cek,
-//                kode ini benar sesuai ERP"; tanpa centang tidak bisa simpan (DB juga menolak tanpa p_confirm).
-//   INFO       : warna / thickness sudah memakai kode lain, awalan beda dari varian lain material ini, kode bukan
-//                10 karakter - kotak kuning, tetap bisa simpan.
+// R20 (keputusan user 27 Okt 2026) - kode 10 karakter KETAT dua arah, tanpa centang konfirmasi (R9 dulu: konfirmasi / info):
+//   kode -> arti : 4 awal = 1 material, 3 tengah = 1 dimension, 3 akhir = 1 warna
+//   arti -> kode : 1 material = 1 awalan, 1 dimension = 1 kode tengah (kosong: per UoM), 1 warna di material = 1 kode akhir
+//   Masalahnya dihitung DB (fn_variant_code_problems lewat fn_variant_code_hint, model.hint.problems) untuk kode + warna +
+//   dimension yang sedang diketik -> kotak merah, Save ditolak. Kode utuh sudah dipakai varian lain -> kotak merah; di
+//   specsheet (model.canUse) ada tombol "Use this variant" (lookupKind 'use', useId) = sel memakai varian itu.
+//   INFO (kuning, tetap bisa simpan): kode bukan 10 karakter.
 // Isi otomatis dua arah (event onLookup):
 //   - kode diketik (10 karakter) -> lookupKind 'code' -> model.hint (fn_variant_code_hint): warna / thickness yang
 //     masih kosong diisi dari arti kodenya (tetap bisa diedit).
@@ -27,9 +28,8 @@ let sug = null;                            // { key, p: [awalan], t: [kode thick
 let sugKey = '';                           // 'WARNA|THICKNESS' yang terakhir diminta
 let sugTimer = null;
 let sugSig = '';
-let serverConflict = '';                   // pesan "Perlu konfirmasi" dari DB (bila form belum tahu)
-let lastConflict = '';
-let lastMsgText = '';
+let canUse = false;                        // R20: specsheet -> tombol "Use this variant"
+let origKey = '';                          // R20: edit - kode|warna|dimension saat dibuka (ubah status saja tidak dicek ulang)
 
 function applyTheme(t) {
   t = t || {};
@@ -121,7 +121,9 @@ function clearAutoFields() {
 function applyHint(h) {
   const code = cleanCode($('code').value);
   if (!h || h.code !== code) return;
+  const fresh = !hint || hint.for !== h.for;
   hint = h;
+  if (!fresh) return updateChecks();       // model yang sama dikirim ulang: isian otomatis tidak diulang
   const part = { thickness: code.substr(4, 3), color: code.substr(7, 3) };
   [['thickness', h.thickness_known, h.thickness, h.thickness_ref],
    ['color', h.color_known, h.color, h.color_ref]].forEach(([field, known, value, ref]) => {
@@ -144,23 +146,36 @@ function applyHint(h) {
   updateChecks();
 }
 
+// R20: kunci hint = kode|warna|dimension yang dikirim (BomCtrl / MaterialDetailCtrl mengembalikan hint.for yang sama)
+const lookupKey = () => `${cleanCode($('code').value)}|${tidyText($('color').value)}|${cleanThick($('thickness').value)}`;
+
 function onCodeInput() {
-  clearTimeout(lookupTimer);
   const code = cleanCode($('code').value);
   if (code !== autoCode) autoCode = null;  // diketik user: usulan tidak menimpa lagi
-  serverConflict = '';
   if (code.length !== 10) {
+    clearTimeout(lookupTimer);
     hint = null;
     lastLookup = null;
     clearAutoFields();
     updateChecks();
     return;
   }
+  requestLookup();
+}
+
+// Arti bagian kode + masalah aturan ketat untuk kode + warna + dimension saat ini
+function requestLookup() {
+  clearTimeout(lookupTimer);
   updateChecks();
+  if (cleanCode($('code').value).length !== 10) return;
   lookupTimer = setTimeout(() => {
-    if (code === lastLookup) return;
-    lastLookup = code;
-    appsmith.updateModel({ lookupKind: 'code', lookupCode: code });
+    const key = lookupKey();
+    if (key === lastLookup) return;
+    lastLookup = key;
+    appsmith.updateModel({
+      lookupKind: 'code', lookupCode: cleanCode($('code').value),
+      lookupColor: tidyText($('color').value), lookupThickness: cleanThick($('thickness').value),
+    });
     appsmith.triggerEvent('onLookup');
   }, 300);
 }
@@ -200,7 +215,7 @@ function applySuggest(s) {
     $('code').value = code;
     autoCode = code;
     hint = null;
-    lastLookup = code;                     // usulan sendiri tidak perlu dicari artinya
+    lastLookup = null;                     // R20: usulan tetap dicek aturan ketat (masalah / sudah dipakai)
     $('code').classList.remove('invalid');
     if (fixed) {
       const n = code.length;
@@ -209,6 +224,7 @@ function applySuggest(s) {
     }
   }
   renderSuggest();
+  if (code.length === 10) requestLookup();
   updateChecks();
 }
 
@@ -230,62 +246,48 @@ function renderSuggest() {
       row.appendChild(el('span', 'sug-none', none));
     } else {
       row.appendChild(el('span', 'sug-code', list[0]));
-      if (list.length > 1) row.appendChild(el('span', 'sug-other', `(other codes: ${list.slice(1).join(', ')})`));
+      // R20: awalan & dimension satu kode saja (kode lain = data lama, ditolak); warna boleh beda di material lain
+      if (list.length > 1) {
+        row.appendChild(el('span', 'sug-other', k === 'c'
+          ? `(used in other materials: ${list.slice(1).join(', ')})`
+          : `(old data also has ${list.slice(1).join(', ')}: will be rejected, see data check)`));
+      }
     }
     box.appendChild(row);
   });
   box.hidden = false;
 }
 
-// ---- tiga tingkat: konfirmasi (merah) & info (kuning) ----
+// ---- R20: masalah (merah, tidak bisa simpan) & info (kuning) ----
+// Hint yang berlaku = untuk kode + warna + dimension yang tampil sekarang
+const curHint = () => (hint && hint.for === lookupKey() ? hint : null);
+
+// Varian lain yang sudah memakai kode ini (edit: dirinya sendiri dikecualikan DB)
+const usedBy = () => { const h = curHint(); return h && h.used_id ? h : null; };
+
 function conflicts() {
-  const code = cleanCode($('code').value);
-  const out = [];
-  if (hint && hint.code === code && code.length === 10) {
-    const color = tidyText($('color').value);
-    const thick = cleanThick($('thickness').value);
-    if (hint.thickness_known && cleanThick(hint.thickness) !== thick) {
-      out.push(`Dimension code ${code.substr(4, 3)} is already recorded as ${thickLabel(hint.thickness)} (code ${hint.thickness_ref}), not ${thickLabel(thick)}.`);
-    }
-    if (hint.color_known && color && tidyText(hint.color) !== color) {
-      out.push(`Color code ${code.substr(7, 3)} is already recorded as ${hint.color} (code ${hint.color_ref}), not ${color}.`);
-    }
-  }
-  if (!out.length && serverConflict) out.push(serverConflict);
-  return out;
+  const h = curHint();
+  if (!h || (isEdit && lookupKey() === origKey)) return [];   // = DB: hanya dicek saat kode / warna / dimension berubah
+  if (h.used_id) return [`Material Code ${h.code} is already used: ${h.used_label}.`];
+  return String(h.problems || '').split('\n').filter(x => x);   // q_code_hint: satu masalah per baris
 }
 
 function infos() {
   const code = cleanCode($('code').value);
   const out = [];
   if (code && code.length !== 10 && code !== autoCode) out.push(`ERP Material Codes are usually 10 characters (now ${code.length}).`);
-  if (hint && hint.code === code && hint.other_prefixes) {
-    out.push(`Prefix ${code.substr(0, 4)} differs from other variants of this material (${hint.other_prefixes}).`);
-  }
-  const key = `${tidyText($('color').value)}|${cleanThick($('thickness').value)}`;
-  if (sug && sug.key === key && code.length === 10) {
-    if (sug.t.length && !sug.t.includes(code.substr(4, 3))) {
-      out.push(`Dimension ${thickLabel($('thickness').value)} usually has code ${sug.t.join(' / ')}. Make sure ${code.substr(4, 3)} matches ERP.`);
-    }
-    if (sug.c.length && !sug.c.includes(code.substr(7, 3))) {
-      out.push(`Color ${tidyText($('color').value)} usually has code ${sug.c.join(' / ')}. Make sure ${code.substr(7, 3)} matches ERP.`);
-    }
-    if (sug.p.length && !sug.p.includes(code.substr(0, 4)) && !(hint && hint.code === code)) {
-      out.push(`Prefix ${code.substr(0, 4)} differs from other variants of this material (${sug.p.join(', ')}).`);
-    }
-  }
   return out;
 }
 
 function updateChecks() {
   const c = conflicts();
   const text = c.join(' ');
-  if (text !== lastConflict) {             // isi konflik berubah -> konfirmasi harus diulang
-    lastConflict = text;
-    $('confChk').checked = false;
-  }
-  $('confText').textContent = text ? `${text} Check the Material Code in ERP.` : '';
+  const u = usedBy();
+  $('confText').textContent = text
+    ? (u ? text : `This Material Code cannot be saved: ${text} Check the code in ERP.`) : '';
   $('confBox').hidden = !text;
+  $('useRow').hidden = !(u && canUse && u.used_active);
+  if (u) $('btnUse').textContent = `Use ${u.code} in the specsheet`;
   const i = infos();
   $('infoBox').innerHTML = '';
   i.forEach(t => $('infoBox').appendChild(el('div', '', t)));
@@ -303,8 +305,8 @@ function fillForm(m) {
   sugKey = '';
   sugSig = '';
   autoCode = null;
-  serverConflict = '';
-  lastConflict = '';
+  canUse = !!m.canUse;
+  origKey = '';
   autoField.color = false;
   autoField.thickness = false;
   $('title').textContent = isEdit ? 'Edit Variant' : 'Add Variant';
@@ -316,11 +318,11 @@ function fillForm(m) {
   });
   setNote('color', fixed ? fixedNote('color') : '');
   setNote('thickness', fixed ? fixedNote('thickness') : '');
-  $('confChk').checked = false;
   fillSelect($('status'), m.statusOptions, f.status || 'ACTIVE');
   $('statusBox').hidden = !isEdit;
   $('btnAgain').hidden = isEdit || !!fixed;
   lastLookup = null;
+  if (isEdit) origKey = lookupKey();
   $('code').focus();
   if (isEdit) onCodeInput();
   renderSuggest();
@@ -330,7 +332,7 @@ function fillForm(m) {
 
 function setBusy(v) {
   busy = v;
-  ['btnSave', 'btnAgain', 'btnCancel', 'btnX', 'confChk'].forEach(id => { $(id).disabled = v; });
+  ['btnSave', 'btnAgain', 'btnCancel', 'btnX', 'btnUse'].forEach(id => { $(id).disabled = v; });
   $('btnSave').textContent = v ? 'Saving…' : 'Save';
 }
 
@@ -340,21 +342,7 @@ function render(model) {
     lastKey = m.key;
     fillForm(m);
   }
-  // DB menolak dengan "Confirmation needed" (form belum sempat tahu): tampilkan di kotak konfirmasi.
-  // R16 (review): sejak R15 pesan DB berbahasa Inggris; pola lama "Perlu konfirmasi" tidak pernah cocok lagi.
-  const t = (m.message && m.message.text) || '';
-  if (t !== lastMsgText) {                 // pesan baru saja (model dikirim ulang tidak memasang lagi)
-    lastMsgText = t;
-    if (/^Confirmation needed:/.test(t)) {
-      const x = t.replace(/^Confirmation needed:\s*/, '').replace(/\s*Check the Material Code;.*$/, '');
-      serverConflict = x.charAt(0).toUpperCase() + x.slice(1);
-    }
-  }
-  if (/^Confirmation needed:/.test(t)) {
-    showMessage(null);
-  } else {
-    showMessage(m.message);
-  }
+  showMessage(m.message);
   setBusy(!!m.busy);
   applyHint(m.hint);
   applySuggest(m.suggest);
@@ -373,14 +361,22 @@ function submit(again) {
     showMessage({ type: 'error', text: 'Material Code and color are required.' });
     return;
   }
-  const needConfirm = conflicts().length > 0;
-  if (needConfirm && !$('confChk').checked) {
+  if (conflicts().length) {
     $('code').classList.add('invalid');
-    showMessage({ type: 'error', text: 'The Material Code conflicts with recorded codes. Check the code, or tick the confirmation if it matches ERP.' });
+    showMessage({ type: 'error', text: usedBy() ? 'This Material Code is already used by another variant.'
+      : 'This Material Code breaks the code rules (red box). Check the code in ERP.' });
     return;
   }
-  appsmith.updateModel({ code, color, thickness, status: $('status').value, again: !!again, confirm: needConfirm });
+  appsmith.updateModel({ code, color, thickness, status: $('status').value, again: !!again });
   appsmith.triggerEvent('onSave');
+}
+
+// R20: kode sudah dipakai varian lain -> sel specsheet memakai varian itu
+function useExisting() {
+  const u = usedBy();
+  if (busy || !u || !canUse) return;
+  appsmith.updateModel({ lookupKind: 'use', useId: u.used_id, useCode: u.code });
+  appsmith.triggerEvent('onLookup');
 }
 
 function cancel() {
@@ -395,12 +391,11 @@ appsmith.onReady(() => {
   $('code').addEventListener('input', onCodeInput);
   ['color', 'thickness'].forEach(id => $(id).addEventListener('input', () => {
     autoField[id] = false;                 // diketik user
-    serverConflict = '';
     $(id).classList.remove('invalid');
-    updateChecks();
+    requestLookup();                       // R20: aturan ketat bergantung warna + dimension
     requestSuggest(false);
   }));
-  $('confChk').addEventListener('change', () => $('code').classList.remove('invalid'));
+  $('btnUse').addEventListener('click', useExisting);
   ['code', 'color', 'thickness'].forEach(id => $(id).addEventListener('keydown', e => {
     if (e.key === 'Enter') submit(!isEdit);
   }));
