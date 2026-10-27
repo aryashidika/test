@@ -37,3 +37,8 @@ Ukuran: modal lebar ±560 px; widget tinggi ±640 px.
 R4: kode model dihapus. Model masuk `{ key, mode, form: { name, category_id, gender_id, construction_id, last_id, outsole_mold_id, sizes: [angka], sample_size }, options: { KATEGORI|GENDER|CONSTRUCTION|LAST|OUTSOLE_MOLD: [{ value, label }] }, sizes: [angka UKURAN ACTIVE], busy, message }` (`ModelCtrl.formModel()` / `ModelDetailCtrl.modelFormModel()`).
 Grid ukuran ala kalender: klik ukuran awal lalu akhir = rentang, klik ukuran terpilih = buang, Kosongkan; sample size dari ukuran terpilih.
 Nilai keluar sebelum `onSave`: `name, category_id, gender_id, construction_id, last_id, outsole_mold_id, sizes (array), sample_size (angka | null)`. Kategori wajib.
+
+## R19: semua field wajib (26 Okt 2026)
+
+- Model Name, Category, Gender, Construction, Last No., Outsole Mould, Size (min. 1), Sample Size wajib; dicek berurutan sebelum simpan
+  (pesan `<field> is required.`, kotak ukuran bergaris merah). Aturan final di `fn_model_save`.

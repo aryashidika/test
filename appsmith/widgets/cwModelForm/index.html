@@ -15,37 +15,37 @@
       <select id="category_id"></select>
     </div>
     <div>
-      <label for="gender_id">Gender</label>
+      <label for="gender_id">Gender <span class="req">*</span></label>
       <select id="gender_id"></select>
     </div>
   </div>
 
   <div class="row">
     <div>
-      <label for="construction_id">Construction</label>
+      <label for="construction_id">Construction <span class="req">*</span></label>
       <select id="construction_id"></select>
     </div>
     <div>
-      <label for="last_id">Last No.</label>
+      <label for="last_id">Last No. <span class="req">*</span></label>
       <select id="last_id"></select>
     </div>
   </div>
 
-  <label for="outsole_mold_id">Outsole Mould</label>
+  <label for="outsole_mold_id">Outsole Mould <span class="req">*</span></label>
   <select id="outsole_mold_id"></select>
 
   <div class="size-head">
-    <label>Size</label>
+    <label>Size <span class="req">*</span></label>
     <span class="size-sum" id="sizeSum">None selected</span>
     <button type="button" class="link" id="btnSizeClear">Clear</button>
   </div>
   <div class="sizes" id="sizes" role="group" aria-label="Select sizes"></div>
   <div class="hint">Click the first size, then the last size to select a range. Click a selected size to remove it.</div>
 
-  <label for="sample_size">Sample Size</label>
+  <label for="sample_size">Sample Size <span class="req">*</span></label>
   <select id="sample_size"></select>
 
-  <div class="hint">The model name is unique in your factory. New dropdown options are added in Master Options.</div>
+  <div class="hint">All fields are required. The model name is unique in your factory. New dropdown options are added in Master Options.</div>
 
   <div class="actions">
     <button type="button" class="btn-secondary" id="btnCancel">Cancel</button>

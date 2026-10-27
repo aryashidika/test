@@ -39,3 +39,9 @@ Ukuran: modal lebar ±560 px; widget tinggi ±650 px.
 |---|---|---|
 | `onSave` | `.material_code`, `.name`, `.category`, `.thickness`, `.uom`, `.price_method`, `.status` | Master Material: `{{MaterialCtrl.save()}}` · Material Detail: `{{MaterialDetailCtrl.saveMaterial()}}` |
 | `onCancel` | – | `{{closeModal('mdlMaterial')}}` |
+
+## R19: tanda Process (26 Okt 2026)
+
+- Checkbox **Process material (no Material Code)** (`form.is_process`, keluar `.is_process`): bila `canIdentity` atau `canPriceMethod` (tim CBD, user 27 Okt 2026); dikunci bila
+  `processLocked` (teks `processNote`: dipakai dokumen terbit / sudah punya varian). Dicentang = metode harga Quotation dan tombol metode
+  dikunci; dilepas = kembali ke metode sebelumnya (DB: Catalog). Aturan final di `fn_material_add` / `fn_material_update`.

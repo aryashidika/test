@@ -45,6 +45,7 @@ Legenda status: ⬜ belum · 🟡 dibuat (belum diverifikasi dari export) · ✅
 | R10 | Hapus varian yang tidak dipakai (manual, tanpa build) | – (tempel manual: SQL R10, `q_variants`, `a_variant_delete`, `MaterialDetailCtrl.deleteVariant`, kolom Hapus `tblVariants`) | 🟡 dibuat 12 Okt 2026 · self-test 121 cek lolos |
 | R9 | Material Code: isi otomatis (usulan) + kamus kode tiga tingkat (tolak / konfirmasi / info); awalan kembali info - panduan `steps/R9_uji.md` | **`build_r9.json` (di-import)** (base `build_r8.json`) | 🟡 dibuat 12 Okt 2026 · self-test 113 cek lolos (DB bersih & DB tiruan data user) · 845 kode ERP: 844 masuk, 1 ditolak (T-160 WHITE dobel) · 139 query EXPLAIN · harness |
 | R8 | Catatan uji E2E-R: Manager Costing langsung berlaku, riwayat harga, article tanpa batas, awalan Material Code wajib sama, ajukan harga master dari CBD - panduan `steps/R8_uji.md` | **`build_r8.json` (di-import)** | 🟡 dibuat 12 Okt 2026 · R8 2× tanpa error · self-test 102 cek lolos · 137 query EXPLAIN · harness widget & JSObject |
+| R19 | Catatan uji user (26 Okt 2026): **nomor komponen = posisi** (geser +10 di kelompok), **nomor artikel boleh kosong** (peringatan SMS / GTM, blokir Production, Tugas Saya), **Dimension di kolom sendiri** + **saran material terbaca penuh** (grid BOM), **material Process** (tanpa kode, quotation per CBD), **ganti komponen** di specsheet draft, **reset filter** saat page dibuka (kecuali kembali dari detail), **semua field model wajib** (lihat §6 R19) · panduan `steps/R19_uji.md` | `sql/R19_catatan_uji.sql` + **`exports/build_r19.json`** (base **`export_r18.json`** = export user 26 Okt 2026, sama dengan build R18 kecuali format ulang Appsmith) | ✅ lolos uji user 27 Okt 2026 (termasuk koreksi pindah posisi komponen, nomor artikel opsi B, Process oleh tim CBD, ganti komponen per baris, Dimension mengikuti material) · dibuat 26 Okt 2026 · R19 SQL 2× tanpa error (salinan DB R18) · self-test **372 cek** (62 baru R19, termasuk koreksi pindah posisi komponen; 7 pembuatan model lama dilengkapi karena field wajib) · 146 query EXPLAIN tanpa error · query baru/diubah dijalankan per role pada data uji (0 error) · harness `cwBomGrid` + `BomCtrl` asli (data DB nyata: saran membungkus, nama sama beda UoM, ketikan lama dipisah, kode, dimension wajib, pilih dimension setelah ganti material, Esc, Process, Change komponen) + `cwMaterialForm` / `cwModelForm` / `cwArticleForm` + `Util.resetFilters` / `goDetail` · validator **LOLOS** |
 | R18 | Ganti teks (permintaan user 26 Okt 2026): tombol Specsheet `+ Create Revision` → `+ Create` (+ pesan kosong), **Thickness → Dimension** di semua teks yang terlihat + header Excel + pesan DB; nama kolom / fungsi / variabel tetap (lihat §6 R18) · panduan `steps/R18_uji.md` | `sql/R18_dimension.sql` + **`exports/build_r18.json`** (base **`export_r17.json`** = export user 26 Okt 2026, sama dengan build R17 kecuali format ulang Appsmith) | ✅ lolos uji user 26 Okt 2026 · R18 SQL 2× + self-test LOLOS di PostgreSQL lokal (salinan DB R17) · validator **LOLOS** (0 error baru) · sisa kata thickness di build hanya nama internal / komentar |
 | R17 | **Remember me** di halaman Login (permintaan user 22 Okt 2026, app hanya lewat VPN): dicentang = sesi 7 hari tanpa dibuka, diperpanjang tiap app dibuka, maks 30 hari sejak login; tidak dicentang = 12 jam seperti dulu; email terakhir diingat di browser; **bagian 2 (22 Okt 2026): Material Code wajib mulai SMS + harga ESTIMATE untuk baris CBD tanpa kode di Pullover / Preview, baris ber-Yield tanpa harga memblokir mulai SMS** (lihat §6 R17) · panduan `steps/R17_uji.md` | `sql/R17_remember_estimate.sql` (dulu `R17_remember_me.sql`) + **`exports/build_r17.json`** (base **`export_r16.json`** = export user 22 Okt 2026: sama dengan build R16, hanya tata letak tabel Model List / Master Material / Master Component / Master Options / Master Supplier / Material Detail, kolom Factory `tblMaterials` disembunyikan, nama material wrap) | ✅ lolos uji user 26 Okt 2026 · R16 + R17 2× tanpa error di PostgreSQL lokal · self-test **280 cek** (13 baru R17) · `fn_login` dipanggil seperti app lama (2 parameter) dan baru (teks → boolean) · harness `cwLogin` (checkbox, nilai `remember` di event, email tersimpan datang setelah render pertama, tidak mengisi ulang email yang dihapus user) · validator **LOLOS** (0 error baru) · **bagian 2:** PostgreSQL lokal baru (F1 s.d. R16 dari file SQL, lalu R17 2× tanpa error), self-test **310 cek** (30 baru: skenario Preview → SMS user + lompat Pullover → GTM; 2 tes lama disesuaikan: T56 di SMS kini memblokir, tes sel kuning R16 pindah ke SMS), 145 query EXPLAIN tanpa error, query baru/diubah dijalankan dengan token per role pada data uji, harness `cwCbdGrid` + `cwCbdPriceForm` + `CbdGridCtrl` asli (tombol Enter / Edit estimate, badge, tanda no Material Code, saran Use, isian awal Propose), validator **LOLOS** |
 | R16 | Specsheet boleh disusun dengan material tanpa Material Code (sel kuning, terbit tetap diblokir), **+ New material** (bar atas & di baris yang tidak ketemu, baris dilanjutkan otomatis), saran "Did you mean", sel kuning di Export Excel, thickness baku (gaya berspasi tim material; 20 Okt: nol belakang dibuang, kutip miring / INCH, rentang), Order master option = posisi; review seluruh app 20 Okt 2026: T74–T86 (lihat §6 R16 & §9) · panduan `steps/R16_uji.md` | `sql/R16_baku_thickness.sql` + **`exports/build_r16.json`** (base `build_r15.json`) | ✅ lolos uji user 21 Okt 2026 · self-test **267 cek** (DB kosong & data sintetis 1 tahun) · 144 query dijalankan per role tanpa error · pembakuan thickness SQL = JS pada 239 teks · pindah Order 42/42 · alur panduan bagian 1–6 lewat fungsi DB 19/19 · uji browser `cwBomGrid` + `BomCtrl` + `cwVariantForm` + `cwCbdGrid` asli · validator **LOLOS** |
@@ -881,6 +882,72 @@ Permintaan user: ubah "create revision" jadi "create" dan semua thickness di apl
   Self-test: 2 cek pesan `Confirmation needed: dimension code ...` disesuaikan.
 - `tools/build_r18.py`: tabel PAIRS (teks lama → baru, tepat 1x) diterapkan ke file repo (`--repo`) dan ke isi app; build memastikan hasil = repo.
 
+### R19: Catatan uji user (26 Okt 2026)
+Base: `exports/export_r18.json` (export user 26 Okt 2026 = build R18, hanya format ulang Appsmith). SQL: `sql/R19_catatan_uji.sql`.
+Keputusan user 26 Okt 2026 (setelah diskusi 3 putaran):
+1. **Nomor komponen = posisi** (seperti Master Options, tanpa konfirmasi): nomor yang sudah dipakai di kelompok yang sama → komponen itu
+   dan yang menempel di bawahnya bergeser +10 (berantai sampai ada celah), hanya di dalam kelompok. Melewati batas rentang kelompok =
+   ditolak. Nomor di specsheet / CBD lama ikut berubah (dibaca langsung dari master, disetujui user).
+   - [x] (dibuat) `fn_component_shift` (baru), `fn_component_add`, `fn_component_save`; `cwKomponenForm` (hint + catatan edit)
+   - Keputusan detail (Claude): nomor komponen yang sudah dipakai di dokumen terbit boleh dipindah (posisi), **nama & kelompok tetap
+     terkunci**. Celah tidak dirapatkan (beda dengan Order master option yang 1..n), supaya nomor lain tidak ikut berubah tanpa perlu.
+   - **Koreksi user 26 Okt 2026 (uji R19):** edit 50 → 60 membuat yang di 60 jadi 70 (50 kosong), seharusnya seperti Master Options. Kini
+     **edit di kelompok yang sama = pindah posisi** (`fn_component_move`): pindah ke bawah → komponen di antara (lama, baru] naik 10
+     (50 → 60: yang di 60 jadi 50); pindah ke atas → komponen di antara [baru, lama) turun 10. Nomor tujuan kosong = hanya komponen itu.
+     **Tambah** baru dan edit pindah kelompok tetap seperti sebelumnya (`fn_component_make_room`). Hint edit `cwKomponenForm` disesuaikan.
+   - **Temuan uji 2.7 (27 Okt 2026):** Edit article tanpa nomor yang sudah dipakai dokumen terbit tampil terkunci berisi `(no article no.)`:
+     `currentRow` tombol tabel membawa nilai TAMPILAN kolom `code` (computedValue), bukan nilai asli. `ModelDetailCtrl.openEditArticle` /
+     `deleteArticle` kini mengambil baris asli dari `q_articles` (id). DB tidak berubah.
+   - **Keputusan user 27 Okt 2026 (opsi B, salah ketik nomor artikel):** nomor boleh **dikoreksi** selama article belum ada di specsheet / CBD
+     **Production** terbit (`fn_article_prod_published`, baru); dokumen terbit stage awal ikut tampil nomor baru. Nomor yang sudah dipakai
+     tidak bisa dikosongkan lagi. `q_articles` + `code_locked` (kolom tersembunyi `tblArticles`), `ModelDetailCtrl.codeLocked`, teks `cwArticleForm`.
+   - **Review alur CBD (27 Okt 2026, permintaan user):** chip article CBD tanpa nomor menulis `(no article no.) <colorway>` (dulu semua chip
+     sama), juga nama file / sheet Excel CBD (`CbdCtrl.artLabel`, `q_cbd_articles` + `no_code`). Tugas Saya `NO_ARTICLE_NO` tidak menghitung
+     article yang DROPPED di revisi terakhirnya. Alur stage CBD tetap aturan R13 (chip `NEEDS CBD <stage>`, stage boleh dilompati).
+   - **Temuan uji 4.10 (27 Okt 2026):** tim CBD (`manage_price`, boleh ubah metode harga) kini juga boleh memasang / melepas tanda Process
+     (aturan kunci sama). Dilepas oleh tim CBD dengan metode Quotation = tetap Quotation. `fn_material_update`, `cwMaterialForm`.
+   - **Temuan user 27 Okt 2026 (ganti komponen):** dua baris UPPER, satu diganti → dua-duanya ikut. Kini **hanya baris itu** (+ subkomponen
+     dan baris lama di rantai Ganti material) yang pindah; ditolak hanya bila komponen tujuan sudah punya material + dimension yang sama
+     (aturan "tujuan sudah ada = ditolak" tidak dipakai lagi karena satu komponen boleh punya beberapa baris).
+   - **Revisi user 27 Okt 2026 (3.7b):** baris tambah / sub, Material diganti ke material LAIN → Dimension selalu mengikuti material baru
+     (terdaftar juga = tetap; satu dimension = itu; beberapa = kosong; tanpa dimension / Process = kosong), tanpa membedakan terisi otomatis
+     atau diketik (logika `thkAuto` dihapus). Nama sama = tidak disentuh; dimension baru tetap boleh diketik sesudahnya; kode tetap dipakai.
+2. **Nomor artikel boleh kosong**: Pullover / Preview tanpa catatan, SMS / GTM = peringatan di checklist terbit, **Production = terbit
+   diblokir**. Diisi Vendor Spec (Model Detail). Nomor boleh diisi belakangan walau article sudah dipakai di dokumen terbit; setelah
+   terisi dan dipakai tetap terkunci (tidak bisa diganti / dikosongkan). Article tanpa nomor muncul di **Tugas Saya** Vendor Spec.
+   CBD Production otomatis aman karena dibuat dari specsheet Production terbit (R13), tanpa cek tambahan (dijelaskan ke user).
+   - [x] (dibuat) `article.code` boleh NULL (CHECK + NOT NULL dilepas), colorway unik per season untuk article tanpa nomor; `fn_article_check`
+   - [x] (dibuat) `fn_article_label(code, colorway)` = nomor, atau `(no article no.) <colorway>` untuk pesan & teks; tampilan app `(no article no.)`
+   - [x] (dibuat) `fn_stage_article_required(stage)` = Production; `v_revision_checklist` (+ `no_code_articles`, `no_code_list`, `article_required`),
+     `fn_revision_publish`; `SpecCtrl` checklist; view / query yang menampilkan nomor artikel
+3. **Dimension diisi di kolom Dimension**, bukan di nama material (grid BOM): kolom Material = nama (atau Material Code, tetap dipertahankan:
+   mengisi nama + dimension), kolom Dimension = input dengan saran dimension terdaftar material itu (boleh dimension baru). Ganti dimension
+   baris = Ganti material (material sama, dimension baru). Ketikan lama `NAMA · DIMENSION` / `NAMA . 1,5 mm` tetap dibaca lalu dipisah ke
+   dua kolom.
+4. **Material Process** (tanpa kode, biaya dari quotation per model): tanda **Process** di Master Material, diisi Vendor Spec (form material
+   & + New material di specsheet), terkunci setelah material dipakai di dokumen terbit. Material Process tidak punya varian / Material
+   Code, sel warnanya tidak pernah kuning dan tidak memblokir terbit di stage mana pun. Harga = **QUOTATION per baris CBD** (metode harga
+   Quotation otomatis, sudah ada sejak F8: diisi role pengisi harga CBD, tanpa approval di semua stage termasuk Production, ikut ke revisi
+   CBD berikutnya untuk article yang sama).
+   - [x] (dibuat) `material.is_process`; `fn_material_add` / `fn_material_update` (+ parameter), `fn_variant_save` (tolak), `v_material_list`,
+     `v_bom_grid`, checklist sel kuning; `cwMaterialForm`, `MaterialCtrl`, `BomCtrl` (+ New material), `cwBomGrid`, Excel specsheet & CBD
+   - Keputusan detail (Claude): tanda Process hanya bisa dipasang bila material belum punya varian; metode harga dikunci Quotation selama
+     Process (dilepas = kembali Catalog). Copy CBD lintas model tetap membawa harga quotation material yang sama (aturan R7), bisa diedit.
+5. **Ganti komponen di specsheet** (draft): semua baris komponen itu (beserta subkomponennya) dipindah ke komponen master lain; identitas
+   baris (`line_key`) tetap, jadi CBD tetap tersambung. Komponen tujuan sudah ada di revisi itu = **ditolak**. Komponen lokal juga boleh
+   diganti ke komponen master.
+   - [x] (dibuat) `fn_bom_change_component` (baru), `a_bom_change_component` (baru), `cwBomGrid` (aksi `changeComponent`), `BomCtrl`
+6. **Saran material di grid terbaca penuh**: daftar saran sendiri (bukan datalist browser) yang membungkus teks, `NAMA` + `UOM · dimension`
+   (kolom Material) dan `DIMENSION` + jumlah warna (kolom Dimension); nama sama beda UoM ditulis `NAMA (UOM)`. Sel Material & Dimension
+   ikut membungkus.
+7. **Filter di-reset saat halaman dibuka** (semua halaman berfilter), kecuali saat kembali dari halaman detail. Reset juga setelah login,
+   dari Home / menu, dan F5.
+   - [x] (dibuat) `Auth` per page: `pageName`, `filterWidgets()`, reset sebelum `pageQueries`; `Util.keepFilters()` dipanggil sebelum pindah ke
+     halaman detail; Home mengosongkan daftar (`appsmith.store.keepFilters`, tidak persisten = hilang saat F5)
+8. **Semua field model wajib** (permintaan user saat menjawab): Model Name, Category, Gender, Construction, Last No., Outsole Mould, Size
+   (min. 1), Sample Size. Model lama yang belum lengkap tetap tampil; saat Edit harus dilengkapi dulu.
+   - [x] (dibuat) `fn_model_save`; `cwModelForm` (tanda wajib + cek sebelum simpan)
+
 ## 7. Perubahan database (DDL tabel per fase)
 
 Function, view, dan trigger yang disebut di checklist fase diberikan lengkap saat fase itu dikerjakan. Kolom standar di setiap tabel bisnis:
@@ -1328,6 +1395,8 @@ ALTER TABLE cbd_line ADD COLUMN variant_id uuid REFERENCES material_variant(id);
 R7: `ALTER TABLE product_model ADD COLUMN parent_model_id uuid REFERENCES product_model(id);`
 R17: `ALTER TABLE app_session ADD COLUMN remember boolean NOT NULL DEFAULT false, ADD COLUMN max_expires_at timestamptz;`
 
+R19: `ALTER TABLE article ALTER COLUMN code DROP NOT NULL; ALTER TABLE article DROP CONSTRAINT article_code_check;` (nomor kosong = NULL) · `ALTER TABLE material ADD COLUMN is_process boolean NOT NULL DEFAULT false;` · trigger `trg_a_variant_not_process` (BEFORE INSERT `material_variant`)
+
 ---
 
 ## 8. Register objek DB
@@ -1459,6 +1528,8 @@ ORDER BY 1, 2;
 | `cwCbdGrid` · `cwCbdPriceForm` · `CbdGridCtrl` · `CbdCtrl` · `CbdExportCtrl` · `q_cbd_lines` · `q_cbd_estimate_hint` (baru) · `SpecCtrl` | `Cost Breakdown (CBD)`, `Specsheet` | R17 (bagian 2) | ✅ | ✅ lolos uji user 26 Okt 2026 |
 | `fn_thickness_label`, `fn_bom_add_line`, `fn_bom_cell_set`, `fn_bom_replace_material`, `fn_variant_save`, `fn_material_variant_check` (teks pesan Dimension) | function | R18 | ✅ | ✅ lolos uji user 26 Okt 2026 |
 | Teks Dimension: `cwBomGrid`, `cwVariantForm`, `cwMaterialForm`, `cwCbdGrid`, `cwPriceApproval`, `cwPriceForm`, `cwRevisionForm`, `BomCtrl`, `CbdCtrl`, `CbdExportCtrl`, `SpecExportCtrl`, kolom `tblVariants` / `tblPrices`; tombol `btnBuatRevisi` `+ Create`, pesan kosong `SpecCtrl` | `Specsheet`, `Material Detail`, `Master Material`, `Price Approval`, `Cost Breakdown (CBD)` | R18 | ✅ | ✅ lolos uji user 26 Okt 2026 |
+| `fn_component_make_room`, `fn_component_move` (baru), `fn_component_add`, `fn_component_save`, `fn_component_check` (bypass saat geser); `fn_article_code_label`, `fn_article_label`, `fn_stage_article_required` (baru), `fn_article_check`, `v_revision_checklist`, `fn_revision_publish`, `v_worklist_spec` (+ `NO_ARTICLE_NO`), `v_worklist_cbd`, `v_recent_published`, `fn_master_usage`, `fn_cbd_create`; `material.is_process`, `fn_material_add(…, boolean)`, `fn_material_update(…, boolean)` (versi lama di-DROP), `fn_variant_not_process` + trigger, `v_material_list`, `v_bom_grid`; `fn_bom_change_component` (baru); `fn_model_save` (semua field wajib) | function/view/tabel | R19 | ✅ | ✅ lolos uji user 27 Okt 2026 |
+| `cwBomGrid` · `cwMaterialForm` · `cwModelForm` · `cwArticleForm` · `cwKomponenForm` · `BomCtrl` · `SpecCtrl` · `SpecExportCtrl` · `MaterialCtrl` · `MaterialDetailCtrl` · `ModelCtrl` · `ModelDetailCtrl` · `BerandaCtrl` · `Util` (semua page) · `Auth` (semua page: `pageName`, `filterWidgets`) · `a_bom_change_component` (baru) · `q_rev_articles`, `q_cbd_articles`, `q_cbd_sources`, `q_cbd_revisions`, `q_articles`, `a_material_add` (2), `a_material_update`, `q_material`, `q_materials`, `q_bom_options` · `tblArticles`, `tblMaterials`, `btnVarianTambah` | semua page | R19 | ✅ | ✅ lolos uji user 27 Okt 2026 |
 
 ---
 

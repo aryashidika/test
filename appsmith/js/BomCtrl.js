@@ -55,8 +55,9 @@ export default {
 	articleNote() {
 		const r = SpecCtrl.revision();
 		if (!r) return '';
-		const dropped = this.articles().filter(a => a.rev_status === 'DROPPED').map(a => a.code);
-		const notIn = this.articles().filter(a => !a.rev_status).map(a => a.code);
+		const label = a => (a.no_code ? `${a.code} ${a.colorway}` : a.code);   // R19: article tanpa nomor dikenali dari colorway
+		const dropped = this.articles().filter(a => a.rev_status === 'DROPPED').map(label);
+		const notIn = this.articles().filter(a => !a.rev_status).map(label);
 		const parts = [`${this.activeArticles().length} active article(s)`];
 		if (dropped.length) parts.push(`dropped: ${dropped.join(', ')}`);
 		if (notIn.length && SpecCtrl.canEdit()) parts.push(`not in revision: ${notIn.join(', ')}`);
@@ -111,7 +112,7 @@ export default {
 		const o = this.options();
 		return {
 			editable: SpecCtrl.editable() && !SpecCtrl.navBusy,
-			articles: this.activeArticles().map(a => ({ id: a.id, code: a.code, colorway: a.colorway })),
+			articles: this.activeArticles().map(a => ({ id: a.id, code: a.code, colorway: a.colorway, no_code: !!a.no_code })),
 			lines: this.gridLines(),
 			components: o.components,
 			materials: o.materials,
@@ -163,6 +164,8 @@ export default {
 			setCell: [a_cell_save, { line_id: a.line_id, article_id: a.article_id, color: a.color }, ['colors']],
 			dropArticle: [a_rev_article_set, { revision_id: r.id, article_id: a.article_id, status: 'DROPPED' }, ['articles']],
 			deleteLine: [a_bom_delete_line, { line_id: a.line_id }, ['colors']],
+			// R19: ganti komponen baris ini (+ subkomponennya) ke komponen master lain
+			changeComponent: [a_bom_change_component, { line_id: a.line_id, component_id: a.component_id }, []],
 		};
 		const def = actions[a.type];
 		if (!def) { ack(); return; }
@@ -366,7 +369,7 @@ export default {
 
 	// ---- + New material (mdlMaterialBaru / cwMaterialForm): induk baru (nama, kategori, UoM), tanpa kode ----
 	openNewMaterial(a) {
-		this.matForm = { name: String((a && a.name) || ''), category: '', uom: '' };
+		this.matForm = { name: String((a && a.name) || ''), category: '', uom: '', is_process: false };
 		this.matSimilar = [];
 		this.matSimilarFor = '';
 		this.matBusy = false;
@@ -454,7 +457,7 @@ export default {
 
 	async saveMaterial() {
 		const m = cwMaterialForm.model || {};     // baca dulu - model di-reset saat Default model berubah
-		const data = { name: m.name, category: m.category, uom: m.uom };
+		const data = { name: m.name, category: m.category, uom: m.uom, is_process: m.is_process === true };   // R19: Process
 		if (!data.name || !data.category || !data.uom) {
 			this.matMsg = { type: 'error', text: 'Fill in category, name, and Mea.' };
 			return;

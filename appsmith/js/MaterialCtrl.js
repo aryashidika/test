@@ -1,7 +1,7 @@
 export default {
 	// R2: daftar material INDUK milik pabrik user (Brand: semua pabrik). Kode, thickness & warna ada di varian
 	// (Material Detail). Tanpa usulan/approval; harga kembali di R3.
-	form: { name: '', category: '', uom: '', price_method: 'CATALOG', status: 'ACTIVE' },
+	form: { name: '', category: '', uom: '', price_method: 'CATALOG', status: 'ACTIVE', is_process: false },
 	formKey: 0,        // naik setiap modal dibuka -> cwMaterialForm mengisi ulang field
 	busy: false,
 	message: null,     // { type, text } ditampilkan di dalam cwMaterialForm
@@ -65,7 +65,7 @@ export default {
 	},
 
 	openAdd() {
-		this.form = { name: '', category: '', uom: '', price_method: 'CATALOG', status: 'ACTIVE' };
+		this.form = { name: '', category: '', uom: '', price_method: 'CATALOG', status: 'ACTIVE', is_process: false };
 		this.busy = false;
 		this.message = null;
 		this.similar = [];
@@ -97,7 +97,7 @@ export default {
 	async save() {
 		// Baca model dulu - model di-reset saat state (Default model) berubah
 		const m = cwMaterialForm.model || {};
-		const data = { name: m.name, category: m.category, uom: m.uom };
+		const data = { name: m.name, category: m.category, uom: m.uom, is_process: m.is_process === true };   // R19: Process
 		if (!data.name || !data.category || !data.uom) {
 			this.message = { type: 'error', text: 'Fill in category, name, and Mea.' };
 			return;
@@ -123,9 +123,9 @@ export default {
 			this.busy = false;
 		}
 		closeModal('mdlMaterial');
-		showAlert('Material added. Next, add its variants.', 'success');
+		showAlert(data.is_process ? 'Process material added.' : 'Material added. Next, add its variants.', 'success');
 		if (id) {
-			navigateTo('Material Detail', { id });
+			await Util.goDetail('Master Material', 'Material Detail', { id });
 			return;
 		}
 		for (const q of [q_materials, q_material_meta]) {
@@ -134,6 +134,6 @@ export default {
 	},
 
 	open(row) {
-		navigateTo('Material Detail', { id: row.id });
+		return Util.goDetail('Master Material', 'Material Detail', { id: row.id });
 	},
 }

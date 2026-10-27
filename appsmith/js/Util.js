@@ -102,4 +102,26 @@ export default {
 			INACTIVE: '#6b7280', DROPPED: '#6b7280',
 		}[status] || '#6b7280';
 	},
+
+	// R19 (keputusan user 26 Okt 2026): filter di-reset setiap page dibuka (dari Home / menu, setelah login, F5), KECUALI saat
+	// kembali dari halaman detail. appsmith.store.keepFilters = page yang filternya dipertahankan (tidak persisten: F5 = kosong).
+	// Auth.onPageLoad tiap page memanggil resetFilters(Auth.pageName, Auth.filterWidgets()); Home mengosongkan daftar.
+	async resetFilters(page, widgets) {
+		if (page === 'Home') {
+			await storeValue('keepFilters', [], false);
+			return;
+		}
+		if ((appsmith.store.keepFilters || []).includes(page)) return;
+		for (const w of widgets || []) {
+			try { await resetWidget(w, true); } catch (e) { /* widget tidak ada: abaikan */ }
+		}
+	},
+
+	// Pindah dari page berfilter ke halaman detail / turunan: filter page asal dipertahankan saat kembali; page tujuan dibuka
+	// segar (mis. Model Detail model lain tidak membawa filter model sebelumnya)
+	async goDetail(fromPage, target, params) {
+		const keep = (appsmith.store.keepFilters || []).filter(p => p !== target && p !== fromPage);
+		await storeValue('keepFilters', keep.concat([fromPage]), false);
+		navigateTo(target, params || {});
+	},
 }

@@ -122,7 +122,7 @@ export default {
 
 	attachmentTitle() {
 		const a = this.article;
-		return a ? `Attachments: ${this.esc(a.code)} · ${this.esc(a.colorway)}` : 'Attachments';
+		return a ? `Attachments: ${this.esc(a.code || '(no article no.)')} · ${this.esc(a.colorway)}` : 'Attachments';
 	},
 
 	fmtSize(bytes) {
@@ -197,12 +197,12 @@ export default {
 	// ---- navigasi ----
 	openSpecsheet() {
 		const m = this.model();
-		if (m) navigateTo('Specsheet', this.seasonId ? { model_id: m.id, season: this.seasonId, from: 'detail' } : { model_id: m.id, from: 'detail' });
+		if (m) return Util.goDetail('Model Detail', 'Specsheet', this.seasonId ? { model_id: m.id, season: this.seasonId, from: 'detail' } : { model_id: m.id, from: 'detail' });
 	},
 
 	openCbd() {
 		const m = this.model();
-		if (m) navigateTo('Cost Breakdown (CBD)', this.seasonId ? { model_id: m.id, season: this.seasonId, from: 'detail' } : { model_id: m.id, from: 'detail' });
+		if (m) return Util.goDetail('Model Detail', 'Cost Breakdown (CBD)', this.seasonId ? { model_id: m.id, season: this.seasonId, from: 'detail' } : { model_id: m.id, from: 'detail' });
 	},
 
 	// ---- model ----
@@ -302,8 +302,10 @@ export default {
 	},
 
 	openEditArticle(row) {
+		// R19: baris tabel membawa nilai tampilan kolom (nomor kosong = "(no article no.)"); pakai data asli q_articles
+		row = this.articles().find(a => a.id === row.id) || row;
 		this.articleIsNew = false;
-		this.articleForm = { id: row.id, code: row.code, colorway: row.colorway, is_used: !!row.is_used };
+		this.articleForm = { id: row.id, code: row.code || '', colorway: row.colorway, is_used: !!row.is_used, code_locked: !!row.code_locked };
 		this.articleBusy = false;
 		this.articleMsg = null;
 		this.articleKey = this.articleKey + 1;
@@ -318,7 +320,8 @@ export default {
 			season: s ? s.season : '',
 			count: this.articles().length,
 			form: { code: this.articleForm.code, colorway: this.articleForm.colorway },
-			codeLocked: !!this.articleForm.is_used,
+			// R19 (opsi B user 27 Okt 2026): nomor terkunci hanya setelah article ada di specsheet / CBD Production terbit
+			codeLocked: !!this.articleForm.code_locked && !!this.articleForm.code,
 			busy: this.articleBusy,
 			message: this.articleMsg,
 		};
@@ -335,13 +338,14 @@ export default {
 			v => { this.articleMsg = v; }, v => { this.articleBusy = v; }, 'mdlArticle');
 		if (!ok) return;
 		closeModal('mdlArticle');
-		showAlert(isNew ? `Article ${f.code} added.` : 'Article saved.', 'success');
+		showAlert(isNew ? `Article ${f.code || f.colorway} added.` : 'Article saved.', 'success');
 		await this.loadArticles();
 		await this.refresh([q_seasons]);
 	},
 
 	async deleteArticle(row) {
-		if (!await Util.run(a_article_delete, { id: row.id }, `Article ${row.code} deleted.`)) return;
+		row = this.articles().find(a => a.id === row.id) || row;   // R19: data asli, bukan nilai tampilan kolom
+		if (!await Util.run(a_article_delete, { id: row.id }, `Article ${row.code || row.colorway} deleted.`)) return;
 		await this.loadArticles();
 		await this.refresh([q_seasons]);
 	},

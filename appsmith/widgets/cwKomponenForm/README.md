@@ -36,3 +36,9 @@ Ukuran: modal lebar ±480 px; widget mengisi modal, tinggi ±520 px (termasuk pe
 |---|---|---|
 | `onSave` | `cwKomponenForm.model.group_code`, `.number` (angka), `.name`, `.status` | `{{KomponenCtrl.save()}}` |
 | `onCancel` | – | `{{closeModal('mdlKomponen')}}` |
+
+## R19: nomor = posisi (26 Okt 2026)
+
+- Hint nomor: nomor yang sudah dipakai menggeser komponen itu (dan yang menempel di bawahnya) +10 di kelompok yang sama
+  (`fn_component_make_room`). Edit di kelompok sama = pindah posisi seperti Master Options: yang di antara nomor lama dan baru
+  bergeser 10 (`fn_component_move`, koreksi user 26 Okt 2026). Catatan edit: nama & kelompok terkunci bila dipakai dokumen terbit, nomor tetap bisa diubah.

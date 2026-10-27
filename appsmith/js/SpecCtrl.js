@@ -419,6 +419,11 @@ export default {
 				detail: !c.yellow_cells ? ''
 					: c.code_required ? `${c.yellow_cells} yellow cells: ${c.yellow_list || ''}. Required from SMS. Click Register in that cell`
 					: `${c.yellow_cells} yellow cells: ${c.yellow_list || ''}. Allowed in Pullover and Preview; required from SMS` },
+			// R19 (keputusan user 26 Okt 2026): nomor artikel wajib di Production (article_required); SMS / GTM = peringatan
+			{ label: 'All articles have an article no.', ok: !c.no_code_articles, blocking: !!c.article_required,
+				detail: !c.no_code_articles ? ''
+					: c.article_required ? `${c.no_code_articles} article(s) without article no. (colorway: ${c.no_code_list || ''}). Required in Production. Fill it in Model Detail`
+					: `${c.no_code_articles} article(s) without article no. (colorway: ${c.no_code_list || ''}). Allowed before Production; required in Production` },
 			{ label: 'No inactive suppliers', ok: !c.inactive_suppliers, blocking: true,
 				detail: c.inactive_suppliers ? `${c.inactive_suppliers}. Change the supplier in the BOM grid` : '' },
 		];

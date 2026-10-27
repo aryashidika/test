@@ -58,6 +58,11 @@ export default {
 		return { target: 'Material Detail', params: { id: r.material_id } };
 	},
 
+	// R19: article tanpa nomor -> Model Detail season itu (nomor diisi di tabel Articles)
+	toModel(r) {
+		return { target: 'Model Detail', params: { id: r.model_id, season: r.specsheet_id } };
+	},
+
 	// ---- model widget ----
 	// Default model cwWorklist: {{BerandaCtrl.model()}}
 	model() {
@@ -85,6 +90,11 @@ export default {
 		if (Number(d.no_supplier) > 0) flags.push({ text: `${d.no_supplier} lines without supplier`, tone: 'warn' });
 		if (d.inactive_materials) flags.push({ text: 'Has INACTIVE materials', tone: 'danger', hint: d.inactive_materials });
 		if (Number(d.yellow_cells) > 0) flags.push({ text: `${d.yellow_cells} yellow cells (no Material Code)`, tone: 'warn' });
+		// R19: nomor artikel wajib di Production (= fn_stage_article_required), peringatan sebelumnya
+		if (Number(d.no_code_articles) > 0) {
+			flags.push({ text: `${d.no_code_articles} articles without article no.`, tone: d.stage === 'PROD' ? 'danger' : 'warn',
+				hint: d.stage === 'PROD' ? 'Required to publish Production' : 'Required from Production' });
+		}
 		if (d.inactive_suppliers) flags.push({ text: 'Has inactive suppliers', tone: 'danger', hint: d.inactive_suppliers });
 		if (!Number(d.article_count)) flags.push({ text: 'No active articles', tone: 'warn' });
 		if (!Number(d.line_count)) {
@@ -100,6 +110,8 @@ export default {
 		const rows = q_worklist_spec.data || [];
 		const drafts = rows.filter(r => r.kind === 'DRAFT');
 		const unassigned = rows.filter(r => r.kind === 'UNASSIGNED');
+		const noArtNo = rows.filter(r => r.kind === 'NO_ARTICLE_NO');
+		const noArtNoTotal = noArtNo.reduce((n, r) => n + (Number(r.article_count) || 0), 0);
 		const unassignedTotal = unassigned.reduce((n, r) => n + (Number(r.article_count) || 0), 0);
 		const yellowTotal = drafts.reduce((n, r) => n + (Number(r.yellow_cells) || 0), 0);
 		return {
@@ -108,6 +120,7 @@ export default {
 				{ key: 'drafts', value: drafts.length, label: 'Open specsheet drafts', tone: 'info' },
 				{ key: 'unassigned', value: unassignedTotal, label: 'Articles not in a specsheet', tone: 'warn' },
 				{ key: 'drafts', value: yellowTotal, label: 'Yellow cells (Material Code not registered)', tone: 'warn' },
+				{ key: 'noartno', value: noArtNoTotal, label: 'Articles without article no.', tone: 'warn' },
 			],
 			sections: [
 				{
@@ -125,6 +138,14 @@ export default {
 						meta: u.article_codes,
 						flags: [{ text: u.has_revision ? 'Select it in the specsheet revision' : 'No specsheet yet', tone: 'muted' }],
 					}, this.toSpec(u))),
+				},
+				{
+					key: 'noartno', title: 'Articles Without Article No.', empty: 'All articles have an article no.',
+					items: noArtNo.map(u => Object.assign({
+						title: `${u.model_name} · ${u.season}`,
+						meta: `Colorway: ${u.article_codes}`,
+						flags: [{ text: `${u.article_count} without article no.`, tone: 'warn', hint: 'Required to publish the Production specsheet' }],
+					}, this.toModel(u))),
 				},
 			],
 		};

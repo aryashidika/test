@@ -8,9 +8,10 @@
 
   <div class="hint" id="seasonInfo"></div>
 
-  <label for="code">Article Code <span class="req">*</span></label>
-  <input id="code" type="text" maxlength="40" autocomplete="off" placeholder="e.g. GY1234">
-  <div class="field-note" id="codeNote" hidden>The code cannot be changed because the article is used in a specsheet/CBD.</div>
+  <label for="code">Article No.</label>
+  <input id="code" type="text" maxlength="40" autocomplete="off" placeholder="e.g. GY1234 (empty if not known yet)">
+  <div class="field-note" id="codeHint">Can stay empty in the early stages. Required to publish the Production specsheet (a warning from SMS). A typo can be corrected until the article is in a published Production specsheet/CBD.</div>
+  <div class="field-note" id="codeNote" hidden>The article no. cannot be changed because the article is in a published Production specsheet/CBD.</div>
 
   <label for="colorway">Colorway <span class="req">*</span></label>
   <input id="colorway" type="text" maxlength="120" autocomplete="off" placeholder="e.g. Core Black / Cloud White">

@@ -68,6 +68,7 @@ function sizeLabel(list) {
 
 function renderSizes() {
   const box = $('sizes');
+  if (picked.size) box.classList.remove('invalid');
   box.innerHTML = '';
   sizeList.forEach(n => {
     const b = document.createElement('button');
@@ -142,18 +143,22 @@ function render(model) {
 function submit() {
   if (busy) return;
   const name = $('name').value.trim().replace(/\s+/g, ' ');
-  $('name').classList.remove('invalid');
-  $('category_id').classList.remove('invalid');
-  if (!name) {
-    $('name').classList.add('invalid');
-    $('name').focus();
-    showMessage({ type: 'error', text: 'Model name is required.' });
-    return;
-  }
-  if (!$('category_id').value) {
-    $('category_id').classList.add('invalid');
-    $('category_id').focus();
-    showMessage({ type: 'error', text: 'Category is required.' });
+  ['name', 'sizes', 'sample_size'].concat(SELECTS.map(([id]) => id)).forEach(id => $(id).classList.remove('invalid'));
+  // R19 (keputusan user 26 Okt 2026): semua field wajib, urutan sama dengan form (aturan final di fn_model_save)
+  const missing = [
+    ['name', 'Model name', !name],
+    ['category_id', 'Category', !$('category_id').value],
+    ['gender_id', 'Gender', !$('gender_id').value],
+    ['construction_id', 'Construction', !$('construction_id').value],
+    ['last_id', 'Last No.', !$('last_id').value],
+    ['outsole_mold_id', 'Outsole Mould', !$('outsole_mold_id').value],
+    ['sizes', 'At least one size', !picked.size],
+    ['sample_size', 'Sample Size', !$('sample_size').value],
+  ].find(x => x[2]);
+  if (missing) {
+    $(missing[0]).classList.add('invalid');
+    if (missing[0] !== 'sizes') $(missing[0]).focus();
+    showMessage({ type: 'error', text: `${missing[1]} is required.` });
     return;
   }
   const data = { name, sizes: [...picked].sort((a, b) => a - b), sample_size: $('sample_size').value ? Number($('sample_size').value) : null };

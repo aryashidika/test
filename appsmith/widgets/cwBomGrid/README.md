@@ -103,3 +103,24 @@ R4 (specsheet per varian):
   material tersimpan **dan** daftar material dimuat ulang) → widget mengisi nama yang disimpan (+ thickness yang diketik) lalu mengulang
   aksi baris itu otomatis: `addLine`, `addSub`, atau `replaceMaterial`. Batal di modal = tidak ada aksi.
 - **Skala**: saran dihitung hanya saat pesan error dibaca (sync isian tidak menghitung). Diukur dengan data tiruan: 5.000 material + 20.000 varian = 50 sampai 130 ms per salah ketik; 20.000 material + 80.000 varian = 120 sampai 380 ms. Kandidat disaring dulu (selisih panjang, 3 huruf awal / akhir kode) sebelum jarak ketik dihitung.
+
+## R19: Dimension di kolom sendiri, saran terbaca penuh, ganti komponen, Process (26 Okt 2026)
+
+- **Kolom Material = nama saja** (atau Material Code: mengisi nama + Dimension + tawaran warna). **Kolom Dimension = input** dengan saran
+  dimension terdaftar material itu (jumlah warna), boleh dimension baru (catatan `new dimension`). Baris tambah / sub: Material diganti ke
+  material LAIN -> Dimension mengikuti material baru (terdaftar juga = tetap; satu dimension = itu; beberapa = kosong; tanpa dimension /
+  Process = kosong), tanpa membedakan terisi otomatis atau diketik (revisi user 27 Okt 2026). Nama sama diketik ulang = tidak disentuh. Ketikan lama `NAMA · DIMENSION` /
+  `NAMA . 1,5 mm` / `NAMA 1,5mm` tetap dibaca lalu dipisah ke dua kolom. Dimension dibakukan seperti DB (`1,4mm` -> `1.4 MM`).
+- Baris tambah / sub: material punya beberapa dimension dan Dimension kosong -> pesan `Fill in the Dimension of ...` (satu dimension saja ->
+  langsung terisi). Baris yang ada: ubah Dimension = `replaceMaterial` (material sama); ganti nama material -> dimension baris dipakai bila
+  terdaftar di material baru, material dengan satu dimension -> itu, selain itu **dimension dipilih dulu** (`pendingDim`: sel Dimension
+  kuning muda + fokus, pesan info; Esc = batal), lalu satu `replaceMaterial`.
+- **Saran Material / Dimension** = daftar sendiri (`#suggest`, bukan datalist browser), teks membungkus, maks 12, yang diawali ketikan dulu:
+  `NAMA` + `UOM · dimension: ...` (Process: `Process (no Material Code)`). Nama sama beda UoM ditulis `NAMA (UOM)` (juga diterima saat
+  diketik). Sel Material & Dimension = kotak teks yang membungkus. Enter di baris tambah memilih saran saja (belum menyimpan).
+- **Ganti komponen**: tombol **Change** di kolom Component baris induk -> input komponen master (datalist) -> Enter -> action
+  `changeComponent` `{ line_id, component_id }` (`BomCtrl` -> `a_bom_change_component` / `fn_bom_change_component`: HANYA baris itu
+  + subkomponennya pindah, koreksi user 27 Okt 2026; ditolak bila komponen tujuan sudah punya material + dimension yang sama). Esc / klik
+  di luar tanpa isian = batal.
+- **Material Process** (`lines[].is_process`, `materials[].is_process`): badge **process**, sel tidak kuning, tanpa tombol Register.
+- Header article tanpa nomor: `(no article no.)` miring (`articles[].no_code`).

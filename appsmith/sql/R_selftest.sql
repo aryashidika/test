@@ -1,6 +1,6 @@
 -- ============================================================================
--- R_selftest: uji alur inti R3–R17 langsung di database, lalu DIBATALKAN (ROLLBACK): tidak ada data yang tersimpan.
--- Jalankan SETELAH sql/R_revisi_semua.sql, sql/R8_catatan_uji.sql, R9_kode_varian.sql R10_hapus_varian.sql, R11_perbaikan.sql, R11b_harga_batal.sql, R12_golive.sql, R13_cbd_stage.sql, R14_audit_stage.sql, R15_english.sql, R16_baku_thickness.sql DAN R17_remember_estimate.sql, lewat z_run_sql di app "DB Tools" (Use prepared statements = OFF),
+-- R_selftest: uji alur inti R3–R19 langsung di database, lalu DIBATALKAN (ROLLBACK): tidak ada data yang tersimpan.
+-- Jalankan SETELAH sql/R_revisi_semua.sql, sql/R8_catatan_uji.sql, R9_kode_varian.sql R10_hapus_varian.sql, R11_perbaikan.sql, R11b_harga_batal.sql, R12_golive.sql, R13_cbd_stage.sql, R14_audit_stage.sql, R15_english.sql, R16_baku_thickness.sql, R17_remember_estimate.sql, R18_dimension.sql DAN R19_catatan_uji.sql, lewat z_run_sql di app "DB Tools" (Use prepared statements = OFF),
 -- SEBELUM import app. Hasil yang diharapkan: baris terakhir "SELFTEST LOLOS". Kalau ada yang salah, query berhenti
 -- dengan pesan "SELFTEST GAGAL: ..." — kirim pesan itu ke pengembang.
 -- Aman di DB yang sudah berisi data: pabrik SELFTEST PABRIK A/B, email @selftest.invalid; master BERSAMA (supplier,
@@ -47,6 +47,30 @@ BEGIN
     RAISE EXCEPTION 'SELFTEST GAGAL: login % — %', p_email, v.message;
   END IF;
   RETURN v.token;
+END;
+$$;
+
+-- R19: semua field model wajib. Pilihan model uji (dibuat sekali per pabrik user, dipakai ulang)
+CREATE FUNCTION pg_temp.opt(p_token text, p_kind text, p_value text) RETURNS uuid
+LANGUAGE plpgsql AS $$
+DECLARE
+  v_fac uuid := CASE WHEN p_kind IN ('LAST', 'OUTSOLE_MOLD') THEN fn_user_factory(fn_auth(p_token, 'view_model')) END;
+  v_id  uuid;
+BEGIN
+  SELECT id INTO v_id FROM model_option WHERE kind = p_kind AND value = upper(p_value) AND factory_id IS NOT DISTINCT FROM v_fac;
+  RETURN coalesce(v_id, fn_option_save(p_token, NULL, p_kind, p_value, NULL, 'ACTIVE'));
+END;
+$$;
+
+-- Model uji lengkap (semua field wajib R19): ukuran [40], sample 40
+CREATE FUNCTION pg_temp.mk_model(p_token text, p_name text, p_cat uuid) RETURNS uuid
+LANGUAGE plpgsql AS $$
+DECLARE
+  v_sfx text := (SELECT upper(left(md5(fn_user_factory(fn_auth(p_token, 'view_model'))::text), 6)));
+BEGIN
+  RETURN fn_model_save(p_token, NULL, p_name, p_cat, pg_temp.opt(p_token, 'CONSTRUCTION', 'SELFTEST CEMENTING'),
+                       pg_temp.opt(p_token, 'GENDER', 'UNISEX'), pg_temp.opt(p_token, 'LAST', 'UJI-L-' || v_sfx),
+                       pg_temp.opt(p_token, 'OUTSOLE_MOLD', 'UJI-OS-' || v_sfx), '[40]', 40);
 END;
 $$;
 
@@ -161,17 +185,32 @@ BEGIN
   v_last   := fn_option_save(t_spec, NULL, 'LAST', 'UJI-L01', NULL, 'ACTIVE');
   v_lastb  := fn_option_save(t_specb, NULL, 'LAST', 'UJI-LB1', NULL, 'ACTIVE');
   SELECT id INTO v_gender FROM model_option WHERE kind = 'GENDER' AND value = 'UNISEX';
-  m_a := fn_model_save(t_spec, NULL, 'Uji Runner X', v_cat, NULL, v_gender, v_last, NULL, '[44, 37, 38, 39, 40, 42, 43]', 40);
+  m_a := fn_model_save(t_spec, NULL, 'Uji Runner X', v_cat, pg_temp.opt(t_spec, 'CONSTRUCTION', 'SELFTEST CEMENTING'), v_gender, v_last,
+                       pg_temp.opt(t_spec, 'OUTSOLE_MOLD', 'UJI-OS01'), '[44, 37, 38, 39, 40, 42, 43]', 40);
   PERFORM pg_temp.ok((SELECT size_range FROM v_model WHERE id = m_a) = '37–40, 42–44', 'R4 ukuran tersimpan & label ringkas');
   PERFORM pg_temp.ok((SELECT name || '|' || factory_name || '|' || last_no FROM v_model WHERE id = m_a)
                      = 'UJI RUNNER X|SELFTEST PABRIK A|UJI-L01', 'R4 nama huruf besar, pabrik otomatis, last per pabrik');
-  PERFORM pg_temp.must_fail(format('SELECT fn_model_save(%L, NULL, ''Uji Runner Y'', %L, NULL, NULL, %L, NULL, ''[40]'', NULL)',
-            t_spec, v_cat, v_lastb), '%another factory%', 'R4 Last pabrik lain ditolak');
-  PERFORM pg_temp.must_fail(format('SELECT fn_model_save(%L, NULL, ''Uji Runner Y'', %L, NULL, NULL, NULL, NULL, ''[40, 41]'', 39)',
-            t_spec, v_cat), '%Sample size%', 'R4 sample size di luar ukuran ditolak');
-  PERFORM pg_temp.must_fail(format('SELECT fn_model_save(%L, NULL, ''uji  runner x'', %L, NULL, NULL, NULL, NULL, NULL, NULL)',
-            t_spec, v_cat), '%already%', 'R4 nama model unik per pabrik');
-  m_b := fn_model_save(t_specb, NULL, 'Uji Runner X', v_cat, NULL, NULL, v_lastb, NULL, NULL, NULL);
+  PERFORM pg_temp.must_fail(format('SELECT fn_model_save(%L, NULL, ''Uji Runner Y'', %L, %L, %L, %L, %L, ''[40]'', 40)',
+            t_spec, v_cat, pg_temp.opt(t_spec, 'CONSTRUCTION', 'SELFTEST CEMENTING'), v_gender, v_lastb, pg_temp.opt(t_spec, 'OUTSOLE_MOLD', 'UJI-OS01')), '%another factory%', 'R4 Last pabrik lain ditolak');
+  PERFORM pg_temp.must_fail(format('SELECT fn_model_save(%L, NULL, ''Uji Runner Y'', %L, %L, %L, %L, %L, ''[40, 41]'', 39)',
+            t_spec, v_cat, pg_temp.opt(t_spec, 'CONSTRUCTION', 'SELFTEST CEMENTING'), v_gender, v_last, pg_temp.opt(t_spec, 'OUTSOLE_MOLD', 'UJI-OS01')), '%Sample size%', 'R4 sample size di luar ukuran ditolak');
+  PERFORM pg_temp.must_fail(format('SELECT fn_model_save(%L, NULL, ''uji  runner x'', %L, %L, %L, %L, %L, ''[40]'', 40)',
+            t_spec, v_cat, pg_temp.opt(t_spec, 'CONSTRUCTION', 'SELFTEST CEMENTING'), v_gender, v_last, pg_temp.opt(t_spec, 'OUTSOLE_MOLD', 'UJI-OS01')), '%already%', 'R4 nama model unik per pabrik');
+  -- R19: semua field model wajib
+  PERFORM pg_temp.must_fail(format('SELECT fn_model_save(%L, NULL, ''Uji Runner Y'', %L, NULL, %L, %L, %L, ''[40]'', 40)',
+            t_spec, v_cat, v_gender, v_last, pg_temp.opt(t_spec, 'OUTSOLE_MOLD', 'UJI-OS01')), 'Construction is required.', 'R19 Construction wajib');
+  PERFORM pg_temp.must_fail(format('SELECT fn_model_save(%L, NULL, ''Uji Runner Y'', %L, %L, NULL, %L, %L, ''[40]'', 40)',
+            t_spec, v_cat, pg_temp.opt(t_spec, 'CONSTRUCTION', 'SELFTEST CEMENTING'), v_last, pg_temp.opt(t_spec, 'OUTSOLE_MOLD', 'UJI-OS01')), 'Gender is required.', 'R19 Gender wajib');
+  PERFORM pg_temp.must_fail(format('SELECT fn_model_save(%L, NULL, ''Uji Runner Y'', %L, %L, %L, NULL, %L, ''[40]'', 40)',
+            t_spec, v_cat, pg_temp.opt(t_spec, 'CONSTRUCTION', 'SELFTEST CEMENTING'), v_gender, pg_temp.opt(t_spec, 'OUTSOLE_MOLD', 'UJI-OS01')), 'Last No. is required.', 'R19 Last No. wajib');
+  PERFORM pg_temp.must_fail(format('SELECT fn_model_save(%L, NULL, ''Uji Runner Y'', %L, %L, %L, %L, NULL, ''[40]'', 40)',
+            t_spec, v_cat, pg_temp.opt(t_spec, 'CONSTRUCTION', 'SELFTEST CEMENTING'), v_gender, v_last), 'Outsole Mould is required.', 'R19 Outsole Mould wajib');
+  PERFORM pg_temp.must_fail(format('SELECT fn_model_save(%L, NULL, ''Uji Runner Y'', %L, %L, %L, %L, %L, ''[]'', NULL)',
+            t_spec, v_cat, pg_temp.opt(t_spec, 'CONSTRUCTION', 'SELFTEST CEMENTING'), v_gender, v_last, pg_temp.opt(t_spec, 'OUTSOLE_MOLD', 'UJI-OS01')), 'Select at least one size.', 'R19 ukuran wajib');
+  PERFORM pg_temp.must_fail(format('SELECT fn_model_save(%L, NULL, ''Uji Runner Y'', %L, %L, %L, %L, %L, ''[40]'', NULL)',
+            t_spec, v_cat, pg_temp.opt(t_spec, 'CONSTRUCTION', 'SELFTEST CEMENTING'), v_gender, v_last, pg_temp.opt(t_spec, 'OUTSOLE_MOLD', 'UJI-OS01')), 'Sample Size is required.', 'R19 Sample Size wajib');
+  m_b := fn_model_save(t_specb, NULL, 'Uji Runner X', v_cat, pg_temp.opt(t_specb, 'CONSTRUCTION', 'SELFTEST CEMENTING'), v_gender, v_lastb,
+                       pg_temp.opt(t_specb, 'OUTSOLE_MOLD', 'UJI-OSB1'), '[40]', 40);
   PERFORM pg_temp.ok(m_b IS NOT NULL, 'R4 nama sama boleh di pabrik lain');
   PERFORM pg_temp.must_fail(format('SELECT fn_model_save(%L, %L, ''Uji Ganti'', %L, NULL, NULL, NULL, NULL, NULL, NULL)',
             t_specb, m_a, v_cat), '%another factory%', 'R4 pabrik B tidak bisa mengubah model A');
@@ -331,8 +370,8 @@ BEGIN
   PERFORM fn_option_save(t_spec, v_cat, 'KATEGORI', 'SELFTEST RUNNING', NULL, 'ACTIVE');
   PERFORM fn_link_save(t_spec, v_link2, v_mat, v_sup2, false, 'ACTIVE');
   v_cat2 := fn_option_save(t_spec, NULL, 'KATEGORI', 'SELFTEST SANDAL', NULL, 'ACTIVE');
-  m_c := fn_model_save(t_spec, NULL, 'Uji Runner IN', v_cat, NULL, NULL, NULL, NULL, '[40]', NULL);
-  m_d := fn_model_save(t_spec, NULL, 'Uji Sandal', v_cat2, NULL, NULL, NULL, NULL, '[40]', NULL);
+  m_c := pg_temp.mk_model(t_spec, 'Uji Runner IN', v_cat);
+  m_d := pg_temp.mk_model(t_spec, 'Uji Sandal', v_cat2);
   sh_c := fn_season_add(t_spec, m_c, 'FH26');
   sh_d := fn_season_add(t_spec, m_d, 'FH26');
   sh_b := fn_season_add(t_specb, m_b, 'FH26');
@@ -578,7 +617,7 @@ BEGIN
 
   -- ===== S2: material belum ada harga = 2 season terakhir (yang punya specsheet terbit) per pabrik =====
   vq := fn_variant_save(t_spec, NULL, v_mat, 'MSHU120ORG', 'ORANGE', '1.2MM', 'ACTIVE');
-  v_mold := fn_model_save(t_spec, NULL, 'Uji Lama', v_cat, NULL, NULL, NULL, NULL, '[40]', NULL);
+  v_mold := pg_temp.mk_model(t_spec, 'Uji Lama', v_cat);
   sh_old := fn_season_add(t_spec, v_mold, 'SS20');
   sh_new := fn_season_add(t_spec, v_mold, 'SS26');
   ao := fn_article_save(t_spec, NULL, sh_old, 'UJI-L1', 'PINK');
@@ -739,7 +778,7 @@ BEGIN
   v_b    := fn_price_propose(t_cbd, v_link, jsonb_build_array(v_var), 30000, 'IDR', fn_today(), 'Q-STAGE');
   PERFORM fn_price_decide(t_mc, (SELECT jsonb_agg(id) FROM material_price WHERE batch_id = v_b), 'APPROVE', NULL);
 
-  m  := fn_model_save(t_spec, NULL, 'Uji Stage', v_cat, NULL, NULL, NULL, NULL, '[40]', NULL);
+  m  := pg_temp.mk_model(t_spec, 'Uji Stage', v_cat);
   sh := fn_season_add(t_spec, m, 'FH27');
   x1 := fn_article_save(t_spec, NULL, sh, 'UJI-S1', 'BLACK');
   x2 := fn_article_save(t_spec, NULL, sh, 'UJI-S2', 'BLACK');
@@ -859,7 +898,7 @@ BEGIN
   v_b    := fn_price_propose(t_cbd, v_link, jsonb_build_array(v_var), 20000, 'IDR', fn_today(), 'Q-PREV');
   PERFORM fn_price_decide(t_mc, (SELECT jsonb_agg(id) FROM material_price WHERE batch_id = v_b), 'APPROVE', NULL);
 
-  m  := fn_model_save(t_spec, NULL, 'Uji Preview', v_cat, NULL, NULL, NULL, NULL, '[40]', NULL);
+  m  := pg_temp.mk_model(t_spec, 'Uji Preview', v_cat);
   sh := fn_season_add(t_spec, m, 'FH27');
   x1 := fn_article_save(t_spec, NULL, sh, 'UJI-P1', 'BLACK');
   rp0 := fn_revision_create(t_spec, sh, 'EMPTY', NULL, NULL);
@@ -963,7 +1002,7 @@ BEGIN
   PERFORM pg_temp.must_fail(format('SELECT fn_material_add(%L, ''Uji  Baru  Tanpa Kode'', ''TEXTILE'', ''YD'')', t_spec),
             '%already exists%', 'R16 typo spasi ganda / huruf kecil = material yang sama (ditolak)');
 
-  m  := fn_model_save(t_spec, NULL, 'Uji Baku', v_cat, NULL, NULL, NULL, NULL, '[40]', NULL);
+  m  := pg_temp.mk_model(t_spec, 'Uji Baku', v_cat);
   sh := fn_season_add(t_spec, m, 'FH27');
   a1 := fn_article_save(t_spec, NULL, sh, 'UJI-BAKU1', 'BLACK');
   a2 := fn_article_save(t_spec, NULL, sh, 'UJI-BAKU2', 'WHITE');
@@ -1155,7 +1194,7 @@ BEGIN
   v_b := fn_price_propose(t_cbd, k1, jsonb_build_array(v1), 45000, 'IDR', fn_today(), 'Q-MESH');
   PERFORM fn_price_decide(t_mc, (SELECT jsonb_agg(id) FROM material_price WHERE batch_id = v_b), 'APPROVE', NULL);
 
-  m  := fn_model_save(t_spec, NULL, 'Uji R17 Estimasi', v_cat, NULL, NULL, NULL, NULL, '[40]', NULL);
+  m  := pg_temp.mk_model(t_spec, 'Uji R17 Estimasi', v_cat);
   sh := fn_season_add(t_spec, m, 'FH27');
   x1 := fn_article_save(t_spec, NULL, sh, 'UJI-R17A', 'BLACK');
 
@@ -1287,6 +1326,225 @@ BEGIN
   PERFORM pg_temp.ok((SELECT stage FROM specsheet_revision WHERE id = rv0) = 'PULL'
                      AND (SELECT stage || ':' || yellow_cells || ':' || blocked FROM v_revision_checklist WHERE revision_id = rs0) = 'GTM:1:true',
                      'R17 Pullover terbit tanpa kode, lompat ke GTM: kode wajib');
+END;
+$$;
+
+-- ---------------------------------------------------------------- R19: catatan uji user 26 Okt 2026
+DO $$
+DECLARE
+  t_spec text := pg_temp.tok('spec.a@selftest.invalid');
+  t_cbd  text := pg_temp.tok('cbd.a@selftest.invalid');
+  t_mc   text := pg_temp.tok('mc.a@selftest.invalid');
+  v_cat uuid; v_sup uuid; v_comp uuid;
+  n integer; ca uuid; cb uuid; cx uuid; cy uuid; cc uuid; cd uuid;
+  m uuid; sh uuid; a1 uuid; a2 uuid; a3 uuid; rv uuid; rs uuid; rp uuid; l1 uuid; l2 uuid; ls uuid; ll uuid; lp uuid;
+  mp uuid; mc uuid; vv uuid; cv uuid; q uuid;
+BEGIN
+  SELECT pm.category_id INTO v_cat FROM product_model pm JOIN factory f ON f.id = pm.factory_id
+   WHERE f.name = 'SELFTEST PABRIK A' LIMIT 1;
+  SELECT id INTO v_sup FROM supplier WHERE name = 'SELFTEST SUPPLIER SATU';
+  SELECT id INTO v_comp FROM component WHERE name = 'SELFTEST VAMP';
+
+  -- ===== 1. nomor komponen = posisi =====
+  -- 4 nomor kosong berurutan di kelompok 'a' (jangan bentrok dengan data user)
+  SELECT g INTO n FROM generate_series(0, 3950, 10) g
+   WHERE NOT EXISTS (SELECT 1 FROM component WHERE number BETWEEN g AND g + 30) ORDER BY g LIMIT 1;
+  ca := fn_component_add(t_spec, 'a', n, 'SELFTEST R19 A');
+  cb := fn_component_add(t_spec, 'a', n + 10, 'SELFTEST R19 B');
+  cx := fn_component_add(t_spec, 'a', n, 'SELFTEST R19 X');
+  PERFORM pg_temp.ok((SELECT number FROM component WHERE id = cx) = n AND (SELECT number FROM component WHERE id = ca) = n + 10
+                     AND (SELECT number FROM component WHERE id = cb) = n + 20,
+                     'R19 tambah komponen di nomor terpakai: yang menempel di bawahnya bergeser +10');
+  PERFORM fn_component_save(t_spec, cb, 'a', n, 'SELFTEST R19 B', 'ACTIVE');
+  PERFORM pg_temp.ok((SELECT number FROM component WHERE id = cb) = n AND (SELECT number FROM component WHERE id = cx) = n + 10
+                     AND (SELECT number FROM component WHERE id = ca) = n + 20,
+                     'R19 edit: komponen paling bawah pindah ke atas, yang lain bergeser (nomor sendiri dipakai tetangga)');
+  PERFORM fn_component_save(t_spec, cx, 'a', n + 30, 'SELFTEST R19 X', 'ACTIVE');
+  PERFORM pg_temp.ok((SELECT number FROM component WHERE id = cx) = n + 30 AND (SELECT number FROM component WHERE id = ca) = n + 20
+                     AND (SELECT number FROM component WHERE id = cb) = n,
+                     'R19 pindah ke nomor kosong: tidak ada yang bergeser, celah tidak dirapatkan');
+  -- koreksi user 26 Okt 2026: edit = pindah posisi seperti Master Options
+  PERFORM fn_component_save(t_spec, cb, 'a', n + 20, 'SELFTEST R19 B', 'ACTIVE');
+  PERFORM pg_temp.ok((SELECT number FROM component WHERE id = ca) = n + 10 AND (SELECT number FROM component WHERE id = cb) = n + 20
+                     AND (SELECT number FROM component WHERE id = cx) = n + 30 AND NOT EXISTS (SELECT 1 FROM component WHERE number = n),
+                     'R19 pindah ke bawah (50 -> 60): komponen di nomor tujuan naik 10, tidak ada yang ke 70');
+  PERFORM fn_component_save(t_spec, ca, 'a', n + 30, 'SELFTEST R19 A', 'ACTIVE');
+  PERFORM pg_temp.ok((SELECT number FROM component WHERE id = cb) = n + 10 AND (SELECT number FROM component WHERE id = cx) = n + 20
+                     AND (SELECT number FROM component WHERE id = ca) = n + 30,
+                     'R19 pindah ke bawah 2 posisi: semua di antaranya naik 10');
+  PERFORM fn_component_save(t_spec, ca, 'a', n + 10, 'SELFTEST R19 A', 'ACTIVE');
+  PERFORM pg_temp.ok((SELECT number FROM component WHERE id = ca) = n + 10 AND (SELECT number FROM component WHERE id = cb) = n + 20
+                     AND (SELECT number FROM component WHERE id = cx) = n + 30,
+                     'R19 pindah ke atas 2 posisi: semua di antaranya turun 10');
+  PERFORM fn_component_save(t_spec, cx, 'a', n, 'SELFTEST R19 X', 'ACTIVE');
+  PERFORM pg_temp.ok((SELECT number FROM component WHERE id = cx) = n AND (SELECT number FROM component WHERE id = ca) = n + 10
+                     AND (SELECT number FROM component WHERE id = cb) = n + 20,
+                     'R19 pindah ke atas ke nomor kosong: hanya komponen ini');
+  IF NOT EXISTS (SELECT 1 FROM component WHERE number = 3990) THEN
+    PERFORM fn_component_add(t_spec, 'a', 3990, 'SELFTEST R19 UJUNG');
+  END IF;
+  PERFORM pg_temp.must_fail(format('SELECT fn_component_add(%L, ''a'', 3990, ''SELFTEST R19 Y'')', t_spec),
+            '%no free number after 3990%', 'R19 geser melewati batas rentang kelompok ditolak');
+  n := (SELECT number FROM component WHERE id = v_comp);
+  PERFORM pg_temp.ok(fn_master_usage('COMPONENT', v_comp, true) IS NOT NULL, 'R19 (prasyarat) SELFTEST VAMP dipakai dokumen terbit');
+  PERFORM fn_component_save(t_spec, v_comp, 'a', (SELECT number FROM component WHERE id = cb) + 10, 'SELFTEST VAMP', 'ACTIVE');
+  PERFORM pg_temp.ok((SELECT number FROM component WHERE id = v_comp) = (SELECT number FROM component WHERE id = cb) + 10,
+                     'R19 nomor komponen yang dipakai dokumen terbit boleh dipindah');
+  PERFORM pg_temp.must_fail(format('SELECT fn_component_save(%L, %L, ''a'', %s, ''SELFTEST VAMP 2'', ''ACTIVE'')', t_spec, v_comp,
+            (SELECT number FROM component WHERE id = v_comp)), '%Name and group%cannot be changed%', 'R19 nama komponen terpakai tetap terkunci');
+  PERFORM fn_component_save(t_spec, v_comp, 'a', n, 'SELFTEST VAMP', 'ACTIVE');
+  PERFORM pg_temp.ok((SELECT number FROM component WHERE id = v_comp) = n, 'R19 nomor dikembalikan');
+
+  -- ===== 2. nomor artikel boleh kosong =====
+  m  := pg_temp.mk_model(t_spec, 'Uji R19 Artikel', v_cat);
+  sh := fn_season_add(t_spec, m, 'FH27');
+  a1 := fn_article_save(t_spec, NULL, sh, '  ', 'black');
+  a2 := fn_article_save(t_spec, NULL, sh, NULL, 'White');
+  a3 := fn_article_save(t_spec, NULL, sh, 'UJI-R19C', 'BLACK');
+  PERFORM pg_temp.ok((SELECT code IS NULL AND colorway = 'BLACK' FROM article WHERE id = a1) AND (SELECT code IS NULL FROM article WHERE id = a2),
+                     'R19 article tanpa nomor tersimpan (kosong = NULL)');
+  PERFORM pg_temp.must_fail(format('SELECT fn_article_save(%L, NULL, %L, '''', ''Black'')', t_spec, sh),
+            '%without article no. with colorway BLACK already exists%', 'R19 colorway tanpa nomor unik per season');
+  PERFORM pg_temp.must_fail(format('SELECT fn_article_save(%L, NULL, %L, ''uji-r19c'', ''NAVY'')', t_spec, sh),
+            '%already exists in this season%', 'R19 nomor artikel tetap unik');
+  PERFORM pg_temp.ok(fn_article_label(NULL, 'BLACK') = '(no article no.) BLACK' AND fn_article_code_label(NULL) = '(no article no.)'
+                     AND fn_article_label('X1', 'BLACK') = 'X1', 'R19 label artikel tanpa nomor');
+  PERFORM pg_temp.ok((SELECT article_count || ':' || article_codes FROM v_worklist_spec WHERE kind = 'NO_ARTICLE_NO' AND specsheet_id = sh)
+                     = '2:BLACK, WHITE', 'R19 Tugas Saya: article tanpa nomor per season');
+
+  rv := fn_revision_create(t_spec, sh, 'EMPTY', 'PREV', NULL);
+  l1 := fn_bom_add_line(t_spec, rv, v_comp, NULL, NULL, (SELECT id FROM material WHERE name = 'UJI R17 MESH'), '1MM', v_sup, NULL, 'black');
+  PERFORM pg_temp.ok((SELECT no_code_articles = 2 AND NOT article_required AND NOT blocked FROM v_revision_checklist WHERE revision_id = rv),
+                     'R19 Preview: 2 article tanpa nomor tidak memblokir');
+  PERFORM fn_revision_publish(t_spec, rv, 'OTHER', NULL);
+  PERFORM fn_article_save(t_spec, a1, NULL, 'UJI-R19A', 'BLACK');
+  PERFORM pg_temp.ok((SELECT code FROM article WHERE id = a1) = 'UJI-R19A' AND fn_article_is_used(a1),
+                     'R19 nomor boleh diisi belakangan walau article dipakai dokumen terbit');
+  -- keputusan user 27 Okt 2026 (opsi B): salah ketik boleh dikoreksi sampai Production terbit
+  PERFORM fn_article_save(t_spec, a1, NULL, 'UJI-R19Z', 'BLACK');
+  PERFORM pg_temp.ok((SELECT code FROM article WHERE id = a1) = 'UJI-R19Z', 'R19 nomor dipakai Preview terbit boleh dikoreksi');
+  PERFORM fn_article_save(t_spec, a1, NULL, 'UJI-R19A', 'BLACK');
+  PERFORM pg_temp.must_fail(format('SELECT fn_article_save(%L, %L, NULL, NULL, ''BLACK'')', t_spec, a1),
+            '%cannot be cleared because the article is used%', 'R19 nomor terpakai tidak bisa dikosongkan');
+  cv := fn_cbd_create(t_cbd, a2, 'NEW', NULL, 'PREV');
+  PERFORM pg_temp.ok(cv IS NOT NULL AND (SELECT article_code FROM v_worklist_cbd WHERE article_id = a2 LIMIT 1) IS NOT DISTINCT FROM
+                       (SELECT CASE WHEN count(*) = 0 THEN NULL ELSE '(no article no.)' END FROM v_worklist_cbd WHERE article_id = a2),
+                     'R19 CBD Preview bisa dibuat untuk article tanpa nomor; Tugas Saya CBD menulis (no article no.)');
+  PERFORM pg_temp.must_fail(format('SELECT fn_cbd_create(%L, %L, ''NEW'', NULL, ''PREV'')', t_cbd, a2),
+            'Article (no article no.) WHITE already has a CBD DRAFT%', 'R19 pesan CBD memakai label article tanpa nomor');
+
+  rs := fn_revision_create(t_spec, sh, 'NEXT_STAGE', 'SMS', NULL);
+  PERFORM pg_temp.ok((SELECT no_code_articles || ':' || no_code_list || ':' || article_required FROM v_revision_checklist WHERE revision_id = rs)
+                     = '1:WHITE:false', 'R19 SMS: article tanpa nomor = peringatan (tidak wajib)');
+  PERFORM fn_revision_publish(t_spec, rs, 'OTHER', 'uji');
+  rp := fn_revision_create(t_spec, sh, 'NEXT_STAGE', 'PROD', NULL);
+  PERFORM pg_temp.ok((SELECT no_code_articles = 1 AND article_required AND blocked FROM v_revision_checklist WHERE revision_id = rp)
+                     AND (SELECT no_code_articles FROM v_worklist_spec WHERE kind = 'DRAFT' AND revision_id = rp) = 1,
+                     'R19 Production: article tanpa nomor memblokir terbit');
+  PERFORM pg_temp.must_fail(format('SELECT fn_revision_publish(%L, %L, ''OTHER'', ''uji'')', t_spec, rp),
+            'In Production every article needs an article no. 1 article(s) have none (colorway: WHITE)%', 'R19 terbit Production ditolak');
+  PERFORM fn_article_save(t_spec, a2, NULL, 'UJI-R19B', 'WHITE');
+  PERFORM pg_temp.ok((SELECT NOT blocked FROM v_revision_checklist WHERE revision_id = rp), 'R19 nomor diisi: Production tidak terblokir lagi');
+  PERFORM fn_revision_publish(t_spec, rp, 'OTHER', 'uji');
+  PERFORM pg_temp.must_fail(format('SELECT fn_article_save(%L, %L, NULL, ''UJI-R19Y'', ''BLACK'')', t_spec, a1),
+            '%cannot be changed because it is in a published Production%', 'R19 nomor terkunci setelah Production terbit');
+  PERFORM pg_temp.ok(fn_article_prod_published(a1) AND NOT fn_article_prod_published(a3) IS NULL, 'R19 penanda Production terbit');
+  -- article tanpa nomor yang DROPPED di revisi terakhir tidak masuk Tugas Saya
+  a3 := fn_article_save(t_spec, NULL, sh, NULL, 'GREEN');
+  PERFORM pg_temp.ok((SELECT article_codes FROM v_worklist_spec WHERE kind = 'NO_ARTICLE_NO' AND specsheet_id = sh) = 'GREEN',
+                     'R19 Tugas Saya: article tanpa nomor yang belum dipakai tetap tampil');
+  rp := fn_revision_create(t_spec, sh, 'NEXT_REVISION', NULL, NULL);
+  PERFORM fn_rev_article_set(t_spec, rp, a3, 'DROPPED');
+  PERFORM pg_temp.ok(NOT EXISTS (SELECT 1 FROM v_worklist_spec WHERE kind = 'NO_ARTICLE_NO' AND specsheet_id = sh),
+                     'R19 Tugas Saya: article tanpa nomor yang di-drop tidak tampil lagi');
+  PERFORM fn_revision_delete_draft(t_spec, rp);
+
+  -- ===== 4. material Process =====
+  mp := fn_material_add(t_spec, 'UJI R19 PRINTING', 'PROCESS', 'PRS', true);
+  PERFORM pg_temp.ok((SELECT is_process AND price_method = 'QUOTATION' FROM material WHERE id = mp)
+                     AND (SELECT is_process FROM v_material_list WHERE id = mp),
+                     'R19 material Process: metode harga Quotation otomatis');
+  PERFORM pg_temp.must_fail(format('SELECT fn_variant_save(%L, NULL, %L, ''R19P100BLK'', ''BLACK'', '''', ''ACTIVE'')', t_spec, mp),
+            '%is a Process material: it has no Material Code%', 'R19 material Process tidak bisa diberi varian');
+  PERFORM fn_link_save(t_spec, NULL, mp, v_sup, true, 'ACTIVE');
+  sh := fn_season_add(t_spec, m, 'SS28');
+  a1 := fn_article_save(t_spec, NULL, sh, 'UJI-R19P', 'NAVY');
+  rv := fn_revision_create(t_spec, sh, 'EMPTY', 'SMS', NULL);
+  lp := fn_bom_add_line(t_spec, rv, v_comp, NULL, NULL, mp, '', v_sup, NULL, 'gold');
+  PERFORM pg_temp.ok((SELECT yellow FROM v_bom_grid WHERE id = lp) = 0 AND (SELECT is_process FROM v_bom_grid WHERE id = lp)
+                     AND (SELECT yellow_cells = 0 AND code_required AND NOT blocked FROM v_revision_checklist WHERE revision_id = rv),
+                     'R19 SMS: sel material Process tanpa kode tidak kuning & tidak memblokir');
+  PERFORM fn_revision_publish(t_spec, rv, 'OTHER', NULL);
+  cv := fn_cbd_create(t_cbd, a1, 'NEW', NULL, 'SMS');
+  SELECT id INTO q FROM cbd_line WHERE cbd_revision_id = cv AND material_id = mp;
+  PERFORM pg_temp.ok((SELECT price_gap FROM v_cbd_price_check WHERE line_id = q) = 'QUOTATION', 'R19 CBD SMS: baris Process = QUOTATION');
+  PERFORM fn_cbd_set_quotation(t_cbd, q, 1500, 'IDR', 'Q-PRINT-01');
+  PERFORM pg_temp.ok((SELECT price_source || ':' || price_original || ':' || price_reference FROM cbd_line WHERE id = q)
+                     = 'QUOTATION:1500.0000:Q-PRINT-01', 'R19 quotation Process diisi Vendor CBD di SMS, tanpa approval');
+  PERFORM fn_cbd_header_set(t_cbd, cv, 'RATE', 16300);
+  PERFORM fn_cbd_line_set(t_cbd, q, 'YIELD', 1);
+  PERFORM pg_temp.ok((SELECT NOT blocked FROM v_cbd_checklist WHERE cbd_revision_id = cv), 'R19 CBD SMS dengan quotation Process tidak terblokir');
+  PERFORM pg_temp.must_fail(format('SELECT fn_material_update(%L, %L, ''UJI R19 PRINTING'', ''PROCESS'', ''PRS'', ''ACTIVE'', ''QUOTATION'', false)', t_spec, mp),
+            '%Process cannot be changed%published%', 'R19 tanda Process terkunci setelah dipakai dokumen terbit');
+  PERFORM pg_temp.must_fail(format('SELECT fn_material_update(%L, %L, ''UJI R19 PRINTING'', ''PROCESS'', ''PRS'', ''ACTIVE'', ''CATALOG'', NULL)', t_mc, mp),
+            '%always uses the Quotation price method%', 'R19 metode harga material Process tidak bisa Catalog');
+  PERFORM pg_temp.must_fail(format('SELECT fn_material_update(%L, %L, ''UJI R19 PRINTING'', ''PROCESS'', ''PRS'', ''ACTIVE'', ''QUOTATION'', false)', t_cbd, mp),
+            '%Process cannot be changed%published%', 'R19 tanda Process terkunci juga untuk tim CBD');
+  mc := fn_material_add(t_spec, 'UJI R19 EMBOSS', 'PROCESS', 'PRS');
+  vv := fn_variant_save(t_spec, NULL, mc, 'R19E100BLK', 'BLACK', '', 'ACTIVE', true);
+  PERFORM pg_temp.must_fail(format('SELECT fn_material_update(%L, %L, ''UJI R19 EMBOSS'', ''PROCESS'', ''PRS'', ''ACTIVE'', ''CATALOG'', true)', t_spec, mc),
+            '%already has variants%', 'R19 tanda Process ditolak bila material sudah punya varian');
+  PERFORM fn_variant_delete(t_spec, vv);
+  PERFORM fn_material_update(t_spec, mc, 'UJI R19 EMBOSS', 'PROCESS', 'PRS', 'ACTIVE', 'QUOTATION', true);   -- seperti form: metode ikut
+  PERFORM pg_temp.ok((SELECT is_process AND price_method = 'QUOTATION' FROM material WHERE id = mc), 'R19 tanda Process dipasang: Quotation');
+  PERFORM fn_material_update(t_spec, mc, 'UJI R19 EMBOSS', 'PROCESS', 'PRS', 'ACTIVE', 'CATALOG', false);
+  PERFORM pg_temp.ok((SELECT NOT is_process AND price_method = 'CATALOG' FROM material WHERE id = mc), 'R19 tanda Process dilepas: kembali Catalog');
+  PERFORM fn_material_update(t_spec, mc, 'UJI R19 EMBOSS', 'PROCESS', 'PRS', 'ACTIVE', 'CATALOG');
+  PERFORM pg_temp.ok((SELECT NOT is_process FROM material WHERE id = mc), 'R19 app lama (tanpa parameter Process) tidak mengubah tanda');
+  -- user 27 Okt 2026: tim CBD (manage_price) juga boleh memasang / melepas tanda Process
+  PERFORM fn_material_update(t_cbd, mc, 'UJI R19 EMBOSS', 'PROCESS', 'PRS', 'ACTIVE', 'QUOTATION', true);
+  PERFORM pg_temp.ok((SELECT is_process AND price_method = 'QUOTATION' FROM material WHERE id = mc), 'R19 Vendor CBD memasang tanda Process');
+  PERFORM fn_material_update(t_cbd, mc, 'UJI R19 EMBOSS', 'PROCESS', 'PRS', 'ACTIVE', 'QUOTATION', false);
+  PERFORM pg_temp.ok((SELECT NOT is_process AND price_method = 'QUOTATION' FROM material WHERE id = mc),
+                     'R19 Vendor CBD melepas Process tetap Quotation (pilihan metode tim CBD)');
+  PERFORM pg_temp.must_fail(format('SELECT fn_material_update(%L, %L, ''UJI R19 EMBOSS 2'', ''PROCESS'', ''PRS'', ''ACTIVE'', ''QUOTATION'', true)', t_cbd, mc),
+            '%only be changed by the specsheet team%', 'R19 tim CBD tetap tidak bisa mengubah nama material');
+
+  -- ===== 5. ganti komponen di specsheet draft =====
+  rv := fn_revision_create(t_spec, sh, 'NEXT_REVISION', NULL, NULL);
+  SELECT id INTO l1 FROM bom_line WHERE revision_id = rv AND is_active AND component_id = v_comp;
+  l2 := fn_bom_add_line(t_spec, rv, v_comp, NULL, NULL, (SELECT id FROM material WHERE name = 'UJI R17 MESH'), '1MM', v_sup, NULL, 'navy');
+  ls := fn_bom_add_sub(t_spec, l1, 'Uji sub', (SELECT id FROM material WHERE name = 'UJI R17 MESH'), '1MM', v_sup, NULL);
+  ll := fn_bom_add_line(t_spec, rv, NULL, 93, 'Uji lokal', (SELECT id FROM material WHERE name = 'UJI R17 MESH'), '1MM', v_sup, NULL, 'navy');
+  -- koreksi user 27 Okt 2026: hanya BARIS itu yang pindah (satu komponen bisa punya beberapa baris material)
+  n := fn_bom_change_component(t_spec, l1, cx);
+  PERFORM pg_temp.ok(n = 1 AND (SELECT component_id FROM bom_line WHERE id = l1) = cx AND (SELECT component_id FROM bom_line WHERE id = l2) = v_comp,
+                     'R19 ganti komponen satu baris: baris lain dengan komponen sama tidak ikut');
+  PERFORM pg_temp.ok((SELECT parent_line_key FROM bom_line WHERE id = ls) = (SELECT line_key FROM bom_line WHERE id = l1)
+                     AND (SELECT display_no FROM v_bom_grid WHERE id = ls) = (SELECT number FROM component WHERE id = cx) || '-1',
+                     'R19 subkomponen ikut pindah (nomor induk baru)');
+  -- rantai Ganti material ikut: Undo replace tidak mengembalikan komponen lama
+  l2 := fn_bom_replace_material(t_spec, l2, (SELECT id FROM material WHERE name = 'UJI R17 TRICOT'), '1MM');
+  n := fn_bom_change_component(t_spec, l2, cx);
+  PERFORM pg_temp.ok(n = 2, 'R19 ganti komponen ikut baris lama di rantai Ganti material');
+  PERFORM fn_bom_delete_line(t_spec, l2);
+  SELECT id INTO l2 FROM bom_line WHERE revision_id = rv AND is_active AND material_id = (SELECT id FROM material WHERE name = 'UJI R17 MESH')
+     AND parent_line_key IS NULL AND component_id IS NOT NULL;
+  PERFORM pg_temp.ok((SELECT component_id FROM bom_line WHERE id = l2) = cx, 'R19 Undo replace setelah ganti komponen: komponen baru tetap');
+  PERFORM pg_temp.must_fail(format('SELECT fn_bom_change_component(%L, %L, %L)', t_spec, ll, cx),
+            '%already has this material with the same dimension%', 'R19 komponen tujuan dengan material + dimension sama = ditolak');
+  PERFORM pg_temp.must_fail(format('SELECT fn_bom_change_component(%L, %L, %L)', t_spec, ls, cb),
+            '%moves together with its main line%', 'R19 subkomponen tidak diganti sendiri');
+  n := fn_bom_change_component(t_spec, ll, cb);
+  PERFORM pg_temp.ok(n = 1
+                     AND (SELECT component_id = cb AND local_component_no IS NULL AND local_component_name IS NULL FROM bom_line WHERE id = ll),
+                     'R19 komponen lokal diganti ke komponen master');
+  PERFORM pg_temp.must_fail(format('SELECT fn_bom_change_component(%L, %L, %L)', t_cbd, l1, cb),
+            '%has no access%', 'R19 Vendor CBD tidak bisa mengganti komponen');
+  SELECT id INTO l1 FROM bom_line WHERE revision_id = (SELECT id FROM specsheet_revision WHERE specsheet_id = sh AND status = 'PUBLISHED' LIMIT 1)
+   AND component_id = v_comp LIMIT 1;
+  PERFORM pg_temp.must_fail(format('SELECT fn_bom_change_component(%L, %L, %L)', t_spec, l1, ca),
+            '%published and cannot be changed%', 'R19 revisi terbit tidak bisa diganti komponennya');
 END;
 $$;
 

@@ -63,9 +63,12 @@ function updateHint() {
     hint.textContent = 'Select a group first.';
     return;
   }
-  const range = `Range ${g.range_start}–${g.range_end}, multiples of 10.`;
+  // R19: nomor = posisi. Tambah: nomor terpakai -> komponen itu dan yang menempel di bawahnya +10 (fn_component_make_room).
+  // Edit (kelompok sama): pindah posisi seperti Master Options, yang di antaranya bergeser 10 (fn_component_move).
+  const base = `Range ${g.range_start}–${g.range_end}, multiples of 10.`;
+  const range = `${base} A number already in use moves that component (and the ones right after it) down by 10.`;
   if (isEdit) {
-    hint.textContent = range;
+    hint.textContent = `${base} Moving to a number in use shifts the components in between by 10 (like the Order in Master Options).`;
     return;
   }
   const s = suggestionOf(g);

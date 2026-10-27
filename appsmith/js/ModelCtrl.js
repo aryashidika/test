@@ -133,19 +133,19 @@ export default {
 		closeModal('mdlModel');
 		const id = a_model_add.data && a_model_add.data[0] && a_model_add.data[0].id;
 		showAlert(`Model ${data.name.toUpperCase()} added. Now add its seasons & articles.`, 'success');
-		if (id) navigateTo('Model Detail', { id });
+		if (id) await Util.goDetail('Model List', 'Model Detail', { id });
 	},
 
 	open(row) {
-		navigateTo('Model Detail', row.specsheet_id ? { id: row.id, season: row.specsheet_id } : { id: row.id });
+		return Util.goDetail('Model List', 'Model Detail', row.specsheet_id ? { id: row.id, season: row.specsheet_id } : { id: row.id });
 	},
 
 	// from: 'list' -> tombol kembali di Specsheet / CBD mengarah ke Model List
 	openSpecsheet(row) {
-		navigateTo('Specsheet', row.specsheet_id ? { model_id: row.id, season: row.specsheet_id, from: 'list' } : { model_id: row.id, from: 'list' });
+		return Util.goDetail('Model List', 'Specsheet', row.specsheet_id ? { model_id: row.id, season: row.specsheet_id, from: 'list' } : { model_id: row.id, from: 'list' });
 	},
 
 	openCbd(row) {
-		navigateTo('Cost Breakdown (CBD)', row.specsheet_id ? { model_id: row.id, season: row.specsheet_id, from: 'list' } : { model_id: row.id, from: 'list' });
+		return Util.goDetail('Model List', 'Cost Breakdown (CBD)', row.specsheet_id ? { model_id: row.id, season: row.specsheet_id, from: 'list' } : { model_id: row.id, from: 'list' });
 	},
 }

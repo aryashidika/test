@@ -308,9 +308,14 @@ export default {
 		return { badge: 'NO CBD YET', tone: 'info' };
 	},
 
+	// R19: article tanpa nomor dikenali dari colorway (chip, judul, nama file Excel)
+	artLabel(a) {
+		return a ? (a.no_code ? `${a.code} ${a.colorway}` : a.code) : '';
+	},
+
 	stepperModel() {
 		return {
-			articles: this.articles().map(a => Object.assign({ id: a.id, code: a.code, colorway: a.colorway }, this.chip(a))),
+			articles: this.articles().map(a => Object.assign({ id: a.id, code: this.artLabel(a), colorway: a.colorway }, this.chip(a))),
 			selectedArticleId: this.articleId,
 			articleEmptyText: !this.modelId ? 'Select a model first.'
 				: !this.seasonId ? 'This model has no seasons yet.' : 'No articles in this season yet.',

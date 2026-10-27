@@ -79,7 +79,7 @@ export default {
 			}
 			this.step = 'building the content';
 			const wb = this.build(m, s, a, r, withBridge);
-			await this.save(wb, this.fileName('CBD', m.name, s.season, a.code, `${Util.stageLabel(r.stage)}-r${r.revision_no}`, r.status === 'DRAFT' ? 'DRAFT' : ''));
+			await this.save(wb, this.fileName('CBD', m.name, s.season, CbdCtrl.artLabel(a), `${Util.stageLabel(r.stage)}-r${r.revision_no}`, r.status === 'DRAFT' ? 'DRAFT' : ''));
 			showAlert('CBD Excel file downloaded.', 'success');
 		} catch (e) {
 			showAlert(`Export failed while ${this.step}: ` + Util.cleanError((e && e.message) || String(e)), 'error');
@@ -101,7 +101,7 @@ export default {
 		const wb = XlsxWriter.workbook();
 		wb.creator = (Auth.me && Auth.me.full_name) || '';
 		wb.created = new Date();
-		const ws = wb.addWorksheet(`${a.code} ${Util.revLabel(r)}`.slice(0, 31), {
+		const ws = wb.addWorksheet(`${CbdCtrl.artLabel(a)} ${Util.revLabel(r)}`.slice(0, 31), {   // R19: tanpa nomor = colorway
 			pageSetup: { orientation: 'landscape', paperSize: 9, fitToPage: true, fitToWidth: 1, fitToHeight: 0 },
 		});
 		[6, 24, 34, 11, 9, 18, 10, 10, 8, 13, 15, 17, 18, 20, 16].forEach((w, i) => { ws.getColumn(i + 1).width = w; });

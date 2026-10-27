@@ -33,3 +33,8 @@ Ukuran: modal lebar ±480 px; widget tinggi ±360 px.
 |---|---|---|
 | `onSave` | `.code`, `.colorway` | `{{ModelDetailCtrl.saveArticle()}}` |
 | `onCancel` | – | `{{closeModal('mdlArticle')}}` |
+
+## R19: nomor artikel boleh kosong (26 Okt 2026)
+
+- Label **Article No.** tanpa tanda wajib + catatan (wajib untuk terbit Production, peringatan mulai SMS). Hanya Colorway yang wajib.
+  `codeLocked` hanya bila article dipakai **dan** sudah punya nomor (nomor kosong boleh diisi belakangan).

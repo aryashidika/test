@@ -77,6 +77,8 @@ export default {
 	canApprovePrice() { return Auth.can('approve_price'); },
 	canLink() { return this.canManageMaster(); },
 	canEditMaterial() { return this.canManageMaster() || this.canManagePrice(); },
+	// R19: material Process tidak punya varian (Material Code)
+	canAddVariant() { const m = this.material(); return this.canManageMaster() && !!m && !m.is_process; },
 	canAddPrice() {
 		const m = this.material();
 		return this.canManagePrice() && !!m && m.status === 'ACTIVE' && m.price_method === 'CATALOG'
@@ -92,9 +94,11 @@ export default {
 		const m = this.material();
 		if (!m) return q_material.isLoading ? 'Loading…' : 'Material not found. Open it from Master Material.';
 		const e = v => this.esc(v);
-		const method = m.price_method === 'QUOTATION' ? 'Quotation (price per CBD)' : 'Catalog (master price)';
+		const method = m.is_process ? 'Quotation (Process: price per CBD)'
+			: m.price_method === 'QUOTATION' ? 'Quotation (price per CBD)' : 'Catalog (master price)';
 		return `<b style="font-size:16px">${e(m.name)}</b> <span style="color:#6b7280">· ${e(m.factory_name)}</span><br>`
-			+ `Category: ${e(m.category)} · Mea: ${e(m.uom)} · ${e(m.variant_count)} variant(s)<br>`
+			+ `Category: ${e(m.category)} · Mea: ${e(m.uom)} · `
+			+ (m.is_process ? '<b>Process material</b> (no Material Code)<br>' : `${e(m.variant_count)} variant(s)<br>`)
 			+ `Status: <b style="color:${Util.statusColor(m.status)}">${e(m.status)}</b>`
 			+ (this.canViewPrice() ? ` · Price method: ${method}` : '');
 	},
@@ -102,6 +106,7 @@ export default {
 	priceNote() {
 		const m = this.material();
 		if (!m || !this.canViewPrice()) return '';
+		if (m.is_process) return 'Process material: no Material Code and no master price. The price is a quotation per CBD line (per model).';
 		if (m.price_method === 'QUOTATION') return 'Quotation material: no master price. The price is entered per CBD.';
 		const all = this.prices();
 		const n = state => all.filter(p => p.state === state).length;
@@ -161,7 +166,12 @@ export default {
 			mode: 'edit',
 			form: {
 				name: m.name, category: m.category, uom: m.uom, price_method: m.price_method, status: m.status,
+				is_process: !!m.is_process,
 			},
+			// R19: tanda Process terkunci setelah dipakai dokumen terbit; dipasang hanya bila belum punya varian (aturan di DB)
+			processLocked: !!m.used_published || (!m.is_process && Number(m.variant_count) > 0),
+			processNote: m.used_published ? 'Process cannot be changed: this material is used in a published specsheet / CBD.'
+				: 'This material has variants (Material Codes), so it cannot be a Process material.',
 			categories: meta.categories, uoms: meta.uoms,
 			statusOptions: this.statusOptions,
 			canIdentity: this.canManageMaster(),
@@ -177,7 +187,7 @@ export default {
 		const f = cwMaterialForm.model || {};
 		const params = {
 			id: appsmith.URL.queryParams.id, name: f.name, category: f.category,
-			uom: f.uom, status: f.status, price_method: f.price_method,
+			uom: f.uom, status: f.status, price_method: f.price_method, is_process: f.is_process === true,
 		};
 		const ok = await this.runForm(a_material_update, params,
 			v => { this.matMsg = v; }, v => { this.matBusy = v; }, 'mdlMaterial');

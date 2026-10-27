@@ -1,5 +1,7 @@
 // cwArticleForm - form Tambah / Ubah Article di mdlArticle (page Model Detail). Hanya tampilan; simpan lewat
 // ModelDetailCtrl.saveArticle(). Kode dikunci kalau article sudah dipakai (codeLocked).
+// R19: nomor artikel boleh kosong (diisi belakangan, juga setelah article dipakai); wajib untuk terbit Production.
+// R19 (27 Okt 2026): nomor boleh dikoreksi sampai article ada di Production terbit (codeLocked dari q_articles.code_locked).
 // Aturan final di DB (trg_article_check: kode unik per season, kode terpakai terkunci; tanpa batas jumlah sejak R8).
 const $ = id => document.getElementById(id);
 let lastKey = null;
@@ -34,6 +36,7 @@ function fillForm(m) {
   $('colorway').value = f.colorway || '';
   $('code').disabled = !!m.codeLocked;
   $('codeNote').hidden = !m.codeLocked;
+  $('codeHint').hidden = !!m.codeLocked;
   ['code', 'colorway'].forEach(id => $(id).classList.remove('invalid'));
   $('seasonInfo').textContent = isEdit
     ? `Season ${m.season || '-'}`
@@ -67,7 +70,7 @@ function submit() {
   if (busy) return;
   const data = { code: clean('code'), colorway: clean('colorway') };
   ['code', 'colorway'].forEach(id => $(id).classList.remove('invalid'));
-  const missing = [['code', 'Article code'], ['colorway', 'Colorway']].find(([id]) => !data[id]);
+  const missing = [['colorway', 'Colorway']].find(([id]) => !data[id]);
   if (missing) {
     $(missing[0]).classList.add('invalid');
     $(missing[0]).focus();

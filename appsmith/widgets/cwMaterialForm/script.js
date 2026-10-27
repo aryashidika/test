@@ -2,6 +2,9 @@
 // Hanya tampilan; simpan lewat MaterialCtrl.save() / MaterialDetailCtrl.saveMaterial().
 // R2: tanpa Material Code & thickness (pindah ke varian), tanpa usulan; metode harga hanya tim CBD
 // (canPriceMethod); daftar nama mirip saat mengetik (event onSearch). Aturan final di DB.
+// R19: tanda Process (tanpa Material Code, harga quotation per CBD) diisi tim specsheet (canIdentity) atau tim CBD (canPriceMethod,
+//   user 27 Okt 2026); terkunci bila processLocked
+//   (dipakai dokumen terbit / sudah punya varian, teks di processNote). Process = metode harga Quotation (tombol metode dikunci).
 const $ = id => document.getElementById(id);
 const IDENTITY = ['category', 'name', 'uom'];
 const METHOD_HINT = {
@@ -13,6 +16,7 @@ let busy = false;
 let isEdit = false;
 let method = 'CATALOG';
 let canPriceMethod = false;
+let methodBefore = 'CATALOG';   // R19: metode sebelum Process dicentang
 let similarTimer = null;
 let lastQuery = null;
 
@@ -59,7 +63,15 @@ function fillDatalist(dl, values) {
 function setMethod(v) {
   method = v === 'QUOTATION' ? 'QUOTATION' : 'CATALOG';
   document.querySelectorAll('#method button').forEach(b => b.classList.toggle('on', b.dataset.v === method));
-  $('methodHint').textContent = METHOD_HINT[method];
+  $('methodHint').textContent = $('is_process').checked ? 'Process material: always Quotation (price per CBD line).' : METHOD_HINT[method];
+}
+
+// R19: Process dicentang -> Quotation & tombol metode dikunci; dilepas -> kembali ke metode sebelumnya (DB: Catalog)
+function syncProcess() {
+  const on = $('is_process').checked;
+  if (on && method !== 'QUOTATION') methodBefore = method;
+  setMethod(on ? 'QUOTATION' : methodBefore);
+  document.querySelectorAll('#method button').forEach(b => { b.disabled = on || !canPriceMethod; });
 }
 
 // ---- nama mirip ----
@@ -107,6 +119,8 @@ function fillForm(m) {
   $('uom').value = f.uom || '';
   fillDatalist($('dlCategory'), m.categories);
   fillDatalist($('dlUom'), m.uoms);
+  $('is_process').checked = !!f.is_process;
+  methodBefore = f.is_process ? 'CATALOG' : (f.price_method || 'CATALOG');
   setMethod(f.price_method);
   fillSelect($('status'), m.statusOptions, f.status || 'ACTIVE');
 
@@ -116,6 +130,10 @@ function fillForm(m) {
     $(id).classList.remove('invalid');
   });
   document.querySelectorAll('#method button').forEach(b => { b.disabled = !canPriceMethod; });
+  $('is_process').disabled = !(canIdentity || canPriceMethod) || !!m.processLocked;   // Vendor Spec atau tim CBD
+  $('processNote').textContent = m.processLocked ? (m.processNote || 'The Process mark cannot be changed.') : '';
+  $('processNote').hidden = !m.processLocked;
+  syncProcess();
   $('statusBox').hidden = !(isEdit && m.canStatus);
   const notes = [];
   if (!canIdentity) notes.push('Material data is edited by the specsheet team (Vendor Spec).');
@@ -158,6 +176,7 @@ function submit() {
     uom: clean('uom').toUpperCase(),
     price_method: method,
     status: $('status').value,
+    is_process: $('is_process').checked,
   };
   IDENTITY.forEach(id => $(id).classList.remove('invalid'));
   const required = [['category', 'Category'], ['name', 'Material name'], ['uom', 'Mea (UoM)']];
@@ -181,6 +200,7 @@ appsmith.onReady(() => {
   $('btnCancel').addEventListener('click', cancel);
   $('btnX').addEventListener('click', cancel);
   $('name').addEventListener('input', querySimilar);
+  $('is_process').addEventListener('change', syncProcess);
   document.querySelectorAll('#method button').forEach(b => b.addEventListener('click', () => {
     if (canPriceMethod) setMethod(b.dataset.v);
   }));

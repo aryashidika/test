@@ -145,7 +145,7 @@ body {
 .c-mat { width: 270px; min-width: 270px; }
 .c-sup { width: 190px; min-width: 190px; }
 .c-uom { width: 64px; min-width: 64px; color: var(--muted); }
-.c-thk { width: 80px; min-width: 80px; color: var(--muted); }
+.c-thk { width: 130px; min-width: 130px; color: var(--muted); }   /* R19: Dimension bisa diedit */
 .c-rem { width: 200px; min-width: 200px; }
 .c-act { width: 84px; min-width: 84px; }
 .c-art { width: 190px; min-width: 190px; }
@@ -447,4 +447,33 @@ textarea.cell {
 #btnSupplier {
   font-size: 12px;
   white-space: nowrap;
+}
+
+/* R19: saran Material / Dimension terbaca penuh (membungkus) + detail kecil */
+.suggest { max-width: 420px; }
+.suggest .opt-detail {
+  display: block;
+  font-size: 11px;
+  color: var(--muted);
+  white-space: normal;
+}
+.suggest .opt.on .opt-detail { color: inherit; opacity: 0.8; }
+
+/* R19: material Process, dimension yang harus dipilih, tombol ganti komponen, article tanpa nomor */
+.badge.proc {
+  background: #E0E7FF;
+  color: #3730A3;
+}
+.cell.need {
+  border-color: var(--warn, #B45309);
+  background: var(--warn-bg, #FEF3C7);
+}
+.comp-change {
+  display: block;
+  margin-top: 2px;
+  font-size: 11px;
+}
+.art-code.none {
+  font-style: italic;
+  color: var(--warn, #B45309);
 }

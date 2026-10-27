@@ -164,7 +164,9 @@ export default {
 		merge(9, A0, 9, A0 + K - 1);
 		if (articles.length) {
 			articles.forEach((a, i) => {
-				cell(10, A0 + i, a.code, Object.assign({}, hd, { font: { bold: true, size: 11 } }));
+				// R19: article tanpa nomor = "(no article no.)" dari query, latar kuning seperti sel tanpa kode
+				cell(10, A0 + i, a.code, Object.assign({}, hd, { font: { bold: true, size: 11 } },
+					a.no_code ? { fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFEF08A' } } } : {}));
 				cell(11, A0 + i, a.colorway || '-', hd);
 			});
 		} else {
@@ -197,7 +199,7 @@ export default {
 			// R4: warna + Material Code varian di bawahnya
 			articles.forEach((a, i) => {
 				const color = cells[a.id] || '';
-				const noCode = !!color && !codes[a.id];
+				const noCode = !!color && !codes[a.id] && !l.is_process;    // R19: material Process memang tanpa kode
 				if (noCode) yellow++;
 				cell(row, A0 + i, color && codes[a.id] ? `${color}\n${codes[a.id]}` : (noCode ? `${color}\n(no code)` : color),
 					noCode ? { alignment: top('center'), fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFEF08A' } } }
