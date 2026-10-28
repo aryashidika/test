@@ -21,6 +21,16 @@ Isi R20 (diskusi 27 Okt 2026):
    dropdown** (specsheet + form varian). Sudah menjalankan bagian 0 sampai 1b? Cukup jalankan **bagian 8**.
 7. **Bagian 3 (28 Okt 2026, bagian 9): kode Dimension kosong per material** (tidak lagi per UoM) dan **Dimension wajib + default**
    (`(None)` paling atas, default = dimension dengan varian terbanyak). Sudah menjalankan bagian 8? Cukup jalankan **bagian 9**.
+8. **Bagian 4 (28 Okt 2026, bagian 10): Material Code tersusun otomatis** (bagian kode sudah dikenal = sel langsung berkode, juga
+   draft lama; kode warna boleh dari material lain bila kodenya tunggal di pabrik), **Use kode purchasing yang belum terdaftar**
+   (kode dibaca jadi material / dimension / warna) dan **Save di Register menunggu cek kode**. Sudah bagian 9? Cukup **bagian 10**.
+9. **Bagian 5 (28 Okt 2026, bagian 11): Edit material langsung dari specsheet** (link **Edit material** di kolom Material, mis.
+   lupa centang Process). Tanpa SQL baru: cukup import ulang `build_r20.json` (**bagian 11**).
+10. **Bagian 6 (28 Okt 2026, bagian 12): Dimension di grid lebih stabil.** Memilih Dimension dari daftar langsung tersimpan; klik
+   cepat ke baris lain tidak lagi menyimpan baris itu sendiri; kursor dan daftar tetap ada setelah grid dimuat ulang. Tanpa SQL
+   baru: cukup import ulang `build_r20.json` (**bagian 12**).
+11. **Bagian 7 (28 Okt 2026, bagian 13): dropdown Dimension langsung lengkap**: dimension terdaftar, dimension yang sudah dipakai
+   material itu di specsheet (belum ada kode), lalu dimension material lain. Tanpa SQL baru: cukup import ulang (**bagian 13**).
 
 > Build dibuat dari `exports/build_r19.json` (export R19 dari Anda belum ada). Kalau Anda sempat mengubah app setelah import
 > R19, kirim export-nya dulu supaya build dibuat ulang dari situ.
@@ -1957,3 +1967,853 @@ SELECT 'R20 bagian 3: material dengan >1 kode Dimension kosong ' ||
 
 COMMIT;
 ```
+
+## 10. Bagian 4 (BARU, 28 Okt 2026): Material Code tersusun otomatis + Use kode purchasing + Save menunggu cek kode
+
+Sudah menjalankan R20 bagian 0 sampai 9 di DB Anda? **Cukup jalankan bagian 10 ini.** Install baru: bagian 0, 8, 9, lalu 10.
+**Sudah menjalankan SQL 0d versi pertama?** Jalankan SQL 0d (versi sekarang) dan `R_selftest.sql` lagi, lalu import ulang: aturan
+warna dan Use kode purchasing ditambahkan sesudahnya (revisi 28 Okt 2026 setelah uji COCOTEX dan `4008312B01`).
+
+Isi bagian 4:
+1. **Sel warna langsung mendapat kode tanpa Register** bila material + Dimension + warna belum terdaftar, tapi **ketiga bagian kodenya
+   sudah dikenal**:
+   - 4 awal = awalan material itu
+   - 3 tengah = kode Dimension itu di pabrik ini (boleh dari material lain); Dimension kosong = kode kosong material itu (bagian 3)
+   - 3 akhir = kode warna itu di material yang sama; belum ada di material ini -> kode warna itu di **material lain**, asal di pabrik
+     ini warna itu hanya punya **satu** kode (BLACK = `B01` di semua material). Warna dengan dua kode atau lebih (di data ERP hanya
+     DOVE dan PALE KHAKI) tetap lewat Register.
+   Kodenya jadi **varian biasa** (putih, tanpa tanda), sama seperti hasil Register. Bila ada bagian yang belum dikenal, atau kode
+   susunan melanggar aturan / sudah dipakai, sel tetap **kuning** (Register / Use seperti biasa). Contoh data ERP: COCOTEX 2MM ·
+   `2 MM X 44"` · BLACK = `20NK312B01`, WHITE C = `20NK312W10`.
+2. **Berlaku juga ke belakang**: setiap varian didaftarkan atau diubah, sel kuning di **semua draft** yang sekarang bisa disusun ikut
+   mendapat kode. Draft lama diisi sekali saat SQL 0d dijalankan. Revisi yang sudah terbit tidak diubah. Material Process tidak ikut.
+3. Varian baru belum punya harga (sama seperti Register): Vendor CBD melihatnya di daftar harga yang kurang seperti biasa.
+4. **Use kode purchasing yang belum terdaftar**: di modal Register, kode yang awalannya milik material lain (atau kode tengah / akhirnya
+   berarti dimension / warna lain) dibaca: material = pemilik awalan (**awalan baru = material baris itu**), Dimension = arti kode
+   tengah (kode baru: Dimension baris),
+   warna = arti kode akhir (kode baru: warna sel). Bila hasilnya lolos aturan, kotak merah menampilkan tombol
+   **Use KODE (MATERIAL · DIMENSION · WARNA) in the specsheet**: varian itu didaftarkan lalu dipakai seperti Use biasa (sel kuning yang
+   sama di semua draft ikut, material salah ketik yang tidak dipakai lagi jadi INACTIVE, Undo replace bisa membatalkan). Contoh data
+   ERP: `4008312B01` di baris `2 MM FOAM 50 KG +5 SHL` · (None) · BLACK = **FOAM SHL-2 · 2 MM X 44" · BLACK**; `381S502BA0` di baris
+   `PU SHYNTETIC KD T FLAT / BACKING NON WOVEN` · `1.2 X 54"` · `BLACK/BACKING BLACK` (material belum punya varian) = material itu ·
+   **`1.2 MM X 54"` · `BLACK/BLACK`** (Dimension baris dan warna sel ikut arti kode ERP).
+5. **Modal Register / + Variant**: setelah Material Code 10 karakter diketik, tombol Save bertulisan **Checking code...** dan terkunci
+   sampai cek kode selesai (pesan merah / tombol **Use** sudah tampil). Tidak ada jawaban 5 detik: Save dibuka lagi (DB tetap memeriksa).
+6. **Tidak ada lagi `Line not found or no longer active` saat ganti Dimension**: ganti Dimension / material membuat baris pengganti; aksi
+   yang dikirim sebelum layar dimuat ulang (ganti Dimension lagi, isi sel, Remarks, supplier) otomatis memakai baris pengganti itu.
+
+### 10a. Pasang
+
+| # | Langkah | Hasil | OK? |
+|---|---|---|---|
+| 10.1 | DB Tools → `z_run_sql` (prepared statements OFF) → tempel **seluruh SQL 0d** (di bawah) → Run | `R20 bagian 4: varian kode tersusun baru N, sel kuning draft A -> B` (catat N, A, B; B = A - sel yang tersambung) | |
+| 10.2 | Jalankan lagi SQL 0d | Aman: `... baru 0, sel kuning draft B -> B` | |
+| 10.3 | DB Tools → jalankan `sql/R_selftest.sql` (sudah diperbarui) | **`SELFTEST LOLOS`** | |
+| 10.4 | Import `exports/build_r20.json` (timpa app), lalu Deploy | Nama app `Product Management R20` | |
+| 10.5 | Page **Login** / **Home** → `onPageLoad` tetap ON (seperti 0.5); page **Specsheet** → query `q_code_decode` dan `a_bom_use_code` ada, **Manual** | ON / Manual | |
+
+### 10b. Uji (Vendor Spec)
+
+Material uji baru (supaya tidak bentrok dengan uji bagian 4 sebelumnya): `UJI R20E KANVAS`, `UJI R20E JALA`, `UJI R20E KARET`,
+`UJI R20E KANVAS SALAH` (semua UoM `ME`). Dimension uji `6.4 MM` = `064`, `5.3 MM` = `053`, `4.6 MM` = `046`. Kalau di DB Anda
+dimension itu sudah punya kode lain, form menolak dengan pesan `Dimension ... uses dimension code ...`: pakai kode tengah dari pesan itu.
+
+| # | Langkah | Hasil | OK? |
+|---|---|---|---|
+| 10.6 | Master Material: buat keempat material. KANVAS → + Variant `R5EA064UMW` · `UJI MAWAR` · `6.4 MM`, lalu `R5EA053ULG` · `UJI LANGIT` · `5.3 MM`. JALA → `R5EB064UDN` · `UJI DAUN` · `6.4 MM`, lalu `R5EB064USJ` · `UJI SENJA` · `6.4 MM`. KARET → `R5EC064US2` · `UJI SENJA` · `6.4 MM`. KANVAS SALAH: tanpa varian | Tersimpan | |
+| 10.7 | Saat mengetik kode di + Variant (sebelum cek selesai) | Tombol Save sebentar **Checking code...** (terkunci), lalu **Save** | |
+| 10.8 | Specsheet draft (stage apa saja) → baris tambah `UJI R20E KANVAS` · `5.3 MM`. Sel article 1 ketik `uji mawar` | Sel **putih**, kode **`R5EA053UMW`** (tanpa Register). Material Detail KANVAS: varian baru `R5EA053UMW` | |
+| 10.9 | Sel article 2 baris itu ketik `UJI DAUN` | Sel **putih**, **`R5EA053UDN`** (kode DAUN hanya ada di JALA = satu-satunya kode di pabrik) | |
+| 10.10 | Ganti sel article 2 itu ke `UJI SENJA` | **Kuning** (SENJA punya dua kode: `USJ` di JALA, `US2` di KARET) | |
+| 10.11 | Ganti sel article 2 itu ke `UJI KABUT`. Tambah baris `UJI R20E KANVAS` · `6.4 MM`, isi semua sel `UJI KABUT` | Semua sel `UJI KABUT` **kuning** (warna belum berkode di pabrik) | |
+| 10.12 | Sel kuning baris `6.4 MM` → **Register** → kode `R5EA064UKB` → Save | Baris 6.4 MM tersambung, dan sel `UJI KABUT` baris **5.3 MM ikut** dapat **`R5EA053UKB`** sendiri | |
+| 10.13 | Material Detail JALA → + Variant `R5EB046UDN` · `UJI DAUN` · `4.6 MM`. Specsheet: baris tambah `UJI R20E KANVAS` · `4.6 MM`, sel article 1 `UJI MAWAR` | Langsung **`R5EA046UMW`** (kode 4.6 MM dari JALA, kode warna dari KANVAS) | |
+| 10.14 | Baris tambah `UJI R20E KANVAS SALAH` · `(None)`, sel article 1 `UJI VIOLET` (kuning) → **Register** → ketik `R5EA046ULG` | Save **Checking code...** dulu, lalu kotak merah `... It reads as UJI R20E KANVAS · 4.6 MM · UJI LANGIT, not this line.` + tombol **Use R5EA046ULG (UJI R20E KANVAS · 4.6 MM · UJI LANGIT) in the specsheet** (warna dari arti kode `ULG`, bukan warna sel). Jangan diklik  | |
+| 10.15 | Di modal yang sama ganti kode ke `R5EA053UMW` (sudah dipakai) | Tombol **Use R5EA053UMW in the specsheet** (Use biasa). Jangan diklik  | |
+| 10.16 | Ganti kode ke `R5EA053UVL`, klik **Save** | Kotak merah `Material Code R5EA053UVL is not registered yet. It reads as UJI R20E KANVAS · 5.3 MM · UJI VIOLET, not this line.`; Save = pesan `... Use the button in the red box.`  | |
+| 10.17 | Klik tombol **Use R5EA053UVL (UJI R20E KANVAS · 5.3 MM · UJI VIOLET) in the specsheet** | Pesan `New variant R5EA053UVL registered. R5EA053UVL (...) used in 1 cell. Material UJI R20E KANVAS SALAH is no longer used in drafts and is now INACTIVE.` Baris jadi `UJI R20E KANVAS` · `5.3 MM`, sel putih `R5EA053UVL`  | |
+| 10.17b | Material baru `UJI R20E BACKING` (ME, tanpa varian). Baris tambah `UJI R20E BACKING` · `5.3` (tanpa MM), sel article 1 `UJI MAWAR/BACKING MAWAR` (kuning) → **Register** → ketik `R5EK053UMW` | Tombol **Use R5EK053UMW (UJI R20E BACKING · 5.3 MM · UJI MAWAR) in the specsheet**. Klik: baris jadi `5.3 MM`, sel `UJI MAWAR` berkode `R5EK053UMW` (awalan baru `R5EK` jadi milik BACKING) | |
+| 10.17c | Di satu baris: ganti Dimension, lalu **langsung** (sebelum `Saving…` hilang) ganti Dimension lagi atau ketik warna di sel baris itu. Ulangi beberapa kali | Tidak muncul `Line not found or no longer active`; hasil akhir = perubahan terakhir | |
+| 10.18 | Buka draft lama yang sebelum SQL 0d punya sel kuning dengan material + dimension + warna yang bagian kodenya sudah dikenal (mis. COCOTEX BLACK) | Sel itu sudah berkode (hasil 10.1). Masih kuning? Jalankan query **D1** (di bawah) untuk alasannya  | |
+| 10.19 | Buka revisi yang **sudah terbit** | Tidak berubah  | |
+| 10.20 | Export Excel specsheet draft 10.8 | Kolom Material Code berisi kode tersusun seperti kode biasa  | |
+
+Bersih-bersih: varian dan material `UJI R20D ...` / `UJI R20E ...` bisa di-INACTIVE atau dihapus lewat aplikasi.
+
+### D1. Kenapa sel masih kuning (hanya membaca, setelah SQL 0d)
+
+Ganti `'%COCOTEX%'` dengan nama material yang ingin dicek (`'%'` = semua). Kolom **alasan** menyebut bagian kode yang belum dikenal.
+
+```sql
+-- D1. Kenapa sel kuning draft belum mendapat kode tersusun (hanya membaca). Ganti '%COCOTEX%' (kosongkan = semua material).
+WITH y AS (
+  SELECT DISTINCT ON (l.material_id, fn_normalize(coalesce(l.thickness, '')), fn_color_key(bc.color))
+         l.material_id, m.factory_id, m.name, l.thickness, bc.color
+    FROM bom_cell bc
+    JOIN bom_line l ON l.id = bc.bom_line_id AND l.is_active
+    JOIN specsheet_revision rv ON rv.id = l.revision_id AND rv.status = 'DRAFT'
+    JOIN material m ON m.id = l.material_id AND NOT m.is_process
+   WHERE bc.is_used AND bc.variant_id IS NULL AND bc.color IS NOT NULL
+     AND m.name ILIKE '%COCOTEX%'),
+p AS (
+  SELECT y.*,
+    (SELECT left(v.code, 4) FROM material_variant v WHERE v.material_id = y.material_id AND length(v.code) = 10
+      GROUP BY 1 ORDER BY count(*) DESC, min(v.created_at), 1 LIMIT 1) AS awalan,
+    (SELECT substr(v.code, 5, 3) FROM material_variant v
+      WHERE v.factory_id = y.factory_id AND length(v.code) = 10
+        AND v.thickness_key = fn_normalize(coalesce(fn_clean_thickness(y.thickness), ''))
+        AND (fn_clean_thickness(y.thickness) IS NOT NULL OR v.material_id = y.material_id)
+      GROUP BY 1 ORDER BY count(*) DESC, min(v.created_at), 1 LIMIT 1) AS kode_dimension,
+    coalesce((SELECT substr(v.code, 8, 3) FROM material_variant v WHERE v.material_id = y.material_id AND length(v.code) = 10
+                 AND v.color_key = fn_color_key(y.color)
+               GROUP BY 1 ORDER BY count(*) DESC, min(v.created_at), 1 LIMIT 1),
+             (SELECT CASE WHEN count(DISTINCT substr(v.code, 8, 3)) = 1 THEN min(substr(v.code, 8, 3)) END FROM material_variant v
+               WHERE v.factory_id = y.factory_id AND length(v.code) = 10 AND v.color_key = fn_color_key(y.color))) AS kode_warna,
+    (SELECT string_agg(DISTINCT substr(v.code, 8, 3), '/') FROM material_variant v
+      WHERE v.factory_id = y.factory_id AND length(v.code) = 10 AND v.color_key = fn_color_key(y.color)) AS kode_warna_pabrik,
+    (SELECT string_agg(DISTINCT v.color || ' = ' || substr(v.code, 8, 3), ', ') FROM material_variant v
+      WHERE v.material_id = y.material_id AND length(v.code) = 10) AS warna_di_material_ini,
+    (SELECT v.code || ' (' || v.status || ')' FROM material_variant v WHERE v.material_id = y.material_id
+        AND v.thickness_key = fn_normalize(coalesce(fn_clean_thickness(y.thickness), ''))
+        AND v.color_key = fn_color_key(y.color) LIMIT 1) AS varian_sama
+    FROM y)
+SELECT p.name AS material, coalesce(p.thickness, '(None)') AS dimension, p.color AS warna,
+       p.awalan, p.kode_dimension, p.kode_warna, fn_variant_compose(p.material_id, p.thickness, p.color) AS kode_susun,
+       CASE
+         WHEN p.varian_sama IS NOT NULL THEN 'Sudah ada varian ' || p.varian_sama || ': tidak dibuat ulang, aktifkan lagi di Material Detail bila perlu'
+         WHEN p.awalan IS NULL THEN 'Material ini belum punya varian berkode (awalan belum dikenal)'
+         WHEN p.kode_dimension IS NULL THEN 'Dimension ini belum punya kode di pabrik ini'
+         WHEN p.kode_warna IS NULL AND p.kode_warna_pabrik IS NOT NULL
+           THEN 'Warna ini punya lebih dari satu kode di pabrik (' || p.kode_warna_pabrik || '): pilih lewat Register'
+         WHEN p.kode_warna IS NULL THEN 'Warna ini belum punya kode di pabrik ini (warna di material ini: ' || coalesce(p.warna_di_material_ini, '-') || ')'
+         WHEN EXISTS (SELECT 1 FROM material_variant v WHERE v.factory_id = p.factory_id
+                        AND v.code = fn_variant_compose(p.material_id, p.thickness, p.color))
+           THEN 'Kode susun sudah dipakai varian lain (pakai Use)'
+         ELSE coalesce(nullif(array_to_string(fn_variant_code_problems(p.factory_id, p.material_id,
+                fn_variant_compose(p.material_id, p.thickness, p.color), p.color, p.thickness, NULL), ' | '), ''),
+                'Bisa disusun: belum jalan? Jalankan SQL 0d lagi')
+       END AS alasan
+  FROM p
+ ORDER BY 1, 2, 3;
+```
+
+### 0d. SQL R20 bagian 4: Material Code tersusun otomatis (salin semua)
+
+```sql
+-- ============================================================================
+-- R20 bagian 4 (28 Okt 2026): Material Code tersusun otomatis. Jalankan SETELAH SQL 0a, 0b dan 0c (R20), lewat z_run_sql di
+-- app "DB Tools" (Use prepared statements = OFF). Aman diulang. Satu transaksi.
+--   1. Sel warna DRAFT yang kuning (material + dimension + warna belum terdaftar) langsung mendapat varian baru bila ketiga bagian
+--      kodenya sudah dikenal (fn_variant_compose):
+--        4 awal  = awalan material itu
+--        3 tengah = kode dimension itu di pabrik ini (dimension kosong: kode kosong material itu, bagian 3)
+--        3 akhir  = kode warna itu di material yang sama; belum ada di material ini -> kode warna itu di material lain, asal
+--                   di pabrik ini warna itu hanya punya SATU kode (mis. BLACK = B01 di semua material)
+--      Kode hasil susunan harus lolos aturan kode ketat dan belum dipakai varian lain; kalau tidak, sel tetap kuning (Register / Use).
+--   2. Berjalan otomatis setiap sel diisi / disalin dan setiap varian didaftarkan atau diubah (bagian kode baru bisa membuat sel
+--      kuning lain di semua draft tersusun). Revisi terbit tidak disentuh. Material Process tidak ikut.
+--   3. Data: sel kuning draft yang sudah ada langsung diisi sekali.
+--   4. Kode dari purchasing yang BELUM terdaftar tapi bagiannya bisa dibaca (fn_variant_code_decode): awalan = material lain
+--      (awalan baru = material baris itu),
+--      3 tengah = dimension yang sudah dikenal (baru: dimension baris), 3 akhir = warna yang sudah dikenal (baru: warna sel).
+--      Modal Register menawarkan "Use KODE (MATERIAL · DIMENSION · WARNA)": fn_bom_use_code mendaftarkan varian itu lalu memakai
+--      varian itu seperti Use (sel kuning yang sama di semua draft ikut, material salah ketik yang tidak dipakai jadi INACTIVE).
+--   5. Aksi grid yang masih membawa ID baris lama (baris baru saja diganti lewat Replace Material / ganti Dimension, layar belum
+--      dimuat ulang) memakai baris penggantinya (fn_bom_line_current), tidak lagi "Line not found or no longer active". Ganti yang
+--      terkirim dua kali dengan tujuan sama = tidak apa-apa. Hapus baris tetap memakai ID yang diklik (hapus baris pengganti = Undo).
+-- ============================================================================
+BEGIN;
+
+-- Kode untuk material + dimension + warna dari bagian kode yang sudah dikenal; NULL bila ada bagian yang belum dikenal.
+-- Bagian = yang paling banyak dipakai (seri: tercatat paling awal), sama dengan fn_variant_code_problems.
+CREATE OR REPLACE FUNCTION public.fn_variant_compose(p_material_id uuid, p_thickness text, p_color text)
+ RETURNS text
+ LANGUAGE plpgsql
+ STABLE
+AS $function$
+DECLARE
+  v_factory uuid;
+  v_tkey    text := fn_normalize(coalesce(fn_clean_thickness(p_thickness), ''));
+  v_ckey    text := fn_color_key(p_color);
+  v_pre     text;
+  v_mid     text;
+  v_last    text;
+BEGIN
+  SELECT factory_id INTO v_factory FROM material WHERE id = p_material_id AND NOT is_process;
+  IF NOT FOUND OR v_ckey = '' THEN
+    RETURN NULL;
+  END IF;
+  SELECT left(v.code, 4) INTO v_pre FROM material_variant v
+   WHERE v.material_id = p_material_id AND length(v.code) = 10
+   GROUP BY 1 ORDER BY count(*) DESC, min(v.created_at), 1 LIMIT 1;
+  SELECT substr(v.code, 5, 3) INTO v_mid FROM material_variant v
+   WHERE v.factory_id = v_factory AND length(v.code) = 10 AND v.thickness_key = v_tkey
+     AND (v_tkey <> '' OR v.material_id = p_material_id)
+   GROUP BY 1 ORDER BY count(*) DESC, min(v.created_at), 1 LIMIT 1;
+  SELECT substr(v.code, 8, 3) INTO v_last FROM material_variant v
+   WHERE v.material_id = p_material_id AND length(v.code) = 10 AND v.color_key = v_ckey
+   GROUP BY 1 ORDER BY count(*) DESC, min(v.created_at), 1 LIMIT 1;
+  IF v_last IS NULL THEN                   -- warna belum ada di material ini: kode warna material lain bila di pabrik hanya SATU
+    SELECT CASE WHEN count(DISTINCT substr(v.code, 8, 3)) = 1 THEN min(substr(v.code, 8, 3)) END INTO v_last
+      FROM material_variant v WHERE v.factory_id = v_factory AND length(v.code) = 10 AND v.color_key = v_ckey;
+  END IF;
+  IF v_pre IS NULL OR v_mid IS NULL OR v_last IS NULL THEN
+    RETURN NULL;
+  END IF;
+  RETURN v_pre || v_mid || v_last;
+END;
+$function$;
+
+-- Daftarkan varian tersusun untuk sel kuning DRAFT (p_materials / p_factories NULL = semua). Hasil = jumlah varian baru.
+-- Varian baru menyambungkan selnya lewat trg_variant_relink. Tidak masuk ulang (app.r20_autofill) saat trigger memanggilnya lagi.
+CREATE OR REPLACE FUNCTION public.fn_variant_autofill(p_materials uuid[], p_factories uuid[])
+ RETURNS integer
+ LANGUAGE plpgsql
+AS $function$
+DECLARE
+  r      record;
+  v_code text;
+  v_n    integer := 0;
+BEGIN
+  IF current_setting('app.r20_autofill', true) = 'on' THEN
+    RETURN 0;
+  END IF;
+  PERFORM set_config('app.r20_autofill', 'on', true);
+  FOR r IN
+    SELECT DISTINCT ON (l.material_id, fn_normalize(coalesce(l.thickness, '')), fn_color_key(bc.color))
+           l.material_id, m.factory_id, l.thickness, bc.color, coalesce(bc.updated_by, 'R20 auto code') AS who
+      FROM bom_cell bc
+      JOIN bom_line l ON l.id = bc.bom_line_id AND l.is_active
+      JOIN specsheet_revision rv ON rv.id = l.revision_id AND rv.status = 'DRAFT'
+      JOIN material m ON m.id = l.material_id AND m.status = 'ACTIVE' AND NOT m.is_process
+     WHERE bc.is_used AND bc.variant_id IS NULL AND bc.color IS NOT NULL
+       AND (p_materials IS NULL OR l.material_id = ANY (p_materials))
+       AND (p_factories IS NULL OR m.factory_id = ANY (p_factories))
+       AND EXISTS (SELECT 1 FROM material_variant w WHERE w.material_id = l.material_id AND length(w.code) = 10)
+     ORDER BY l.material_id, fn_normalize(coalesce(l.thickness, '')), fn_color_key(bc.color), bc.updated_at DESC
+  LOOP
+    -- varian material + dimension + warna ini sudah ada (mis. INACTIVE): jangan dibuat lagi
+    CONTINUE WHEN EXISTS (SELECT 1 FROM material_variant v
+                           WHERE v.material_id = r.material_id
+                             AND v.thickness_key = fn_normalize(coalesce(fn_clean_thickness(r.thickness), ''))
+                             AND v.color_key = fn_color_key(r.color));
+    v_code := fn_variant_compose(r.material_id, r.thickness, r.color);
+    CONTINUE WHEN v_code IS NULL;
+    CONTINUE WHEN EXISTS (SELECT 1 FROM material_variant v WHERE v.factory_id = r.factory_id AND v.code = v_code);
+    CONTINUE WHEN cardinality(fn_variant_code_problems(r.factory_id, r.material_id, v_code, r.color, r.thickness, NULL)) > 0;
+    BEGIN
+      INSERT INTO material_variant (material_id, factory_id, code, color, thickness, status, created_by, updated_by)
+      VALUES (r.material_id, r.factory_id, v_code, r.color, r.thickness, 'ACTIVE', r.who, r.who);
+      v_n := v_n + 1;
+    EXCEPTION WHEN others THEN
+      NULL;                                -- aturan DB menolak: sel tetap kuning (Register / Use)
+    END;
+  END LOOP;
+  PERFORM set_config('app.r20_autofill', 'off', true);
+  RETURN v_n;
+END;
+$function$;
+
+-- Sel diisi / disalin / disambung ulang: material yang punya sel kuning di statement ini
+CREATE OR REPLACE FUNCTION public.fn_bom_cell_autofill()
+ RETURNS trigger
+ LANGUAGE plpgsql
+AS $function$
+DECLARE
+  v_mats uuid[];
+BEGIN
+  IF current_setting('app.r20_autofill', true) = 'on' THEN
+    RETURN NULL;
+  END IF;
+  SELECT array_agg(DISTINCT l.material_id) INTO v_mats
+    FROM r20_new_cells c JOIN bom_line l ON l.id = c.bom_line_id
+   WHERE c.is_used AND c.variant_id IS NULL AND c.color IS NOT NULL;
+  IF v_mats IS NOT NULL THEN
+    PERFORM fn_variant_autofill(v_mats, NULL);
+  END IF;
+  RETURN NULL;
+END;
+$function$;
+
+-- Varian didaftarkan / diubah: bagian kode baru bisa membuat sel kuning material mana pun di pabrik itu tersusun
+CREATE OR REPLACE FUNCTION public.fn_variant_autofill_trigger()
+ RETURNS trigger
+ LANGUAGE plpgsql
+AS $function$
+DECLARE
+  v_facs uuid[];
+BEGIN
+  IF current_setting('app.r20_autofill', true) = 'on' THEN
+    RETURN NULL;
+  END IF;
+  SELECT array_agg(DISTINCT factory_id) INTO v_facs FROM r20_new_variants WHERE length(code) = 10;
+  IF v_facs IS NOT NULL THEN
+    PERFORM fn_variant_autofill(NULL, v_facs);
+  END IF;
+  RETURN NULL;
+END;
+$function$;
+
+DROP TRIGGER IF EXISTS trg_r20_cell_autofill_ins ON bom_cell;
+DROP TRIGGER IF EXISTS trg_r20_cell_autofill_upd ON bom_cell;
+CREATE TRIGGER trg_r20_cell_autofill_ins AFTER INSERT ON bom_cell
+  REFERENCING NEW TABLE AS r20_new_cells FOR EACH STATEMENT EXECUTE FUNCTION fn_bom_cell_autofill();
+CREATE TRIGGER trg_r20_cell_autofill_upd AFTER UPDATE ON bom_cell
+  REFERENCING NEW TABLE AS r20_new_cells FOR EACH STATEMENT EXECUTE FUNCTION fn_bom_cell_autofill();
+DROP TRIGGER IF EXISTS trg_r20_variant_autofill_ins ON material_variant;
+DROP TRIGGER IF EXISTS trg_r20_variant_autofill_upd ON material_variant;
+CREATE TRIGGER trg_r20_variant_autofill_ins AFTER INSERT ON material_variant
+  REFERENCING NEW TABLE AS r20_new_variants FOR EACH STATEMENT EXECUTE FUNCTION fn_variant_autofill_trigger();
+CREATE TRIGGER trg_r20_variant_autofill_upd AFTER UPDATE ON material_variant
+  REFERENCING NEW TABLE AS r20_new_variants FOR EACH STATEMENT EXECUTE FUNCTION fn_variant_autofill_trigger();
+
+-- Kode purchasing yang belum terdaftar -> material (awalan; awalan baru = material baris) + dimension + warna yang dibaca dari
+-- bagian kodenya. Tanpa baris bila:
+-- bukan 10 karakter, kode sudah dipakai (Use biasa), material tidak ACTIVE / Process, atau hasilnya sama
+-- dengan baris + sel itu sendiri (cukup Save). problems kosong = boleh dipakai.
+DROP FUNCTION IF EXISTS fn_variant_code_decode(text, uuid, text, text, text);
+CREATE OR REPLACE FUNCTION public.fn_variant_code_decode(p_token text, p_material_id uuid, p_code text, p_color text, p_thickness text)
+ RETURNS TABLE(material_id uuid, label text, thickness text, color text, problems text[])
+ LANGUAGE plpgsql
+ STABLE
+AS $function$
+#variable_conflict use_column
+DECLARE
+  v_email   text := fn_auth(p_token, 'view_master');
+  v_factory uuid;
+  v_code    text := upper(btrim(regexp_replace(coalesce(p_code, ''), '\s+', '', 'g')));
+  v_mat     material%ROWTYPE;
+  v_thick   text;
+  v_color   text;
+  v_known   boolean;
+  v_other   text;
+BEGIN
+  SELECT m.factory_id INTO v_factory FROM material m WHERE m.id = p_material_id;
+  IF NOT FOUND OR NOT fn_can_see_factory(v_email, v_factory) OR length(v_code) <> 10
+     OR EXISTS (SELECT 1 FROM material_variant v WHERE v.factory_id = v_factory AND v.code = v_code) THEN
+    RETURN;
+  END IF;
+  -- awalan milik material lain = material itu; awalan baru = material baris ini (aturan kode tetap memeriksa awalannya)
+  SELECT m.* INTO v_mat FROM material m
+   WHERE m.id = coalesce((SELECT v.material_id FROM material_variant v
+                           WHERE v.factory_id = v_factory AND length(v.code) = 10 AND left(v.code, 4) = left(v_code, 4)
+                           GROUP BY v.material_id ORDER BY count(*) DESC, min(v.created_at), v.material_id LIMIT 1),
+                         p_material_id);
+  IF NOT FOUND OR v_mat.status <> 'ACTIVE' OR v_mat.is_process THEN
+    RETURN;
+  END IF;
+  SELECT (array_agg(v.thickness ORDER BY v.created_at, v.code))[1], true INTO v_thick, v_known
+    FROM material_variant v
+   WHERE v.factory_id = v_factory AND length(v.code) = 10 AND substr(v.code, 5, 3) = substr(v_code, 5, 3)
+   GROUP BY v.thickness_key ORDER BY count(*) DESC, min(v.created_at) LIMIT 1;
+  IF v_known IS NULL THEN
+    v_thick := fn_clean_thickness(p_thickness);           -- kode dimension baru: dimension baris
+  END IF;
+  v_known := NULL;
+  SELECT (array_agg(v.color ORDER BY v.created_at, v.code))[1], true INTO v_color, v_known
+    FROM material_variant v
+   WHERE v.factory_id = v_factory AND length(v.code) = 10 AND substr(v.code, 8, 3) = substr(v_code, 8, 3)
+   GROUP BY v.color_key ORDER BY count(*) DESC, min(v.created_at) LIMIT 1;
+  IF v_known IS NULL THEN
+    v_color := nullif(fn_clean_color(p_color), '');        -- kode warna baru: warna sel
+  END IF;
+  IF v_color IS NULL THEN
+    RETURN;
+  END IF;
+  IF v_mat.id = p_material_id AND fn_normalize(coalesce(v_thick, '')) = fn_normalize(coalesce(fn_clean_thickness(p_thickness), ''))
+     AND fn_color_key(v_color) = fn_color_key(p_color) THEN
+    RETURN;                                                -- = baris + sel ini: cukup Save
+  END IF;
+  SELECT v.code INTO v_other FROM material_variant v
+   WHERE v.material_id = v_mat.id AND v.thickness_key = fn_normalize(coalesce(v_thick, '')) AND v.color_key = fn_color_key(v_color);
+  RETURN QUERY SELECT v_mat.id, v_mat.name || ' · ' || fn_thickness_label(v_thick) || ' · ' || v_color, coalesce(v_thick, ''), v_color,
+    CASE WHEN v_other IS NOT NULL
+      THEN ARRAY[format('%s · %s · %s is already registered with code %s.', v_mat.name, fn_thickness_label(v_thick), v_color, v_other)]
+      ELSE fn_variant_code_problems(v_factory, v_mat.id, v_code, v_color, v_thick, NULL) END;
+END;
+$function$;
+
+-- Modal Register: kode purchasing yang belum terdaftar -> daftarkan varian hasil baca kode, lalu pakai seperti Use
+CREATE OR REPLACE FUNCTION public.fn_bom_use_code(p_token text, p_line_id uuid, p_article_id uuid, p_code text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+AS $function$
+DECLARE
+  v_factory uuid := fn_line_factory(p_line_id);
+  v_email   text := fn_auth_in(p_token, 'edit_specsheet', v_factory);
+  v_line    bom_line%ROWTYPE;
+  v_color   text;
+  d         record;
+  v_id      uuid;
+BEGIN
+  p_line_id := fn_bom_line_current(p_line_id);   -- ID baris lama yang sudah diganti -> baris penggantinya
+  SELECT * INTO v_line FROM bom_line WHERE id = p_line_id;
+  IF NOT FOUND OR NOT v_line.is_active THEN
+    RAISE EXCEPTION 'Line not found or no longer active. Please reload the page.';
+  END IF;
+  SELECT color INTO v_color FROM bom_cell WHERE bom_line_id = p_line_id AND article_id = p_article_id;
+  SELECT * INTO d FROM fn_variant_code_decode(p_token, v_line.material_id, p_code, v_color, v_line.thickness);
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Material Code % cannot be read as another material / dimension / color. Check the code in ERP.', upper(btrim(p_code));
+  END IF;
+  IF cardinality(d.problems) > 0 THEN
+    RAISE EXCEPTION 'Material Code % cannot be used: %', upper(btrim(p_code)), array_to_string(d.problems, ' ');
+  END IF;
+  v_id := fn_variant_save(p_token, NULL, d.material_id, upper(btrim(p_code)), d.color, d.thickness, 'ACTIVE');
+  RETURN fn_bom_use_variant(p_token, p_line_id, p_article_id, v_id) || jsonb_build_object('registered', d.label);
+END;
+$function$;
+
+-- Baris aktif pengganti sebuah baris (Replace Material / ganti Dimension menonaktifkan baris lama dan membuat baris baru dengan
+-- replaces_line_key = line_key lama). Baris aktif / tidak ada pengganti = ID itu sendiri.
+CREATE OR REPLACE FUNCTION public.fn_bom_line_current(p_line_id uuid)
+ RETURNS uuid
+ LANGUAGE plpgsql
+ STABLE
+AS $function$
+DECLARE
+  v bom_line%ROWTYPE;
+  i integer := 0;
+BEGIN
+  SELECT * INTO v FROM bom_line WHERE id = p_line_id;
+  WHILE FOUND AND NOT v.is_active AND i < 50 LOOP
+    SELECT * INTO v FROM bom_line
+     WHERE revision_id = v.revision_id AND replaces_line_key = v.line_key
+     ORDER BY is_active DESC, created_at DESC LIMIT 1;
+    i := i + 1;
+  END LOOP;
+  RETURN CASE WHEN FOUND AND v.is_active THEN v.id ELSE p_line_id END;
+END;
+$function$;
+
+CREATE OR REPLACE FUNCTION public.fn_bom_add_sub(p_token text, p_parent_line_id uuid, p_sub_name text, p_material_id uuid, p_thickness text, p_supplier_id uuid, p_process text)
+ RETURNS uuid
+ LANGUAGE plpgsql
+AS $function$
+DECLARE
+  v_factory uuid := fn_line_factory(p_parent_line_id);
+  v_email   text := fn_auth_in(p_token, 'edit_specsheet', v_factory);
+  v_parent  bom_line%ROWTYPE;
+  v_name    text := nullif(btrim(regexp_replace(coalesce(p_sub_name, ''), '\s+', ' ', 'g')), '');
+  v_id      uuid;
+BEGIN
+  p_parent_line_id := fn_bom_line_current(p_parent_line_id);   -- R20 bagian 4: ID baris lama yang sudah diganti -> baris penggantinya
+  SELECT * INTO v_parent FROM bom_line WHERE id = p_parent_line_id;
+  IF NOT FOUND OR NOT v_parent.is_active THEN
+    RAISE EXCEPTION 'Parent line not found or no longer active.';
+  END IF;
+  PERFORM fn_revision_draft(v_parent.revision_id);
+  IF v_parent.parent_line_key IS NOT NULL THEN
+    RAISE EXCEPTION 'A subcomponent cannot be added under another subcomponent.';
+  END IF;
+  IF v_name IS NULL THEN
+    RAISE EXCEPTION 'Subcomponent name is required.';
+  END IF;
+  PERFORM fn_bom_check_material(p_material_id, v_factory);
+  PERFORM fn_bom_check_supplier(p_material_id, p_supplier_id);
+
+  INSERT INTO bom_line (revision_id, line_key, parent_line_key, sub_seq, sub_name, material_id, thickness, supplier_id,
+                        process, sort_order, updated_by)
+  VALUES (v_parent.revision_id, gen_random_uuid(), v_parent.line_key,
+          coalesce((SELECT max(sub_seq) FROM bom_line
+                     WHERE revision_id = v_parent.revision_id AND parent_line_key = v_parent.line_key), 0) + 1,
+          v_name, p_material_id, fn_clean_thickness(p_thickness), p_supplier_id, nullif(btrim(coalesce(p_process, '')), ''),
+          v_parent.sort_order, v_email)
+  RETURNING id INTO v_id;
+  PERFORM fn_bom_create_cells(v_id, v_email);
+  RETURN v_id;
+END;
+$function$;
+
+CREATE OR REPLACE FUNCTION public.fn_bom_cell_set(p_token text, p_line_id uuid, p_article_id uuid, p_color text)
+ RETURNS uuid
+ LANGUAGE plpgsql
+AS $function$
+DECLARE
+  v_factory uuid := fn_line_factory(p_line_id);
+  v_email   text := fn_auth_in(p_token, 'edit_specsheet', v_factory);
+  v_line    bom_line%ROWTYPE;
+  v_color   text := nullif(fn_clean_color(p_color), '');
+BEGIN
+  p_line_id := fn_bom_line_current(p_line_id);   -- R20 bagian 4: ID baris lama yang sudah diganti -> baris penggantinya
+  SELECT * INTO v_line FROM bom_line WHERE id = p_line_id;
+  IF NOT FOUND OR NOT v_line.is_active THEN
+    RAISE EXCEPTION 'Line not found or no longer active. Please reload the page.';
+  END IF;
+  PERFORM fn_revision_draft(v_line.revision_id);
+  IF NOT EXISTS (SELECT 1 FROM revision_article
+                  WHERE revision_id = v_line.revision_id AND article_id = p_article_id AND status = 'ACTIVE') THEN
+    RAISE EXCEPTION 'This article is not active in this revision.';
+  END IF;
+  INSERT INTO bom_cell (bom_line_id, article_id, color, updated_by)
+  VALUES (v_line.id, p_article_id, v_color, v_email)
+  ON CONFLICT (bom_line_id, article_id) DO UPDATE SET color = EXCLUDED.color, updated_by = EXCLUDED.updated_by;
+  RETURN v_line.id;
+END;
+$function$;
+
+CREATE OR REPLACE FUNCTION public.fn_bom_change_component(p_token text, p_line_id uuid, p_component_id uuid)
+ RETURNS integer
+ LANGUAGE plpgsql
+AS $function$
+DECLARE
+  v_email text := fn_auth_in(p_token, 'edit_specsheet', fn_line_factory(p_line_id));
+  v_line  bom_line%ROWTYPE;
+  v_comp  component%ROWTYPE;
+  v_n     integer;
+BEGIN
+  p_line_id := fn_bom_line_current(p_line_id);   -- R20 bagian 4: ID baris lama yang sudah diganti -> baris penggantinya
+  SELECT * INTO v_line FROM bom_line WHERE id = p_line_id;
+  IF NOT FOUND OR NOT v_line.is_active THEN
+    RAISE EXCEPTION 'Line not found or no longer active. Please reload the page.';
+  END IF;
+  PERFORM fn_revision_draft(v_line.revision_id);
+  IF v_line.parent_line_key IS NOT NULL THEN
+    RAISE EXCEPTION 'A subcomponent moves together with its main line. Change the component of the main line.';
+  END IF;
+  SELECT * INTO v_comp FROM component WHERE id = p_component_id;
+  IF NOT FOUND OR v_comp.status <> 'ACTIVE' THEN
+    RAISE EXCEPTION 'Master component not found or INACTIVE.';
+  END IF;
+  IF v_line.component_id = p_component_id THEN
+    RAISE EXCEPTION 'This line already uses component %.', v_comp.number;
+  END IF;
+  IF EXISTS (SELECT 1 FROM bom_line WHERE revision_id = v_line.revision_id AND is_active AND parent_line_key IS NULL
+                                      AND id <> v_line.id AND component_id = p_component_id
+                                      AND material_id = v_line.material_id AND thickness IS NOT DISTINCT FROM v_line.thickness) THEN
+    RAISE EXCEPTION 'Component % - % already has this material with the same dimension in this revision.', v_comp.number, v_comp.name;
+  END IF;
+  WITH RECURSIVE chain AS (
+    SELECT id, replaces_line_key FROM bom_line WHERE id = v_line.id
+    UNION ALL
+    SELECT b.id, b.replaces_line_key
+      FROM bom_line b JOIN chain c ON b.revision_id = v_line.revision_id AND b.line_key = c.replaces_line_key AND NOT b.is_active
+  )
+  UPDATE bom_line
+     SET component_id = p_component_id, local_component_no = NULL, local_component_name = NULL, updated_by = v_email
+   WHERE id IN (SELECT id FROM chain);
+  GET DIAGNOSTICS v_n = ROW_COUNT;
+  RETURN v_n;
+END;
+$function$;
+
+CREATE OR REPLACE FUNCTION public.fn_bom_replace_material(p_token text, p_line_id uuid, p_material_id uuid, p_thickness text)
+ RETURNS uuid
+ LANGUAGE plpgsql
+AS $function$
+DECLARE
+  v_req     uuid := p_line_id;
+  v_factory uuid := fn_line_factory(p_line_id);
+  v_email   text := fn_auth_in(p_token, 'edit_specsheet', v_factory);
+  v_old     bom_line%ROWTYPE;
+  v_thick   text := fn_clean_thickness(p_thickness);
+  v_key     uuid := gen_random_uuid();
+  v_id      uuid;
+BEGIN
+  p_line_id := fn_bom_line_current(p_line_id);   -- R20 bagian 4: ID baris lama yang sudah diganti -> baris penggantinya
+  SELECT * INTO v_old FROM bom_line WHERE id = p_line_id;
+  IF NOT FOUND OR NOT v_old.is_active THEN
+    RAISE EXCEPTION 'Line not found or no longer active. Please reload the page.';
+  END IF;
+  PERFORM fn_revision_draft(v_old.revision_id);
+  IF v_old.material_id = p_material_id AND v_old.thickness IS NOT DISTINCT FROM v_thick THEN
+    IF v_req <> v_old.id THEN               -- dikirim dua kali dari layar lama: sudah diganti, tidak perlu apa-apa
+      RETURN v_old.id;
+    END IF;
+    RAISE EXCEPTION 'The new material and dimension are the same as the current ones.';
+  END IF;
+  PERFORM fn_bom_check_material(p_material_id, v_factory);
+  IF v_old.parent_line_key IS NULL AND EXISTS (
+       SELECT 1 FROM bom_line WHERE revision_id = v_old.revision_id AND is_active AND parent_line_key IS NULL
+          AND id <> v_old.id AND material_id = p_material_id AND thickness IS NOT DISTINCT FROM v_thick
+          AND component_id IS NOT DISTINCT FROM v_old.component_id
+          AND local_component_no IS NOT DISTINCT FROM v_old.local_component_no) THEN
+    RAISE EXCEPTION 'This component with that material + dimension is already in this revision.';
+  END IF;
+  IF v_old.material_id <> p_material_id THEN
+    PERFORM fn_bom_check_supplier(p_material_id, v_old.supplier_id);
+  END IF;
+
+  UPDATE bom_line SET is_active = false, updated_by = v_email WHERE id = v_old.id;
+  INSERT INTO bom_line (revision_id, line_key, origin_line_key, replaces_line_key, component_id,
+                        local_component_no, local_component_name, parent_line_key, sub_seq, sub_name,
+                        material_id, thickness, supplier_id, process, sort_order, updated_by)
+  VALUES (v_old.revision_id, v_key, v_old.origin_line_key, v_old.line_key, v_old.component_id,
+          v_old.local_component_no, v_old.local_component_name, v_old.parent_line_key, v_old.sub_seq,
+          v_old.sub_name, p_material_id, v_thick, v_old.supplier_id, v_old.process, v_old.sort_order, v_email)
+  RETURNING id INTO v_id;
+  INSERT INTO bom_cell (bom_line_id, article_id, color, updated_by)
+  SELECT v_id, article_id, color, v_email FROM bom_cell WHERE bom_line_id = v_old.id;
+  PERFORM fn_bom_create_cells(v_id, v_email);
+  UPDATE bom_line SET parent_line_key = v_key, updated_by = v_email
+   WHERE revision_id = v_old.revision_id AND parent_line_key = v_old.line_key AND is_active;
+  RETURN v_id;
+END;
+$function$;
+
+CREATE OR REPLACE FUNCTION public.fn_bom_set_process(p_token text, p_line_id uuid, p_process text)
+ RETURNS uuid
+ LANGUAGE plpgsql
+AS $function$
+DECLARE
+  v_email text := fn_auth_in(p_token, 'edit_specsheet', fn_line_factory(p_line_id));
+  v_line  bom_line%ROWTYPE;
+BEGIN
+  p_line_id := fn_bom_line_current(p_line_id);   -- R20 bagian 4: ID baris lama yang sudah diganti -> baris penggantinya
+  SELECT * INTO v_line FROM bom_line WHERE id = p_line_id;
+  IF NOT FOUND OR NOT v_line.is_active THEN
+    RAISE EXCEPTION 'Line not found or no longer active. Please reload the page.';
+  END IF;
+  PERFORM fn_revision_draft(v_line.revision_id);
+  UPDATE bom_line SET process = nullif(btrim(coalesce(p_process, '')), ''), updated_by = v_email WHERE id = v_line.id;
+  RETURN v_line.id;
+END;
+$function$;
+
+CREATE OR REPLACE FUNCTION public.fn_bom_set_supplier(p_token text, p_line_id uuid, p_supplier_id uuid)
+ RETURNS uuid
+ LANGUAGE plpgsql
+AS $function$
+DECLARE
+  v_email text := fn_auth_in(p_token, 'edit_specsheet', fn_line_factory(p_line_id));
+  v_line  bom_line%ROWTYPE;
+BEGIN
+  p_line_id := fn_bom_line_current(p_line_id);   -- R20 bagian 4: ID baris lama yang sudah diganti -> baris penggantinya
+  SELECT * INTO v_line FROM bom_line WHERE id = p_line_id;
+  IF NOT FOUND OR NOT v_line.is_active THEN
+    RAISE EXCEPTION 'Line not found or no longer active. Please reload the page.';
+  END IF;
+  PERFORM fn_revision_draft(v_line.revision_id);
+  PERFORM fn_bom_check_supplier(v_line.material_id, p_supplier_id);
+  UPDATE bom_line SET supplier_id = p_supplier_id, updated_by = v_email WHERE id = v_line.id;
+  RETURN v_line.id;
+END;
+$function$;
+
+CREATE OR REPLACE FUNCTION public.fn_bom_use_variant(p_token text, p_line_id uuid, p_article_id uuid, p_variant_id uuid)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+AS $function$
+DECLARE
+  v_factory uuid := fn_line_factory(p_line_id);
+  v_email   text := fn_auth_in(p_token, 'edit_specsheet', v_factory);
+  v_line    bom_line%ROWTYPE;
+  v_cell    bom_cell%ROWTYPE;
+  v_var     material_variant%ROWTYPE;
+  v_mat     material%ROWTYPE;
+  v_src     material%ROWTYPE;
+  v_tkey    text;
+  v_ckey    text;
+  v_cells   integer := 0;
+  v_lines   integer := 0;
+  v_revs    integer := 0;
+  v_skip    integer := 0;
+  v_off     text;
+  v_revids  uuid[] := '{}';
+  r         record;
+BEGIN
+  p_line_id := fn_bom_line_current(p_line_id);   -- R20 bagian 4: ID baris lama yang sudah diganti -> baris penggantinya
+  SELECT * INTO v_line FROM bom_line WHERE id = p_line_id;
+  IF NOT FOUND OR NOT v_line.is_active THEN
+    RAISE EXCEPTION 'Line not found or no longer active. Please reload the page.';
+  END IF;
+  PERFORM fn_revision_draft(v_line.revision_id);
+  IF NOT EXISTS (SELECT 1 FROM revision_article
+                  WHERE revision_id = v_line.revision_id AND article_id = p_article_id AND status = 'ACTIVE') THEN
+    RAISE EXCEPTION 'This article is not active in this revision.';
+  END IF;
+  SELECT * INTO v_var FROM material_variant WHERE id = p_variant_id;
+  IF NOT FOUND OR v_var.factory_id IS DISTINCT FROM v_factory THEN
+    RAISE EXCEPTION 'Variant not found in this factory.';
+  END IF;
+  SELECT * INTO v_mat FROM material WHERE id = v_var.material_id;
+  IF v_var.status <> 'ACTIVE' OR v_mat.status <> 'ACTIVE' THEN
+    RAISE EXCEPTION 'Material Code % is INACTIVE.', v_var.code;
+  END IF;
+  SELECT * INTO v_src FROM material WHERE id = v_line.material_id;
+  v_tkey := fn_normalize(coalesce(v_line.thickness, ''));
+  SELECT * INTO v_cell FROM bom_cell WHERE bom_line_id = v_line.id AND article_id = p_article_id;
+  IF FOUND AND v_cell.is_used AND v_cell.variant_id IS NULL AND NOT v_src.is_process THEN
+    v_ckey := fn_color_key(v_cell.color);
+  END IF;
+
+  IF v_ckey IS NULL THEN
+    -- sel kosong / sudah berkode: hanya sel ini
+    PERFORM fn_bom_take_cells(p_token, v_email, v_line.id, ARRAY[p_article_id], v_var.id);
+    v_cells := 1;
+    v_lines := 1;
+  ELSE
+    FOR r IN
+      SELECT l.id, l.revision_id, array_agg(bc.article_id) AS arts
+        FROM bom_line l
+        JOIN specsheet_revision sr ON sr.id = l.revision_id AND sr.status = 'DRAFT'
+        JOIN bom_cell bc ON bc.bom_line_id = l.id AND bc.variant_id IS NULL AND bc.is_used AND fn_color_key(bc.color) = v_ckey
+        JOIN revision_article ra ON ra.revision_id = l.revision_id AND ra.article_id = bc.article_id AND ra.status = 'ACTIVE'
+       WHERE l.is_active AND l.material_id = v_line.material_id AND fn_normalize(coalesce(l.thickness, '')) = v_tkey
+       GROUP BY l.id, l.revision_id
+       ORDER BY l.id = v_line.id DESC, l.revision_id, l.id
+    LOOP
+      IF r.id = v_line.id THEN
+        PERFORM fn_bom_take_cells(p_token, v_email, r.id, r.arts, v_var.id);   -- baris yang diklik: gagal = pesan ke user
+      ELSE
+        BEGIN
+          PERFORM fn_revision_draft(r.revision_id);
+          PERFORM fn_bom_take_cells(p_token, v_email, r.id, r.arts, v_var.id);
+        EXCEPTION WHEN others THEN
+          v_skip := v_skip + cardinality(r.arts);                             -- bentrok di baris lain: dibiarkan kuning
+          CONTINUE;
+        END;
+      END IF;
+      v_cells := v_cells + cardinality(r.arts);
+      v_lines := v_lines + 1;
+      IF r.revision_id <> v_line.revision_id AND NOT (r.revision_id = ANY (v_revids)) THEN
+        v_revids := v_revids || r.revision_id;
+      END IF;
+    END LOOP;
+    v_revs := cardinality(v_revids);
+  END IF;
+
+  -- material lama tanpa varian yang sudah tidak dipakai di draft mana pun -> INACTIVE
+  IF v_src.id <> v_var.material_id AND v_src.status = 'ACTIVE' AND NOT v_src.is_process
+     AND NOT EXISTS (SELECT 1 FROM material_variant WHERE material_id = v_src.id)
+     AND NOT EXISTS (SELECT 1 FROM bom_line l JOIN specsheet_revision sr ON sr.id = l.revision_id AND sr.status = 'DRAFT'
+                      WHERE l.material_id = v_src.id AND l.is_active)
+     AND NOT EXISTS (SELECT 1 FROM cbd_line cl JOIN cbd_revision cr ON cr.id = cl.cbd_revision_id AND cr.status = 'DRAFT'
+                      WHERE cl.material_id = v_src.id) THEN
+    UPDATE material SET status = 'INACTIVE', updated_by = v_email WHERE id = v_src.id;
+    v_off := v_src.name;
+  END IF;
+
+  RETURN jsonb_build_object('code', v_var.code,
+                            'label', v_mat.name || ' · ' || fn_thickness_label(v_var.thickness) || ' · ' || v_var.color,
+                            'cells', v_cells, 'lines', v_lines, 'revisions', v_revs, 'skipped', v_skip, 'inactivated', v_off);
+END;
+$function$;
+
+-- Data: sel kuning draft yang sudah ada
+CREATE TEMP TABLE r20d_before ON COMMIT DROP AS
+SELECT count(*) AS kuning FROM bom_cell bc
+  JOIN bom_line l ON l.id = bc.bom_line_id AND l.is_active
+  JOIN specsheet_revision rv ON rv.id = l.revision_id AND rv.status = 'DRAFT'
+  JOIN material m ON m.id = l.material_id AND NOT m.is_process
+ WHERE bc.is_used AND bc.variant_id IS NULL AND bc.color IS NOT NULL;
+
+CREATE TEMP TABLE r20d_new ON COMMIT DROP AS SELECT fn_variant_autofill(NULL, NULL) AS n;
+
+SELECT 'R20 bagian 4: varian kode tersusun baru ' || (SELECT n FROM r20d_new) ||
+       ', sel kuning draft ' || b.kuning || ' -> ' ||
+       (SELECT count(*) FROM bom_cell bc
+          JOIN bom_line l ON l.id = bc.bom_line_id AND l.is_active
+          JOIN specsheet_revision rv ON rv.id = l.revision_id AND rv.status = 'DRAFT'
+          JOIN material m ON m.id = l.material_id AND NOT m.is_process
+         WHERE bc.is_used AND bc.variant_id IS NULL AND bc.color IS NOT NULL) AS cek_r20_kode_tersusun
+  FROM r20d_before b;
+
+COMMIT;
+```
+
+## 11. Bagian 5 (BARU, 28 Okt 2026): Edit material langsung dari specsheet
+
+Permintaan Anda: material bisa diedit dari specsheet (mis. lupa centang **Process** saat + New material) tanpa pindah ke Master
+Material. Di kolom Material grid (draft, role Vendor Spec) ada link **Edit material** di bawah nama material. Klik = modal **Edit
+Material** (modal yang sama dengan + New material): nama, kategori, Mea (UoM), **Process**, status. Yang diubah = **master material**,
+jadi berlaku di semua specsheet / CBD draft yang memakainya (jumlahnya tampil di atas form). Aturan tetap dari DB (sama dengan Material
+Detail): nama / kategori / UoM / Process terkunci bila material sudah dipakai dokumen terbit; Process tidak bisa dicentang bila material
+sudah punya varian (Material Code). Varian (kode, dimension, warna) tetap lewat Register / Material Detail. **Tanpa SQL baru.**
+
+### 11a. Pasang
+
+| # | Langkah | Hasil | OK? |
+|---|---|---|---|
+| 11.1 | Import `exports/build_r20.json` (timpa app), lalu Deploy | Nama app `Product Management R20` | |
+| 11.2 | Page **Login** / **Home** → `onPageLoad` tetap ON (seperti 0.5); page **Specsheet** → query `q_material_edit` dan `a_material_update` ada, **Manual** | ON / Manual | |
+
+### 11b. Uji (Vendor Spec)
+
+| # | Langkah | Hasil | OK? |
+|---|---|---|---|
+| 11.3 | Specsheet draft → baris tambah, ketik material baru `UJI R20F CAT` → **+ New material** → kategori apa saja, Mea `PRS`, **Process tidak dicentang** → Save → baris ditambahkan | Baris `UJI R20F CAT` tanpa badge `process` | |
+| 11.4 | Di bawah nama material baris itu klik **Edit material** | Modal **Edit Material** berisi data material; kotak biru `Changes apply to Master Material, so also to 1 draft specsheet using it.` | |
+| 11.5 | Centang **Process** → Save | `Material saved.`; baris dapat badge **process**, sel article tidak kuning lagi | |
+| 11.6 | Master Material → `UJI R20F CAT` | Process tercentang, metode harga **Quotation** | |
+| 11.7 | Kembali ke specsheet, **Edit material** baris yang materialnya sudah punya Material Code | Centang Process terkunci, catatan `This material has variants (Material Codes), so it cannot be a Process material.` | |
+| 11.8 | **Edit material** baris yang materialnya dipakai specsheet / CBD **terbit**, ganti nama → Save | Kotak merah `Name, category, and UoM of material ... cannot be changed: it is used in a published specsheet / CBD ...` | |
+| 11.9 | Edit material, ubah nama jadi nama material lain yang sudah ada (UoM sama) → Save | Ditolak (nama + UoM sudah ada), modal tetap terbuka | |
+| 11.10 | Klik **+ New material** di bar atas sesudahnya | Modal kembali **Add Material** kosong (bukan mode edit) | |
+| 11.11 | Login Vendor CBD / Brand, buka specsheet | Link **Edit material** tidak tampil | |
+| 11.12 | Buka revisi **terbit** | Link **Edit material** tidak tampil | |
+
+Bersih-bersih: material `UJI R20F CAT` bisa di-INACTIVE lewat Master Material (hapus barisnya dulu dari draft).
+
+## 12. Bagian 6 (BARU, 28 Okt 2026): Dimension di grid tidak tersimpan sendiri, daftar tidak hilang
+
+Catatan Anda: ganti Dimension baris A dari daftar, lalu cepat klik Dimension baris B. Baris B ikut tersimpan sendiri (sering
+dengan ketikan setengah jadi), kursor hilang sehingga tidak bisa mengetik, dan daftar Dimension tidak muncul. Penyebabnya: setiap
+simpan membuat grid digambar ulang 3 sampai 4 kali, dan setiap kali itu semua kotak dibuat ulang. Kotak B yang sedang dipakai
+ikut tersimpan saat dibuang, lalu kursor tidak kembali. Daftar juga ditutup setiap kali grid digambar ulang atau bergulir.
+
+Sekarang:
+- **Memilih Dimension dari daftar = langsung tersimpan** (tidak perlu klik di luar / Enter).
+- Selama grid digambar ulang **tidak ada kotak yang tersimpan sendiri**. Kotak yang sedang Anda pakai tidak dibuat ulang: ketikan
+  dan posisi kursor tetap.
+- Setelah Dimension baris diganti (baris itu dapat id baru di database), **kursor tetap di kotak baris itu**.
+- Daftar yang sedang terbuka **tetap terbuka** setelah grid digambar ulang, dan ikut bergeser saat grid digulir (tidak ditutup).
+
+**Tanpa SQL baru.**
+
+### 12a. Pasang
+
+| # | Langkah | Hasil | OK? |
+|---|---|---|---|
+| 12.1 | Import `exports/build_r20.json` (timpa app), lalu Deploy | Nama app `Product Management R20` | |
+| 12.2 | Page **Login** / **Home** → `onPageLoad` tetap ON (seperti 0.5) | ON | |
+
+### 12b. Uji (Vendor Spec, specsheet draft dengan minimal 3 baris)
+
+| # | Langkah | Hasil | OK? |
+|---|---|---|---|
+| 12.3 | Gulir grid sedikit ke bawah / kanan. Klik kotak Dimension baris A | Daftar Dimension muncul dan **tidak langsung hilang** | |
+| 12.4 | Pilih dimension lain dari daftar (klik), **jangan** klik di luar | Status `Saving…` lalu kembali; Dimension baris A tersimpan (cek dengan F5) | |
+| 12.5 | Ulangi 12.4 di baris A, lalu **segera** klik Dimension baris B | Baris B **tidak** tersimpan sendiri; daftar baris B **tetap terbuka** setelah `Saving…` selesai | |
+| 12.6 | Ulangi 12.5, lalu langsung ketik beberapa huruf di baris B selagi `Saving…` | Ketikan tidak hilang / terpotong, kursor tetap di baris B, baris B **belum** tersimpan | |
+| 12.7 | Tekan **Esc** di baris B | Kembali ke dimension lama, tidak ada yang tersimpan | |
+| 12.8 | Pilih dimension dari daftar baris C dan tetap di kotak itu | Setelah `Saving…` selesai kursor **masih** di kotak baris C | |
+| 12.9 | Ketik dimension baru di baris C lalu Enter | Tersimpan seperti sebelumnya, kursor pindah ke baris di bawahnya | |
+| 12.10 | Warna di sel article & Remarks: ketik lalu klik sel lain dengan cepat | Tersimpan seperti biasa, sel lain tidak ikut tersimpan | |
+
+## 13. Bagian 7 (BARU, 28 Okt 2026): dropdown Dimension langsung lengkap
+
+Catatan Anda: dropdown Dimension sering hanya berisi `(None)`. Penyebabnya, daftar hanya mengambil dimension dari **varian yang
+sudah punya Material Code**. Material yang belum punya varian hanya punya `(None)`, dan dimension material lain baru muncul setelah
+mengetik.
+
+Sekarang klik kotak Dimension langsung menampilkan:
+1. `(None)` dan dimension terdaftar material ini (`N colors`), seperti sebelumnya
+2. dimension yang **sudah dipakai material ini di specsheet tapi belum punya kode**: `used in specsheet · no code yet (N lines)`
+3. di bawah judul **Other materials**: dimension material lain (`new for this material · used by N materials`)
+
+Saat mengetik daftar tetap disaring. Default Dimension saat memilih material tidak berubah (tetap dari varian terdaftar).
+**Tanpa SQL baru** (hanya query `q_bom_options` di page Specsheet yang ditambah, ikut di build).
+
+> Hati-hati: daftar sekarang lebih panjang dan bisa menutupi beberapa baris di bawahnya. Klik di dalam daftar = memilih dan
+> **langsung tersimpan** (bagian 12). Untuk pindah baris tanpa memilih, tekan **Esc** dulu atau klik di luar daftar. Salah pilih:
+> tombol **Undo replace** di baris itu.
+
+### 13a. Pasang
+
+| # | Langkah | Hasil | OK? |
+|---|---|---|---|
+| 13.1 | Import `exports/build_r20.json` (timpa app), lalu Deploy | Nama app `Product Management R20` | |
+| 13.2 | Page **Specsheet** → query `q_bom_options` → Run | Ada kolom `used_dims`, tanpa error | |
+
+### 13b. Uji (Vendor Spec, specsheet draft)
+
+| # | Langkah | Hasil | OK? |
+|---|---|---|---|
+| 13.3 | Klik kotak Dimension baris yang materialnya **belum punya varian** | Daftar: `(None)`, dimension yang dipakai material itu di specsheet (`used in specsheet · no code yet`) bila ada, lalu **Other materials** | |
+| 13.4 | Klik kotak Dimension baris yang materialnya **sudah punya varian** | Dimension terdaftar (`N colors`) di atas, lalu yang belum berkode, lalu **Other materials** | |
+| 13.5 | Gulir daftar dengan scrollbar-nya | Daftar tetap terbuka, kotak tetap fokus | |
+| 13.6 | Ketik `1.` di kotak itu | Daftar disaring (mis. `1.5 MM`), dimension material ini di atas, material lain di bawah | |
+| 13.7 | Pilih dimension dari **Other materials** | Tersimpan, catatan sel kuning seperti dimension baru biasa; setelah Saving selesai dimension itu tampil sebagai `used in specsheet · no code yet (1 line)` untuk material ini | |
+| 13.8 | Baris tambah: kotak Dimension sebelum Material diisi | `(None)` + **Other materials** | |
+| 13.9 | Register varian untuk dimension yang tadi `no code yet` lalu buka lagi daftarnya | Dimension itu pindah ke kelompok atas (`1 colors`) | |

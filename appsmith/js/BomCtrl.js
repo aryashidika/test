@@ -9,6 +9,8 @@
 // R12 (T62): grid hanya menampilkan baris revisi yang dibuka; pemuatan yang tersalip dimuat ulang (fetch()).
 // R20: "Use KODE in the specsheet" di modal Register (kode sudah dipakai varian lain) = a_bom_use_variant (fn_bom_use_variant):
 // sel memakai varian itu, sel kuning yang sama di semua draft ikut pindah. Material Code hanya diketik di Register.
+// R20 bagian 5: tombol ✎ di sel Material (action editMaterial) = Edit Material (nama, kategori, UoM, Process, status) di modal
+// yang sama (mdlMaterialBaru, mode edit, q_material_edit + a_material_update); berlaku untuk master, jadi semua draft ikut.
 export default {
 	okKey: 0,        // naik setelah tambah baris / subkomponen berhasil -> cwBomGrid mengosongkan form
 	busyCount: 0,
@@ -23,6 +25,7 @@ export default {
 	matKey: 0, matBusy: false, matMsg: null, matForm: { name: '', category: '', uom: '' },
 	matSimilar: [], matSimilarFor: '', matSimilarSeq: 0,
 	matAdded: { key: 0, name: '' },   // R16: material baru tersimpan -> cwBomGrid melanjutkan baris yang menunggu
+	matEdit: null,   // R20 bagian 5: baris q_material_edit saat modal dalam mode edit (null = + New material)
 	statusOptions: [
 		{ label: 'ACTIVE', value: 'ACTIVE' },
 		{ label: 'INACTIVE', value: 'INACTIVE' },
@@ -51,7 +54,22 @@ export default {
 			components: arr(r.components), materials: arr(r.materials), variants: arr(r.variants),
 			suppliers: arr(r.suppliers), links: arr(r.links),
 			categories: arr(r.categories), uoms: arr(r.uoms),   // R16: saran isian modal + New material
+			usedDims: arr(r.used_dims),   // R20 bagian 7: dimension di baris specsheet aktif yang belum punya varian ACTIVE
 		};
+	},
+
+	// R20 bagian 4: kode sel grid yang belum ada di q_bom_options (varian tersusun otomatis). Kode yang tetap tidak ada setelah
+	// dimuat ulang (mis. varian INACTIVE yang masih terpasang) diingat, supaya tidak memuat ulang terus.
+	codesChecked: [],
+	hasNewCodes() {
+		const known = new Set(this.options().variants.map(v => v.code).concat(this.codesChecked));
+		const fresh = [];
+		(q_bom_grid.data || []).forEach(l => {
+			const c = typeof l.cell_codes === 'string' ? JSON.parse(l.cell_codes || '{}') : (l.cell_codes || {});
+			Object.values(c).forEach(code => { if (code && !known.has(code) && !fresh.includes(code)) fresh.push(code); });
+		});
+		this.codesChecked = this.codesChecked.concat(fresh);
+		return fresh.length > 0;
 	},
 
 	articleNote() {
@@ -96,6 +114,8 @@ export default {
 			if (what.includes('options')) jobs.push(q_bom_options.run());
 			if (what.includes('colors')) jobs.push(q_season_colors.run({ season: s ? s.season : '' }));
 			await Promise.all(jobs);
+			// R20 bagian 4: sel mendapat kode tersusun otomatis (varian baru di DB) -> daftar varian / dimension grid ikut dimuat ulang
+			if (!what.includes('options') && this.hasNewCodes()) await q_bom_options.run();
 			const cur = SpecCtrl.revision();
 			const stale = g < this.doneGen || (cur ? cur.id : '') !== rid;
 			this.doneGen = Math.max(this.doneGen, g);
@@ -119,6 +139,7 @@ export default {
 			components: o.components,
 			materials: o.materials,
 			variants: o.variants,
+			usedDims: o.usedDims,
 			suppliers: o.suppliers,
 			links: o.links,
 			colors: (q_season_colors.data || []).map(c => c.color),
@@ -147,6 +168,7 @@ export default {
 		if (a.type === 'registerVariant') { ack(); return this.openRegister(a); }
 		if (a.type === 'newSupplier') { ack(); return this.openNewSupplier(); }
 		if (a.type === 'newMaterial') { ack(); return this.openNewMaterial(a); }
+		if (a.type === 'editMaterial') { ack(); return this.openEditMaterial(a); }
 		const r = SpecCtrl.revision();
 		const actions = !r ? {} : {
 			addLine: [a_bom_add_line, {
@@ -208,7 +230,8 @@ export default {
 		}
 		if (!j) return 'Variant used.';
 		const n = Number(j.cells) || 0;
-		return `${j.code} (${j.label}) used in ${n} cell${n === 1 ? '' : 's'}.`
+		return (j.registered ? `New variant ${j.code} registered. ` : '')   // R20 bagian 4: kode purchasing belum terdaftar
+			+ `${j.code} (${j.label}) used in ${n} cell${n === 1 ? '' : 's'}.`
 			+ (Number(j.revisions) ? ` ${j.revisions} other draft${Number(j.revisions) === 1 ? '' : 's'} updated too.` : '')
 			+ (Number(j.skipped) ? ` ${j.skipped} yellow cell${Number(j.skipped) === 1 ? '' : 's'} in other drafts stayed yellow (that line already has another color there).` : '')
 			+ (j.inactivated ? ` Material ${j.inactivated} is no longer used in drafts and is now INACTIVE.` : '');
@@ -251,6 +274,7 @@ export default {
 		const m = cwVariantForm.model || {};
 		if (m.lookupKind === 'suggest') return this.suggestVariantCode();
 		if (m.lookupKind === 'use') return this.useFromRegister(m.useId, m.useCode);
+		if (m.lookupKind === 'useCode') return this.useFromRegister(null, m.useCode);
 		const code = String(m.lookupCode || '');
 		const color = String(m.lookupColor || '');
 		const thickness = String(m.lookupThickness || '');
@@ -258,23 +282,31 @@ export default {
 		const seq = this.varLookupSeq + 1;
 		this.varLookupSeq = seq;
 		try {
-			const rows = await q_code_hint.run({ material_id: c.material_id, code, exclude_id: '', color, thickness });
+			// R20 bagian 4: + kode purchasing belum terdaftar yang terbaca sebagai material / dimension / warna lain (tombol Use)
+			const [rows, dec] = await Promise.all([
+				q_code_hint.run({ material_id: c.material_id, code, exclude_id: '', color, thickness }),
+				c.line_id ? q_code_decode.run({ material_id: c.material_id, code, color, thickness }).catch(() => []) : [],
+			]);
 			if (seq !== this.varLookupSeq) return;
-			this.varHint = rows && rows[0] ? Object.assign({ for: `${code}|${color}|${thickness}` }, rows[0]) : null;
+			this.varHint = rows && rows[0]
+				? Object.assign({ for: `${code}|${color}|${thickness}`, decode: (dec && dec[0]) || null }, rows[0]) : null;
 		} catch (e) {
 			/* hanya bantuan - aturan final di DB */
 		}
 	},
 
-	// R20: modal Register -> kode sudah dipakai varian lain -> sel ini (dan sel kuning yang sama di semua draft) memakainya
+	// R20: modal Register -> kode sudah dipakai varian lain -> sel ini (dan sel kuning yang sama di semua draft) memakainya.
+	// R20 bagian 4: variantId kosong = kode belum terdaftar yang terbaca (a_bom_use_code mendaftarkan varian itu dulu)
 	async useFromRegister(variantId, code) {
 		const c = this.varCtx || {};
-		if (!variantId || !c.line_id || !c.article_id) return;
+		if ((!variantId && !code) || !c.line_id || !c.article_id) return;
 		this.varMsg = null;
 		this.varBusy = true;
 		let res = null;
 		try {
-			res = await a_bom_use_variant.run({ line_id: c.line_id, article_id: c.article_id, variant_id: variantId });
+			res = variantId
+				? await a_bom_use_variant.run({ line_id: c.line_id, article_id: c.article_id, variant_id: variantId })
+				: await a_bom_use_code.run({ line_id: c.line_id, article_id: c.article_id, code });
 		} catch (e) {
 			const msg = e && e.message;
 			if (Util.isSessionError(msg)) {
@@ -419,6 +451,7 @@ export default {
 
 	// ---- + New material (mdlMaterialBaru / cwMaterialForm): induk baru (nama, kategori, UoM), tanpa kode ----
 	openNewMaterial(a) {
+		this.matEdit = null;
 		this.matForm = { name: String((a && a.name) || ''), category: '', uom: '', is_process: false };
 		this.matSimilar = [];
 		this.matSimilarFor = '';
@@ -430,6 +463,28 @@ export default {
 
 	materialFormModel() {
 		const o = this.options();
+		const e = this.matEdit;
+		if (e) {
+			return {
+				key: this.matKey,
+				mode: 'edit',
+				form: this.matForm,
+				categories: o.categories,
+				uoms: o.uoms,
+				statusOptions: this.statusOptions,
+				// R19: tanda Process terkunci setelah dipakai dokumen terbit; dipasang hanya bila belum punya varian (aturan di DB)
+				processLocked: !!e.used_published || (!e.is_process && Number(e.variant_count) > 0),
+				processNote: e.used_published ? 'Process cannot be changed: this material is used in a published specsheet / CBD.'
+					: 'This material has variants (Material Codes), so it cannot be a Process material.',
+				canIdentity: true,
+				canPriceMethod: Auth.can('manage_price'),
+				canStatus: true,
+				similar: this.matSimilar,
+				similarFor: this.matSimilarFor,
+				busy: this.matBusy,
+				message: this.matMsg,
+			};
+		}
 		return {
 			key: this.matKey,
 			mode: 'add',
@@ -458,11 +513,12 @@ export default {
 			return;
 		}
 		try {
-			const rows = await q_similar.run({ kind: 'MATERIAL', text, exclude_id: '' });
+			const rows = await q_similar.run({ kind: 'MATERIAL', text, exclude_id: this.matEdit ? this.matEdit.id : '' });
 			if (seq !== this.matSimilarSeq) return;
 			// R16: DB hanya menemukan nama yang memuat teks (tanpa tanda baca); typo / urutan kata dicari di sini dari master pabrik
 			const list = (rows || []).slice();
-			this.nearMaterialNames(text).forEach(n => {
+			const self = this.matEdit ? String(this.matEdit.name).toUpperCase() : null;
+			this.nearMaterialNames(text).filter(n => n.toUpperCase() !== self).forEach(n => {
 				if (!list.some(r => String(r.label).toUpperCase() === n.toUpperCase())) list.push({ ref_id: n, label: n, info: 'looks similar (typo?)' });
 			});
 			this.matSimilar = list;
@@ -514,8 +570,73 @@ export default {
 			.map(x => x.n);
 	},
 
+	// ---- R20 bagian 5: ✎ di sel Material -> Edit Material (master: berlaku di semua specsheet / CBD draft) ----
+	async openEditMaterial(a) {
+		let row;
+		try {
+			row = ((await q_material_edit.run({ id: a.material_id })) || [])[0];
+		} catch (e) {
+			showAlert(Util.cleanError(e && e.message), 'error');
+			return;
+		}
+		if (!row) {
+			showAlert('Material not found.', 'error');
+			return;
+		}
+		this.matEdit = row;
+		this.matForm = {
+			name: row.name, category: row.category, uom: row.uom, price_method: row.price_method, status: row.status,
+			is_process: !!row.is_process,
+		};
+		this.matSimilar = [];
+		this.matSimilarFor = '';
+		this.matBusy = false;
+		const used = [];
+		if (Number(row.draft_specs) > 0) used.push(`${row.draft_specs} draft specsheet${Number(row.draft_specs) > 1 ? 's' : ''}`);
+		if (Number(row.draft_cbds) > 0) used.push(`${row.draft_cbds} draft CBD${Number(row.draft_cbds) > 1 ? 's' : ''}`);
+		this.matMsg = { type: 'info', text: 'Changes apply to Master Material' + (used.length ? `, so also to ${used.join(' and ')} using it.` : '.') };
+		this.matKey = this.matKey + 1;
+		showModal('mdlMaterialBaru');
+	},
+
+	async saveEditedMaterial(m) {
+		const e = this.matEdit;
+		const data = {
+			id: e.id,
+			name: m.name,
+			category: m.category,
+			uom: m.uom,
+			status: m.status || e.status,
+			price_method: m.price_method || e.price_method,
+			is_process: m.is_process === true,
+		};
+		this.matMsg = null;
+		this.matBusy = true;
+		try {
+			await a_material_update.run(data);
+		} catch (err) {
+			const msg = err && err.message;
+			if (Util.isSessionError(msg)) {
+				closeModal('mdlMaterialBaru');
+				await removeValue('token');
+				showAlert('Session expired. Please log in again.', 'warning');
+				navigateTo('Login');
+				return;
+			}
+			this.matMsg = { type: 'error', text: Util.cleanError(msg) };   // mis. sudah terbit, nama + UoM sudah ada
+			return;
+		} finally {
+			this.matBusy = false;
+		}
+		closeModal('mdlMaterialBaru');
+		this.matEdit = null;
+		showAlert('Material saved.', 'success');
+		await this.reload(['options']);
+	},
+
 	async saveMaterial() {
 		const m = cwMaterialForm.model || {};     // baca dulu - model di-reset saat Default model berubah
+		if (this.matEdit) return this.saveEditedMaterial(m);
 		const data = { name: m.name, category: m.category, uom: m.uom, is_process: m.is_process === true };   // R19: Process
 		if (!data.name || !data.category || !data.uom) {
 			this.matMsg = { type: 'error', text: 'Fill in category, name, and Mea.' };

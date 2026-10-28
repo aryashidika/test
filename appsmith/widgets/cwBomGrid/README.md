@@ -158,3 +158,37 @@ R4 (specsheet per varian):
 - Baris tambah / sub: Material dipilih -> Dimension = default; Material diganti -> `dimFor`. `resolveMaterial`: Dimension yang belum diisi =
   default, `(None)` / `.` = kosong. Baris yang ada: Ganti material -> `replaceMaterial` dengan `dimFor` langsung. Alur R19 `pendingDim`
   ("Now pick the dimension ...", kelas `.cell.need`) dan `needDim` dihapus.
+
+## R20 bagian 5: Edit material dari specsheet (28 Okt 2026)
+
+- Kolom Material (draft, `canAddMaterial`, baris punya `material_id`): link **Edit material** di bawah nama (gaya sama dengan **Change**
+  di kolom Component). Klik → action `editMaterial` `{ material_id }`, langsung di-ack seperti `newMaterial`.
+- `BomCtrl.openEditMaterial()` membuka `mdlMaterialBaru` / `cwMaterialForm` mode `edit` (data dari `q_material_edit`, + jumlah draft
+  specsheet / CBD yang memakai), Save = `a_material_update` (`fn_material_update` R19). `matAdded` tidak dinaikkan (tidak ada aksi
+  baris yang diulang); grid + `q_bom_options` dimuat ulang.
+
+## R20 bagian 6: simpan Dimension saat klik cepat antar baris (28 Okt 2026)
+Catatan uji user: ganti Dimension baris A dari daftar, lalu cepat klik Dimension baris B -> B tersimpan sendiri (ketikan setengah
+jadi), kursor hilang, daftar tidak muncul. Penyebab: `render()` membuang semua kotak; kotak B yang fokus kena `blur` saat dibuang
+(Chrome) masih `isConnected` -> tersimpan; Ganti material / Dimension membuat baris baru (id baru) sehingga fokus tidak kembali;
+`hideSuggest` dipanggil di setiap render dan setiap `scroll` (juga guliran dari fokus / pemulihan posisi).
+- `rendering` (flag selama `render()`): `commit` di `cellInput`, `change` kolom Component, `focus` / `blur` daftar saran diabaikan.
+- Dimension di sel grid (`dropdown` + `onCommit` + `col`): memilih dari daftar (klik / Enter) langsung menyimpan (`_commitOnPick`).
+- `replacedIds()`: baris baru dengan `replaces_line_key` = `line_key` lama -> kunci fokus, ketikan (`dirty`), `optimistic` dipindah
+  ke id baru.
+- Kotak yang fokus di baris yang tetap (id sama) dipakai lagi (elemen lama menggantikan elemen baru): ketikan, kursor, seleksi tetap;
+  `dataset.orig` = nilai DB terbaru. Fokus dikembalikan dengan `preventScroll`.
+- Daftar yang terbuka sebelum render dibuka lagi (penuh / disaring seperti sebelumnya). `scroll` grid = `placeSuggest()` (daftar
+  digeser mengikuti kotak; ditutup hanya bila kotak keluar dari area grid).
+
+## R20 bagian 7: dropdown Dimension langsung lengkap (28 Okt 2026)
+Catatan uji user: dropdown Dimension sering hanya berisi `(None)`. Penyebab: `materials` di `q_bom_options` hanya membawa dimension
+dari varian ACTIVE; material tanpa varian = `(None)` saja, dan dimension material lain baru tampil setelah mengetik.
+- `q_bom_options` + kolom `used_dims` `[{ material_id, thickness, lines }]`: dimension baris specsheet aktif (semua revisi, pabrik
+  user) yang belum punya varian ACTIVE untuk material itu. `BomCtrl.options().usedDims` -> `model.usedDims`.
+- `buildMats()`: `USED_BY_ID` (tanpa yang sudah terdaftar); `ALL_DIMS` ikut menghitung dimension `used_dims`. Default Dimension
+  (`defaultDim`) dan tanda "new dimension" tetap hanya dari varian terdaftar.
+- `dimensionSuggest()`: `(None)`, dimension terdaftar, dimension `used in specsheet · no code yet (N lines)`, lalu "Other materials".
+- `showSuggest()`: kotak Dimension (`_sugFull`) diklik atau dikosongkan = daftar penuh termasuk "Other materials" (maks 200, kotak
+  daftar bergulir). Saat mengetik tetap disaring seperti sebelumnya. `mousedown` di kotak daftar (scrollbar / judul) tidak memindah
+  fokus.

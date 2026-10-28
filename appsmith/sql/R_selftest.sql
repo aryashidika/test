@@ -967,7 +967,7 @@ DECLARE
   t_spec  text := pg_temp.tok('spec.a@selftest.invalid');
   v_cat   uuid; v_sup uuid; v_comp uuid;
   v_mat   uuid; v_var uuid; v_v2 uuid;
-  m uuid; sh uuid; a1 uuid; a2 uuid; rv uuid; l1 uuid; l2 uuid;
+  m uuid; sh uuid; a1 uuid; a2 uuid; rv uuid; l1 uuid; l2 uuid; l3 uuid;
 BEGIN
   -- ===== bentuk baku (sama dengan canonThickness di cwBomGrid) =====
   PERFORM pg_temp.ok(fn_clean_thickness('1,2 mm') = '1.2 MM' AND fn_clean_thickness('  1.2   MM ') = '1.2 MM'
@@ -1031,26 +1031,35 @@ BEGIN
   v_var := fn_variant_save(t_spec, NULL, v_mat, 'UBTK200BLK', 'black', '2.0 mm', 'ACTIVE');
   PERFORM pg_temp.ok((SELECT thickness || '|' || color FROM material_variant WHERE id = v_var) = '2 MM|BLACK'
                      AND (SELECT variant_id FROM bom_cell WHERE bom_line_id = l1 AND article_id = a1) = v_var
-                     AND (SELECT yellow_cells FROM v_revision_checklist WHERE revision_id = rv) = 1,
-                     'R16 varian didaftarkan dengan "2.0 mm": sel BLACK tersambung, sisa 1 kuning');
+                     AND (SELECT yellow_cells FROM v_revision_checklist WHERE revision_id = rv) = 0,
+                     'R16 varian didaftarkan dengan "2.0 mm": sel BLACK tersambung');
+  -- R20 bagian 4: WHITE belum ada di material ini, tapi di pabrik WHITE hanya berkode WHT -> UBTK200WHT tersusun otomatis
+  SELECT bc.variant_id INTO v_v2 FROM bom_cell bc WHERE bc.bom_line_id = l1 AND bc.article_id = a2;
+  PERFORM pg_temp.ok((SELECT code FROM material_variant WHERE id = v_v2) = 'UBTK200WHT',
+                     'R20b4 kode warna dari material lain (WHITE = WHT satu-satunya di pabrik): sel WHITE tersusun UBTK200WHT');
   PERFORM pg_temp.must_fail(format('SELECT fn_variant_save(%L, NULL, %L, ''UBTK200BL2'', ''BLACK'', ''2,0MM'', ''ACTIVE'')', t_spec, v_mat),
             '%already exists%', 'R16 varian dobel beda cara tulis thickness (2,0MM = 2 MM) ditolak');
-  v_v2 := fn_variant_save(t_spec, NULL, v_mat, 'UBTK200WHT', 'White', '2MM', 'ACTIVE');
   PERFORM pg_temp.ok((SELECT yellow_cells FROM v_revision_checklist WHERE revision_id = rv) = 0, 'R16 semua kuning hilang setelah kode lengkap');
   -- R20: kode 200 sudah berarti 2 MM -> 9 MM ditolak walau dicentang; 2,0 mm (= 2 MM) tetap diterima
   PERFORM pg_temp.must_fail(format('SELECT fn_variant_save(%L, NULL, %L, ''UBTK200GRN'', ''GREEN'', ''9 MM'', ''ACTIVE'', true)', t_spec, v_mat),
             'Material Code UBTK200GRN cannot be saved: Dimension code 200 means 2 MM%', 'R20 kode dimension yang sudah berarti 2 MM ditolak untuk 9 MM');
   PERFORM fn_variant_save(t_spec, NULL, v_mat, 'UBTK200GRY', 'GREY', '2,0 mm', 'ACTIVE');
 
-  -- thickness baru untuk induk yang sama: baris baru, kuning lagi sampai kodenya ada
+  -- R20 bagian 4: 3 MM sudah berkode 030 di pabrik ini (EVAU030BLK), BLACK di material ini = BLK -> UBTK030BLK tersusun otomatis
   l2 := fn_bom_add_line(t_spec, rv, NULL, 91, 'Uji lokal baku', v_mat, '3mm', v_sup, NULL, 'Black');
   PERFORM pg_temp.ok((SELECT thickness FROM bom_line WHERE id = l2) = '3 MM'
+                     AND (SELECT yellow_cells FROM v_revision_checklist WHERE revision_id = rv) = 0
+                     AND (SELECT string_agg(DISTINCT v.code, ',') FROM bom_cell bc JOIN material_variant v ON v.id = bc.variant_id
+                           WHERE bc.bom_line_id = l2) = 'UBTK030BLK',
+                     'R20b4 dimension baru (3mm) yang bagian kodenya sudah dikenal: kode UBTK030BLK tersusun, tidak kuning');
+  -- dimension yang belum berkode di pabrik ini: baris baru, kuning sampai kodenya didaftarkan
+  l3 := fn_bom_add_line(t_spec, rv, NULL, 92, 'Uji lokal baku dua', v_mat, '9,9mm', v_sup, NULL, 'Black');
+  PERFORM pg_temp.ok((SELECT thickness FROM bom_line WHERE id = l3) = '9.9 MM'
                      AND (SELECT yellow_cells FROM v_revision_checklist WHERE revision_id = rv) = 2,
-                     'R16 thickness baru (3mm) untuk induk yang sama: baris baru, 2 sel kuning');
+                     'R16 thickness baru (9,9mm) untuk induk yang sama: baris baru, 2 sel kuning');
   PERFORM pg_temp.must_fail(format('SELECT fn_revision_publish(%L, %L, ''OTHER'', NULL)', t_spec, rv),
             '%no Material Code%', 'R16 thickness baru tanpa kode tidak boleh terbit');
-  PERFORM fn_variant_save(t_spec, NULL, v_mat, 'UBTK030BLK', 'BLACK', '3MM', 'ACTIVE');
-  PERFORM fn_variant_save(t_spec, NULL, v_mat, 'UBTK030WHT', 'WHITE', '3 mm', 'ACTIVE');
+  PERFORM fn_variant_save(t_spec, NULL, v_mat, 'UBTK099BLK', 'BLACK', '9.9MM', 'ACTIVE');
   PERFORM pg_temp.ok((SELECT yellow_cells FROM v_revision_checklist WHERE revision_id = rv) = 0,
                      'R16 kode thickness baru lengkap, tidak ada kuning');
   PERFORM fn_revision_publish(t_spec, rv, 'OTHER', NULL);
@@ -1324,7 +1333,8 @@ BEGIN
   sh := fn_season_add(t_spec, m, 'SS28');
   x1 := fn_article_save(t_spec, NULL, sh, 'UJI-R17B', 'BLACK');
   rv0 := fn_revision_create(t_spec, sh, 'EMPTY', NULL, NULL);
-  PERFORM fn_bom_add_line(t_spec, rv0, v_comp, NULL, NULL, m3, '0.8MM', v_sup, NULL, 'white');
+  -- R20 bagian 4: warna tanpa kode di pabrik ini (WHITE kini tersusun otomatis dari kode WHT material lain)
+  PERFORM fn_bom_add_line(t_spec, rv0, v_comp, NULL, NULL, m3, '0.8MM', v_sup, NULL, 'uji r17 tanpa kode');
   PERFORM fn_revision_publish(t_spec, rv0, 'OTHER', NULL);
   rs0 := fn_revision_create(t_spec, sh, 'NEXT_STAGE', 'GTM', NULL);
   PERFORM pg_temp.ok((SELECT stage FROM specsheet_revision WHERE id = rv0) = 'PULL'
@@ -1777,6 +1787,153 @@ BEGIN
                      'R20 daftar RED - GOLD: sel kuning RED/GOLD tersambung dan ditulis RED-GOLD');
   PERFORM fn_variant_save(t_spec, vw, mw, 'R20W160B0W', 'Black/White', '1.6 MM', 'INACTIVE');
   PERFORM pg_temp.ok((SELECT status FROM material_variant WHERE id = vw) = 'INACTIVE', 'R20 ubah status varian dengan tulisan warna lain (kunci sama) boleh');
+END;
+$$;
+
+-- ---------------------------------------------------------------- R20 bagian 4 (Material Code tersusun otomatis)
+DO $$
+DECLARE
+  t_spec text := pg_temp.tok('spec.a@selftest.invalid');
+  v_cat uuid; v_sup uuid; v_comp uuid;
+  ma uuid; mb uuid; mc uuid; mp uuid; mt uuid; mn uuid; l5 uuid; l6 uuid; l7 uuid; l8 uuid; l9 uuid; j jsonb; dd record; m1 uuid; sh1 uuid; a1 uuid; a2 uuid; r1 uuid; r2 uuid; l1 uuid; l2 uuid; l3 uuid; l4 uuid;
+  v_n integer;
+BEGIN
+  SELECT pm.category_id INTO v_cat FROM product_model pm JOIN factory f ON f.id = pm.factory_id
+   WHERE f.name = 'SELFTEST PABRIK A' LIMIT 1;
+  SELECT id INTO v_sup FROM supplier WHERE name = 'SELFTEST SUPPLIER SATU';
+  SELECT id INTO v_comp FROM component WHERE name = 'SELFTEST VAMP';
+  ma := fn_material_add(t_spec, 'UJI R20D KANVAS', 'TEXTILE', 'ME');
+  mb := fn_material_add(t_spec, 'UJI R20D JALA', 'TEXTILE', 'ME');
+  PERFORM fn_variant_save(t_spec, NULL, ma, 'R2DA066UMR', 'UJI MERAH', '6.6 MM', 'ACTIVE');
+  PERFORM fn_variant_save(t_spec, NULL, ma, 'R2DA077UBR', 'UJI BIRU', '7.7 MM', 'ACTIVE');
+  PERFORM fn_variant_save(t_spec, NULL, mb, 'R2DB066UHJ', 'UJI HIJAU', '6.6 MM', 'ACTIVE');
+
+  m1  := pg_temp.mk_model(t_spec, 'Uji R20 Kode Susun', v_cat);
+  sh1 := fn_season_add(t_spec, m1, 'SS28');
+  a1  := fn_article_save(t_spec, NULL, sh1, 'UJI-R20D1', 'RED');
+  a2  := fn_article_save(t_spec, NULL, sh1, 'UJI-R20D2', 'BLUE');
+  r1  := fn_revision_create(t_spec, sh1, 'EMPTY', 'SMS', NULL);
+  -- KANVAS 7.7 MM + UJI MERAH: awalan R2DA, 7.7 MM = 077, UJI MERAH di KANVAS = UMR -> R2DA077UMR
+  l1 := fn_bom_add_line(t_spec, r1, v_comp, NULL, NULL, ma, '7,7mm', v_sup, NULL, NULL);
+  PERFORM fn_bom_cell_set(t_spec, l1, a1, 'uji merah');
+  PERFORM pg_temp.ok((SELECT v.code || '|' || v.thickness || '|' || v.color || '|' || v.status || '|' || v.created_by
+                        FROM bom_cell bc JOIN material_variant v ON v.id = bc.variant_id
+                       WHERE bc.bom_line_id = l1 AND bc.article_id = a1) = 'R2DA077UMR|7.7 MM|UJI MERAH|ACTIVE|spec.a@selftest.invalid',
+                     'R20b4 sel warna: kode tersusun R2DA077UMR jadi varian biasa (ACTIVE, dibuat oleh pengisi sel)');
+  -- UJI HIJAU hanya dikenal di material lain (JALA = UHJ, satu-satunya kode di pabrik): ikut dipakai
+  PERFORM fn_bom_cell_set(t_spec, l1, a2, 'UJI HIJAU');
+  PERFORM pg_temp.ok((SELECT v.code FROM bom_cell bc JOIN material_variant v ON v.id = bc.variant_id
+                       WHERE bc.bom_line_id = l1 AND bc.article_id = a2) = 'R2DA077UHJ',
+                     'R20b4 kode warna dari material lain (satu kode di pabrik): R2DA077UHJ tersusun');
+  -- UJI UNGU punya dua kode di dua material (UUN / UU2): tidak jelas -> tetap kuning
+  mc := fn_material_add(t_spec, 'UJI R20D KARET', 'RUBBER', 'ME');
+  PERFORM fn_variant_save(t_spec, NULL, mb, 'R2DB066UUN', 'UJI UNGU', '6.6 MM', 'ACTIVE');
+  PERFORM fn_variant_save(t_spec, NULL, mc, 'R2DC066UU2', 'UJI UNGU', '6.6 MM', 'ACTIVE');
+  PERFORM fn_bom_cell_set(t_spec, l1, a2, 'UJI UNGU');
+  PERFORM pg_temp.ok((SELECT variant_id FROM bom_cell WHERE bom_line_id = l1 AND article_id = a2) IS NULL,
+                     'R20b4 warna dengan dua kode di pabrik tidak disusun: sel tetap kuning');
+  -- dimension belum berkode: kuning; kode warna baru didaftarkan di dimension lain -> sel kuning draft lain tersusun
+  l2 := fn_bom_add_line(t_spec, r1, NULL, 93, 'Uji susun dua', ma, '8.8 MM', v_sup, NULL, 'UJI KUNING');
+  l3 := fn_bom_add_line(t_spec, r1, NULL, 94, 'Uji susun tiga', ma, '6.6 MM', v_sup, NULL, 'UJI KUNING');
+  PERFORM pg_temp.ok((SELECT count(*) FROM bom_cell WHERE bom_line_id IN (l2, l3) AND is_used AND variant_id IS NULL) = 4,
+                     'R20b4 warna belum berkode di material ini: kuning');
+  PERFORM fn_variant_save(t_spec, NULL, ma, 'R2DA077UKN', 'UJI KUNING', '7.7 MM', 'ACTIVE');
+  PERFORM pg_temp.ok((SELECT string_agg(DISTINCT v.code, ',') FROM bom_cell bc JOIN material_variant v ON v.id = bc.variant_id
+                       WHERE bc.bom_line_id = l3) = 'R2DA066UKN'
+                     AND (SELECT count(*) FROM bom_cell WHERE bom_line_id = l2 AND is_used AND variant_id IS NULL) = 2,
+                     'R20b4 kode warna baru (UKN) didaftarkan: sel 6.6 MM tersusun R2DA066UKN, 8.8 MM (belum berkode) tetap kuning');
+  -- kode tengah dimension baru didaftarkan di material LAIN -> sel kuning material ini ikut tersusun
+  PERFORM fn_variant_save(t_spec, NULL, mb, 'R2DB088UHJ', 'UJI HIJAU', '8.8 MM', 'ACTIVE');
+  PERFORM pg_temp.ok((SELECT string_agg(DISTINCT v.code, ',') FROM bom_cell bc JOIN material_variant v ON v.id = bc.variant_id
+                       WHERE bc.bom_line_id = l2) = 'R2DA088UKN',
+                     'R20b4 kode dimension 8.8 MM (088) dari material lain: sel KANVAS 8.8 MM tersusun R2DA088UKN');
+  -- varian INACTIVE dengan kombinasi sama tidak dibuat ulang
+  PERFORM fn_variant_save(t_spec, (SELECT id FROM material_variant WHERE code = 'R2DA066UMR'), ma, 'R2DA066UMR', 'UJI MERAH', '6.6 MM', 'INACTIVE');
+  l4 := fn_bom_add_line(t_spec, r1, NULL, 95, 'Uji susun empat', ma, '6.6 MM', v_sup, NULL, 'UJI MERAH');
+  PERFORM pg_temp.ok((SELECT count(*) FROM bom_cell WHERE bom_line_id = l4 AND variant_id IS NULL) = 2
+                     AND (SELECT count(*) FROM material_variant WHERE material_id = ma AND color = 'UJI MERAH' AND thickness = '6.6 MM') = 1,
+                     'R20b4 kombinasi dengan varian INACTIVE tidak dibuat ulang (tetap kuning)');
+  -- material Process tidak ikut
+  mp := fn_material_add(t_spec, 'UJI R20D SABLON', 'PROCESS', 'PRS', true);
+  PERFORM fn_bom_add_line(t_spec, r1, NULL, 96, 'Uji susun proses', mp, '', v_sup, NULL, 'UJI MERAH');
+  PERFORM pg_temp.ok(NOT EXISTS (SELECT 1 FROM material_variant WHERE material_id = mp), 'R20b4 material Process tidak mendapat varian');
+  -- revisi terbit tidak disentuh; revisi berikutnya (salinan) tersusun saat disalin
+  PERFORM fn_bom_delete_line(t_spec, l4);
+  PERFORM fn_bom_cell_set(t_spec, l1, a2, NULL);
+  PERFORM fn_revision_publish(t_spec, r1, 'OTHER', NULL);
+  v_n := (SELECT count(*) FROM material_variant WHERE material_id = ma);
+  PERFORM fn_variant_save(t_spec, NULL, ma, 'R2DA077UOR', 'UJI ORANYE', '7.7 MM', 'ACTIVE');
+  PERFORM pg_temp.ok((SELECT count(*) FROM material_variant WHERE material_id = ma) = v_n + 1,
+                     'R20b4 revisi terbit tidak memicu varian tersusun');
+  r2 := fn_revision_create(t_spec, sh1, 'NEXT_REVISION', NULL, NULL);
+  PERFORM pg_temp.ok((SELECT count(*) FROM bom_cell bc JOIN bom_line l ON l.id = bc.bom_line_id AND l.is_active
+                       JOIN material m ON m.id = l.material_id AND NOT m.is_process
+                      WHERE l.revision_id = r2 AND bc.is_used AND bc.variant_id IS NULL) = 0,
+                     'R20b4 revisi berikutnya disalin tanpa sel kuning');
+  PERFORM pg_temp.ok(fn_variant_compose(ma, '9.5 MM', 'UJI MERAH') IS NULL AND fn_variant_compose(ma, '7.7mm', 'uji merah') = 'R2DA077UMR',
+                     'R20b4 fn_variant_compose: bagian belum dikenal = NULL');
+
+  -- Register: kode purchasing belum terdaftar tapi bisa dibaca (awalan KANVAS, 088 = 8.8 MM, warna baru = warna sel) -> Use
+  mt := fn_material_add(t_spec, 'UJI R20D KANVAS SALAH KETIK', 'TEXTILE', 'ME');
+  l5 := fn_bom_add_line(t_spec, r2, NULL, 97, 'Uji kode purchasing', mt, '', v_sup, NULL, 'UJI PINK');
+  SELECT * INTO dd FROM fn_variant_code_decode(t_spec, mt, 'r2da088upk', 'UJI PINK', '');
+  PERFORM pg_temp.ok(dd.material_id = ma AND dd.thickness = '8.8 MM' AND dd.color = 'UJI PINK' AND cardinality(dd.problems) = 0
+                     AND dd.label = 'UJI R20D KANVAS · 8.8 MM · UJI PINK',
+                     'R20b4 kode purchasing dibaca: material dari awalan, dimension dari kode tengah, warna baru = warna sel');
+  SELECT * INTO dd FROM fn_variant_code_decode(t_spec, mt, 'R2DA099UKN', 'UJI PINK', '');
+  PERFORM pg_temp.ok(dd.color = 'UJI KUNING' AND dd.thickness = '9.9 MM', 'R20b4 kode warna yang dikenal = warna kode itu (bukan warna sel)');
+  PERFORM pg_temp.ok(NOT EXISTS (SELECT 1 FROM fn_variant_code_decode(t_spec, mt, 'R2DA077UMR', 'UJI PINK', ''))
+                     AND NOT EXISTS (SELECT 1 FROM fn_variant_code_decode(t_spec, ma, 'R2DA088UPK', 'UJI PINK', '8.8 MM')),
+                     'R20b4 tidak dibaca: kode sudah dipakai (Use biasa), atau sama dengan baris itu (cukup Save)');
+  SELECT * INTO dd FROM fn_variant_code_decode(t_spec, mt, 'R2DA055UQQ', 'UJI QQ', '5.5 MM');
+  PERFORM pg_temp.ok(dd.material_id = ma AND dd.thickness = '5.5 MM' AND dd.color = 'UJI QQ' AND cardinality(dd.problems) = 0,
+                     'R20b4 kode tengah + kode warna baru: dimension baris + warna sel');
+  SELECT * INTO dd FROM fn_variant_code_decode(t_spec, mt, 'R2DA999UQQ', 'UJI QQ', '6.6 MM');
+  PERFORM pg_temp.ok(array_to_string(dd.problems, ' ') LIKE '%Dimension 6.6 MM uses dimension code 066%',
+                     'R20b4 kode tengah baru padahal dimension baris sudah berkode lain: ditolak aturan (tanpa Use)');
+  SELECT * INTO dd FROM fn_variant_code_decode(t_spec, mt, 'R2DA088UMX', 'UJI MERAH', '');
+  PERFORM pg_temp.ok(array_to_string(dd.problems, ' ') LIKE '%uses color code UMR%', 'R20b4 kode yang dibaca tetap dicek aturan ketat');
+  j := fn_bom_use_code(t_spec, l5, a1, 'r2da088upk');
+  PERFORM pg_temp.ok((SELECT l.material_id = ma AND l.thickness = '8.8 MM' AND v.code = 'R2DA088UPK'
+                        FROM bom_cell bc JOIN bom_line l ON l.id = bc.bom_line_id AND l.is_active
+                        JOIN material_variant v ON v.id = bc.variant_id
+                       WHERE l.revision_id = r2 AND bc.article_id = a1 AND bc.color = 'UJI PINK')
+                     AND j->>'inactivated' = 'UJI R20D KANVAS SALAH KETIK' AND j->>'registered' = 'UJI R20D KANVAS · 8.8 MM · UJI PINK',
+                     'R20b4 Use kode purchasing: varian R2DA088UPK didaftarkan, sel pindah ke KANVAS 8.8 MM, material salah ketik INACTIVE');
+  -- awalan baru = material baris itu sendiri (belum punya varian); dimension / warna dari arti kodenya (tulisan sel / baris beda)
+  mn := fn_material_add(t_spec, 'UJI R20D PU BACKING', 'TEXTILE', 'ME');
+  l6 := fn_bom_add_line(t_spec, r2, NULL, 98, 'Uji awalan baru', mn, '8.8', v_sup, NULL, 'UJI KUNING/BACKING KUNING');
+  SELECT * INTO dd FROM fn_variant_code_decode(t_spec, mn, 'R2DN088UKN', 'UJI KUNING/BACKING KUNING', '8.8');
+  PERFORM pg_temp.ok(dd.material_id = mn AND dd.thickness = '8.8 MM' AND dd.color = 'UJI KUNING' AND cardinality(dd.problems) = 0,
+                     'R20b4 awalan baru: material baris ini, dimension 088 = 8.8 MM, warna UKN = UJI KUNING (bukan tulisan sel)');
+  j := fn_bom_use_code(t_spec, l6, a1, 'R2DN088UKN');
+  PERFORM pg_temp.ok((SELECT l.material_id = mn AND l.thickness = '8.8 MM' AND v.code = 'R2DN088UKN' AND bc.color = 'UJI KUNING'
+                        FROM bom_cell bc JOIN bom_line l ON l.id = bc.bom_line_id AND l.is_active
+                        JOIN material_variant v ON v.id = bc.variant_id
+                       WHERE l.revision_id = r2 AND bc.article_id = a1 AND l.material_id = mn),
+                     'R20b4 Use awalan baru: varian R2DN088UKN di material baris, dimension + warna sel ikut arti kode');
+  PERFORM pg_temp.ok((SELECT v.code FROM bom_cell bc JOIN bom_line l ON l.id = bc.bom_line_id AND l.is_active
+                       JOIN material_variant v ON v.id = bc.variant_id
+                      WHERE l.revision_id = r2 AND bc.article_id = a2 AND l.material_id = mn) = 'R2DN088UKN',
+                     'R20b4 sel lain dengan tulisan sama (UJI KUNING/BACKING KUNING) ikut pindah');
+  -- aksi dengan ID baris lama (layar belum dimuat ulang setelah ganti Dimension) memakai baris penggantinya
+  l7 := fn_bom_add_line(t_spec, r2, NULL, 99, 'Uji baris lama', ma, '6.6 MM', v_sup, NULL, NULL);
+  l8 := fn_bom_replace_material(t_spec, l7, ma, '8.8 MM');
+  PERFORM pg_temp.ok(fn_bom_replace_material(t_spec, l7, ma, '8,8mm') = l8,
+                     'R20b4 ganti Dimension terkirim dua kali dari layar lama (tujuan sama): tidak error, baris yang sama');
+  PERFORM fn_bom_cell_set(t_spec, l7, a1, 'UJI MERAH');
+  PERFORM fn_bom_set_process(t_spec, l7, 'uji proses');
+  PERFORM pg_temp.ok((SELECT color FROM bom_cell WHERE bom_line_id = l8 AND article_id = a1) = 'UJI MERAH'
+                     AND (SELECT process FROM bom_line WHERE id = l8) = 'uji proses',
+                     'R20b4 sel / remarks dengan ID baris lama masuk ke baris pengganti');
+  l9 := fn_bom_replace_material(t_spec, l7, ma, '7.7 MM');
+  PERFORM pg_temp.ok(l9 <> l8 AND (SELECT thickness FROM bom_line WHERE id = l9) = '7.7 MM'
+                     AND NOT (SELECT is_active FROM bom_line WHERE id = l8)
+                     AND (SELECT color FROM bom_cell WHERE bom_line_id = l9 AND article_id = a1) = 'UJI MERAH',
+                     'R20b4 ganti Dimension lagi dengan ID baris lama: mengganti baris terbaru (warna ikut)');
+  PERFORM pg_temp.must_fail(format('SELECT fn_bom_use_code(%L, %L, %L, ''R2DA088UMX'')', t_spec,
+                                   (SELECT id FROM bom_line WHERE revision_id = r2 AND is_active AND material_id = ma LIMIT 1), a2),
+            '%cannot be%', 'R20b4 Use kode purchasing yang melanggar aturan ditolak');
 END;
 $$;
 

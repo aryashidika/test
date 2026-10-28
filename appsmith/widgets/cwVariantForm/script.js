@@ -18,6 +18,11 @@
 // R20 bagian 3 (28 Okt 2026): Dimension wajib terisi; tanpa dimension = "(None)" (paling atas di daftar). Tambah varian di
 //   Material Detail: Dimension terisi otomatis = dimension material ini dengan varian terbanyak (sama banyak: yang paling dulu
 //   didaftarkan; belum ada varian = (None)). Kotak dikosongkan = (None).
+// R20 bagian 4 (28 Okt 2026): Save / Save & add another menunggu cek kode (hint: masalah aturan + tombol Use) untuk kode 10
+//   karakter yang tampil sekarang; tombol "Checking code...". Tanpa jawaban 5 detik Save dibuka lagi (DB tetap memeriksa).
+//   Specsheet (model.canUse): kode purchasing yang BELUM terdaftar tapi bisa dibaca (hint.decode dari fn_variant_code_decode:
+//   awalan = material lain, kode tengah / akhir = dimension / warna yang dikenal, yang baru = baris / sel) -> tombol
+//   "Use KODE (MATERIAL · DIMENSION · WARNA) in the specsheet" -> onLookup lookupKind 'useCode', useCode.
 const $ = id => document.getElementById(id);
 let lastKey = null;
 let busy = false;
@@ -36,6 +41,8 @@ let canUse = false;                        // R20: specsheet -> tombol "Use this
 let origKey = '';                          // R20: edit - kode|warna|dimension saat dibuka (ubah status saja tidak dicek ulang)
 let dimAuto = null;                        // R20 bagian 3: Dimension yang diisi otomatis (null = diketik / dipilih user)
 let dims = [];                             // R20 bagian 3: model.dimensions terakhir
+let lookupAt = 0;                          // R20 bagian 4: waktu cek kode terakhir diminta (Save menunggu jawabannya)
+const CHECK_WAIT = 5000;
 const NONE = '(None)';                     // R20 bagian 3: tanpa dimension (disimpan kosong)
 
 function applyTheme(t) {
@@ -180,6 +187,10 @@ function onCodeInput() {
 // Arti bagian kode + masalah aturan ketat untuk kode + warna + dimension saat ini
 function requestLookup() {
   clearTimeout(lookupTimer);
+  if (cleanCode($('code').value).length === 10) {
+    lookupAt = Date.now();
+    setTimeout(updateChecks, CHECK_WAIT + 100);      // jawaban tidak datang: Save dibuka lagi
+  }
   updateChecks();
   if (cleanCode($('code').value).length !== 10) return;
   lookupTimer = setTimeout(() => {
@@ -285,11 +296,26 @@ const curHint = () => (hint && hint.for === lookupKey() ? hint : null);
 // Varian lain yang sudah memakai kode ini (edit: dirinya sendiri dikecualikan DB)
 const usedBy = () => { const h = curHint(); return h && h.used_id ? h : null; };
 
+// R20 bagian 4: kode belum terdaftar yang terbaca sebagai material / dimension / warna lain dan lolos aturan (Specsheet saja)
+const decoded = () => {
+  const h = curHint();
+  return canUse && h && !h.used_id && h.decode && !h.decode.problems ? h.decode : null;
+};
+
 function conflicts() {
   const h = curHint();
   if (!h || (isEdit && lookupKey() === origKey)) return [];   // = DB: hanya dicek saat kode / warna / dimension berubah
   if (h.used_id) return [`Material Code ${h.code} is already used: ${h.used_label}.`];
+  const d = decoded();
+  if (d) return [`Material Code ${h.code} is not registered yet. It reads as ${d.label}, not this line.`];
   return String(h.problems || '').split('\n').filter(x => x);   // q_code_hint: satu masalah per baris
+}
+
+// R20 bagian 4: kode 10 karakter yang belum dijawab cek-nya (hint) -> Save menunggu (paling lama CHECK_WAIT)
+function checking() {
+  if (cleanCode($('code').value).length !== 10 || curHint()) return false;
+  if (isEdit && lookupKey() === origKey) return false;   // = conflicts(): tidak dicek
+  return Date.now() - lookupAt < CHECK_WAIT;
 }
 
 function infos() {
@@ -303,15 +329,25 @@ function updateChecks() {
   const c = conflicts();
   const text = c.join(' ');
   const u = usedBy();
+  const d = decoded();
   $('confText').textContent = text
-    ? (u ? text : `This Material Code cannot be saved: ${text} Check the code in ERP.`) : '';
+    ? (u || d ? text : `This Material Code cannot be saved: ${text} Check the code in ERP.`) : '';
   $('confBox').hidden = !text;
-  $('useRow').hidden = !(u && canUse && u.used_active);
+  $('useRow').hidden = !((u && canUse && u.used_active) || d);
   if (u) $('btnUse').textContent = `Use ${u.code} in the specsheet`;
+  else if (d) $('btnUse').textContent = `Use ${cleanCode($('code').value)} (${d.label}) in the specsheet`;
   const i = infos();
   $('infoBox').innerHTML = '';
   i.forEach(t => $('infoBox').appendChild(el('div', '', t)));
   $('infoBox').hidden = !i.length;
+  setSaveState();
+}
+
+// R20 bagian 4: Save / Save & add another dikunci selama simpan atau cek kode belum dijawab
+function setSaveState() {
+  const wait = !busy && checking();
+  ['btnSave', 'btnAgain'].forEach(id => { $(id).disabled = busy || wait; });
+  $('btnSave').textContent = busy ? 'Saving…' : wait ? 'Checking code…' : 'Save';
 }
 
 // ---- form ----
@@ -402,8 +438,8 @@ function defaultDim() {
 
 function setBusy(v) {
   busy = v;
-  ['btnSave', 'btnAgain', 'btnCancel', 'btnX', 'btnUse'].forEach(id => { $(id).disabled = v; });
-  $('btnSave').textContent = v ? 'Saving…' : 'Save';
+  ['btnCancel', 'btnX', 'btnUse'].forEach(id => { $(id).disabled = v; });
+  setSaveState();
 }
 
 function render(model) {
@@ -422,6 +458,10 @@ function render(model) {
 
 function submit(again) {
   if (busy) return;
+  if (checking()) {                        // R20 bagian 4: Enter sebelum cek kode selesai
+    showMessage({ type: 'info', text: 'Checking the Material Code. Save again in a moment.' });
+    return;
+  }
   const code = cleanCode($('code').value);
   const color = cleanColor($('color').value);
   const thickness = cleanThick($('thickness').value) ? tidyText($('thickness').value) : '';   // (None) = kosong
@@ -435,7 +475,8 @@ function submit(again) {
   if (conflicts().length) {
     $('code').classList.add('invalid');
     showMessage({ type: 'error', text: usedBy() ? 'This Material Code is already used by another variant.'
-      : 'This Material Code breaks the code rules (red box). Check the code in ERP.' });
+      : decoded() ? 'This Material Code belongs to another material / dimension / color. Use the button in the red box.'
+        : 'This Material Code breaks the code rules (red box). Check the code in ERP.' });
     return;
   }
   appsmith.updateModel({ code, color, thickness, status: $('status').value, again: !!again });
@@ -444,9 +485,15 @@ function submit(again) {
 
 // R20: kode sudah dipakai varian lain -> sel specsheet memakai varian itu
 function useExisting() {
+  if (busy || !canUse) return;
   const u = usedBy();
-  if (busy || !u || !canUse) return;
-  appsmith.updateModel({ lookupKind: 'use', useId: u.used_id, useCode: u.code });
+  if (u) {
+    appsmith.updateModel({ lookupKind: 'use', useId: u.used_id, useCode: u.code });
+  } else if (decoded()) {                  // R20 bagian 4: daftarkan varian hasil baca kode, lalu pakai
+    appsmith.updateModel({ lookupKind: 'useCode', useId: null, useCode: cleanCode($('code').value) });
+  } else {
+    return;
+  }
   appsmith.triggerEvent('onLookup');
 }
 

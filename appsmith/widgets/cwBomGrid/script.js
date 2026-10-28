@@ -25,6 +25,13 @@
 //   (baris tambah / sub) atau diganti di baris -> Dimension otomatis: dimension baris yang juga ada di material itu tetap, selain itu
 //   dimension material itu dengan varian terbanyak (sama banyak: paling dulu didaftarkan; belum ada varian = (None)). Kotak
 //   dikosongkan = (None). Alur lama "pilih dimension dulu" (pendingDim) dihapus.
+// R20 bagian 5 (28 Okt 2026, permintaan user): link "Edit material" di kolom Material (draft, role canAddMaterial) = action
+//   editMaterial { material_id } -> BomCtrl membuka Edit Material (nama, kategori, UoM, Process, status di master).
+// R20 bagian 6 (28 Okt 2026, catatan uji user: ganti Dimension baris A lalu cepat klik baris B -> B tersimpan sendiri, tidak bisa
+//   mengetik, daftar tidak muncul): (1) selama render ulang tidak ada kotak yang menyimpan (blur karena kotak dibuang);
+//   (2) Dimension di grid: memilih dari daftar langsung menyimpan; (3) fokus pindah ke baris pengganti (replaces_line_key) bila
+//   id baris berganti karena Ganti material / Dimension; (4) daftar yang terbuka dibuka lagi setelah render, guliran grid
+//   menggeser daftar (bukan menutup); (5) kotak yang sedang fokus dipakai lagi (tidak dibuat ulang): ketikan, kursor tetap.
 // Hanya tampilan & input. Setiap perubahan dikirim sebagai model.action + event onAction (BomCtrl.onAction());
 // BomCtrl menjalankan query lalu memuat ulang data. Aturan final di DB (fn_bom_*).
 // Antrean aksi: aksi dikirim SATU PER SATU; berikutnya baru dikirim setelah BomCtrl membalas doneSeq >= seq aksi
@@ -62,6 +69,9 @@ const NONE = '(None)';      // R20 bagian 3: tanpa dimension (disimpan kosong)
 let ALL_DIMS = [];          // R20: semua dimension terdaftar di pabrik [{ thickness, key, mats }] (saran "Other materials")
 let MAT_BY_ID = {};
 let MATS_SRC = null;
+let USED_BY_ID = {};        // R20 bagian 7: material_id -> [{ thickness, lines }] dipakai di specsheet, belum ada varian ACTIVE
+let USED_SRC = null;
+let rendering = false;      // R20 bagian 6: render() sedang berjalan -> blur / focus dari render tidak menyimpan / membuka daftar
 
 function applyTheme(t) {
   t = t || {};
@@ -179,8 +189,9 @@ const matKey = (materialId, thickness) => `${materialId}|${thickKey(thickness)}`
 
 // R19: material unik dari kombinasi induk × dimension (M.materials), dihitung ulang hanya bila daftar berubah
 function buildMats() {
-  if (MATS_SRC === M.materials) return;
+  if (MATS_SRC === M.materials && USED_SRC === M.usedDims) return;
   MATS_SRC = M.materials;
+  USED_SRC = M.usedDims;
   MAT_BY_ID = {};
   MATS = [];
   (M.materials || []).forEach(x => {
@@ -194,13 +205,24 @@ function buildMats() {
   });
   // R20 bagian 3: dimension dengan varian terbanyak dulu (sama banyak: paling dulu didaftarkan) = default
   MATS.forEach(m => m.dims.sort((a, b) => b.n - a.n || a.first - b.first || a.thickness.localeCompare(b.thickness)));
+  // R20 bagian 7: dimension yang sudah dipakai di specsheet tapi belum terdaftar (tanpa yang sudah ada di m.dims)
+  USED_BY_ID = {};
+  (M.usedDims || []).forEach(u => {
+    const m = MAT_BY_ID[u.material_id];
+    if (!m || !u.thickness) return;
+    const k = thickKey(u.thickness);
+    const list = USED_BY_ID[u.material_id] || (USED_BY_ID[u.material_id] = []);
+    if (m.dims.some(d => thickKey(d.thickness) === k) || list.some(x => thickKey(x.thickness) === k)) return;
+    list.push({ thickness: u.thickness, lines: Number(u.lines) || 0 });
+  });
   const dimMap = {};
-  MATS.forEach(m => m.dims.forEach(d => {
-    if (!d.thickness || m.is_process) return;
-    const k = thickKey(d.thickness);
-    if (!dimMap[k]) dimMap[k] = { thickness: d.thickness, key: k, mats: 0 };
-    dimMap[k].mats += 1;
-  }));
+  MATS.forEach(m => m.dims.map(d => d.thickness).concat((USED_BY_ID[m.material_id] || []).map(u => u.thickness))
+    .forEach(t => {
+      if (!t || m.is_process) return;
+      const k = thickKey(t);
+      if (!dimMap[k]) dimMap[k] = { thickness: t, key: k, mats: 0 };
+      dimMap[k].mats += 1;
+    }));
   ALL_DIMS = Object.values(dimMap).sort((a, b) => b.mats - a.mats || a.thickness.localeCompare(b.thickness));
   const count = {};
   MATS.forEach(m => { count[norm(m.name)] = (count[norm(m.name)] || 0) + 1; });
@@ -235,14 +257,20 @@ function materialSuggest() {
   });
 }
 
-// Saran kolom Dimension: dimension material itu (jumlah warna terdaftar = varian), lalu R20: dimension material lain
-// (other: true, baru tampil setelah mengetik) supaya dimension baru ditulis seperti yang sudah ada.
+// Saran kolom Dimension: dimension material itu (jumlah warna terdaftar = varian), R20 bagian 7: dimension yang sudah dipakai
+// material itu di specsheet tapi belum punya kode, lalu R20: dimension material lain (other: true, di bawah "Other materials";
+// bagian 7: langsung tampil saat diklik) supaya dimension baru ditulis seperti yang sudah ada.
 function dimensionSuggest(getMaterialId) {
   return () => {
     const m = MAT_BY_ID[getMaterialId()];
     const own = m ? m.dims.filter(d => d.thickness).map(d => ({
       value: d.thickness, detail: m.is_process ? 'Process' : d.n ? `${d.n} colors` : 'no variants yet',
     })) : [];
+    if (m) {
+      (USED_BY_ID[m.material_id] || []).forEach(u => own.push({
+        value: u.thickness, detail: `used in specsheet · no code yet (${u.lines} line${u.lines === 1 ? '' : 's'})`,
+      }));
+    }
     // R20 bagian 3: (None) selalu paling atas
     const nd = m ? m.dims.find(d => !d.thickness) : null;
     own.unshift({ value: NONE, none: true, detail: nd && nd.n ? `no dimension · ${nd.n} colors` : 'no dimension' });
@@ -543,7 +571,7 @@ function cellInput(key, value, opts) {
   if (opts.onCommit) {
     // change + blur: nilai yang dipulihkan setelah render ulang tidak memicu change, jadi blur ikut menyimpan
     const commit = () => {
-      if (!i.isConnected) return;              // elemen sudah diganti render ulang: jangan simpan ketikan setengah jadi
+      if (rendering || !i.isConnected) return; // dibuang / dipindah render ulang: jangan simpan ketikan setengah jadi
       if (clean(i.value) === clean(i.dataset.orig)) return;
       const before = seq;
       opts.onCommit(i);
@@ -551,12 +579,14 @@ function cellInput(key, value, opts) {
     };
     i.addEventListener('change', commit);
     i.addEventListener('blur', commit);
+    i._commit = commit;
   }
   if (opts.dropdown) {                         // R20 Dimension: daftar penuh saat diklik, dibandingkan dalam bentuk baku
     i._sugFull = true;
     i._sugKey = thickKey;
+    i._commitOnPick = !!(opts.onCommit && opts.col);   // R20 bagian 6: sel grid: pilih dari daftar = langsung simpan
     i.classList.add('dd');
-    i.addEventListener('focus', () => { if (i.value === NONE) i.select(); });   // R20 bagian 3
+    i.addEventListener('focus', () => { if (!rendering && i.value === NONE) i.select(); });   // R20 bagian 3
   }
   if (opts.suggest) attachSuggest(i, opts.suggest, opts.onPick);
   i.addEventListener('keydown', e => {
@@ -588,12 +618,38 @@ function cellInput(key, value, opts) {
 let sugTarget = null;
 let sugItems = [];
 let sugIndex = -1;
+let sugWasFull = false;     // R20 bagian 6: daftar terakhir dibuka penuh (klik) atau disaring (mengetik)
 
 function hideSuggest() {
   sugTarget = null;
   sugItems = [];
   sugIndex = -1;
   $('suggest').hidden = true;
+}
+
+// R20 bagian 6: daftar mengikuti kotaknya (dipanggil juga saat grid digulir); kotak keluar dari area grid -> daftar ditutup
+function placeSuggest() {
+  const box = $('suggest');
+  const input = sugTarget;
+  if (box.hidden || !input) return;
+  if (!input.isConnected) {
+    hideSuggest();
+    return;
+  }
+  const r = input.getBoundingClientRect();
+  const s = $('scroll').getBoundingClientRect();
+  if (input.closest('#scroll') && (r.bottom < s.top || r.top > s.bottom || r.right < s.left || r.left > s.right)) {
+    hideSuggest();
+    return;
+  }
+  box.style.left = `${Math.max(0, Math.min(r.left, window.innerWidth - 340))}px`;
+  box.style.minWidth = `${Math.max(r.width, 220)}px`;
+  const below = window.innerHeight - r.bottom;
+  if (below < box.offsetHeight + 4 && r.top > box.offsetHeight) {
+    box.style.top = `${r.top - box.offsetHeight - 2}px`;
+  } else {
+    box.style.top = `${r.bottom + 2}px`;
+  }
 }
 
 // R19: item = teks (warna) atau { value, detail } (material / dimension: detail tampil kecil di bawah, teks membungkus)
@@ -610,16 +666,18 @@ function showSuggest(input, source, focus) {
   const full = !!(focus && input._sugFull);
   let hits;
   const fk = c => (c.none ? 'none' : kf(sugValue(c)));   // R20 bagian 3: (None) dicari dengan "none"
-  if (full) {
-    hits = all.filter(c => !c.other);
+  const showAll = full || (!key && input._sugFull);   // R20 bagian 7: Dimension = daftar penuh termasuk "Other materials"
+  if (showAll) {
+    hits = all;
   } else {
     const rank = c => (c.other ? 2 : 0) + (fk(c).startsWith(key) ? 0 : 1);
-    hits = all.filter(c => (key || !c.other) && (input._sugFull || kf(sugValue(c)) !== key) && (!key || fk(c).includes(key)));
+    hits = all.filter(c => (input._sugFull || kf(sugValue(c)) !== key) && (!key || fk(c).includes(key)));
     hits.sort((a, b) => rank(a) - rank(b));
   }
-  sugItems = hits.slice(0, full ? 60 : 12);
+  sugItems = hits.slice(0, showAll ? 200 : 12);
   sugTarget = input;
   sugIndex = -1;
+  sugWasFull = full;
   const box = $('suggest');
   box.innerHTML = '';
   if (!sugItems.length) {
@@ -637,16 +695,8 @@ function showSuggest(input, source, focus) {
     });
     box.appendChild(o);
   });
-  const r = input.getBoundingClientRect();
-  box.style.left = `${Math.max(0, Math.min(r.left, window.innerWidth - 340))}px`;
-  box.style.minWidth = `${Math.max(r.width, 220)}px`;
   box.hidden = false;
-  const below = window.innerHeight - r.bottom;
-  if (below < box.offsetHeight + 4 && r.top > box.offsetHeight) {
-    box.style.top = `${r.top - box.offsetHeight - 2}px`;
-  } else {
-    box.style.top = `${r.bottom + 2}px`;
-  }
+  placeSuggest();
 }
 
 function markSuggest() {
@@ -661,18 +711,20 @@ function pickSuggest(n) {
   hideSuggest();
   input.classList.remove('invalid');
   if (input._onPick) input._onPick();          // R19: baris tambah / sub: isi UoM, dimension, supplier
+  if (input._commitOnPick && input._commit) input._commit();   // R20 bagian 6: Dimension di grid langsung disimpan
 }
 
 function attachSuggest(input, source, onPick) {
   input._onPick = onPick || null;
-  input.addEventListener('focus', () => showSuggest(input, source, true));
+  input._sugSrc = source;
+  input.addEventListener('focus', () => { if (!rendering) showSuggest(input, source, true); });
   input.addEventListener('mousedown', () => {    // R20 Dimension: klik lagi pada kotak yang sudah fokus = buka / tutup daftar
     if (!input._sugFull || document.activeElement !== input) return;
     if ($('suggest').hidden || sugTarget !== input) showSuggest(input, source, true);
     else hideSuggest();
   });
   input.addEventListener('input', () => showSuggest(input, source));
-  input.addEventListener('blur', () => { if (sugTarget === input) hideSuggest(); });
+  input.addEventListener('blur', () => { if (!rendering && sugTarget === input) hideSuggest(); });
   input.addEventListener('keydown', e => {
     if (sugTarget !== input || $('suggest').hidden) return;
     if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
@@ -1120,6 +1172,15 @@ function materialCell(line, editable) {
     c.appendChild(b);
   }
   if (editable && M.canAddMaterial && nfFor && nfFor.key === `mat:${line.id}`) c.appendChild(newMaterialBox(nfFor.key));
+  if (editable && M.canAddMaterial && line.material_id) {
+    const b = el('button', 'link mat-edit', 'Edit material');
+    b.type = 'button';
+    b.disabled = !!M.busy;
+    b.title = 'Edit this material in Master Material (name, category, UoM, Process, status). Applies to every draft that uses it.';
+    b.addEventListener('mousedown', e => e.preventDefault());   // jangan blur input dulu (blur = simpan ulang)
+    b.addEventListener('click', () => send('editMaterial', { material_id: line.material_id }));
+    c.appendChild(b);
+  }
   return c;
 }
 
@@ -1158,7 +1219,7 @@ function lineRow(line, arts, editable, hasSubs) {
         render(M, true);
       }
     });
-    ci.addEventListener('change', () => commitComponent(line, ci));
+    ci.addEventListener('change', () => { if (!rendering) commitComponent(line, ci); });
     ci.addEventListener('blur', () => setTimeout(() => {           // klik di luar tanpa isian = batal
       if (compEdit === line.id && ci.isConnected && !tidy(ci.value) && document.activeElement !== ci) {
         compEdit = null;
@@ -1315,20 +1376,63 @@ function formRow(cls, f, first, button, cancel, arts) {
   return tr;
 }
 
+// R20 bagian 6: Ganti material / Dimension membuat baris baru (id baru, replaces_line_key = line_key lama).
+// Peta id lama -> id baru supaya fokus, ketikan, dan daftar terbuka ikut pindah ke baris pengganti.
+function replacedIds(oldLines, newLines) {
+  const ids = new Set(newLines.map(l => l.id));
+  const byKey = {};
+  newLines.forEach(l => { if (l.replaces_line_key) byKey[l.replaces_line_key] = l.id; });
+  const map = {};
+  oldLines.forEach(l => { if (!ids.has(l.id) && byKey[l.line_key]) map[l.id] = byKey[l.line_key]; });
+  return map;
+}
+
+const rekey = (k, map) => {
+  if (!k) return k;
+  const p = k.split(':');
+  if (p.length > 1 && map[p[1]]) p[1] = map[p[1]];
+  return p.join(':');
+};
+
 function render(model, keepState) {
+  rendering = true;
+  try {
+    renderGrid(model, keepState);
+  } finally {
+    rendering = false;
+  }
+}
+
+function renderGrid(model, keepState) {
   // simpan fokus, scroll, dan ketikan yang belum disimpan
   const active = document.activeElement;
-  const focusKey = active && active.dataset ? active.dataset.key : null;
-  const selStart = focusKey && typeof active.selectionStart === 'number' ? active.selectionStart : null;
-  const dirty = {};
+  const inGrid = !!(active && active.closest && active.closest('#tbody') && active.dataset && active.dataset.key);
+  let focusKey = inGrid ? active.dataset.key : null;
+  const hasSel = focusKey && typeof active.selectionStart === 'number';
+  const sel = hasSel ? [active.selectionStart, active.selectionEnd] : null;
+  const sugOpen = !$('suggest').hidden && sugTarget && sugTarget === active ? { full: sugWasFull } : null;
+  let dirty = {};
   document.querySelectorAll('#tbody .cell[data-key]').forEach(i => {
     if (i.value !== i.dataset.orig && !/^(add|sub):/.test(i.dataset.key)) dirty[i.dataset.key] = i.value;
   });
   hideSuggest();
   const scroll = $('scroll');
   const pos = [scroll.scrollLeft, scroll.scrollTop];
+  const oldLines = M.lines || [];
 
   M = model || {};
+  const idMap = replacedIds(oldLines, M.lines || []);
+  if (Object.keys(idMap).length) {
+    const d2 = {};
+    Object.keys(dirty).forEach(k => { d2[rekey(k, idMap)] = dirty[k]; });
+    dirty = d2;
+    const o2 = {};
+    Object.keys(optimistic).forEach(k => { o2[rekey(k, idMap)] = optimistic[k]; });
+    optimistic = o2;
+  }
+  // R20 bagian 6: kotak yang sedang fokus dipakai lagi bila barisnya tetap (id sama = material & dimension sama)
+  const keepEl = focusKey && !idMap[focusKey.split(':')[1]] && !/^(add|sub):/.test(focusKey) ? active : null;
+  focusKey = rekey(focusKey, idMap);
   if (!keepState) {
     if (M.message !== lastMsg) {
       lastMsg = M.message;
@@ -1432,16 +1536,30 @@ function render(model, keepState) {
     autosize(i);
   });
   if (focusKey) {
-    const i = document.querySelector(`#tbody [data-key="${CSS.escape(focusKey)}"]`);
+    let i = document.querySelector(`#tbody [data-key="${CSS.escape(focusKey)}"]`);
+    if (i && keepEl && i !== keepEl && i.tagName === keepEl.tagName) {
+      // kotak lama (listener, ketikan, riwayat undo) menggantikan kotak baru; nilai DB terbaru = pembanding simpan
+      if (keepEl.value === keepEl.dataset.orig) keepEl.value = i.value;
+      keepEl.dataset.orig = i.dataset.orig;
+      keepEl.classList.toggle('invalid', i.classList.contains('invalid'));
+      i.replaceWith(keepEl);
+      autosize(keepEl);
+      i = keepEl;
+    }
     if (i && !i.disabled) {
-      i.focus();
-      if (selStart !== null) {
-        try { i.setSelectionRange(selStart, selStart); } catch (e) { /* abaikan */ }
+      i.focus({ preventScroll: true });
+      if (sel) {
+        try { i.setSelectionRange(Math.min(sel[0], i.value.length), Math.min(sel[1], i.value.length)); } catch (e) { /* abaikan */ }
       }
     }
   }
   scroll.scrollLeft = pos[0];
   scroll.scrollTop = pos[1];
+  // R20 bagian 6: daftar yang sedang terbuka dibuka lagi pada kotak yang sama (penuh / disaring seperti sebelumnya)
+  if (sugOpen && document.activeElement && document.activeElement._sugSrc) {
+    const i = document.activeElement;
+    showSuggest(i, i._sugSrc, sugOpen.full);
+  }
 
   const n = lines.length;
   const yellow = lines.reduce((t, l) => t + (Number(l.yellow) || 0), 0);
@@ -1465,7 +1583,8 @@ appsmith.onReady(() => {
     awaitNew = r.notFound ? { key: 'add:mat', thick: r.notFound.thickness } : null;   // baris tambah dilanjutkan setelah simpan
     send('newMaterial', { name: nf ? nf.name : tidy(String(addState.mat || '').split(/\s*·\s*/)[0]) });
   });
-  $('scroll').addEventListener('scroll', hideSuggest);
+  $('scroll').addEventListener('scroll', placeSuggest);   // R20 bagian 6: daftar ikut bergeser, tidak ditutup
+  $('suggest').addEventListener('mousedown', e => e.preventDefault());   // R20 bagian 7: scrollbar / judul daftar: kotak tetap fokus
   render(appsmith.model);
   lastMatAdded = (M.matAdded || {}).key;
   appsmith.onModelChange(m => {

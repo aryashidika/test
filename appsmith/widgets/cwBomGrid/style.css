@@ -464,7 +464,7 @@ textarea.cell {
   background: #E0E7FF;
   color: #3730A3;
 }
-.comp-change {
+.comp-change, .mat-edit {
   display: block;
   margin-top: 2px;
   font-size: 11px;

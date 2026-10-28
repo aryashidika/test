@@ -9,6 +9,15 @@
 #  5. (bagian 3, 28 Okt 2026) Dimension wajib: (None) paling atas, default = dimension material dengan varian terbanyak
 #     (q_bom_options + first_at, q_dimensions + n_own / baris kosong material ini); kode Dimension kosong per material
 #     (q_code_suggest + thickness_free)
+#  6. (bagian 4, 28 Okt 2026) Material Code tersusun otomatis di DB (SQL 0d, tanpa query baru): BomCtrl memuat ulang q_bom_options
+#     bila grid punya kode baru; cwVariantForm: Save menunggu cek kode (tombol Use) selesai. Kode purchasing yang belum terdaftar
+#     tapi terbaca (q_code_decode baru) -> tombol Use di modal Register (a_bom_use_code baru)
+#  7. (bagian 5, 28 Okt 2026) link "Edit material" di kolom Material grid -> Edit Material di modal mdlMaterialBaru (mode edit,
+#     q_material_edit + a_material_update baru di Specsheet; fn_material_update R19 tanpa perubahan SQL)
+#  8. (bagian 6, 28 Okt 2026) cwBomGrid saja: Dimension dipilih dari daftar = langsung simpan, render ulang tidak menyimpan kotak
+#     yang dibuang, kotak yang fokus dipakai lagi, fokus ikut baris pengganti (replaces_line_key), daftar dibuka lagi setelah render
+#  9. (bagian 7, 28 Okt 2026) dropdown Dimension grid langsung lengkap: terdaftar, sudah dipakai di specsheet tanpa kode
+#     (q_bom_options + used_dims, BomCtrl usedDims), lalu dimension material lain di bawah "Other materials"
 # JSObject / Custom Widget yang ditimpa dicek dulu: isi di app = repo di commit R19 (a1af1d1), lalu diganti isi repo sekarang.
 # Pakai: python -X utf8 -I tools/build_r20.py [base.json]   (default base = exports/build_r19.json)
 import os, subprocess, sys
@@ -100,10 +109,48 @@ query(SPEC, 'q_bom_options', [
      "                  extract(epoch FROM min(v.created_at))::bigint AS first_at\n"),
 ])
 
+# ---------------------------------------------------------------- 9. bagian 7: dimension yang sudah dipakai di specsheet (belum ada kode)
+query(SPEC, 'q_bom_options', [
+    ("  (SELECT coalesce(jsonb_agg(jsonb_build_object('id', v.id, 'code', v.code, 'material_id', v.material_id,\n",
+     "  (SELECT coalesce(jsonb_agg(jsonb_build_object('material_id', u.material_id, 'thickness', u.thickness, 'lines', u.n)\n"
+     "                             ORDER BY u.thickness), '[]'::jsonb)\n"
+     "     FROM (SELECT l.material_id, l.thickness, count(*) AS n\n"
+     "             FROM bom_line l JOIN material m ON m.id = l.material_id\n"
+     "            WHERE l.is_active AND coalesce(l.thickness, '') <> '' AND m.status = 'ACTIVE'\n"
+     "              AND m.factory_id = fn_user_factory(a.me)\n"
+     "              AND NOT EXISTS (SELECT 1 FROM material_variant v WHERE v.material_id = l.material_id\n"
+     "                                AND v.status = 'ACTIVE' AND v.thickness IS NOT DISTINCT FROM l.thickness)\n"
+     "            GROUP BY l.material_id, l.thickness) u) AS used_dims,\n"
+     "  (SELECT coalesce(jsonb_agg(jsonb_build_object('id', v.id, 'code', v.code, 'material_id', v.material_id,\n"),
+])
+
 # ---------------------------------------------------------------- 3. Use
 app.add_query(SPEC, 'a_bom_use_variant', 'a_bom_change_component',
               'SELECT fn_bom_use_variant({{appsmith.store.token}}, {{this.params.line_id}}::uuid,\n'
               '                          {{this.params.article_id}}::uuid, {{this.params.variant_id}}::uuid) AS result;')
+
+# ---------------------------------------------------------------- 6. bagian 4: Use kode purchasing yang belum terdaftar (Specsheet)
+app.add_query(SPEC, 'q_code_decode', 'q_code_suggest',
+              "SELECT material_id, label, thickness, color, array_to_string(problems, E'\\n') AS problems\n"
+              "FROM fn_variant_code_decode({{appsmith.store.token}}, {{this.params.material_id}}::uuid, {{this.params.code}},\n"
+              "                            {{this.params.color || ''}}, {{this.params.thickness || ''}});")
+app.add_query(SPEC, 'a_bom_use_code', 'a_bom_use_variant',
+              'SELECT fn_bom_use_code({{appsmith.store.token}}, {{this.params.line_id}}::uuid,\n'
+              '                       {{this.params.article_id}}::uuid, {{this.params.code}}) AS result;')
+
+# ---------------------------------------------------------------- 7. bagian 5: Edit material dari specsheet
+app.add_query(SPEC, 'q_material_edit', 'q_similar',
+              "SELECT m.id, m.name, m.category, m.uom, m.price_method, m.status, m.is_process, m.variant_count,\n"
+              "       fn_material_used_published(m.id) AS used_published,\n"
+              "       (SELECT count(DISTINCT r.specsheet_id) FROM bom_line l JOIN specsheet_revision r ON r.id = l.revision_id\n"
+              "         WHERE l.material_id = m.id AND l.is_active AND r.status = 'DRAFT')::int AS draft_specs,\n"
+              "       (SELECT count(DISTINCT c.id) FROM cbd_line cl JOIN cbd_revision c ON c.id = cl.cbd_revision_id\n"
+              "         WHERE cl.material_id = m.id AND c.status = 'DRAFT')::int AS draft_cbds\n"
+              "FROM (SELECT fn_auth({{appsmith.store.token}}, 'view_master') AS me) a\n"
+              "JOIN v_material_list m ON fn_can_see_factory(a.me, m.factory_id)\n"
+              "WHERE m.id::text = {{this.params.id || ''}};")
+app.add_query(SPEC, 'a_material_update', 'a_material_add',
+              app.action(MD, 'a_material_update')['unpublishedAction']['actionConfiguration']['body'])
 
 # ---------------------------------------------------------------- 4. daftar Dimension form varian (Material Detail)
 # R20 bagian 3: + n_own (varian material ini), baris tanpa dimension material ini; material ini dulu, varian terbanyak, paling dulu

@@ -47,3 +47,16 @@ Event: `onSave` (model `code, color, thickness, status, again`), `onCancel`, `on
   diubah user. Arti kode (hint) boleh menimpa default. `form.thickness` ada (Save & add another) = dipakai, bukan default.
 - `suggest.thickness_free` (`fn_variant_code_suggest`): Dimension kosong yang belum ada di material ini -> baris Dimension usulan diberi
   keterangan `(no dimension in other materials, same UoM first ...)`, bukan "will be rejected".
+
+## R20 bagian 4: Save menunggu cek kode (28 Okt 2026)
+
+- Kode 10 karakter diketik / diubah (atau warna / dimension berubah) -> `requestLookup` mencatat `lookupAt`. Selama `hint` untuk
+  kode + warna + dimension yang tampil belum datang (`checking()`), **Save** dan **Save & add another** terkunci dengan tulisan
+  **Checking code...**; Enter memberi pesan `Checking the Material Code. Save again in a moment.`. Begitu hint datang, kotak merah /
+  tombol **Use** sudah tampil sebelum Save bisa diklik. Tanpa jawaban 5 detik (`CHECK_WAIT`) Save dibuka lagi (DB tetap memeriksa).
+  Edit tanpa mengubah kode / warna / dimension tidak menunggu (sama dengan `conflicts()`).
+- **Use kode purchasing yang belum terdaftar** (Specsheet, `model.canUse`): `hint.decode = { material_id, label, thickness, color,
+  problems }` (BomCtrl menjalankan `q_code_decode` bersama `q_code_hint`). Kode belum dipakai + `decode` tanpa `problems` -> kotak merah
+  `Material Code KODE is not registered yet. It reads as LABEL, not this line.` + tombol **Use KODE (LABEL) in the specsheet** ->
+  `onLookup` `lookupKind: 'useCode'`, `useCode` (BomCtrl -> `a_bom_use_code`: varian didaftarkan lalu dipakai seperti Use). Save tetap
+  ditolak di form dengan pesan ke tombol itu.
