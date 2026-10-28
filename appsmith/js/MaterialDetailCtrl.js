@@ -199,6 +199,7 @@ export default {
 
 	// ---- varian (R2b: satu baris seperti ERP) ----
 	openAddVariant() {
+		q_dimensions.run();          // R20: daftar Dimension di form varian
 		this.varIsNew = true;
 		this.varForm = {};
 		this.varHint = null;
@@ -212,6 +213,7 @@ export default {
 	// Ambil baris asli dari q_variants: baris tabel berisi nilai tampilan.
 	openEditVariant(row) {
 		const v = this.variants().find(x => x.id === row.id) || row;
+		q_dimensions.run();
 		this.varIsNew = false;
 		this.varForm = { id: v.id, code: v.code, color: v.color, thickness: v.thickness, status: v.status };
 		this.varHint = null;
@@ -231,6 +233,7 @@ export default {
 			statusOptions: this.statusOptions,
 			hint: this.varHint,
 			suggest: this.varSuggest,    // R9: usulan Material Code
+			dimensions: q_dimensions.data || [],   // R20: { thickness, n, own } untuk daftar Dimension
 			busy: this.varBusy,
 			message: this.varMsg,
 		};

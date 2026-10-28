@@ -64,6 +64,8 @@ function fillSelect(sel, options, selected) {
 
 const cleanCode = s => String(s || '').trim().replace(/\s+/g, ' ').toUpperCase();
 const tidyText = s => String(s || '').trim().replace(/\s+/g, ' ').toUpperCase();
+// R20 warna: = fn_clean_color, tanpa spasi di sekitar / - & + , (black / white -> BLACK/WHITE). Salinan sama di cwBomGrid.
+const cleanColor = s => String(s || '').toUpperCase().replace(/\s+/g, ' ').replace(/\s*([/&+,-])\s*/g, '$1').trim();
 // = fn_clean_thickness (R16, gaya berspasi tim material): huruf besar, kutip pintar / dua apostrof -> ", koma desimal -> titik,
 // ".5" -> "0.5", nol belakang dibuang ("2.0" = "2"), INCH / IN setelah angka -> ", angka + satuan satu spasi ("1.2MM" -> "1.2 MM"),
 // "X" antar ukuran berspasi ("44X69CM" -> "44 X 69 CM"), tanpa spasi di sekitar "-", spasi sebelum "(", rentang
@@ -147,7 +149,7 @@ function applyHint(h) {
 }
 
 // R20: kunci hint = kode|warna|dimension yang dikirim (BomCtrl / MaterialDetailCtrl mengembalikan hint.for yang sama)
-const lookupKey = () => `${cleanCode($('code').value)}|${tidyText($('color').value)}|${cleanThick($('thickness').value)}`;
+const lookupKey = () => `${cleanCode($('code').value)}|${cleanColor($('color').value)}|${cleanThick($('thickness').value)}`;
 
 function onCodeInput() {
   const code = cleanCode($('code').value);
@@ -174,7 +176,7 @@ function requestLookup() {
     lastLookup = key;
     appsmith.updateModel({
       lookupKind: 'code', lookupCode: cleanCode($('code').value),
-      lookupColor: tidyText($('color').value), lookupThickness: cleanThick($('thickness').value),
+      lookupColor: cleanColor($('color').value), lookupThickness: cleanThick($('thickness').value),
     });
     appsmith.triggerEvent('onLookup');
   }, 300);
@@ -183,7 +185,7 @@ function requestLookup() {
 // ---- arah 2: warna + thickness -> usulan kode ----
 function requestSuggest(now) {
   if (isEdit) return;
-  const color = tidyText($('color').value);
+  const color = cleanColor($('color').value);
   const thickness = cleanThick($('thickness').value);
   clearTimeout(sugTimer);
   if (!color) {
@@ -318,6 +320,8 @@ function fillForm(m) {
   });
   setNote('color', fixed ? fixedNote('color') : '');
   setNote('thickness', fixed ? fixedNote('thickness') : '');
+  if (fixed) $('thickness').removeAttribute('list');
+  else $('thickness').setAttribute('list', 'dlDims');
   fillSelect($('status'), m.statusOptions, f.status || 'ACTIVE');
   $('statusBox').hidden = !isEdit;
   $('btnAgain').hidden = isEdit || !!fixed;
@@ -328,6 +332,23 @@ function fillForm(m) {
   renderSuggest();
   updateChecks();
   if (!isEdit && fixed) requestSuggest(true);          // sel kuning specsheet: warna & thickness sudah diketahui
+}
+
+// R20: daftar Dimension = dimension material ini (jumlah warna) lalu dimension material lain di pabrik ini; ketik baru tetap boleh
+let dimsSig = '';
+function fillDims(list) {
+  const rows = Array.isArray(list) ? list : [];
+  const sig = JSON.stringify(rows);
+  if (sig === dimsSig) return;
+  dimsSig = sig;
+  const dl = $('dlDims');
+  dl.innerHTML = '';
+  rows.forEach(d => {
+    const o = document.createElement('option');
+    o.value = d.thickness;
+    o.label = d.own ? `this material · ${d.n} color${Number(d.n) === 1 ? '' : 's'}` : 'other material (new for this material)';
+    dl.appendChild(o);
+  });
 }
 
 function setBusy(v) {
@@ -344,6 +365,7 @@ function render(model) {
   }
   showMessage(m.message);
   setBusy(!!m.busy);
+  fillDims(m.dimensions);
   applyHint(m.hint);
   applySuggest(m.suggest);
   updateChecks();
@@ -352,7 +374,7 @@ function render(model) {
 function submit(again) {
   if (busy) return;
   const code = cleanCode($('code').value);
-  const color = tidyText($('color').value);
+  const color = cleanColor($('color').value);
   const thickness = tidyText($('thickness').value);
   ['code', 'color'].forEach(id => $(id).classList.remove('invalid'));
   if (!code || !color) {

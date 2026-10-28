@@ -477,3 +477,30 @@ textarea.cell {
   font-style: italic;
   color: var(--warn, #B45309);
 }
+
+/* R20: Dimension seperti dropdown (panah, daftar penuh saat diklik), judul grup saran, saran urutan warna */
+textarea.cell.dd, input.cell.dd {
+  padding-right: 18px;
+  background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+  background-position: calc(100% - 9px) 50%, calc(100% - 5px) 50%;
+  background-size: 4px 4px, 4px 4px;
+  background-repeat: no-repeat;
+}
+.suggest .opt-head {
+  padding: 6px 10px 2px;
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--muted);
+  border-top: 1px solid var(--border);
+  margin-top: 2px;
+}
+.suggest .opt.cur { font-weight: 600; }
+.suggest .opt.cur::before { content: '✓ '; color: var(--primary); }
+.link.twin {
+  display: block;
+  font-size: 11.5px;
+  padding: 2px 2px 0;
+  text-align: left;
+}

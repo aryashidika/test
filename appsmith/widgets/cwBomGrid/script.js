@@ -55,6 +55,7 @@ let delTimer = null;
 let pendingDim = {};        // R19: line_id -> { material_id, label } material baru yang menunggu dimension dipilih
 let compEdit = null;        // R19: line_id baris yang kolom Component-nya sedang diganti
 let MATS = [];              // R19: material unik { material_id, name, uom, is_process, dims: [{ thickness, n }] }
+let ALL_DIMS = [];          // R20: semua dimension terdaftar di pabrik [{ thickness, key, mats }] (saran "Other materials")
 let MAT_BY_ID = {};
 let MATS_SRC = null;
 
@@ -121,6 +122,13 @@ function editDistance(a, b) {
 // R20: kunci rapat = huruf + angka saja (= fn_tight_key): "P.U-LEATHER" = "PU LEATHER"
 const tightKey = s => String(s ?? '').toLowerCase().replace(/[^a-z0-9]/g, '');
 
+// R20 warna: = fn_clean_color (huruf besar, spasi dirapatkan, tanpa spasi di sekitar / - & + ,) dan fn_color_key (= tightKey):
+// BLACK / WHITE = BLACK-WHITE = BLACK WHITE; urutan beda (WHITE/BLACK) tetap warna lain. Salinan sama di cwVariantForm.
+const cleanColor = s => String(s ?? '').toUpperCase().replace(/\s+/g, ' ').replace(/\s*([/&+,-])\s*/g, '$1').trim();
+const colorKey = tightKey;
+// kata-kata warna tanpa urutan: WHITE/BLACK dan BLACK/WHITE sama di sini (hanya untuk saran "Did you mean")
+const colorWords = s => String(s ?? '').toLowerCase().split(/[^a-z0-9]+/).filter(w => w).sort().join(' ');
+
 // R20: nama mirip yang layak disarankan (0 = tidak mirip, makin kecil makin mirip). Angka harus sama (FOAM 50 KG bukan
 // FOAM 60 KG); lalu: hanya beda spasi / tanda baca (1), kata sama urutan lain (2), typo 1 huruf di kata 5 huruf ke atas (3),
 // nama yang memuat ketikan (4). Salinan sama di BomCtrl.nearMaterialNames.
@@ -179,6 +187,14 @@ function buildMats() {
     }
     m.dims.push({ thickness: x.thickness || '', n: Number(x.variant_count) || 0 });
   });
+  const dimMap = {};
+  MATS.forEach(m => m.dims.forEach(d => {
+    if (!d.thickness || m.is_process) return;
+    const k = thickKey(d.thickness);
+    if (!dimMap[k]) dimMap[k] = { thickness: d.thickness, key: k, mats: 0 };
+    dimMap[k].mats += 1;
+  }));
+  ALL_DIMS = Object.values(dimMap).sort((a, b) => b.mats - a.mats || a.thickness.localeCompare(b.thickness));
   const count = {};
   MATS.forEach(m => { count[norm(m.name)] = (count[norm(m.name)] || 0) + 1; });
   MATS.forEach(m => { m.label = count[norm(m.name)] > 1 ? `${m.name} (${m.uom})` : m.name; });
@@ -203,14 +219,20 @@ function materialSuggest() {
   });
 }
 
-// Saran kolom Dimension untuk material itu (jumlah warna terdaftar = varian)
+// Saran kolom Dimension: dimension material itu (jumlah warna terdaftar = varian), lalu R20: dimension material lain
+// (other: true, baru tampil setelah mengetik) supaya dimension baru ditulis seperti yang sudah ada.
 function dimensionSuggest(getMaterialId) {
   return () => {
     const m = MAT_BY_ID[getMaterialId()];
-    if (!m) return [];
-    return m.dims.filter(d => d.thickness).map(d => ({
+    const own = m ? m.dims.filter(d => d.thickness).map(d => ({
       value: d.thickness, detail: m.is_process ? 'Process' : d.n ? `${d.n} colors` : 'no variants yet',
-    }));
+    })) : [];
+    if (m && m.is_process) return own;
+    const seen = new Set(own.map(o => thickKey(o.value)));
+    return own.concat(ALL_DIMS.filter(d => !seen.has(d.key)).map(d => ({
+      value: d.thickness, other: true,
+      detail: `new for this material · used by ${d.mats} material${d.mats === 1 ? '' : 's'}`,
+    })));
   };
 }
 
@@ -513,6 +535,11 @@ function cellInput(key, value, opts) {
     i.addEventListener('change', commit);
     i.addEventListener('blur', commit);
   }
+  if (opts.dropdown) {                         // R20 Dimension: daftar penuh saat diklik, dibandingkan dalam bentuk baku
+    i._sugFull = true;
+    i._sugKey = thickKey;
+    i.classList.add('dd');
+  }
   if (opts.suggest) attachSuggest(i, opts.suggest, opts.onPick);
   i.addEventListener('keydown', e => {
     if (e.defaultPrevented) return;            // sudah ditangani daftar saran
@@ -554,12 +581,24 @@ function hideSuggest() {
 // R19: item = teks (warna) atau { value, detail } (material / dimension: detail tampil kecil di bawah, teks membungkus)
 const sugValue = c => (typeof c === 'string' ? c : c.value);
 
-function showSuggest(input, source) {
-  const key = norm(input.value);
+// R20: input._sugFull (Dimension) = klik / fokus menampilkan seluruh dimension material itu seperti dropdown (yang terisi
+// ditandai, juga saat mengetik); saat mengetik daftar disaring dan dimension material lain (item.other) ikut di bawah judul
+// "Other materials".
+// input._sugKey = kunci pembanding (Dimension: bentuk baku, "1,2mm" cocok dengan "1.2 MM").
+function showSuggest(input, source, focus) {
+  const kf = input._sugKey || norm;
+  const key = kf(input.value);
   const all = typeof source === 'function' ? source() : (source || []);
-  const hits = all.filter(c => norm(sugValue(c)) !== key && (!key || norm(sugValue(c)).includes(key)));
-  hits.sort((a, b) => (norm(sugValue(b)).startsWith(key) ? 1 : 0) - (norm(sugValue(a)).startsWith(key) ? 1 : 0));
-  sugItems = hits.slice(0, 12);
+  const full = !!(focus && input._sugFull);
+  let hits;
+  if (full) {
+    hits = all.filter(c => !c.other);
+  } else {
+    const rank = c => (c.other ? 2 : 0) + (kf(sugValue(c)).startsWith(key) ? 0 : 1);
+    hits = all.filter(c => (key || !c.other) && (input._sugFull || kf(sugValue(c)) !== key) && (!key || kf(sugValue(c)).includes(key)));
+    hits.sort((a, b) => rank(a) - rank(b));
+  }
+  sugItems = hits.slice(0, full ? 60 : 12);
   sugTarget = input;
   sugIndex = -1;
   const box = $('suggest');
@@ -569,7 +608,8 @@ function showSuggest(input, source) {
     return;
   }
   sugItems.forEach((c, n) => {
-    const o = el('div', 'opt', sugValue(c));
+    if (c.other && (n === 0 || !sugItems[n - 1].other)) box.appendChild(el('div', 'opt-head', 'Other materials'));
+    const o = el('div', 'opt' + (input._sugFull && key && kf(sugValue(c)) === key ? ' cur' : ''), sugValue(c));
     if (typeof c !== 'string' && c.detail) o.appendChild(el('span', 'opt-detail', c.detail));
     o.addEventListener('mousedown', e => {     // mousedown: sebelum kotak teks kehilangan fokus
       e.preventDefault();
@@ -590,7 +630,7 @@ function showSuggest(input, source) {
 }
 
 function markSuggest() {
-  Array.from($('suggest').children).forEach((o, n) => o.classList.toggle('on', n === sugIndex));
+  Array.from($('suggest').querySelectorAll('.opt')).forEach((o, n) => o.classList.toggle('on', n === sugIndex));
 }
 
 function pickSuggest(n) {
@@ -605,7 +645,12 @@ function pickSuggest(n) {
 
 function attachSuggest(input, source, onPick) {
   input._onPick = onPick || null;
-  input.addEventListener('focus', () => showSuggest(input, source));
+  input.addEventListener('focus', () => showSuggest(input, source, true));
+  input.addEventListener('mousedown', () => {    // R20 Dimension: klik lagi pada kotak yang sudah fokus = buka / tutup daftar
+    if (!input._sugFull || document.activeElement !== input) return;
+    if ($('suggest').hidden || sugTarget !== input) showSuggest(input, source, true);
+    else hideSuggest();
+  });
   input.addEventListener('input', () => showSuggest(input, source));
   input.addEventListener('blur', () => { if (sugTarget === input) hideSuggest(); });
   input.addEventListener('keydown', e => {
@@ -832,7 +877,7 @@ function commitProcess(line, input) {
 
 // R20: sel = teks warna saja (Material Code hanya lewat Register). Warna terdaftar -> DB menyambungkan kodenya.
 function commitCell(line, article, input) {
-  const color = tidy(input.value);
+  const color = cleanColor(input.value);        // R20: bentuk baku seperti DB (black / white -> BLACK/WHITE)
   input.dataset.orig = input.value;
   send('setCell', { line_id: line.id, article_id: article.id, color });
 }
@@ -841,8 +886,8 @@ function commitCell(line, article, input) {
 function colorSource(line) {
   return () => {
     const own = variantsOf(line.material_id, line.thickness).map(v => v.color);
-    const seen = new Set(own.map(norm));
-    return own.concat((M.colors || []).filter(c => !seen.has(norm(c))));
+    const seen = new Set(own.map(colorKey));
+    return own.concat((M.colors || []).filter(c => !seen.has(colorKey(c)) && seen.add(colorKey(c))));
   };
 }
 
@@ -909,8 +954,9 @@ function formInputs(prefix, state, isSub) {
   const curMat = () => { const r = resolveName(tidy(f.mat.value)); return r && r.m ? r.m.material_id : null; };
   mk('mat', { multiline: true, suggest: materialSuggest, onPick: () => syncMaterial(), placeholder: 'Material name…', label: 'Material' });
   f.mat.addEventListener('input', () => clearMissing(`${prefix}:mat`, f.mat));
-  mk('thk', { multiline: true, suggest: dimensionSuggest(curMat), onPick: () => syncDim(), placeholder: 'Dimension…', label: 'Dimension',
-    title: 'Pick a registered dimension of this material, or type a new one (e.g. 1.2 MM)' });
+  mk('thk', { multiline: true, dropdown: true, suggest: dimensionSuggest(curMat), onPick: () => syncDim(), placeholder: 'Dimension…',
+    label: 'Dimension',
+    title: 'Click to pick a dimension of this material, or type: dimensions of other materials are suggested too (a new dimension is allowed)' });
   mk('sup', { list: supplierListId(null), placeholder: 'Supplier…', label: 'Supplier' });
   mk('rem', { placeholder: 'Remarks', label: 'Remarks', keepLines: true, title: 'Shift+Enter / Alt+Enter = new line' });
   f.uom = el('span', 'ro none', '-');
@@ -1090,10 +1136,10 @@ function dimensionCell(line, editable) {
   }
   const pend = pendingDim[line.id];
   const di = cellInput(`thk:${line.id}`, pend ? '' : line.thickness, {
-    col: 'thk', multiline: true, label: 'Dimension',
+    col: 'thk', multiline: true, dropdown: true, label: 'Dimension',
     suggest: dimensionSuggest(() => (pendingDim[line.id] ? pendingDim[line.id].material_id : line.material_id)),
     placeholder: pend ? 'Pick dimension…' : '',
-    title: 'Type or pick the dimension. Changing it = Replace Material (same material, new dimension).',
+    title: 'Click to pick or type the dimension (dimensions of other materials are suggested while typing). Changing it = Replace Material (same material, new dimension).',
     onCommit: i => commitDimension(line, i),
   });
   if (pend) di.classList.add('need');
@@ -1218,6 +1264,17 @@ function lineRow(line, arts, editable, hasSubs) {
       const note = el('span', 'vcode warn', 'no Material Code');
       note.title = 'This color is not registered as a variant of this material + dimension. The specsheet cannot be published.';
       c.appendChild(note);
+      // R20: warna terdaftar dengan kata sama tapi urutan lain (WHITE/BLACK vs BLACK/WHITE) -> saran saja, tidak diganti otomatis
+      const words = colorWords(v);
+      const twin = words && variantsOf(line.material_id, line.thickness)
+        .find(x => colorWords(x.color) === words && colorKey(x.color) !== colorKey(v));
+      if (twin && editable) {
+        const t = el('button', 'link twin', `Did you mean ${twin.color}?`);
+        t.type = 'button';
+        t.title = `${twin.color} is registered for this material + dimension (code ${twin.code}). Click to use it; ignore if the color order is really different.`;
+        t.addEventListener('click', () => send('setCell', { line_id: line.id, article_id: a.id, color: twin.color }));
+        c.appendChild(t);
+      }
       if (editable && M.canRegister) {
         const b = el('button', 'link reg', 'Register');
         b.type = 'button';

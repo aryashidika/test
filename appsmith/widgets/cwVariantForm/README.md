@@ -29,3 +29,10 @@ Event: `onSave` (model `code, color, thickness, status, again`), `onCancel`, `on
 - `model.canUse` (Specsheet) + kode sudah dipakai varian ACTIVE -> tombol **Use KODE in the specsheet** -> `onLookup` `lookupKind: 'use'`,
   `useId`, `useCode` (`BomCtrl.useFromRegister`).
 - Centang konfirmasi dan `confirm` di `onSave` dihapus. Info kuning tinggal: kode bukan 10 karakter.
+
+## R20 bagian 2: warna baku, daftar Dimension (28 Okt 2026)
+
+- Warna dikirim / dicari dalam bentuk baku `cleanColor` (= `fn_clean_color`, salinan sama di `cwBomGrid`): `black / white` -> `BLACK/WHITE`.
+- Model baru `dimensions: [{ thickness, n, own }]` (Material Detail: `q_dimensions`, dijalankan `MaterialDetailCtrl` saat form varian dibuka)
+  -> datalist `dlDims` di kolom Dimension: dimension material ini (`this material · N colors`) dulu, lalu material lain di pabrik ini.
+  Bila `fixed` (modal Register specsheet) daftar tidak dipasang. Ketik dimension baru tetap boleh.

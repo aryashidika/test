@@ -4,7 +4,9 @@
 #  2. Material Code ketat dua arah tanpa centang konfirmasi (cwVariantForm, q_code_hint, BomCtrl / MaterialDetailCtrl)
 #  3. Use: varian yang sudah ada dipakai di sel kuning / sel yang diisi kode material lain (cwBomGrid, BomCtrl,
 #     a_bom_use_variant baru, tombol "Use this variant" di modal Register)
-# JSObject / Custom Widget yang ditimpa dicek dulu: isi di app = repo di git HEAD (R19), lalu diganti isi repo sekarang.
+#  4. (bagian 2, 27 Okt 2026) warna seragam (BLACK / WHITE = BLACK/WHITE, cwBomGrid + cwVariantForm, SQL 0b) dan Dimension seperti
+#     dropdown: grid = daftar penuh saat diklik + dimension material lain saat mengetik; form varian = daftar q_dimensions baru
+# JSObject / Custom Widget yang ditimpa dicek dulu: isi di app = repo di commit R19 (a1af1d1), lalu diganti isi repo sekarang.
 # Pakai: python -X utf8 -I tools/build_r20.py [base.json]   (default base = exports/build_r19.json)
 import os, subprocess, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -18,8 +20,11 @@ def js(path):
     return s[s.index('export default'):]
 
 
+R19_COMMIT = 'a1af1d1'     # R19 lolos uji user; build_r19.json = isi repo di commit ini
+
+
 def git_head(path):
-    return subprocess.run(['git', '-C', ROOT, 'show', f'HEAD:appsmith/{path}'], capture_output=True, text=True,
+    return subprocess.run(['git', '-C', ROOT, 'show', f'{R19_COMMIT}:appsmith/{path}'], capture_output=True, text=True,
                           encoding='utf-8', check=True).stdout
 
 
@@ -82,6 +87,16 @@ app.note('q_code_hint (+ warna, dimension, used_*, problems) & a_variant_save ta
 app.add_query(SPEC, 'a_bom_use_variant', 'a_bom_change_component',
               'SELECT fn_bom_use_variant({{appsmith.store.token}}, {{this.params.line_id}}::uuid,\n'
               '                          {{this.params.article_id}}::uuid, {{this.params.variant_id}}::uuid) AS result;')
+
+# ---------------------------------------------------------------- 4. daftar Dimension form varian (Material Detail)
+app.add_query(MD, 'q_dimensions', 'q_variants',
+              "SELECT v.thickness, count(*)::int AS n, bool_or(v.material_id::text = {{appsmith.URL.queryParams.id || ''}}) AS own\n"
+              "FROM (SELECT fn_auth({{appsmith.store.token}}, 'view_master') AS me) a\n"
+              "JOIN material m0 ON m0.id::text = {{appsmith.URL.queryParams.id || ''}}\n"
+              "JOIN material_variant v ON v.factory_id = m0.factory_id AND fn_can_see_factory(a.me, v.factory_id)\n"
+              "WHERE coalesce(v.thickness, '') <> '' AND v.status = 'ACTIVE'\n"
+              "GROUP BY v.thickness\n"
+              "ORDER BY bool_or(v.material_id::text = {{appsmith.URL.queryParams.id || ''}}) DESC, count(*) DESC, v.thickness;")
 
 lock_manual_queries(app)
 app.publish_all()

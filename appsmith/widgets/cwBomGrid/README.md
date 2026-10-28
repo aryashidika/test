@@ -135,3 +135,14 @@ R4 (specsheet per varian):
 - **Nama rapat** (`tightKey` = `fn_tight_key`): `resolveName` mencocokkan nama yang hanya beda spasi / tanda baca ke material master tanpa
   bertanya (lebih dari satu beda UoM -> pesan pilih). **`nearName`** (salinan di `BomCtrl.nearMaterialNames`): saran "Did you mean" hanya
   untuk nama yang angkanya sama; urutan: beda tanda baca, kata sama urutan lain, typo 1 huruf di kata 5 huruf ke atas, nama memuat ketikan.
+
+## R20 bagian 2: warna seragam, Dimension seperti dropdown (28 Okt 2026)
+
+- **Warna**: `cleanColor` (= `fn_clean_color`: huruf besar, tanpa spasi di sekitar `/ - & + ,`) dipakai saat sel disimpan; `colorKey`
+  (= `fn_color_key` = `tightKey`) untuk saran warna unik. DB menyambungkan warna yang hanya beda spasi / tanda baca ke varian dan menulis
+  sel seperti varian terdaftar. Sel kuning dengan kata sama tapi urutan lain dari warna terdaftar baris itu (`colorWords`) -> tombol
+  **Did you mean WARNA?** (`setCell` dengan warna terdaftar); tidak diganti otomatis. Salinan `cleanColor` sama di `cwVariantForm`.
+- **Dimension** (`cellInput` opsi `dropdown`: kelas `dd` = tanda panah, `_sugFull`, `_sugKey = thickKey`): fokus / klik = semua dimension
+  material itu (yang terisi dicentang, klik lagi = tutup); mengetik = disaring dalam bentuk baku, termasuk yang sama persis (dicentang),
+  lalu dimension material lain (`ALL_DIMS` dari `M.materials`, item `other`) di bawah judul **Other materials**
+  (`new for this material · used by N materials`). `markSuggest` hanya menghitung `.opt` (judul grup dilewati).

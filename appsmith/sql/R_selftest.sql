@@ -1,6 +1,6 @@
 -- ============================================================================
 -- R_selftest: uji alur inti R3–R19 langsung di database, lalu DIBATALKAN (ROLLBACK): tidak ada data yang tersimpan.
--- Jalankan SETELAH sql/R_revisi_semua.sql, sql/R8_catatan_uji.sql, R9_kode_varian.sql R10_hapus_varian.sql, R11_perbaikan.sql, R11b_harga_batal.sql, R12_golive.sql, R13_cbd_stage.sql, R14_audit_stage.sql, R15_english.sql, R16_baku_thickness.sql, R17_remember_estimate.sql, R18_dimension.sql, R19_catatan_uji.sql DAN SQL R20 (steps/R20_uji.md §0a), lewat z_run_sql di app "DB Tools" (Use prepared statements = OFF),
+-- Jalankan SETELAH sql/R_revisi_semua.sql, sql/R8_catatan_uji.sql, R9_kode_varian.sql R10_hapus_varian.sql, R11_perbaikan.sql, R11b_harga_batal.sql, R12_golive.sql, R13_cbd_stage.sql, R14_audit_stage.sql, R15_english.sql, R16_baku_thickness.sql, R17_remember_estimate.sql, R18_dimension.sql, R19_catatan_uji.sql DAN SQL R20 (steps/R20_uji.md §0a dan §8 SQL 0b), lewat z_run_sql di app "DB Tools" (Use prepared statements = OFF),
 -- SEBELUM import app. Hasil yang diharapkan: baris terakhir "SELFTEST LOLOS". Kalau ada yang salah, query berhenti
 -- dengan pesan "SELFTEST GAGAL: ..." — kirim pesan itu ke pengembang.
 -- Aman di DB yang sudah berisi data: pabrik SELFTEST PABRIK A/B, email @selftest.invalid; master BERSAMA (supplier,
@@ -1706,6 +1706,67 @@ BEGIN
   PERFORM pg_temp.ok((SELECT count(*) FROM material_variant v WHERE v.factory_id = (SELECT id FROM factory WHERE name = 'SELFTEST PABRIK A')
                         AND cardinality(fn_variant_code_problems(v.factory_id, v.material_id, v.code, v.color, v.thickness, v.id)) > 0) >= 0,
                      'R20 query cek data varian menyimpang bisa dijalankan');
+END;
+$$;
+
+-- ---------------------------------------------------------------- R20 bagian 2 (warna seragam)
+DO $$
+DECLARE
+  t_spec text := pg_temp.tok('spec.a@selftest.invalid');
+  v_cat uuid; v_sup uuid; v_comp uuid;
+  mw uuid; vw uuid; vb uuid; m1 uuid; sh1 uuid; a1 uuid; a2 uuid; a3 uuid; r1 uuid; l1 uuid; h record;
+BEGIN
+  SELECT pm.category_id INTO v_cat FROM product_model pm JOIN factory f ON f.id = pm.factory_id
+   WHERE f.name = 'SELFTEST PABRIK A' LIMIT 1;
+  SELECT id INTO v_sup FROM supplier WHERE name = 'SELFTEST SUPPLIER SATU';
+  SELECT id INTO v_comp FROM component WHERE name = 'SELFTEST VAMP';
+
+  PERFORM pg_temp.ok(fn_clean_color(' black /  white ') = 'BLACK/WHITE' AND fn_clean_color('Navy - Red & Gold, Silver + x') = 'NAVY-RED&GOLD,SILVER+X'
+                     AND fn_clean_color('BASE+STUD+LOGO:COBALT BLUE 2728 C') = 'BASE+STUD+LOGO:COBALT BLUE 2728 C',
+                     'R20 warna baku: tanpa spasi di sekitar / - & + ,');
+  PERFORM pg_temp.ok(fn_color_key('BLACK/WHITE') = fn_color_key('black - white') AND fn_color_key('BLACK WHITE') = fn_color_key('BLACK/WHITE')
+                     AND fn_color_key('WHITE/BLACK') <> fn_color_key('BLACK/WHITE') AND fn_color_key('BLK') <> fn_color_key('BLACK'),
+                     'R20 kunci warna: beda spasi / tanda baca sama, urutan beda dan singkatan tetap beda');
+
+  mw := fn_material_add(t_spec, 'UJI R20 WARNA', 'LEATHER', 'ME');
+  vw := fn_variant_save(t_spec, NULL, mw, 'R20W160B0W', 'black / white', '1.6MM', 'ACTIVE');
+  PERFORM pg_temp.ok((SELECT color FROM material_variant WHERE id = vw) = 'BLACK/WHITE', 'R20 warna varian disimpan baku');
+  PERFORM pg_temp.must_fail(format('SELECT fn_variant_save(%L, NULL, %L, ''R20W160BWX'', ''Black-White'', ''1.6 MM'', ''ACTIVE'')', t_spec, mw),
+            '%already exists in this material%', 'R20 varian BLACK-WHITE = BLACK/WHITE (kembar) ditolak');
+  PERFORM pg_temp.must_fail(format('SELECT fn_variant_save(%L, NULL, %L, ''R20W160W0B'', ''BLACK WHITE'', ''1.6 MM'', ''ACTIVE'')', t_spec, mw),
+            '%already exists in this material%', 'R20 varian BLACK WHITE = BLACK/WHITE (kembar) ditolak');
+  vb := fn_variant_save(t_spec, NULL, mw, 'R20W160W0B', 'WHITE/BLACK', '1.6 MM', 'ACTIVE');
+  PERFORM pg_temp.ok(vb IS NOT NULL, 'R20 WHITE/BLACK (urutan beda) boleh didaftarkan');
+  SELECT * INTO h FROM fn_variant_code_hint(t_spec, mw, 'R20W160BXX', NULL, 'BLACK WHITE', '1.6 MM');
+  PERFORM pg_temp.ok(array_to_string(h.problems, ' ') LIKE '%Color BLACK WHITE in material UJI R20 WARNA uses color code B0W%',
+                     'R20 aturan kode: BLACK WHITE dianggap warna BLACK/WHITE (kode akhir B0W)');
+  PERFORM pg_temp.ok((SELECT color_codes FROM fn_variant_code_suggest(t_spec, mw, 'black-white', '1.6 MM')) = 'B0W',
+                     'R20 usulan kode warna memakai kunci warna');
+
+  m1  := pg_temp.mk_model(t_spec, 'Uji R20 Warna', v_cat);
+  sh1 := fn_season_add(t_spec, m1, 'SS28');
+  a1  := fn_article_save(t_spec, NULL, sh1, 'UJI-R20W1', 'BLACK');
+  a2  := fn_article_save(t_spec, NULL, sh1, 'UJI-R20W2', 'WHITE');
+  a3  := fn_article_save(t_spec, NULL, sh1, 'UJI-R20W3', 'RED');
+  r1  := fn_revision_create(t_spec, sh1, 'EMPTY', 'PREV', NULL);
+  l1  := fn_bom_add_line(t_spec, r1, v_comp, NULL, NULL, mw, '1.6 MM', v_sup, NULL, NULL);
+  PERFORM fn_bom_cell_set(t_spec, l1, a1, 'black - white');
+  PERFORM fn_bom_cell_set(t_spec, l1, a2, 'white /black');
+  PERFORM fn_bom_cell_set(t_spec, l1, a3, 'red / gold');
+  PERFORM pg_temp.ok((SELECT variant_id FROM bom_cell WHERE bom_line_id = l1 AND article_id = a1) = vw
+                     AND (SELECT color FROM bom_cell WHERE bom_line_id = l1 AND article_id = a1) = 'BLACK/WHITE',
+                     'R20 sel black - white tersambung ke BLACK/WHITE dan ditulis seperti varian');
+  PERFORM pg_temp.ok((SELECT variant_id FROM bom_cell WHERE bom_line_id = l1 AND article_id = a2) = vb,
+                     'R20 sel white /black tersambung ke WHITE/BLACK');
+  PERFORM pg_temp.ok((SELECT color FROM bom_cell WHERE bom_line_id = l1 AND article_id = a3) = 'RED/GOLD'
+                     AND (SELECT variant_id FROM bom_cell WHERE bom_line_id = l1 AND article_id = a3) IS NULL,
+                     'R20 sel belum terdaftar disimpan baku (RED/GOLD, kuning)');
+  PERFORM fn_variant_save(t_spec, NULL, mw, 'R20W160R0G', 'RED - GOLD', '1.6 MM', 'ACTIVE');
+  PERFORM pg_temp.ok((SELECT variant_id FROM bom_cell WHERE bom_line_id = l1 AND article_id = a3) IS NOT NULL
+                     AND (SELECT color FROM bom_cell WHERE bom_line_id = l1 AND article_id = a3) = 'RED-GOLD',
+                     'R20 daftar RED - GOLD: sel kuning RED/GOLD tersambung dan ditulis RED-GOLD');
+  PERFORM fn_variant_save(t_spec, vw, mw, 'R20W160B0W', 'Black/White', '1.6 MM', 'INACTIVE');
+  PERFORM pg_temp.ok((SELECT status FROM material_variant WHERE id = vw) = 'INACTIVE', 'R20 ubah status varian dengan tulisan warna lain (kunci sama) boleh');
 END;
 $$;
 
