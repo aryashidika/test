@@ -3,7 +3,8 @@
 // R2b: satu baris seperti ERP (Material Code 10 karakter = 4 awalan material · 3 thickness · 3 warna, warna, thickness).
 // R20 (keputusan user 27 Okt 2026) - kode 10 karakter KETAT dua arah, tanpa centang konfirmasi (R9 dulu: konfirmasi / info):
 //   kode -> arti : 4 awal = 1 material, 3 tengah = 1 dimension, 3 akhir = 1 warna
-//   arti -> kode : 1 material = 1 awalan, 1 dimension = 1 kode tengah (kosong: per UoM), 1 warna di material = 1 kode akhir
+//   arti -> kode : 1 material = 1 awalan, 1 dimension = 1 kode tengah (kosong: per material, R20 bagian 3), 1 warna di
+//   material = 1 kode akhir
 //   Masalahnya dihitung DB (fn_variant_code_problems lewat fn_variant_code_hint, model.hint.problems) untuk kode + warna +
 //   dimension yang sedang diketik -> kotak merah, Save ditolak. Kode utuh sudah dipakai varian lain -> kotak merah; di
 //   specsheet (model.canUse) ada tombol "Use this variant" (lookupKind 'use', useId) = sel memakai varian itu.
@@ -14,6 +15,9 @@
 //   - warna + thickness diketahui (sel specsheet = model.fixed, atau diketik di form tambah) -> lookupKind 'suggest' ->
 //     model.suggest (fn_variant_code_suggest): Material Code diisi USULAN (kode paling sering dipakai); bagian yang
 //     belum diketahui dibiarkan kosong. Kode yang sudah diubah user tidak ditimpa lagi.
+// R20 bagian 3 (28 Okt 2026): Dimension wajib terisi; tanpa dimension = "(None)" (paling atas di daftar). Tambah varian di
+//   Material Detail: Dimension terisi otomatis = dimension material ini dengan varian terbanyak (sama banyak: yang paling dulu
+//   didaftarkan; belum ada varian = (None)). Kotak dikosongkan = (None).
 const $ = id => document.getElementById(id);
 let lastKey = null;
 let busy = false;
@@ -30,6 +34,9 @@ let sugTimer = null;
 let sugSig = '';
 let canUse = false;                        // R20: specsheet -> tombol "Use this variant"
 let origKey = '';                          // R20: edit - kode|warna|dimension saat dibuka (ubah status saja tidak dicek ulang)
+let dimAuto = null;                        // R20 bagian 3: Dimension yang diisi otomatis (null = diketik / dipilih user)
+let dims = [];                             // R20 bagian 3: model.dimensions terakhir
+const NONE = '(None)';                     // R20 bagian 3: tanpa dimension (disimpan kosong)
 
 function applyTheme(t) {
   t = t || {};
@@ -72,7 +79,7 @@ const cleanColor = s => String(s || '').toUpperCase().replace(/\s+/g, ' ').repla
 // "1.4 MM-1.6 MM" -> "1.4-1.6 MM". Kosong / "." / "-" = tanpa thickness. Salinan sama di cwBomGrid.
 function canonThickness(s) {
   let t = String(s ?? '').replace(/\s+/g, ' ').trim().toUpperCase();
-  if (t === '' || t === '.' || t === '-') return '';
+  if (t === '' || t === '.' || t === '-' || t === 'NONE' || t === '(NONE)') return '';   // R20 bagian 3: (None)
   t = t.replace(/[“”„‟″〃＂]/g, '"')
     .replace(/['’‘′`´]{2}/g, '"')
     .replace(/(\d),(\d)/g, '$1.$2')
@@ -93,6 +100,7 @@ function canonThickness(s) {
 }
 const cleanThick = canonThickness;   // R16: thickness dibandingkan dalam bentuk baku ("44 \"" = '44"')
 const thickLabel = s => cleanThick(s) || 'no dimension';
+const dimText = s => cleanThick(s) ? s : NONE;   // R20 bagian 3: kosong tampil (None)
 const parts = s => String(s || '').split(',').filter(x => x);
 const el = (tag, cls, text) => Object.assign(document.createElement(tag), { className: cls || '', textContent: text || '' });
 
@@ -113,7 +121,8 @@ function clearAutoFields() {
       return;
     }
     if (autoField[field]) {
-      $(field).value = '';
+      // R20 bagian 3: Dimension tidak pernah kosong -> kembali ke default
+      $(field).value = field === 'thickness' ? (isEdit ? NONE : (dimAuto = defaultDim())) : '';
       autoField[field] = false;
     }
     setNote(field, '');
@@ -135,8 +144,11 @@ function applyHint(h) {
       return;
     }
     if (known) {
-      if (!tidyText($(field).value) || autoField[field]) {
-        $(field).value = value || '';
+      // R20 bagian 3: Dimension default (belum diubah user) boleh ditimpa arti kode
+      const auto = field === 'thickness' && dimAuto !== null && $(field).value === dimAuto;
+      if (!tidyText($(field).value) || autoField[field] || auto) {
+        $(field).value = field === 'thickness' ? dimText(value || '') : (value || '');
+        if (field === 'thickness') dimAuto = null;
         autoField[field] = true;
         $(field).classList.remove('invalid');
       }
@@ -209,7 +221,8 @@ function applySuggest(s) {
   const sig = JSON.stringify(s);
   if (sig === sugSig) return;              // model yang sama dikirim ulang Appsmith
   sugSig = sig;
-  sug = { key: s.for, p: parts(s.prefixes), t: parts(s.thickness_codes), c: parts(s.color_codes) };
+  sug = { key: s.for, p: parts(s.prefixes), t: parts(s.thickness_codes), c: parts(s.color_codes),
+    tFree: s.thickness_free === true };   // R20 bagian 3: dimension kosong, material ini belum punya kode -> hanya saran
   const cur = cleanCode($('code').value);
   if (!cur || cur === autoCode) {
     // kode paling sering dipakai; berhenti di bagian pertama yang belum diketahui (posisi kode tetap)
@@ -249,7 +262,12 @@ function renderSuggest() {
     } else {
       row.appendChild(el('span', 'sug-code', list[0]));
       // R20: awalan & dimension satu kode saja (kode lain = data lama, ditolak); warna boleh beda di material lain
-      if (list.length > 1) {
+      // R20 bagian 3: dimension kosong yang belum ada di material ini = kode kosong material lain, boleh pilih / kode baru
+      if (k === 't' && sug.tFree) {
+        row.appendChild(el('span', 'sug-other', list.length > 1
+          ? `(no dimension in other materials, same UoM first; also ${list.slice(1).join(', ')}. Use the ERP code)`
+          : '(no dimension in other materials. Use the ERP code)'));
+      } else if (list.length > 1) {
         row.appendChild(el('span', 'sug-other', k === 'c'
           ? `(used in other materials: ${list.slice(1).join(', ')})`
           : `(old data also has ${list.slice(1).join(', ')}: will be rejected, see data check)`));
@@ -313,11 +331,19 @@ function fillForm(m) {
   autoField.thickness = false;
   $('title').textContent = isEdit ? 'Edit Variant' : 'Add Variant';
   $('materialLabel').textContent = m.materialLabel || '';
+  dimAuto = null;
   ['code', 'color', 'thickness'].forEach(id => {
     $(id).value = f[id] || '';
     $(id).disabled = !!fixed && id !== 'code';
     $(id).classList.remove('invalid');
   });
+  // R20 bagian 3: Dimension selalu terisi. Tambah di Material Detail: dimension yang dibawa (Save & add again) atau default
+  if (!isEdit && !fixed && !('thickness' in f)) {
+    dimAuto = defaultDim();
+    $('thickness').value = dimAuto;
+  } else {
+    $('thickness').value = dimText(f.thickness || '');
+  }
   setNote('color', fixed ? fixedNote('color') : '');
   setNote('thickness', fixed ? fixedNote('thickness') : '');
   if (fixed) $('thickness').removeAttribute('list');
@@ -335,20 +361,43 @@ function fillForm(m) {
 }
 
 // R20: daftar Dimension = dimension material ini (jumlah warna) lalu dimension material lain di pabrik ini; ketik baru tetap boleh
+// R20 bagian 3: (None) paling atas; dimension material ini urut varian terbanyak (q_dimensions)
 let dimsSig = '';
 function fillDims(list) {
   const rows = Array.isArray(list) ? list : [];
   const sig = JSON.stringify(rows);
   if (sig === dimsSig) return;
   dimsSig = sig;
+  dims = rows;
   const dl = $('dlDims');
   dl.innerHTML = '';
-  rows.forEach(d => {
+  const colors = n => `${n} color${Number(n) === 1 ? '' : 's'}`;
+  const none = rows.find(d => d.own && !cleanThick(d.thickness));
+  const opt = (value, label) => {
     const o = document.createElement('option');
-    o.value = d.thickness;
-    o.label = d.own ? `this material · ${d.n} color${Number(d.n) === 1 ? '' : 's'}` : 'other material (new for this material)';
+    o.value = value;
+    o.label = label;
     dl.appendChild(o);
+  };
+  opt(NONE, none ? `no dimension · this material · ${colors(none.n_own)}` : 'no dimension');
+  rows.filter(d => cleanThick(d.thickness)).forEach(d => {
+    opt(d.thickness, d.own ? `this material · ${colors(d.n_own)}` : 'other material (new for this material)');
   });
+  // daftar datang setelah form dibuka: default diisi ulang selama belum diubah user
+  if (dimAuto !== null && !isEdit && !fixed && $('thickness').value === dimAuto) {
+    dimAuto = defaultDim();
+    if ($('thickness').value !== dimAuto) {
+      $('thickness').value = dimAuto;
+      requestLookup();
+      requestSuggest(true);
+    }
+  }
+}
+
+// R20 bagian 3: dimension material ini dengan varian terbanyak (urutan q_dimensions), belum ada varian = (None)
+function defaultDim() {
+  const own = dims.find(d => d.own && Number(d.n_own) > 0);
+  return own ? dimText(own.thickness || '') : NONE;
 }
 
 function setBusy(v) {
@@ -375,7 +424,7 @@ function submit(again) {
   if (busy) return;
   const code = cleanCode($('code').value);
   const color = cleanColor($('color').value);
-  const thickness = tidyText($('thickness').value);
+  const thickness = cleanThick($('thickness').value) ? tidyText($('thickness').value) : '';   // (None) = kosong
   ['code', 'color'].forEach(id => $(id).classList.remove('invalid'));
   if (!code || !color) {
     $(code ? 'color' : 'code').classList.add('invalid');
@@ -413,11 +462,17 @@ appsmith.onReady(() => {
   $('code').addEventListener('input', onCodeInput);
   ['color', 'thickness'].forEach(id => $(id).addEventListener('input', () => {
     autoField[id] = false;                 // diketik user
+    if (id === 'thickness') dimAuto = null;
     $(id).classList.remove('invalid');
     requestLookup();                       // R20: aturan ketat bergantung warna + dimension
     requestSuggest(false);
   }));
   $('btnUse').addEventListener('click', useExisting);
+  // R20 bagian 3: Dimension wajib terisi -> dikosongkan = (None); fokus = teks terpilih supaya langsung bisa diketik ulang
+  $('thickness').addEventListener('focus', () => $('thickness').select());
+  $('thickness').addEventListener('blur', () => {
+    if (!$('thickness').disabled && !tidyText($('thickness').value)) $('thickness').value = NONE;
+  });
   ['code', 'color', 'thickness'].forEach(id => $(id).addEventListener('keydown', e => {
     if (e.key === 'Enter') submit(!isEdit);
   }));

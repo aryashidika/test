@@ -36,3 +36,14 @@ Event: `onSave` (model `code, color, thickness, status, again`), `onCancel`, `on
 - Model baru `dimensions: [{ thickness, n, own }]` (Material Detail: `q_dimensions`, dijalankan `MaterialDetailCtrl` saat form varian dibuka)
   -> datalist `dlDims` di kolom Dimension: dimension material ini (`this material · N colors`) dulu, lalu material lain di pabrik ini.
   Bila `fixed` (modal Register specsheet) daftar tidak dipasang. Ketik dimension baru tetap boleh.
+
+## R20 bagian 3: Dimension wajib, (None), default (28 Okt 2026)
+
+- Dimension wajib (tanda `*`): tanpa dimension = **`(None)`** (opsi pertama datalist, disimpan `''`; `canonThickness` membaca `NONE` /
+  `(NONE)` = kosong). Dikosongkan lalu keluar dari kotak = `(None)`. Edit / Register (`fixed`) tanpa dimension tampil `(None)`.
+- `dimensions` (Material Detail, `q_dimensions`) kini `{ thickness, n, n_own, own }`, termasuk baris `thickness: ''` milik material ini;
+  urut material ini dulu, varian terbanyak, paling dulu. **Tambah** (bukan edit / Register): Dimension diisi default = baris `own`
+  pertama dengan `n_own > 0`, selain itu `(None)` (`dimAuto`); daftar yang datang setelah form dibuka mengisi ulang default selama belum
+  diubah user. Arti kode (hint) boleh menimpa default. `form.thickness` ada (Save & add another) = dipakai, bukan default.
+- `suggest.thickness_free` (`fn_variant_code_suggest`): Dimension kosong yang belum ada di material ini -> baris Dimension usulan diberi
+  keterangan `(no dimension in other materials, same UoM first ...)`, bukan "will be rejected".

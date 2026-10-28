@@ -21,6 +21,10 @@
 //   dan sel warna tidak membaca kode lagi: kode yang diketik di sel = teks warna biasa (kuning). Warna yang sudah terdaftar untuk
 //   material + dimension baris tetap langsung dapat kode (DB). Nama material yang hanya beda spasi / tanda baca langsung dipakai nama
 //   master (PU-LEATHER = PU LEATHER). "Did you mean" hanya untuk nama yang angkanya sama (FOAM 50 KG bukan saran untuk FOAM 60 KG).
+// R20 bagian 3 (28 Okt 2026): Dimension wajib terisi; tanpa dimension = "(None)" (paling atas di daftar Dimension). Material dipilih
+//   (baris tambah / sub) atau diganti di baris -> Dimension otomatis: dimension baris yang juga ada di material itu tetap, selain itu
+//   dimension material itu dengan varian terbanyak (sama banyak: paling dulu didaftarkan; belum ada varian = (None)). Kotak
+//   dikosongkan = (None). Alur lama "pilih dimension dulu" (pendingDim) dihapus.
 // Hanya tampilan & input. Setiap perubahan dikirim sebagai model.action + event onAction (BomCtrl.onAction());
 // BomCtrl menjalankan query lalu memuat ulang data. Aturan final di DB (fn_bom_*).
 // Antrean aksi: aksi dikirim SATU PER SATU; berikutnya baru dikirim setelah BomCtrl membalas doneSeq >= seq aksi
@@ -52,9 +56,9 @@ let dropArmed = null;       // article yang tombol drop-nya menunggu klik kedua
 let dropTimer = null;
 let delArmed = null;        // baris yang tombol Hapus-nya menunggu klik kedua
 let delTimer = null;
-let pendingDim = {};        // R19: line_id -> { material_id, label } material baru yang menunggu dimension dipilih
 let compEdit = null;        // R19: line_id baris yang kolom Component-nya sedang diganti
-let MATS = [];              // R19: material unik { material_id, name, uom, is_process, dims: [{ thickness, n }] }
+let MATS = [];              // R19: material unik { material_id, name, uom, is_process, dims: [{ thickness, n, first }] }
+const NONE = '(None)';      // R20 bagian 3: tanpa dimension (disimpan kosong)
 let ALL_DIMS = [];          // R20: semua dimension terdaftar di pabrik [{ thickness, key, mats }] (saran "Other materials")
 let MAT_BY_ID = {};
 let MATS_SRC = null;
@@ -79,10 +83,10 @@ function tidy(s) {
 // = fn_clean_thickness (R16, gaya berspasi tim material): huruf besar, kutip pintar / dua apostrof -> ", koma desimal -> titik,
 // ".5" -> "0.5", nol belakang dibuang ("2.0" = "2"), INCH / IN setelah angka -> ", angka + satuan satu spasi ("1.2MM" -> "1.2 MM"),
 // "X" antar ukuran berspasi ("44X69CM" -> "44 X 69 CM"), tanpa spasi di sekitar "-", spasi sebelum "(", rentang
-// "1.4 MM-1.6 MM" -> "1.4-1.6 MM". Kosong / "." / "-" = tanpa thickness. Salinan sama di cwVariantForm.
+// "1.4 MM-1.6 MM" -> "1.4-1.6 MM". Kosong / "." / "-" / (None) = tanpa thickness. Salinan sama di cwVariantForm.
 function canonThickness(s) {
   let t = String(s ?? '').replace(/\s+/g, ' ').trim().toUpperCase();
-  if (t === '' || t === '.' || t === '-') return '';
+  if (t === '' || t === '.' || t === '-' || t === 'NONE' || t === '(NONE)') return '';
   t = t.replace(/[“”„‟″〃＂]/g, '"')
     .replace(/['’‘′`´]{2}/g, '"')
     .replace(/(\d),(\d)/g, '$1.$2')
@@ -103,6 +107,7 @@ function canonThickness(s) {
 }
 
 const thickKey = t => norm(canonThickness(t));
+const dimText = t => canonThickness(t) ? t : NONE;   // R20 bagian 3: yang tampil di kolom Dimension
 
 // Jarak ketik (Levenshtein) untuk saran typo
 function editDistance(a, b) {
@@ -185,8 +190,10 @@ function buildMats() {
       MAT_BY_ID[x.material_id] = m;
       MATS.push(m);
     }
-    m.dims.push({ thickness: x.thickness || '', n: Number(x.variant_count) || 0 });
+    m.dims.push({ thickness: x.thickness || '', n: Number(x.variant_count) || 0, first: Number(x.first_at) || 0 });
   });
+  // R20 bagian 3: dimension dengan varian terbanyak dulu (sama banyak: paling dulu didaftarkan) = default
+  MATS.forEach(m => m.dims.sort((a, b) => b.n - a.n || a.first - b.first || a.thickness.localeCompare(b.thickness)));
   const dimMap = {};
   MATS.forEach(m => m.dims.forEach(d => {
     if (!d.thickness || m.is_process) return;
@@ -206,8 +213,17 @@ function nameLabel(materialId, fallback) {
   return m ? m.label : (fallback || '');
 }
 
-// Dimension terdaftar material ini (urut seperti q_bom_options); '' = tanpa dimension
+// Dimension terdaftar material ini (varian terbanyak dulu); '' = tanpa dimension
 const dimsOf = materialId => ((MAT_BY_ID[materialId] || {}).dims || []).map(d => d.thickness);
+
+// R20 bagian 3: dimension default material = varian terbanyak ('' = (None), juga untuk material tanpa varian)
+const defaultDim = materialId => dimsOf(materialId)[0] || '';
+
+// R20 bagian 3: dimension saat material diganti: dimension sekarang bila terdaftar juga di material itu, selain itu default
+function dimFor(materialId, current) {
+  const keep = dimsOf(materialId).find(t => thickKey(t) === thickKey(current));
+  return keep !== undefined ? keep : defaultDim(materialId);
+}
 
 // Saran kolom Material: nama + UoM · dimension (membungkus, terbaca penuh)
 function materialSuggest() {
@@ -227,6 +243,9 @@ function dimensionSuggest(getMaterialId) {
     const own = m ? m.dims.filter(d => d.thickness).map(d => ({
       value: d.thickness, detail: m.is_process ? 'Process' : d.n ? `${d.n} colors` : 'no variants yet',
     })) : [];
+    // R20 bagian 3: (None) selalu paling atas
+    const nd = m ? m.dims.find(d => !d.thickness) : null;
+    own.unshift({ value: NONE, none: true, detail: nd && nd.n ? `no dimension · ${nd.n} colors` : 'no dimension' });
     if (m && m.is_process) return own;
     const seen = new Set(own.map(o => thickKey(o.value)));
     return own.concat(ALL_DIMS.filter(d => !seen.has(d.key)).map(d => ({
@@ -327,8 +346,8 @@ function resolveName(raw) {
 
 // Material (kolom Material) + dimension (kolom Dimension) -> { mat: { material_id, name, label, uom, thickness, isNew, is_process },
 //   split? } (split = ketikan lama "NAMA · DIMENSION": isi kedua kolom ditulis ulang). R20: Material Code tidak dibaca di sini.
-//   Tidak ketemu -> { error, notFound: { name, thickness } } (tombol "+ New material"). Dimension kosong padahal material punya
-//   beberapa dimension -> { error, needDim: true }.
+//   Tidak ketemu -> { error, notFound: { name, thickness } } (tombol "+ New material"). R20 bagian 3: Dimension (None) = tanpa
+//   dimension; Dimension belum diisi sama sekali = default material (varian terbanyak).
 function resolveMaterial(text, dimText) {
   const raw = tidy(text);
   if (!raw) return { error: 'Material is required.' };
@@ -379,11 +398,9 @@ function resolveMaterial(text, dimText) {
     const hit = dims.find(t => thickKey(t) === norm(d));
     return { mat: Object.assign(base, { thickness: hit !== undefined ? hit : d, isNew: hit === undefined && !m.is_process }), split };
   }
-  if (m.is_process || dims.includes('') || !dims.length) return { mat: Object.assign(base, { thickness: '', isNew: false }), split };
-  return {
-    needDim: true, m,
-    error: `Fill in the Dimension of ${m.label} (registered: ${dims.filter(t => t).join(' / ')}). A new dimension is also allowed.`,
-  };
+  const none = !!tidy(dim);                    // "(None)" / "." diketik = tanpa dimension; kosong = default
+  const t = none ? '' : defaultDim(m.material_id);
+  return { mat: Object.assign(base, { thickness: t, isNew: !!t && !dims.includes(t) && !m.is_process }), split };
 }
 
 function resolveSupplier(text) {
@@ -539,6 +556,7 @@ function cellInput(key, value, opts) {
     i._sugFull = true;
     i._sugKey = thickKey;
     i.classList.add('dd');
+    i.addEventListener('focus', () => { if (i.value === NONE) i.select(); });   // R20 bagian 3
   }
   if (opts.suggest) attachSuggest(i, opts.suggest, opts.onPick);
   i.addEventListener('keydown', e => {
@@ -591,11 +609,12 @@ function showSuggest(input, source, focus) {
   const all = typeof source === 'function' ? source() : (source || []);
   const full = !!(focus && input._sugFull);
   let hits;
+  const fk = c => (c.none ? 'none' : kf(sugValue(c)));   // R20 bagian 3: (None) dicari dengan "none"
   if (full) {
     hits = all.filter(c => !c.other);
   } else {
-    const rank = c => (c.other ? 2 : 0) + (kf(sugValue(c)).startsWith(key) ? 0 : 1);
-    hits = all.filter(c => (key || !c.other) && (input._sugFull || kf(sugValue(c)) !== key) && (!key || kf(sugValue(c)).includes(key)));
+    const rank = c => (c.other ? 2 : 0) + (fk(c).startsWith(key) ? 0 : 1);
+    hits = all.filter(c => (key || !c.other) && (input._sugFull || kf(sugValue(c)) !== key) && (!key || fk(c).includes(key)));
     hits.sort((a, b) => rank(a) - rank(b));
   }
   sugItems = hits.slice(0, full ? 60 : 12);
@@ -609,7 +628,8 @@ function showSuggest(input, source, focus) {
   }
   sugItems.forEach((c, n) => {
     if (c.other && (n === 0 || !sugItems[n - 1].other)) box.appendChild(el('div', 'opt-head', 'Other materials'));
-    const o = el('div', 'opt' + (input._sugFull && key && kf(sugValue(c)) === key ? ' cur' : ''), sugValue(c));
+    const o = el('div', 'opt' + (input._sugFull && (key || c.none) && kf(sugValue(c)) === key ? ' cur' : '')
+      + (c.none ? ' none' : ''), sugValue(c));
     if (typeof c !== 'string' && c.detail) o.appendChild(el('span', 'opt-detail', c.detail));
     o.addEventListener('mousedown', e => {     // mousedown: sebelum kotak teks kehilangan fokus
       e.preventDefault();
@@ -762,21 +782,19 @@ function resumeAfterNewMaterial() {
   }
 }
 
-// R19: nama material diganti di baris. Dimension: kode / ketikan lama "NAMA · DIMENSION" -> dari situ; material sama ->
-// tidak berubah; dimension baris ini terdaftar juga di material baru -> tetap; material baru punya satu dimension -> itu;
-// selain itu dimension dipilih dulu di kolom Dimension (pendingDim), lalu disimpan sekali.
+// R19: nama material diganti di baris. Dimension: ketikan lama "NAMA · DIMENSION" -> dari situ; material sama -> tidak berubah;
+// dimension baris ini terdaftar juga di material baru -> tetap; R20 bagian 3: selain itu default material baru (varian terbanyak).
 function commitMaterial(line, input, newThick) {
   const key = `mat:${line.id}`;
   if (newThick !== undefined) {                // material baru dari modal: dimension yang diketik / dimension baris
     const r0 = resolveMaterial(input.value, newThick || line.thickness || '');
     if (r0.mat) {
       input.dataset.orig = input.value;
-      delete pendingDim[line.id];
       return send('replaceMaterial', { line_id: line.id, material_id: r0.mat.material_id, thickness: r0.mat.thickness || '' });
     }
   }
   const r = resolveMaterial(input.value, '');
-  const base = r.mat || r.m || null;
+  const base = r.mat || null;
   if (!base) {
     if (r.notFound && !r.notFound.thickness) r.notFound.thickness = line.thickness || '';   // material baru: dimension baris ini
     return materialMissing(key, input, r);
@@ -789,54 +807,32 @@ function commitMaterial(line, input, newThick) {
     input.value = input.dataset.orig;
     return;
   } else {
-    const dims = dimsOf(base.material_id);
-    const keep = dims.find(t => thickKey(t) === thickKey(line.thickness));
-    if (keep !== undefined) {
-      thickness = keep;
-    } else if (dims.length <= 1) {
-      thickness = dims[0] || '';
-    } else {
-      pendingDim[line.id] = { material_id: m.material_id, label: m.label };
-      input.value = m.label;
-      input.dataset.orig = input.value;
-      optimistic[key] = input.value;
-      localMsg = { type: 'info', text: `Now pick the dimension of ${m.label} in the Dimension column of this line (registered: ${dims.filter(t => t).join(' / ') || 'none'}). Esc = cancel.` };
-      showMessage();
-      render(M, true);
-      const d = document.querySelector(`#tbody [data-key="${CSS.escape(`thk:${line.id}`)}"]`);
-      if (d) d.focus();
-      return;
-    }
+    thickness = dimFor(base.material_id, line.thickness);
   }
   if (matKey(base.material_id, thickness) === matKey(line.material_id, line.thickness)) {
     input.value = input.dataset.orig;
     return;
   }
-  delete pendingDim[line.id];
   input.value = m ? m.label : input.value;
   input.dataset.orig = input.value;
   send('replaceMaterial', { line_id: line.id, material_id: base.material_id, thickness });
 }
 
-// R19: dimension diketik di kolom Dimension baris = Ganti material (material sama atau material yang menunggu dimension)
+// R19: dimension diketik di kolom Dimension baris = Ganti material (material sama, dimension lain).
+// R20 bagian 3: kotak dikosongkan / (None) = tanpa dimension
 function commitDimension(line, input) {
-  const pend = pendingDim[line.id];
-  const materialId = pend ? pend.material_id : line.material_id;
+  const materialId = line.material_id;
   const d = canonThickness(input.value);
-  if (!pend && thickKey(d) === thickKey(line.thickness)) {
+  if (thickKey(d) === thickKey(line.thickness)) {
     input.value = input.dataset.orig;
     return;
   }
   const m = MAT_BY_ID[materialId];
-  if (pend && !d && m && !m.is_process && m.dims.length && !m.dims.some(x => !x.thickness)) {
-    return fail(input, `Fill in the Dimension of ${pend.label}.`);
-  }
   const hit = m ? m.dims.map(x => x.thickness).find(t => thickKey(t) === thickKey(d)) : undefined;
-  delete pendingDim[line.id];
-  if (pend) optimistic[`mat:${line.id}`] = pend.label;
-  input.value = hit !== undefined ? hit : d;
+  const thickness = hit !== undefined ? hit : d;
+  input.value = dimText(thickness);
   input.dataset.orig = input.value;
-  send('replaceMaterial', { line_id: line.id, material_id: materialId, thickness: input.value });
+  send('replaceMaterial', { line_id: line.id, material_id: materialId, thickness });
 }
 
 // R19: ganti komponen BARIS induk ini saja (+ subkomponennya; koreksi user 27 Okt 2026) ke komponen master lain
@@ -966,15 +962,22 @@ function formInputs(prefix, state, isSub) {
   const syncDim = () => {
     const r = resolveMaterial(f.mat.value, f.thk.value);
     const mat = r.mat || null;
-    if (mat && tidy(f.thk.value) && f.thk.value !== mat.thickness) {   // dibakukan seperti DB ("1,4mm" -> "1.4 MM")
-      f.thk.value = mat.thickness;
+    // dibakukan seperti DB ("1,4mm" -> "1.4 MM"); R20 bagian 3: kosong = default material, tanpa dimension tampil (None)
+    if (mat && f.thk.value !== dimText(mat.thickness)) {
+      f.thk.value = dimText(mat.thickness);
       state.thk = f.thk.value;
     }
     f.thkNote.textContent = mat && mat.is_process ? 'Process: no Material Code'
       : mat && mat.isNew ? 'new dimension (cells stay yellow until the codes are registered)' : '';
     autosize(f.thk);
   };
-  f.thk.addEventListener('change', syncDim);
+  f.thk.addEventListener('change', () => {
+    if (!tidy(f.thk.value) && resolveName(tidy(f.mat.value))) {   // R20 bagian 3: dikosongkan = (None)
+      f.thk.value = NONE;
+      state.thk = NONE;
+    }
+    syncDim();
+  });
   const syncMaterial = () => {
     const r = resolveMaterial(f.mat.value, f.thk.value);
     const named = resolveName(tidy(f.mat.value));
@@ -986,15 +989,11 @@ function formInputs(prefix, state, isSub) {
       state.mat = f.mat.value;
       setThk(r.mat.thickness || '');
     } else if (mat && state.matId && state.matId !== mat.material_id) {
-      // R19 (revisi user 27 Okt 2026): material diganti ke material LAIN -> Dimension selalu mengikuti material baru (terisi otomatis
-      // atau diketik sendiri): terdaftar juga di material baru = tetap; satu dimension = itu; beberapa = kosong (pilih dari saran);
-      // tanpa dimension / Process = kosong
-      const dims = dimsOf(mat.material_id).filter(t => t);
-      const keep = dims.find(t => thickKey(t) === thickKey(f.thk.value));
-      setThk(mat.is_process || !dims.length ? '' : keep !== undefined ? keep : dims.length === 1 ? dims[0] : '');
-    } else if (mat && !tidy(f.thk.value)) {    // material pertama dipilih: satu-satunya dimension langsung diisi
-      const dims = dimsOf(mat.material_id).filter(t => t);
-      if (dims.length === 1 && !dimsOf(mat.material_id).includes('')) setThk(dims[0]);
+      // R19 (revisi user 27 Okt 2026): material diganti ke material LAIN -> Dimension selalu mengikuti material baru.
+      // R20 bagian 3: terdaftar juga di material baru = tetap, selain itu default material baru (varian terbanyak / (None))
+      setThk(dimText(dimFor(mat.material_id, f.thk.value)));
+    } else if (mat && !tidy(f.thk.value)) {    // material pertama dipilih: R20 bagian 3 = default (varian terbanyak / (None))
+      setThk(dimText(defaultDim(mat.material_id)));
     }
     if (mat) state.matId = mat.material_id;
     if (named && named.m && f.mat.value !== named.m.label) {   // huruf besar / "(UOM)" seperti master
@@ -1043,7 +1042,6 @@ function submitAdd(f) {
     data.local_name = c.local;
   }
   const m = resolveMaterial(f.mat.value, f.thk.value);
-  if (m.needDim) return fail(f.thk, m.error);
   if (m.error) return materialMissing('add:mat', f.mat, m);
   const s = resolveSupplier(f.sup.value);
   if (s.error) return fail(f.sup, s.error);
@@ -1057,7 +1055,6 @@ function submitSub(parent, f) {
   Object.values(f).forEach(i => i.classList && i.classList.remove('invalid'));
   if (!tidy(f.name.value)) return fail(f.name, 'Subcomponent name is required.');
   const m = resolveMaterial(f.mat.value, f.thk.value);
-  if (m.needDim) return fail(f.thk, m.error);
   if (m.error) return materialMissing('sub:mat', f.mat, m);
   const s = resolveSupplier(f.sup.value);
   if (s.error) return fail(f.sup, s.error);
@@ -1101,8 +1098,7 @@ function supplierCell(line, editable) {
 
 function materialCell(line, editable) {
   const c = el('td', 'c-mat');
-  const pend = pendingDim[line.id];
-  const label = pend ? pend.label : nameLabel(line.material_id, line.material_name);
+  const label = nameLabel(line.material_id, line.material_name);
   const title = [line.uom, line.material_code].filter(x => x).join(' · ');
   if (editable) {
     const mi = cellInput(`mat:${line.id}`, label, {
@@ -1127,29 +1123,18 @@ function materialCell(line, editable) {
   return c;
 }
 
-// R19: kolom Dimension bisa diedit (saran dimension terdaftar material baris / material yang menunggu dimension)
+// R19: kolom Dimension bisa diedit (saran dimension terdaftar material baris). R20 bagian 3: tanpa dimension tampil (None)
 function dimensionCell(line, editable) {
   const c = el('td', 'c-thk');
   if (!editable) {
-    c.appendChild(el('span', 'ro' + (line.thickness ? '' : ' none'), line.thickness || '-'));
+    c.appendChild(el('span', 'ro' + (line.thickness ? '' : ' none'), dimText(line.thickness)));
     return c;
   }
-  const pend = pendingDim[line.id];
-  const di = cellInput(`thk:${line.id}`, pend ? '' : line.thickness, {
+  const di = cellInput(`thk:${line.id}`, dimText(line.thickness), {
     col: 'thk', multiline: true, dropdown: true, label: 'Dimension',
-    suggest: dimensionSuggest(() => (pendingDim[line.id] ? pendingDim[line.id].material_id : line.material_id)),
-    placeholder: pend ? 'Pick dimension…' : '',
-    title: 'Click to pick or type the dimension (dimensions of other materials are suggested while typing). Changing it = Replace Material (same material, new dimension).',
+    suggest: dimensionSuggest(() => line.material_id),
+    title: 'Click to pick or type the dimension; (None) = no dimension (dimensions of other materials are suggested while typing). Changing it = Replace Material (same material, new dimension).',
     onCommit: i => commitDimension(line, i),
-  });
-  if (pend) di.classList.add('need');
-  di.addEventListener('keydown', e => {
-    if (e.key === 'Escape' && pendingDim[line.id]) {      // batal ganti material yang menunggu dimension
-      delete pendingDim[line.id];
-      delete optimistic[`mat:${line.id}`];
-      localMsg = null;
-      render(M, true);
-    }
   });
   c.appendChild(di);
   return c;
@@ -1364,8 +1349,6 @@ function render(model, keepState) {
   const lines = M.lines || [];
   buildMats();
   fillDatalists();
-  // R19: material yang menunggu dimension: baris hilang / sudah diganti -> lupakan
-  Object.keys(pendingDim).forEach(id => { if (!lines.some(l => l.id === id)) delete pendingDim[id]; });
   if (compEdit && !lines.some(l => l.id === compEdit)) compEdit = null;
 
   // header

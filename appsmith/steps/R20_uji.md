@@ -6,7 +6,7 @@ Isi R20 (diskusi 27 Okt 2026):
    (`FOAM 50 KG` tidak disarankan untuk `FOAM 60 KG`).
 2. **Material Code 10 karakter ketat dua arah, tanpa centang konfirmasi** (centang R9 dihapus):
    - kode -> arti: 4 awal = 1 material, 3 tengah = 1 dimension, 3 akhir = 1 warna
-   - arti -> kode: 1 material = 1 awalan, 1 dimension = 1 kode tengah (dimension kosong: per UoM, mis. PRS = `800`, KG = `K00`),
+   - arti -> kode: 1 material = 1 awalan, 1 dimension = 1 kode tengah (dimension kosong: per material sejak bagian 3, dulu per UoM),
      1 warna di satu material = 1 kode akhir
    - Pelanggaran tampil **merah di form sebelum Save**, dan Save ditolak.
 3. **Material Code hanya diketik di Register** (revisi Anda setelah hasil cek): kolom Material dan sel warna tidak membaca kode lagi.
@@ -19,6 +19,8 @@ Isi R20 (diskusi 27 Okt 2026):
    `BSW-0032` ke `BSW-032` (bagian 1b).
 6. **Bagian 2 (28 Okt 2026, bagian 8): warna seragam** (`black / white` = `BLACK/WHITE` = `BLACK-WHITE`) dan **Dimension seperti
    dropdown** (specsheet + form varian). Sudah menjalankan bagian 0 sampai 1b? Cukup jalankan **bagian 8**.
+7. **Bagian 3 (28 Okt 2026, bagian 9): kode Dimension kosong per material** (tidak lagi per UoM) dan **Dimension wajib + default**
+   (`(None)` paling atas, default = dimension dengan varian terbanyak). Sudah menjalankan bagian 8? Cukup jalankan **bagian 9**.
 
 > Build dibuat dari `exports/build_r19.json` (export R19 dari Anda belum ada). Kalau Anda sempat mengubah app setelah import
 > R19, kirim export-nya dulu supaya build dibuat ulang dari situ.
@@ -1648,6 +1650,310 @@ SELECT 'R20 warna: varian kembar 0, sel kuning draft ' || b.yellow || ' -> ' ||
          WHERE bc.color IS NOT NULL AND bc.is_used AND bc.variant_id IS NULL) ||
        ', warna varian belum baku ' || (SELECT count(*) FROM material_variant WHERE color <> fn_clean_color(color)) AS cek_r20_warna
   FROM r20w_before b;
+
+COMMIT;
+```
+
+## 9. Bagian 3 (BARU, 28 Okt 2026): Dimension kosong per material + Dimension default
+
+Sudah menjalankan R20 bagian 0 sampai 8 di DB Anda? **Cukup jalankan bagian 9 ini** (SQL 0a dan 0b tidak perlu diulang).
+Install baru: bagian 0, lalu bagian 8, lalu bagian 9.
+
+Isi bagian 3:
+1. **Kode tengah untuk Dimension kosong ditentukan per material, bukan per UoM** (UoM bisa salah isi). Dalam satu material, varian
+   tanpa Dimension wajib memakai satu kode tengah yang sama. Material lain boleh memakai kode kosong lain (`800`, `K00`, `C00` atau kode
+   baru). Kode kosong tetap **tidak boleh** dipakai untuk Dimension berisi, dan sebaliknya (aturan kode -> arti tidak berubah).
+2. **Usulan kode** di form varian: material yang belum punya varian tanpa Dimension mendapat usulan kode kosong yang sudah dikenal
+   (UoM sama di depan), **hanya saran**: tulisan `(no dimension in other materials ... Use the ERP code)`.
+3. **Dimension wajib terisi.** Tanpa Dimension = **`(None)`**, selalu **paling atas** di daftar Dimension (grid specsheet + form varian).
+   Kotak Dimension dikosongkan = kembali ke `(None)`. Di database dan Excel tetap kosong (tidak tertulis "(None)").
+4. **Dimension default**: setelah Material dipilih (baris tambah / subkomponen specsheet, + Variant di Material Detail), Dimension langsung
+   terisi **dimension material itu dengan varian terbanyak** (sama banyak: yang paling dulu didaftarkan). Material belum punya varian =
+   `(None)`. Ganti material di baris yang sudah ada: Dimension baris tetap bila terdaftar juga di material baru, selain itu default material
+   baru (dulu: harus memilih dimension dulu). Default tetap bisa diganti.
+5. **Save & add another** di form varian: Dimension yang baru disimpan tetap terisi untuk varian berikutnya.
+
+### 9a. Pasang
+
+| # | Langkah | Hasil | OK? |
+|---|---|---|---|
+| 9.1 | DB Tools → jalankan **query W2** (di bawah, hanya membaca) | Kirim hasilnya ke saya (info). Baris **SATU MATERIAL DUA KODE** / **BENTROK** tidak menghentikan SQL 0c, tapi varian itu akan merah saat kode / Dimension-nya diedit | |
+| 9.2 | DB Tools → `z_run_sql` (prepared statements OFF) → tempel **seluruh SQL 0c** (di bawah) → Run | `R20 bagian 3: material dengan >1 kode Dimension kosong N, kode Dimension kosong dikenal 800, C00, K00` (catat) | |
+| 9.3 | Jalankan lagi SQL 0c | Aman: hasil sama | |
+| 9.4 | DB Tools → jalankan `sql/R_selftest.sql` (sudah diperbarui) | **`SELFTEST LOLOS`** | |
+| 9.5 | Import `exports/build_r20.json` (timpa app), lalu Deploy | Nama app `Product Management R20` | |
+| 9.6 | Page **Login** / **Home** → `onPageLoad` tetap ON (seperti 0.5); page **Material Detail** → `q_dimensions` **Manual** | ON / Manual | |
+
+Langkah 9.2 dan 9.5 sebaiknya berurutan tanpa jeda: setelah SQL dan sebelum import, usulan kode di form varian app lama kosong (hanya
+bantuan, data aman).
+
+### 9b. Uji (Vendor Spec)
+
+Pakai material uji sendiri: `UJI R20C LEM` (UoM `KG`), `UJI R20C SPON` (UoM `PRS`, sengaja "salah"), `UJI R20C MESH` (UoM `ME`).
+Kode uji memakai Dimension yang jarang (`7.7 MM` = `770`, `8.8 MM` = `880`). Kalau di DB Anda dimension itu sudah punya kode lain,
+form menolak dengan pesan `Dimension ... uses dimension code ...`: pakai kode tengah dari pesan itu.
+
+| # | Langkah | Hasil | OK? |
+|---|---|---|---|
+| 9.7 | Material Detail `UJI R20C LEM` (belum ada varian) → **+ Variant** | Dimension terisi **`(None)`**. Klik kolom Dimension: `(None)` paling atas | |
+| 9.8 | Warna `RED` | Usulan kode: Dimension `K00` + keterangan `(no dimension in other materials, same UoM first ...)` | |
+| 9.9 | Kode `UR3LK00RED` → Save | Tersimpan, Dimension kosong (di tabel varian kosong / tanpa dimension) | |
+| 9.10 | Material Detail `UJI R20C SPON` (UoM PRS) → + Variant: kode `UR3SK00RED`, warna `RED`, Dimension `(None)` → Save | **Boleh** (dulu ditolak: `No dimension (PRS) uses dimension code 800`) | |
+| 9.11 | `UJI R20C SPON` → + Variant: kode `UR3S800BLK`, warna `BLACK`, Dimension `(None)` | **Merah, Save ditolak**: `Material UJI R20C SPON without dimension uses dimension code K00 ...` | |
+| 9.12 | Sama, kode `UR3SK00BLK` → Save | Boleh | |
+| 9.13 | `UJI R20C MESH` → + Variant: kode `UR3MK00RED`, warna `RED`, Dimension `7.7 MM` | **Merah**: `Dimension code K00 means no dimension ...` (kode kosong tidak boleh untuk dimension berisi) | |
+| 9.14 | `UJI R20C MESH`: daftarkan `UR3M770RED` (RED, `7.7 MM`), `UR3M770BLK` (BLACK, `7.7 MM`), `UR3M880RED` (RED, `8.8 MM`). Pakai **Save & add another** | Setelah varian pertama, Dimension tetap `7.7 MM` untuk varian berikutnya | |
+| 9.15 | Tutup, buka lagi **+ Variant** di `UJI R20C MESH` | Dimension terisi **`7.7 MM`** (2 varian, terbanyak). Daftar: `(None)`, `7.7 MM · 2 colors`, `8.8 MM · 1 color`, lalu material lain | |
+| 9.16 | Kosongkan kotak Dimension, klik kolom lain | Kembali `(None)` | |
+| 9.17 | Specsheet draft → baris tambah: Material `UJI R20C MESH` | Dimension langsung **`7.7 MM`** | |
+| 9.18 | Di baris tambah yang sama ganti Material ke `UJI R20C LEM` | Dimension jadi **`(None)`** | |
+| 9.19 | Ganti lagi ke `UJI R20C MESH`, Dimension pilih `8.8 MM`, simpan baris (Enter) | Baris tersimpan `UJI R20C MESH` · `8.8 MM` | |
+| 9.20 | Klik sel Dimension baris itu | `(None)` paling atas, lalu `7.7 MM`, `8.8 MM` (dicentang) | |
+| 9.21 | Pilih `(None)` | Baris jadi tanpa dimension (Replace Material, sel warna menyesuaikan, kuning bila belum ada varian) | |
+| 9.22 | Ganti Material baris itu ke `UJI R20C LEM` | Langsung tersimpan, Dimension `(None)`. **Tidak** ada pesan "Now pick the dimension ..." lagi | |
+| 9.23 | Tambah baris `UJI R20C LEM`, lalu ganti Material-nya ke `UJI R20C MESH` | Dimension jadi `7.7 MM` (LEM tanpa dimension; `(None)` tidak terdaftar di MESH -> default MESH) | |
+| 9.24 | Sel kuning baris tanpa dimension → **Register** | Modal: Dimension `(None)`, terkunci | |
+| 9.25 | Export Excel specsheet draft | Kolom Dimension baris tanpa dimension **kosong** (bukan "(None)") | |
+
+Bersih-bersih: varian dan material `UJI R20C ...` bisa di-INACTIVE atau dihapus lewat aplikasi.
+
+### W2. Cek kode Dimension kosong (hanya membaca)
+
+```sql
+-- W2. Kode tengah untuk Dimension kosong (hanya membaca)
+--   SATU MATERIAL DUA KODE = satu material punya >1 kode tengah untuk Dimension kosong -> ditolak saat varian itu diedit
+--   BENTROK               = kode tengah dipakai untuk Dimension kosong DAN Dimension berisi -> sudah ditolak sejak R20
+--   SEBARAN               = info: kode tengah Dimension kosong per UoM (berapa material / varian)
+WITH v AS (
+  SELECT v.factory_id, v.material_id, m.name, m.uom, v.code, v.thickness_key, substr(v.code, 5, 3) AS mid, v.status
+    FROM material_variant v JOIN material m ON m.id = v.material_id
+   WHERE length(v.code) = 10)
+SELECT 'SATU MATERIAL DUA KODE' AS jenis, f.name AS factory, v.name AS material, v.uom,
+       string_agg(DISTINCT v.mid, ', ') AS kode_tengah, string_agg(v.code || ' · ' || v.status, E'\n' ORDER BY v.code) AS detail
+  FROM v JOIN factory f ON f.id = v.factory_id
+ WHERE v.thickness_key = ''
+ GROUP BY f.name, v.material_id, v.name, v.uom HAVING count(DISTINCT v.mid) > 1
+UNION ALL
+SELECT 'BENTROK', f.name, NULL, NULL, v.mid,
+       string_agg(v.code || ' · ' || coalesce(nullif(v.thickness_key, ''), 'no dimension') || ' · ' || v.name, E'\n' ORDER BY v.code)
+  FROM v JOIN factory f ON f.id = v.factory_id
+ GROUP BY f.name, v.factory_id, v.mid
+HAVING bool_or(v.thickness_key = '') AND bool_or(v.thickness_key <> '')
+UNION ALL
+SELECT 'SEBARAN', f.name, NULL, v.uom, v.mid,
+       count(DISTINCT v.material_id) || ' material, ' || count(*) || ' varian'
+  FROM v JOIN factory f ON f.id = v.factory_id
+ WHERE v.thickness_key = ''
+ GROUP BY f.name, v.uom, v.mid
+ ORDER BY 1 DESC, 2, 3, 4, 5;
+```
+
+### 0c. SQL R20 bagian 3: Dimension kosong per material (salin semua)
+
+```sql
+-- ============================================================================
+-- R20 bagian 3 (28 Okt 2026): Dimension kosong + Dimension default. Jalankan SETELAH SQL 0a dan 0b (R20), lewat z_run_sql di
+-- app "DB Tools" (Use prepared statements = OFF). Aman diulang. Satu transaksi. Data tidak diubah.
+--   1. Material Code, Dimension kosong: kode tengah wajib sama DALAM SATU MATERIAL (dulu: sama per UoM di seluruh pabrik).
+--      Material lain boleh memakai kode kosong lain (800 / K00 / C00 / kode baru). Kode kosong tetap tidak boleh dipakai untuk
+--      dimension berisi, dan sebaliknya (aturan kode -> arti tidak berubah).
+--   2. Usulan kode (fn_variant_code_suggest): material belum punya varian kosong -> kode kosong yang dikenal, UoM sama di depan,
+--      hanya saran (kolom baru thickness_free).
+--   3. "(None)" / "NONE" yang diketik di Dimension = tanpa dimension (fn_clean_thickness), sama seperti grid dan form varian.
+-- ============================================================================
+BEGIN;
+
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM material_variant WHERE upper(btrim(thickness)) IN ('NONE', '(NONE)'))
+     OR EXISTS (SELECT 1 FROM bom_line WHERE upper(btrim(thickness)) IN ('NONE', '(NONE)')) THEN
+    RAISE EXCEPTION 'R20 bagian 3: ada Dimension bertulisan NONE di data. Tidak ada yang diubah. Kirim pesan ini ke Claude.';
+  END IF;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.fn_clean_thickness(p text)
+ RETURNS text
+ LANGUAGE plpgsql
+ IMMUTABLE PARALLEL SAFE
+AS $function$
+DECLARE
+  t text := upper(btrim(regexp_replace(coalesce(p, ''), '\s+', ' ', 'g')));
+BEGIN
+  IF t IN ('', '.', '-', 'NONE', '(NONE)') THEN       -- R20 bagian 3: (None) di daftar Dimension = tanpa dimension
+    RETURN NULL;
+  END IF;
+  -- kutip miring ditulis sebagai kode \uXXXX (file ini hanya ASCII di bagian kode): karakter aslinya bisa berubah
+  -- jadi kutip biasa saat isi file ditempel ke DB Tools (terjadi di uji user 20 Okt 2026)
+  t := regexp_replace(t, '[\u201C\u201D\u201E\u201F\u2033\u3003\uFF02]', '"', 'g');
+  t := regexp_replace(t, '[''\u2019\u2018\u2032`\u00B4]{2}', '"', 'g');
+  t := regexp_replace(t, '(\d),(\d)', '\1.\2', 'g');
+  t := regexp_replace(t, '(^|[^0-9.])\.(\d)', '\10.\2', 'g');
+  t := regexp_replace(t, '(\d)\.(\d*[1-9])0+(?![0-9])', '\1.\2', 'g');
+  t := regexp_replace(t, '(\d)\.0+(?![0-9])', '\1', 'g');
+  t := regexp_replace(t, '(\d)\s*(INCHES|INCH|IN)(?=$|\s*X|\s*\(|\s*-|[^A-Z0-9\s])', '\1"', 'g');
+  t := regexp_replace(t, '(\d)\s*(MM|CM|UM|ME)(?=$|[^A-Z]|X\d)', '\1 \2', 'g');
+  t := regexp_replace(t, '(\d|MM|CM|UM|")\s*X\s*(?=\d)', '\1 X ', 'g');
+  t := regexp_replace(t, '\s*-\s*', '-', 'g');
+  t := regexp_replace(t, '\s*\(\s*', ' (', 'g');
+  t := regexp_replace(t, '\s+\)', ')', 'g');
+  t := regexp_replace(t, '(\d)\s+"', '\1"', 'g');
+  t := regexp_replace(t, '(\d) (MM|CM|UM)-(\d+(?:\.\d+)?) \2(?=$|[^A-Z])', '\1-\3 \2', 'g');
+  RETURN nullif(btrim(regexp_replace(t, '\s+', ' ', 'g')), '');
+END;
+$function$;
+
+CREATE OR REPLACE FUNCTION public.fn_variant_code_problems(p_factory uuid, p_material_id uuid, p_code text, p_color text, p_thickness text, p_exclude uuid)
+ RETURNS text[]
+ LANGUAGE plpgsql
+ STABLE
+AS $function$
+DECLARE
+  v_code  text := upper(btrim(regexp_replace(coalesce(p_code, ''), '\s+', ' ', 'g')));
+  v_color text := fn_clean_color(p_color);
+  v_thick text := fn_clean_thickness(p_thickness);
+  v_tkey  text := fn_normalize(coalesce(fn_clean_thickness(p_thickness), ''));
+  v_ckey  text := fn_color_key(p_color);
+  v_mat   material%ROWTYPE;
+  v_out   text[] := '{}';
+  r       record;
+BEGIN
+  IF length(v_code) <> 10 THEN
+    RETURN v_out;
+  END IF;
+  SELECT * INTO v_mat FROM material WHERE id = p_material_id;
+  -- kode -> arti: 4 awal = satu material
+  SELECT x.material_id, x.code INTO r
+    FROM (SELECT v.material_id, count(*) AS n, min(v.created_at) AS first_at,
+                 (array_agg(v.code ORDER BY v.created_at, v.code))[1] AS code
+            FROM material_variant v
+           WHERE v.factory_id = p_factory AND length(v.code) = 10 AND v.id IS DISTINCT FROM p_exclude
+             AND left(v.code, 4) = left(v_code, 4)
+           GROUP BY v.material_id) x
+   ORDER BY x.n DESC, x.first_at, x.code LIMIT 1;
+  IF FOUND AND r.material_id <> p_material_id THEN
+    v_out := v_out || format('Prefix %s belongs to material %s (code %s). Register this variant in that material.',
+                             left(v_code, 4), (SELECT name FROM material WHERE id = r.material_id), r.code);
+  END IF;
+  -- kode -> arti: 3 tengah = satu dimension
+  SELECT x.tkey, x.thickness, x.code INTO r
+    FROM (SELECT v.thickness_key AS tkey, count(*) AS n, min(v.created_at) AS first_at,
+                 (array_agg(v.code ORDER BY v.created_at, v.code))[1] AS code,
+                 (array_agg(v.thickness ORDER BY v.created_at, v.code))[1] AS thickness
+            FROM material_variant v
+           WHERE v.factory_id = p_factory AND length(v.code) = 10 AND v.id IS DISTINCT FROM p_exclude
+             AND substr(v.code, 5, 3) = substr(v_code, 5, 3)
+           GROUP BY v.thickness_key) x
+   ORDER BY x.n DESC, x.first_at, x.code LIMIT 1;
+  IF FOUND AND r.tkey <> v_tkey THEN
+    v_out := v_out || format('Dimension code %s means %s (code %s), not %s.',
+                             substr(v_code, 5, 3), fn_thickness_label(r.thickness), r.code, fn_thickness_label(v_thick));
+  END IF;
+  -- kode -> arti: 3 akhir = satu warna
+  SELECT x.ckey, x.color, x.code INTO r
+    FROM (SELECT v.color_key AS ckey, count(*) AS n, min(v.created_at) AS first_at,
+                 (array_agg(v.code ORDER BY v.created_at, v.code))[1] AS code,
+                 (array_agg(v.color ORDER BY v.created_at, v.code))[1] AS color
+            FROM material_variant v
+           WHERE v.factory_id = p_factory AND length(v.code) = 10 AND v.id IS DISTINCT FROM p_exclude
+             AND substr(v.code, 8, 3) = substr(v_code, 8, 3)
+           GROUP BY v.color_key) x
+   ORDER BY x.n DESC, x.first_at, x.code LIMIT 1;
+  IF FOUND AND v_ckey <> '' AND r.ckey <> v_ckey THEN
+    v_out := v_out || format('Color code %s means %s (code %s), not %s.', substr(v_code, 8, 3), r.color, r.code, v_color);
+  END IF;
+  -- arti -> kode: satu material = satu awalan
+  SELECT x.part, x.code INTO r
+    FROM (SELECT left(v.code, 4) AS part, count(*) AS n, min(v.created_at) AS first_at,
+                 (array_agg(v.code ORDER BY v.created_at, v.code))[1] AS code
+            FROM material_variant v
+           WHERE v.material_id = p_material_id AND length(v.code) = 10 AND v.id IS DISTINCT FROM p_exclude
+           GROUP BY 1) x
+   ORDER BY x.n DESC, x.first_at, x.code LIMIT 1;
+  IF FOUND AND r.part <> left(v_code, 4) THEN
+    v_out := v_out || format('Material %s uses prefix %s (code %s), not %s.', v_mat.name, r.part, r.code, left(v_code, 4));
+  END IF;
+  -- arti -> kode: satu dimension = satu kode tengah. R20 bagian 3: dimension kosong = satu kode tengah PER MATERIAL
+  -- (UoM tidak dipakai lagi: UoM bisa salah isi). Material lain boleh memakai kode kosong lain (800 / K00 / C00 ...).
+  SELECT x.part, x.code INTO r
+    FROM (SELECT substr(v.code, 5, 3) AS part, count(*) AS n, min(v.created_at) AS first_at,
+                 (array_agg(v.code ORDER BY v.created_at, v.code))[1] AS code
+            FROM material_variant v JOIN material m ON m.id = v.material_id
+           WHERE v.factory_id = p_factory AND length(v.code) = 10 AND v.id IS DISTINCT FROM p_exclude
+             AND v.thickness_key = v_tkey AND (v_tkey <> '' OR v.material_id = p_material_id)
+           GROUP BY 1) x
+   ORDER BY x.n DESC, x.first_at, x.code LIMIT 1;
+  IF FOUND AND r.part <> substr(v_code, 5, 3) THEN
+    v_out := v_out || CASE WHEN v_tkey = ''
+      THEN format('Material %s without dimension uses dimension code %s (code %s), not %s.', v_mat.name, r.part, r.code,
+                  substr(v_code, 5, 3))
+      ELSE format('Dimension %s uses dimension code %s (code %s), not %s.', v_thick, r.part, r.code, substr(v_code, 5, 3)) END;
+  END IF;
+  -- arti -> kode: satu warna di material ini = satu kode akhir
+  SELECT x.part, x.code INTO r
+    FROM (SELECT substr(v.code, 8, 3) AS part, count(*) AS n, min(v.created_at) AS first_at,
+                 (array_agg(v.code ORDER BY v.created_at, v.code))[1] AS code
+            FROM material_variant v
+           WHERE v.material_id = p_material_id AND length(v.code) = 10 AND v.id IS DISTINCT FROM p_exclude
+             AND v.color_key = v_ckey
+           GROUP BY 1) x
+   ORDER BY x.n DESC, x.first_at, x.code LIMIT 1;
+  IF FOUND AND v_ckey <> '' AND r.part <> substr(v_code, 8, 3) THEN
+    v_out := v_out || format('Color %s in material %s uses color code %s (code %s), not %s.',
+                             v_color, v_mat.name, r.part, r.code, substr(v_code, 8, 3));
+  END IF;
+  RETURN v_out;
+END;
+$function$;
+
+DROP FUNCTION IF EXISTS fn_variant_code_suggest(text, uuid, text, text);
+CREATE OR REPLACE FUNCTION public.fn_variant_code_suggest(p_token text, p_material_id uuid, p_color text, p_thickness text)
+ RETURNS TABLE(prefixes text, thickness_codes text, color_codes text, thickness_free boolean)
+ LANGUAGE plpgsql
+ STABLE
+AS $function$
+-- R20 bagian 3: dimension kosong -> kode tengah material ini (wajib sama). Belum ada di material ini -> thickness_free = true:
+-- kode kosong yang sudah dikenal di pabrik, UoM sama di depan (hanya saran, boleh yang lain / kode baru).
+DECLARE
+  v_email   text := fn_auth(p_token, 'view_master');
+  v_factory uuid;
+  v_uom     text;
+  v_tkey    text := fn_normalize(coalesce(fn_clean_thickness(p_thickness), ''));
+  v_ckey    text := fn_color_key(p_color);
+  v_own     boolean;
+BEGIN
+  SELECT factory_id, uom INTO v_factory, v_uom FROM material WHERE id = p_material_id;
+  IF NOT FOUND OR NOT fn_can_see_factory(v_email, v_factory) THEN
+    RETURN;
+  END IF;
+  v_own := v_tkey <> '' OR EXISTS (SELECT 1 FROM material_variant v WHERE v.material_id = p_material_id AND length(v.code) = 10
+                                                                    AND v.thickness_key = '');
+  RETURN QUERY SELECT
+    (SELECT string_agg(x.part, ',' ORDER BY x.n DESC, x.first_at) FROM (
+       SELECT left(v.code, 4) AS part, count(*) AS n, min(v.created_at) AS first_at FROM material_variant v
+        WHERE v.material_id = p_material_id AND length(v.code) = 10 GROUP BY 1) x),
+    (SELECT string_agg(x.part, ',' ORDER BY (NOT v_own AND x.same_uom) DESC, x.n DESC, x.first_at) FROM (
+       SELECT substr(v.code, 5, 3) AS part, count(*) AS n, min(v.created_at) AS first_at, bool_or(m.uom = v_uom) AS same_uom
+         FROM material_variant v JOIN material m ON m.id = v.material_id
+        WHERE v.factory_id = v_factory AND length(v.code) = 10 AND v.thickness_key = v_tkey
+          AND (NOT v_own OR v_tkey <> '' OR v.material_id = p_material_id) GROUP BY 1) x),
+    (SELECT string_agg(x.part, ',' ORDER BY x.n DESC, x.first_at) FROM (
+       SELECT substr(v.code, 8, 3) AS part, count(*) AS n, min(v.created_at) AS first_at FROM material_variant v
+        WHERE v.factory_id = v_factory AND length(v.code) = 10 AND v_ckey <> '' AND v.color_key = v_ckey
+          AND (v.material_id = p_material_id OR NOT EXISTS (
+                 SELECT 1 FROM material_variant w WHERE w.material_id = p_material_id AND w.color_key = v_ckey
+                    AND length(w.code) = 10))
+        GROUP BY 1) x),
+    NOT v_own;
+END;
+$function$;
+
+SELECT 'R20 bagian 3: material dengan >1 kode Dimension kosong ' ||
+       (SELECT count(*) FROM (SELECT material_id FROM material_variant WHERE length(code) = 10 AND thickness_key = ''
+                               GROUP BY material_id HAVING count(DISTINCT substr(code, 5, 3)) > 1) x) ||
+       ', kode Dimension kosong dikenal ' ||
+       coalesce((SELECT string_agg(DISTINCT substr(code, 5, 3), ', ') FROM material_variant
+                  WHERE length(code) = 10 AND thickness_key = ''), '-') AS cek_r20_dimension;
 
 COMMIT;
 ```

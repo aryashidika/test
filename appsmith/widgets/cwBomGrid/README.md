@@ -146,3 +146,15 @@ R4 (specsheet per varian):
   material itu (yang terisi dicentang, klik lagi = tutup); mengetik = disaring dalam bentuk baku, termasuk yang sama persis (dicentang),
   lalu dimension material lain (`ALL_DIMS` dari `M.materials`, item `other`) di bawah judul **Other materials**
   (`new for this material · used by N materials`). `markSuggest` hanya menghitung `.opt` (judul grup dilewati).
+
+## R20 bagian 3: Dimension wajib, (None), default (28 Okt 2026)
+
+- **`(None)`** (`NONE`) = tanpa dimension: tampil di sel Dimension (juga read only) bila `thickness` kosong, selalu **paling atas** di daftar
+  Dimension (item `none`, miring, dicari dengan ketikan "none"). `canonThickness` membaca `NONE` / `(NONE)` = kosong (sama dengan
+  `fn_clean_thickness`), jadi yang dikirim ke BomCtrl tetap `''`. Kotak dikosongkan = `(None)`. Fokus pada `(None)` = teks terpilih.
+- **Default**: `M.materials` kini membawa `first_at` (`q_bom_options`). `buildMats` mengurutkan `dims` per material: varian terbanyak, sama
+  banyak = paling dulu didaftarkan. `defaultDim(materialId)` = dimension pertama (`''` = `(None)`, juga material tanpa varian).
+  `dimFor(materialId, current)` = dimension sekarang bila terdaftar juga di material itu, selain itu default.
+- Baris tambah / sub: Material dipilih -> Dimension = default; Material diganti -> `dimFor`. `resolveMaterial`: Dimension yang belum diisi =
+  default, `(None)` / `.` = kosong. Baris yang ada: Ganti material -> `replaceMaterial` dengan `dimFor` langsung. Alur R19 `pendingDim`
+  ("Now pick the dimension ...", kelas `.cell.need`) dan `needDim` dihapus.

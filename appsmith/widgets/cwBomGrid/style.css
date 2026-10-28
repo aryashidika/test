@@ -459,14 +459,10 @@ textarea.cell {
 }
 .suggest .opt.on .opt-detail { color: inherit; opacity: 0.8; }
 
-/* R19: material Process, dimension yang harus dipilih, tombol ganti komponen, article tanpa nomor */
+/* R19: material Process, tombol ganti komponen, article tanpa nomor */
 .badge.proc {
   background: #E0E7FF;
   color: #3730A3;
-}
-.cell.need {
-  border-color: var(--warn, #B45309);
-  background: var(--warn-bg, #FEF3C7);
 }
 .comp-change {
   display: block;
@@ -498,6 +494,8 @@ textarea.cell.dd, input.cell.dd {
 }
 .suggest .opt.cur { font-weight: 600; }
 .suggest .opt.cur::before { content: '✓ '; color: var(--primary); }
+/* R20 bagian 3: (None) = tanpa dimension, paling atas daftar Dimension */
+.suggest .opt.none { font-style: italic; }
 .link.twin {
   display: block;
   font-size: 11.5px;

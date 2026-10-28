@@ -6,6 +6,9 @@
 #     a_bom_use_variant baru, tombol "Use this variant" di modal Register)
 #  4. (bagian 2, 27 Okt 2026) warna seragam (BLACK / WHITE = BLACK/WHITE, cwBomGrid + cwVariantForm, SQL 0b) dan Dimension seperti
 #     dropdown: grid = daftar penuh saat diklik + dimension material lain saat mengetik; form varian = daftar q_dimensions baru
+#  5. (bagian 3, 28 Okt 2026) Dimension wajib: (None) paling atas, default = dimension material dengan varian terbanyak
+#     (q_bom_options + first_at, q_dimensions + n_own / baris kosong material ini); kode Dimension kosong per material
+#     (q_code_suggest + thickness_free)
 # JSObject / Custom Widget yang ditimpa dicek dulu: isi di app = repo di commit R19 (a1af1d1), lalu diganti isi repo sekarang.
 # Pakai: python -X utf8 -I tools/build_r20.py [base.json]   (default base = exports/build_r19.json)
 import os, subprocess, sys
@@ -79,9 +82,23 @@ for pg in (SPEC, MD):
          "nullif({{this.params.exclude_id || ''}}, '')::uuid,\n"
          "                          {{this.params.color || ''}}, {{this.params.thickness || ''}});"),
     ])
+    # R20 bagian 3: dimension kosong yang belum ada di material ini = hanya saran
+    query(pg, 'q_code_suggest', [('SELECT prefixes, thickness_codes, color_codes\n',
+                                  'SELECT prefixes, thickness_codes, color_codes, thickness_free\n')])
     # konfirmasi R9 tidak dipakai lagi (parameter DB tetap ada, selalu false)
     query(pg, 'a_variant_save', [("({{this.params.confirm === true ? 'true' : 'false'}})::boolean) AS id;", 'false) AS id;')])
-app.note('q_code_hint (+ warna, dimension, used_*, problems) & a_variant_save tanpa confirm: Specsheet + Material Detail')
+app.note('q_code_hint (+ warna, dimension, used_*, problems), q_code_suggest (+ thickness_free) & a_variant_save tanpa confirm: '
+         'Specsheet + Material Detail')
+
+# ---------------------------------------------------------------- 5. bagian 3: default Dimension grid = varian terbanyak, paling dulu
+query(SPEC, 'q_bom_options', [
+    ("                                                'thickness', x.thickness, 'variant_count', x.n, 'is_process', x.is_process)\n",
+     "                                                'thickness', x.thickness, 'variant_count', x.n, 'is_process', x.is_process,\n"
+     "                                                'first_at', x.first_at)\n"),
+    ("     FROM (SELECT m.id AS material_id, m.name, m.uom, m.is_process, v.thickness, count(v.id) AS n\n",
+     "     FROM (SELECT m.id AS material_id, m.name, m.uom, m.is_process, v.thickness, count(v.id) AS n,\n"
+     "                  extract(epoch FROM min(v.created_at))::bigint AS first_at\n"),
+])
 
 # ---------------------------------------------------------------- 3. Use
 app.add_query(SPEC, 'a_bom_use_variant', 'a_bom_change_component',
@@ -89,14 +106,17 @@ app.add_query(SPEC, 'a_bom_use_variant', 'a_bom_change_component',
               '                          {{this.params.article_id}}::uuid, {{this.params.variant_id}}::uuid) AS result;')
 
 # ---------------------------------------------------------------- 4. daftar Dimension form varian (Material Detail)
+# R20 bagian 3: + n_own (varian material ini), baris tanpa dimension material ini; material ini dulu, varian terbanyak, paling dulu
 app.add_query(MD, 'q_dimensions', 'q_variants',
-              "SELECT v.thickness, count(*)::int AS n, bool_or(v.material_id::text = {{appsmith.URL.queryParams.id || ''}}) AS own\n"
+              "SELECT coalesce(v.thickness, '') AS thickness, count(*)::int AS n,\n"
+              "       count(*) FILTER (WHERE v.material_id = m0.id)::int AS n_own, bool_or(v.material_id = m0.id) AS own\n"
               "FROM (SELECT fn_auth({{appsmith.store.token}}, 'view_master') AS me) a\n"
               "JOIN material m0 ON m0.id::text = {{appsmith.URL.queryParams.id || ''}}\n"
               "JOIN material_variant v ON v.factory_id = m0.factory_id AND fn_can_see_factory(a.me, v.factory_id)\n"
-              "WHERE coalesce(v.thickness, '') <> '' AND v.status = 'ACTIVE'\n"
-              "GROUP BY v.thickness\n"
-              "ORDER BY bool_or(v.material_id::text = {{appsmith.URL.queryParams.id || ''}}) DESC, count(*) DESC, v.thickness;")
+              "WHERE (coalesce(v.thickness, '') <> '' OR v.material_id = m0.id) AND v.status = 'ACTIVE'\n"
+              "GROUP BY coalesce(v.thickness, '')\n"
+              "ORDER BY bool_or(v.material_id = m0.id) DESC, count(*) FILTER (WHERE v.material_id = m0.id) DESC,\n"
+              "         min(v.created_at) FILTER (WHERE v.material_id = m0.id), count(*) DESC, coalesce(v.thickness, '');")
 
 lock_manual_queries(app)
 app.publish_all()

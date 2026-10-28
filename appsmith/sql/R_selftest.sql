@@ -1598,16 +1598,26 @@ BEGIN
             '%Color BLACK in material UJI R20 PU LEATHER uses color code BLK%', 'R20 satu warna di satu material = satu kode akhir');
   PERFORM pg_temp.must_fail(format('SELECT fn_variant_save(%L, NULL, %L, ''R20P160B01'', ''GREY'', ''1.6MM'', ''ACTIVE'', true)', t_spec, mb),
             '%Color code B01 means BLACK%', 'R20 centang konfirmasi lama tidak membuka penolakan');
-  -- dimension kosong: kode tengah per UoM
+  -- dimension kosong: R20 bagian 3 = satu kode tengah per MATERIAL (UoM tidak dipakai lagi)
   mk := fn_material_add(t_spec, 'UJI R20 COMPOUND', 'RUBBER', 'KG');
   vk := fn_variant_save(t_spec, NULL, mk, 'R20CK00WHT', 'WHITE', '', 'ACTIVE');
   mk2 := fn_material_add(t_spec, 'UJI R20 TPR', 'RUBBER', 'KG');
-  PERFORM pg_temp.must_fail(format('SELECT fn_variant_save(%L, NULL, %L, ''R20T800WHT'', ''WHITE'', ''.'', ''ACTIVE'')', t_spec, mk2),
-            '%No dimension (KG) uses dimension code K00%', 'R20 dimension kosong + KG = K00');
-  PERFORM pg_temp.ok((SELECT thickness_codes FROM fn_variant_code_suggest(t_spec, mk2, 'WHITE', '')) = 'K00',
-                     'R20 usulan kode dimension kosong mengikuti UoM');
-  PERFORM pg_temp.ok((SELECT thickness_codes IS NULL FROM fn_variant_code_suggest(t_spec, (SELECT id FROM material WHERE name = 'UJI R20 PU-LEATHER'), 'WHITE', '')),
-                     'R20 dimension kosong UoM lain (PRS) belum punya kode');
+  PERFORM pg_temp.ok((SELECT thickness_codes || '|' || thickness_free FROM fn_variant_code_suggest(t_spec, mk2, 'WHITE', '')) = 'K00|true',
+                     'R20b3 usulan kode dimension kosong: kode kosong yang dikenal (UoM sama dulu), hanya saran');
+  PERFORM pg_temp.ok(fn_variant_save(t_spec, NULL, mk2, 'R20T800WHT', 'WHITE', '.', 'ACTIVE') IS NOT NULL,
+                     'R20b3 material lain (UoM sama) boleh kode kosong lain (800, dulu ditolak karena KG = K00)');
+  PERFORM pg_temp.must_fail(format('SELECT fn_variant_save(%L, NULL, %L, ''R20TK00BLK'', ''BLACK'', ''(None)'', ''ACTIVE'')', t_spec, mk2),
+            '%Material UJI R20 TPR without dimension uses dimension code 800%', 'R20b3 satu material = satu kode dimension kosong');
+  PERFORM pg_temp.ok((SELECT thickness_codes || '|' || thickness_free FROM fn_variant_code_suggest(t_spec, mk2, 'BLACK', '')) = '800|false',
+                     'R20b3 usulan: material sudah punya kode kosong -> hanya kode itu (wajib)');
+  PERFORM pg_temp.ok((SELECT thickness_codes || '|' || thickness_free FROM fn_variant_code_suggest(t_spec, (SELECT id FROM material WHERE name = 'UJI R20 PU-LEATHER'), 'WHITE', ''))
+                     LIKE '%K00%|true', 'R20b3 material tanpa varian kosong (UoM lain): kode kosong lain tetap disarankan');
+  PERFORM pg_temp.must_fail(format('SELECT fn_variant_save(%L, NULL, %L, ''R20TK00RED'', ''RED'', ''2MM'', ''ACTIVE'')', t_spec, mk2),
+            '%Dimension code K00 means no dimension%', 'R20b3 kode kosong tetap tidak boleh untuk dimension berisi');
+  PERFORM pg_temp.ok(fn_clean_thickness('(None)') IS NULL AND fn_clean_thickness(' none ') IS NULL,
+                     'R20b3 (None) / NONE = tanpa dimension');
+  PERFORM pg_temp.ok((SELECT coalesce(thickness, '') FROM material_variant WHERE code = 'R20T800WHT') = '',
+                     'R20b3 Dimension "." tersimpan kosong');
   -- hint di form: masalah tampil sebelum simpan; kode yang sudah dipakai -> tombol Use
   SELECT * INTO h FROM fn_variant_code_hint(t_spec, mo, 'R20P404WHT', NULL, 'WHITE', '44"');
   PERFORM pg_temp.ok(h.used_id IS NULL AND array_to_string(h.problems, ' ') LIKE 'Prefix R20P belongs to material UJI R20 PU LEATHER%',

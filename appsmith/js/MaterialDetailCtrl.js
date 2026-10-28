@@ -287,10 +287,10 @@ export default {
 		const ok = await this.runForm(a_variant_save, params,
 			v => { this.varMsg = v; }, v => { this.varBusy = v; }, 'mdlVarian');
 		if (!ok) return;
-		await this.refresh([q_variants, q_material]);
+		await this.refresh([q_variants, q_material, q_dimensions]);
 		if (isNew && f.again) {
-			// "Simpan & tambah lagi": modal tetap terbuka, form dikosongkan
-			this.varForm = {};
+			// "Simpan & tambah lagi": modal tetap terbuka, form dikosongkan; R20 bagian 3: Dimension yang baru disimpan tetap terisi
+			this.varForm = { thickness: f.thickness || '' };
 			this.varHint = null;
 			this.varSuggest = null;
 			this.varMsg = { type: 'info', text: `Variant ${f.code} saved. Enter the next variant.` };
