@@ -1,6 +1,6 @@
 -- ============================================================================
--- R_selftest: uji alur inti R3–R19 langsung di database, lalu DIBATALKAN (ROLLBACK): tidak ada data yang tersimpan.
--- Jalankan SETELAH sql/R_revisi_semua.sql, sql/R8_catatan_uji.sql, R9_kode_varian.sql R10_hapus_varian.sql, R11_perbaikan.sql, R11b_harga_batal.sql, R12_golive.sql, R13_cbd_stage.sql, R14_audit_stage.sql, R15_english.sql, R16_baku_thickness.sql, R17_remember_estimate.sql, R18_dimension.sql, R19_catatan_uji.sql DAN SQL R20 (steps/R20_uji.md §0a dan §8 SQL 0b), lewat z_run_sql di app "DB Tools" (Use prepared statements = OFF),
+-- R_selftest: uji alur inti R3–R21 langsung di database, lalu DIBATALKAN (ROLLBACK): tidak ada data yang tersimpan.
+-- Jalankan SETELAH sql/R_revisi_semua.sql, sql/R8_catatan_uji.sql, R9_kode_varian.sql R10_hapus_varian.sql, R11_perbaikan.sql, R11b_harga_batal.sql, R12_golive.sql, R13_cbd_stage.sql, R14_audit_stage.sql, R15_english.sql, R16_baku_thickness.sql, R17_remember_estimate.sql, R18_dimension.sql, R19_catatan_uji.sql DAN SQL R20 (steps/R20_uji.md §0a dan §8 SQL 0b) DAN sql/R21_kamus.sql (isi kamus boleh belum dimuat), lewat z_run_sql di app "DB Tools" (Use prepared statements = OFF),
 -- SEBELUM import app. Hasil yang diharapkan: baris terakhir "SELFTEST LOLOS". Kalau ada yang salah, query berhenti
 -- dengan pesan "SELFTEST GAGAL: ..." — kirim pesan itu ke pengembang.
 -- Aman di DB yang sudah berisi data: pabrik SELFTEST PABRIK A/B, email @selftest.invalid; master BERSAMA (supplier,
@@ -1934,6 +1934,116 @@ BEGIN
   PERFORM pg_temp.must_fail(format('SELECT fn_bom_use_code(%L, %L, %L, ''R2DA088UMX'')', t_spec,
                                    (SELECT id FROM bom_line WHERE revision_id = r2 AND is_active AND material_id = ma LIMIT 1), a2),
             '%cannot be%', 'R20b4 Use kode purchasing yang melanggar aturan ditolak');
+END;
+$$;
+
+-- ---------------------------------------------------------------- R21 (kamus kode ERP per pabrik)
+-- Kamus pabrik SELFTEST A diisi langsung (kamus ERP asli ada di pabrik UNIMITRA, tidak disentuh).
+DO $$
+DECLARE
+  t_spec  text := pg_temp.tok('spec.a@selftest.invalid');
+  t_brand text := pg_temp.tok('brand@selftest.invalid');
+  v_fac uuid := fn_user_factory('spec.a@selftest.invalid');
+  v_cat uuid; v_sup uuid; v_comp uuid;
+  mk1 uuid; mk2 uuid; mk3 uuid; mk4 uuid; mk5 uuid; m1 uuid; sh1 uuid; a1 uuid; rv uuid; l1 uuid; l2 uuid;
+  v_id uuid; dd record; hh record; ss record;
+BEGIN
+  PERFORM pg_temp.ok(fn_clean_thickness('no.1') = 'NO.1' AND fn_clean_thickness('.5mm') = '0.5 MM'
+                     AND fn_clean_thickness('A .5') = 'A 0.5' AND fn_clean_thickness('#200') = '#200',
+                     'R21 fn_clean_thickness: NO.1 tetap NO.1, .5 tetap jadi 0.5');
+  SELECT pm.category_id INTO v_cat FROM product_model pm JOIN factory f ON f.id = pm.factory_id
+   WHERE f.name = 'SELFTEST PABRIK A' LIMIT 1;
+  SELECT id INTO v_sup FROM supplier WHERE name = 'SELFTEST SUPPLIER SATU';
+  SELECT id INTO v_comp FROM component WHERE name = 'SELFTEST VAMP';
+  mk1 := fn_material_add(t_spec, 'UJI R21 BUSA', 'FOAM', 'ME');
+  mk2 := fn_material_add(t_spec, 'UJI R21 KARET', 'RUBBER', 'ME');
+  mk3 := fn_material_add(t_spec, 'UJI R21 KAIN', 'TEXTILE', 'ME');
+  mk4 := fn_material_add(t_spec, 'UJI R21 KAIN SALAH KETIK', 'TEXTILE', 'ME');
+  mk5 := fn_material_add(t_spec, 'UJI R21 JALA', 'TEXTILE', 'ME');
+  INSERT INTO code_dict_material (factory_id, code, name, material_id, source) VALUES
+    (v_fac, 'R21B', 'UJI R21 BUSA ERP', mk1, 'ERP'), (v_fac, 'R21A', 'UJI R21 KAIN ERP', NULL, 'ERP');
+  INSERT INTO code_dict_dimension (factory_id, code, thickness, source) VALUES
+    (v_fac, '21A', '2.1 MM', 'ERP'), (v_fac, '21B', '2.2 MM', 'ERP'), (v_fac, '21C', '2.2 MM', 'ERP');
+  INSERT INTO code_dict_color (factory_id, code, color, source) VALUES
+    (v_fac, 'U1A', 'UJI R21 MERAH', 'ERP'), (v_fac, 'U1B', 'UJI R21 BIRU', 'ERP'), (v_fac, 'U1C', 'UJI R21 BIRU', 'ERP');
+
+  -- kode -> arti dari kamus
+  PERFORM pg_temp.ok(cardinality(fn_variant_code_problems(v_fac, mk1, 'R21B21AU1A', 'uji r21 merah', '2,1mm', NULL)) = 0,
+                     'R21 kode sesuai kamus (awalan tersambung, 21A = 2.1 MM, U1A = UJI R21 MERAH): tanpa masalah');
+  PERFORM pg_temp.ok(array_to_string(fn_variant_code_problems(v_fac, mk1, 'R21B21BU1A', 'UJI R21 MERAH', '2.1 MM', NULL), ' ')
+                       LIKE 'Dimension code 21B means 2.2 MM (ERP dictionary), not 2.1 MM.%',
+                     'R21 kode Dimension yang artinya beda dengan kamus: pesan menyebut arti kamus');
+  PERFORM pg_temp.ok(array_to_string(fn_variant_code_problems(v_fac, mk1, 'R21B21AU1B', 'UJI R21 MERAH', '2.1 MM', NULL), ' ')
+                       LIKE '%Color code U1B means UJI R21 BIRU (ERP dictionary), not UJI R21 MERAH.%',
+                     'R21 kode warna yang artinya beda dengan kamus: pesan menyebut arti kamus');
+  PERFORM pg_temp.ok(array_to_string(fn_variant_code_problems(v_fac, mk2, 'R21B21AU1A', 'UJI R21 MERAH', '2.1 MM', NULL), ' ')
+                       LIKE 'Prefix R21B belongs to material UJI R21 BUSA (ERP dictionary).%',
+                     'R21 awalan kamus milik material lain: ditolak dengan nama material app');
+  PERFORM pg_temp.must_fail(format('SELECT fn_variant_save(%L, NULL, %L, ''R21B21BU1A'', ''UJI R21 MERAH'', ''2.1 MM'', ''ACTIVE'')',
+                                   t_spec, mk1),
+            '%Dimension code 21B means 2.2 MM (ERP dictionary)%', 'R21 trigger varian menolak kode yang bertentangan dengan kamus');
+  -- arti -> kode tetap dari varian app: teks dengan dua kode di kamus boleh memakai salah satunya
+  PERFORM pg_temp.ok(cardinality(fn_variant_code_problems(v_fac, mk1, 'R21B21CU1C', 'UJI R21 BIRU', '2.2 MM', NULL)) = 0
+                     AND cardinality(fn_variant_code_problems(v_fac, mk1, 'R21B21BU1B', 'UJI R21 BIRU', '2.2 MM', NULL)) = 0,
+                     'R21 teks dengan beberapa kode kamus (2.2 MM = 21B / 21C, BIRU = U1B / U1C): semua kode itu sah');
+
+  -- hint modal Register: arti dari kamus, ref = ERP dictionary
+  SELECT * INTO hh FROM fn_variant_code_hint(t_spec, mk1, 'R21B21BU1C', NULL, 'UJI R21 BIRU', '2.2 MM');
+  PERFORM pg_temp.ok(hh.thickness_known AND hh.thickness = '2.2 MM' AND hh.thickness_ref = 'ERP dictionary'
+                     AND hh.color_known AND hh.color = 'UJI R21 BIRU' AND hh.color_ref = 'ERP dictionary'
+                     AND cardinality(hh.problems) = 0,
+                     'R21 hint kode: Dimension dan warna terbaca dari kamus (recorded in ERP dictionary)');
+
+  -- saran kode: material tanpa varian -> kode kamus untuk teks yang sama
+  SELECT * INTO ss FROM fn_variant_code_suggest(t_spec, mk1, 'UJI R21 BIRU', '2.2 MM');
+  PERFORM pg_temp.ok(ss.prefixes = 'R21B' AND ss.thickness_codes = '21B,21C' AND ss.color_codes = 'U1B,U1C',
+                     'R21 saran kode: awalan kamus tersambung, semua kode kamus untuk 2.2 MM dan UJI R21 BIRU');
+
+  -- susun otomatis di specsheet: bagian kamus dengan tepat satu kode
+  m1  := pg_temp.mk_model(t_spec, 'Uji R21 Kamus', v_cat);
+  sh1 := fn_season_add(t_spec, m1, 'SS28');
+  a1  := fn_article_save(t_spec, NULL, sh1, 'UJI-R21A', 'RED');
+  rv  := fn_revision_create(t_spec, sh1, 'EMPTY', 'SMS', NULL);
+  l1 := fn_bom_add_line(t_spec, rv, v_comp, NULL, NULL, mk1, '2,1mm', v_sup, NULL, NULL);
+  PERFORM fn_bom_cell_set(t_spec, l1, a1, 'uji r21 merah');
+  PERFORM pg_temp.ok((SELECT v.code || '|' || v.thickness || '|' || v.color FROM bom_cell bc JOIN material_variant v ON v.id = bc.variant_id
+                       WHERE bc.bom_line_id = l1 AND bc.article_id = a1) = 'R21B21AU1A|2.1 MM|UJI R21 MERAH',
+                     'R21 sel tersusun dari kamus: awalan tersambung R21B + 21A + U1A = R21B21AU1A');
+  l2 := fn_bom_add_line(t_spec, rv, v_comp, NULL, NULL, mk1, '2.2 MM', v_sup, NULL, NULL);
+  PERFORM fn_bom_cell_set(t_spec, l2, a1, 'UJI R21 MERAH');
+  PERFORM pg_temp.ok((SELECT variant_id FROM bom_cell WHERE bom_line_id = l2 AND article_id = a1) IS NULL,
+                     'R21 Dimension dengan dua kode di kamus (2.2 MM): tidak disusun, sel tetap kuning');
+  PERFORM fn_bom_cell_set(t_spec, l1, a1, 'UJI R21 BIRU');
+  PERFORM pg_temp.ok((SELECT variant_id FROM bom_cell WHERE bom_line_id = l1 AND article_id = a1) IS NULL
+                     AND fn_variant_compose(mk1, '2.1 MM', 'UJI R21 BIRU') IS NULL,
+                     'R21 warna dengan dua kode di kamus (UJI R21 BIRU): tidak disusun');
+
+  -- varian berkode -> bagian baru masuk kamus (REGISTER); bagian yang sudah ada tidak berubah
+  PERFORM fn_variant_save(t_spec, NULL, mk1, 'R21B21DU1D', 'UJI R21 HIJAU', '2.4 MM', 'ACTIVE');
+  PERFORM pg_temp.ok((SELECT thickness || '|' || source || '|' || created_by FROM code_dict_dimension WHERE factory_id = v_fac AND code = '21D')
+                       = '2.4 MM|REGISTER|spec.a@selftest.invalid'
+                     AND (SELECT color || '|' || source FROM code_dict_color WHERE factory_id = v_fac AND code = 'U1D') = 'UJI R21 HIJAU|REGISTER'
+                     AND (SELECT source FROM code_dict_color WHERE factory_id = v_fac AND code = 'U1A') = 'ERP',
+                     'R21 Register kode dengan bagian baru: 21D dan U1D masuk kamus (REGISTER), U1A tetap ERP');
+  -- awalan kamus belum tersambung -> tersambung ke material varian pertama
+  PERFORM fn_variant_save(t_spec, NULL, mk3, 'R21A21AU1A', 'UJI R21 MERAH', '2.1 MM', 'ACTIVE');
+  PERFORM pg_temp.ok((SELECT material_id FROM code_dict_material WHERE factory_id = v_fac AND code = 'R21A') = mk3
+                     AND (SELECT name || '|' || source FROM code_dict_material WHERE factory_id = v_fac AND code = 'R21A') = 'UJI R21 KAIN ERP|ERP',
+                     'R21 awalan ERP belum tersambung: tersambung ke material varian pertama (nama ERP tetap)');
+  PERFORM fn_variant_save(t_spec, NULL, mk5, 'R21J21AU1A', 'UJI R21 MERAH', '2.1 MM', 'ACTIVE');
+  PERFORM pg_temp.ok((SELECT name || '|' || source || '|' || (material_id = mk5)::text FROM code_dict_material
+                       WHERE factory_id = v_fac AND code = 'R21J') = 'UJI R21 JALA|REGISTER|true',
+                     'R21 awalan baru dari Register: masuk kamus dengan nama material app');
+
+  -- baca kode purchasing yang belum terdaftar: material dari awalan kamus, arti kode tengah / akhir dari kamus
+  SELECT * INTO dd FROM fn_variant_code_decode(t_spec, mk4, 'R21A21BU1B', 'UJI R21 KUNING', '9 MM');
+  PERFORM pg_temp.ok(dd.material_id = mk3 AND dd.thickness = '2.2 MM' AND dd.color = 'UJI R21 BIRU' AND cardinality(dd.problems) = 0,
+                     'R21 kode purchasing dibaca dari kamus: R21A = UJI R21 KAIN, 21B = 2.2 MM, U1B = UJI R21 BIRU');
+
+  -- halaman Code Dictionary: role tanpa view_drafts (Brand) ditolak
+  PERFORM pg_temp.must_fail(format('SELECT fn_auth(%L, ''view_drafts'')', t_brand), '%no access%',
+            'R21 Code Dictionary: Brand tidak bisa membuka (izin view_drafts)');
+  PERFORM pg_temp.ok(fn_auth(t_spec, 'view_drafts') = 'spec.a@selftest.invalid', 'R21 Code Dictionary: Vendor Spec bisa membuka');
 END;
 $$;
 

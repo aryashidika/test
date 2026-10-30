@@ -47,6 +47,7 @@ Legenda status: ⬜ belum · 🟡 dibuat (belum diverifikasi dari export) · ✅
 | R8 | Catatan uji E2E-R: Manager Costing langsung berlaku, riwayat harga, article tanpa batas, awalan Material Code wajib sama, ajukan harga master dari CBD - panduan `steps/R8_uji.md` | **`build_r8.json` (di-import)** | 🟡 dibuat 12 Okt 2026 · R8 2× tanpa error · self-test 102 cek lolos · 137 query EXPLAIN · harness widget & JSObject |
 | R19 | Catatan uji user (26 Okt 2026): **nomor komponen = posisi** (geser +10 di kelompok), **nomor artikel boleh kosong** (peringatan SMS / GTM, blokir Production, Tugas Saya), **Dimension di kolom sendiri** + **saran material terbaca penuh** (grid BOM), **material Process** (tanpa kode, quotation per CBD), **ganti komponen** di specsheet draft, **reset filter** saat page dibuka (kecuali kembali dari detail), **semua field model wajib** (lihat §6 R19) · panduan `steps/R19_uji.md` | `sql/R19_catatan_uji.sql` + **`exports/build_r19.json`** (base **`export_r18.json`** = export user 26 Okt 2026, sama dengan build R18 kecuali format ulang Appsmith) | ✅ lolos uji user 27 Okt 2026 (termasuk koreksi pindah posisi komponen, nomor artikel opsi B, Process oleh tim CBD, ganti komponen per baris, Dimension mengikuti material) · dibuat 26 Okt 2026 · R19 SQL 2× tanpa error (salinan DB R18) · self-test **372 cek** (62 baru R19, termasuk koreksi pindah posisi komponen; 7 pembuatan model lama dilengkapi karena field wajib) · 146 query EXPLAIN tanpa error · query baru/diubah dijalankan per role pada data uji (0 error) · harness `cwBomGrid` + `BomCtrl` asli (data DB nyata: saran membungkus, nama sama beda UoM, ketikan lama dipisah, kode, dimension wajib, pilih dimension setelah ganti material, Esc, Process, Change komponen) + `cwMaterialForm` / `cwModelForm` / `cwArticleForm` + `Util.resetFilters` / `goDetail` · validator **LOLOS** |
 | R20 | Penulisan material seragam (27 Okt 2026): **nama beda spasi / tanda baca = material yang sama**, saran nama mirip hanya bila **angka sama**, **Material Code 10 karakter ketat dua arah tanpa centang konfirmasi** (awalan = 1 material, kode tengah = 1 dimension (kosong: per UoM), kode akhir = 1 warna, dan sebaliknya), **Material Code hanya diketik di Register** (grid tidak membaca kode), **Use** di modal Register (kode sudah dipakai -> sel memakai varian itu, sel kuning yang sama di semua draft ikut, material lama tanpa varian jadi INACTIVE) · query cek C1 to C3 + **perbaikan data** (11 material proses -> Process, gabung 98 D -> 98 A, BSW-0032 -> BSW-032) · panduan `steps/R20_uji.md` (SQL di dalam dokumen, permintaan user: tanpa file .sql baru) | SQL di `steps/R20_uji.md` §0a + **`exports/build_r20.json`** (base **`build_r19.json`**: export R19 user belum ada) | ✅ cek cepat 11 poin lolos di DB user 27 Okt 2026 (SQL, self-test, preview P1/P2, perbaikan data, C2 = 0, import, Register + Use), uji lengkap `R20_uji.md` menyusul saat user testing · dibuat 27 Okt 2026 · SQL dari dokumen 2× di atas R19 tanpa error · self-test **R_selftest.sql** LOLOS (40 cek R20; cek R4 kode di sel diganti; cek R9/R16 konfirmasi diganti aturan ketat, 3 kode uji lama disesuaikan) · query diubah/baru EXPLAIN tanpa error · harness `cwBomGrid` (kode di sel = teks, kode di Material ditolak, klik di luar menyimpan, nama rapat, nearName) + `cwVariantForm` (kotak merah, Use, Save ditolak) · query cek dijalankan pada 845 kode ERP (`MATERIAL CODE.xlsx`, tanpa trigger): C1 6, C2 95 (semua awalan), C3 0 · skrip perbaikan dari dokumen 2× pada data tiruan seperti hasil user (aman diulang) · validator **LOLOS** · **Bagian 2 (28 Okt 2026): warna seragam + Dimension seperti dropdown** (`R20_uji.md` §8, SQL 0b + query cek W1): dibuat & dicek lokal (SQL 0b 2× di salinan data + kasus kembar berhenti tanpa perubahan, revisi terbit tidak berubah, self-test LOLOS +15 cek warna, data ERP 844 kode: kembar 0 / 9 warna dirapikan, harness grid + form, validator tanpa error baru), ✅ **lolos uji user 28 Okt 2026** · **Bagian 3 (28 Okt 2026): kode Dimension kosong per material + Dimension wajib & default** (`R20_uji.md` §9, SQL 0c + query cek W2): dibuat & dicek lokal (SQL 0a→0b→0c di salinan data ERP 844 kode + 0c 2×, pengaman NONE berhenti tanpa perubahan, self-test LOLOS +8 cek, skenario uji 9.7–9.15 di DB, query baru/diubah dijalankan dengan sesi nyata, harness grid + form varian, validator tanpa error baru; W2 pada data ERP: 0 material dua kode, 0 bentrok, KG/CAN/LT = K00, PRS = 800, EA/PCS = C00), menunggu uji user · **Bagian 4 (28 Okt 2026): Material Code tersusun otomatis + Save Register menunggu cek kode** (`R20_uji.md` §10, SQL 0d): dibuat & dicek lokal (0d 2× aman, self-test LOLOS +11 cek bagian 4, 1 cek R16 disesuaikan karena 3 MM kini tersusun otomatis, skenario uji 10.6–10.13 di DB, harness form varian: Checking code, Enter ditahan, Use tampil sebelum Save, buka lagi setelah 5 detik tanpa jawaban, validator tanpa error baru). **Revisi setelah uji user (COCOTEX masih kuning, kode purchasing `4008312B01`):** kode warna boleh dari material lain bila tunggal di pabrik (data ERP: 387 warna satu kode, 2 lebih) + **Use kode purchasing yang belum terdaftar** (`fn_variant_code_decode`, `fn_bom_use_code`, `q_code_decode`, `a_bom_use_code`) + query cek D1; dicek: self-test LOLOS (+6 cek Use kode, 2 cek R16/R17 disesuaikan), data ERP: `4008312B01` = FOAM SHL-2 · 2 MM X 44" · BLACK, COCOTEX BLACK / WHITE C = `20NK312B01` / `20NK312W10`, skenario 10.6–10.17 di DB, query baru dengan sesi nyata, harness tombol Use, validator tanpa error baru; menunggu uji user · **Bagian 5 (28 Okt 2026): Edit material dari specsheet** (`R20_uji.md` §11, permintaan user: lupa centang Process): link **Edit material** di kolom Material grid → modal Edit Material (mode edit `cwMaterialForm`, `q_material_edit` + `a_material_update` baru di Specsheet, `fn_material_update` R19 tanpa SQL baru); dicek: query + simpan Process di DB lokal (rollback), harness grid (link + action) dan alur BomCtrl dengan stub, validator tanpa error baru; menunggu uji user · **Bagian 6 (28 Okt 2026): Dimension grid tidak tersimpan sendiri** (`R20_uji.md` §12, catatan user: pilih Dimension baris A lalu cepat klik baris B -> B tersimpan sendiri, kursor & daftar hilang): dicek di harness `cwBomGrid` + tiruan BomCtrl dengan klik nyata (versi lama mereproduksi B tersimpan `1.5 MM3` + fokus hilang; versi baru hanya A terkirim, B tetap fokus, daftar terbuka lagi setelah render, fokus ikut baris pengganti), validator tanpa error baru; menunggu uji user · **Bagian 7 (28 Okt 2026): dropdown Dimension langsung lengkap** (`R20_uji.md` §13, catatan user: daftar sering hanya `(None)`): `q_bom_options` + `used_dims`, harness (material tanpa varian, dimension belum berkode, Other materials), validator tanpa error baru; query baru belum dijalankan di DB, menunggu uji user |
+| R21 | Kamus kode ERP per pabrik (7.001 awalan material, 1.298 kode Dimension, 13.070 kode warna) dari 3 Excel master: kode -> arti dari kamus di Register / susun otomatis / Use kode purchasing, Register menambah kamus, **Code Dictionary** sub menu Master Material, baca saja (maks. 200 baris per cari, Brand tidak), Dimension `NO.1` (lihat §6 R21) · panduan `steps/R21_uji.md` | `sql/R21_kamus.sql` + `sql/R21_kamus_isi_1..6.sql` (`tools/kamus/gen_sql.py`) + **`exports/build_r21.json`** (`tools/build_r21.py`, base `build_r20.json`) | ✅ **lolos uji user 30 Okt 2026** (setelah perbaikan SQL ASCII + sub menu) · dibuat 30 Okt 2026 · self-test 468 cek lolos (18 R21), sebelum & sesudah isi kamus · SQL 2× aman · 154 query EXPLAIN · query halaman 25-50 ms · validator lolos |
 | R18 | Ganti teks (permintaan user 26 Okt 2026): tombol Specsheet `+ Create Revision` → `+ Create` (+ pesan kosong), **Thickness → Dimension** di semua teks yang terlihat + header Excel + pesan DB; nama kolom / fungsi / variabel tetap (lihat §6 R18) · panduan `steps/R18_uji.md` | `sql/R18_dimension.sql` + **`exports/build_r18.json`** (base **`export_r17.json`** = export user 26 Okt 2026, sama dengan build R17 kecuali format ulang Appsmith) | ✅ lolos uji user 26 Okt 2026 · R18 SQL 2× + self-test LOLOS di PostgreSQL lokal (salinan DB R17) · validator **LOLOS** (0 error baru) · sisa kata thickness di build hanya nama internal / komentar |
 | R17 | **Remember me** di halaman Login (permintaan user 22 Okt 2026, app hanya lewat VPN): dicentang = sesi 7 hari tanpa dibuka, diperpanjang tiap app dibuka, maks 30 hari sejak login; tidak dicentang = 12 jam seperti dulu; email terakhir diingat di browser; **bagian 2 (22 Okt 2026): Material Code wajib mulai SMS + harga ESTIMATE untuk baris CBD tanpa kode di Pullover / Preview, baris ber-Yield tanpa harga memblokir mulai SMS** (lihat §6 R17) · panduan `steps/R17_uji.md` | `sql/R17_remember_estimate.sql` (dulu `R17_remember_me.sql`) + **`exports/build_r17.json`** (base **`export_r16.json`** = export user 22 Okt 2026: sama dengan build R16, hanya tata letak tabel Model List / Master Material / Master Component / Master Options / Master Supplier / Material Detail, kolom Factory `tblMaterials` disembunyikan, nama material wrap) | ✅ lolos uji user 26 Okt 2026 · R16 + R17 2× tanpa error di PostgreSQL lokal · self-test **280 cek** (13 baru R17) · `fn_login` dipanggil seperti app lama (2 parameter) dan baru (teks → boolean) · harness `cwLogin` (checkbox, nilai `remember` di event, email tersimpan datang setelah render pertama, tidak mengisi ulang email yang dihapus user) · validator **LOLOS** (0 error baru) · **bagian 2:** PostgreSQL lokal baru (F1 s.d. R16 dari file SQL, lalu R17 2× tanpa error), self-test **310 cek** (30 baru: skenario Preview → SMS user + lompat Pullover → GTM; 2 tes lama disesuaikan: T56 di SMS kini memblokir, tes sel kuning R16 pindah ke SMS), 145 query EXPLAIN tanpa error, query baru/diubah dijalankan dengan token per role pada data uji, harness `cwCbdGrid` + `cwCbdPriceForm` + `CbdGridCtrl` asli (tombol Enter / Edit estimate, badge, tanda no Material Code, saran Use, isian awal Propose), validator **LOLOS** |
 | R16 | Specsheet boleh disusun dengan material tanpa Material Code (sel kuning, terbit tetap diblokir), **+ New material** (bar atas & di baris yang tidak ketemu, baris dilanjutkan otomatis), saran "Did you mean", sel kuning di Export Excel, thickness baku (gaya berspasi tim material; 20 Okt: nol belakang dibuang, kutip miring / INCH, rentang), Order master option = posisi; review seluruh app 20 Okt 2026: T74–T86 (lihat §6 R16 & §9) · panduan `steps/R16_uji.md` | `sql/R16_baku_thickness.sql` + **`exports/build_r16.json`** (base `build_r15.json`) | ✅ lolos uji user 21 Okt 2026 · self-test **267 cek** (DB kosong & data sintetis 1 tahun) · 144 query dijalankan per role tanpa error · pembakuan thickness SQL = JS pada 239 teks · pindah Order 42/42 · alur panduan bagian 1–6 lewat fungsi DB 19/19 · uji browser `cwBomGrid` + `BomCtrl` + `cwVariantForm` + `cwCbdGrid` asli · validator **LOLOS** |
@@ -986,6 +987,99 @@ saat kode dari purchasing datang, kodenya sudah dipakai dan tidak bisa masuk. Ke
    specsheet aktif tanpa varian ACTIVE), `BomCtrl.usedDims`; daftar = terdaftar, `used in specsheet · no code yet`, Other materials
    (langsung saat diklik). Default Dimension tetap dari varian terdaftar. Daftar Material tetap 12 teratas (keputusan user).
 
+### R21: Kamus kode ERP per pabrik + halaman Code Dictionary (rencana disetujui user 30 Okt 2026, dibuat & lolos uji user 30 Okt 2026)
+Base build: export user terbaru setelah R20; bila belum ada, `exports/build_r20.json` (disalin lalu diedit, bukan dibuat
+ulang). Sumber: `document/master material ADF.xlsx`, `document/master color master thickness upd 29 oct 2026.xlsx`, daftar ERP
+`MATERIAL CODE.xlsx`. Hasil bersih: `document/Kamus Kode/Review_Kamus_Kode.xlsx` + `tools/kamus/` (warna 13.070, Dimension 1.299, material
+6.996 baris MASUK). Keputusan pembersihan sudah dijawab user (dokumen "Konfirmasi Pembersihan Master Kode ERP", 29 Okt 2026). Sudah jalan
+sebelum R21: `sql/R_kamus_tulisan.sql` (70 varian) + `sql/R_kamus_tulisan_2.sql` (I2H), jadi teks varian app sudah sama dengan kamus.
+
+**Temuan data yang membentuk rencana (dicek 30 Okt 2026 dari `tools/kamus/*.pkl`):**
+- Satu kode selalu satu arti (tidak ada kode kembar di ketiga kamus).
+- Satu teks bisa punya beberapa kode: 76 teks Dimension (mis. `SIZE 41-42` 4 kode, `(None)` 3 kode) dan 549 teks warna (mis.
+  `BASE+STUD+LOGO:WHITE` 4 kode). Nama material: 134 nama rapat kembar (mis. size label per model).
+- Akibatnya kamus hanya dipakai untuk arah **kode -> arti**. Arah **arti -> kode** tetap dari varian app (aturan R20), supaya kode ERP
+  kembar yang sah tidak ditolak.
+
+1. **Tiga tabel kamus per pabrik** (baru): `code_dict_material` (awalan 4), `code_dict_dimension` (kode tengah 3), `code_dict_color`
+   (kode akhir 3).
+   - Kolom: `factory_id`, `code`, teks baku (`fn_clean_color` / `fn_clean_thickness` / nama), kunci (`fn_color_key` / `thickness_key` /
+     `fn_tight_key`), `source` (`ERP` = Excel, `REGISTER` = didaftarkan di app), `created_at`, `created_by`.
+   - Unik `(factory_id, code)`. Teks tidak unik. Index `(factory_id, kunci)` untuk cari teks.
+   - `code_dict_material.material_id`: sambungan ke material app. Awalan dari varian DB menang (A3), nama app menang bila beda (A2). Isi
+     awal: 284 material bervarian + 4 material tanpa varian yang namanya sama (MERRY MESH 2002, POLYPAG 2 2033, POLY WOVEN (PE16X16) 20KZ,
+     WOVEN LABEL 5067).
+   - Hanya baris MASUK, kode huruf besar. A1: 938L, 938N, 960I, 20CZ, 504A MASUK; 4038 TIDAK. Jawaban TANYA: W7N = WHITE/WHITE, D88 = DRESS
+     BLUE (19-4024 TPG), W38 = WHITE ASSYLUM (11-1001 TPG), I2H = SPRAY:ICICLE ANODIZED, B28 tidak masuk. 20 baris KAMUS = teks app.
+   - Tidak ada material tiruan, ADF tidak diimpor sebagai material app, impor tidak membuat varian.
+2. **Perbaikan `fn_clean_thickness`**: `NO.1` tidak boleh jadi `NO0.1`. Dikerjakan sebelum impor karena impor memakai fungsi ini.
+   Varian / baris yang sudah terkena dicek dulu (query cek, perbaikan ditulis setelah user kirim hasil, sama seperti U2).
+3. **Impor**: `tools/kamus/gen_sql.py` (baru) menulis isi kamus ke `sql/R21_kamus.sql`. SQL berhenti tanpa perubahan bila jumlah baris
+   beda dari 13.070 / 1.299 / 6.996, atau ada varian app yang artinya bertentangan dengan kamus (bagian kode varian ada di kamus, teks
+   varian bukan teks kamus). Menurut hasil cek R_kamus_tulisan seharusnya 0.
+4. **Kamus dipakai logika kode** (Register, susun otomatis, baca kode, saran):
+   - `fn_variant_code_problems` arah kode -> arti: bagian yang ada di kamus dibaca dari kamus (pasti); bagian yang belum ada di kamus
+     tetap dari mayoritas varian (R20). Pesan menyebut arti kamus, mis. `Color code W01 means WHITE (ERP dictionary), not WHITE C.`
+   - Arah arti -> kode tidak berubah (dari varian app saja).
+   - `fn_variant_compose` (susun otomatis): kode Dimension / warna boleh diambil dari kamus bila teks itu punya **tepat satu** kode di
+     kamus dan tidak bertentangan dengan varian material itu. Lebih dari satu kode = tidak disusun (sel tetap kuning, Register), sama
+     dengan R20 revisi (a). Awalan tetap dari varian material itu atau dari sambungan `material_id`.
+   - `fn_variant_code_decode` (Use kode purchasing yang belum terdaftar): arti kode tengah / akhir dari kamus bila belum dipakai varian.
+   - `fn_variant_code_suggest`: saran kode memakai bagian kamus yang tepat satu.
+   - Register / + Variant yang menyimpan kode dengan bagian baru = bagian itu otomatis masuk kamus (`source` = `REGISTER`, U3). Varian
+     dihapus = baris kamus tetap (kode ERP tidak hilang).
+   - Dokumen terbit tidak pernah diubah. Varian lama tidak diubah oleh R21.
+5. **Halaman Code Dictionary** (permintaan user 30 Okt 2026), menu Master setelah Master Material, **baca saja**:
+   - Hak lihat: `view_master` + `view_drafts` (Vendor Spec, Vendor CBD, Manager Costing; pabriknya sendiri). Brand tidak melihat (kamus =
+     data internal pabrik).
+   - Tiga tab: Material / Dimension / Colour. Kolom: Code, teks, Source, material app tersambung (tab Material), jumlah varian app yang
+     memakai.
+   - Satu kotak cari (kode atau teks; beda spasi / tanda baca tetap ketemu) + filter Source (All / ERP / Register) + centang Used in app.
+   - Tanpa tombol tambah / ubah / hapus / export. Tambah lewat Register; perubahan massal lewat impor ulang Excel (U4, skrip
+     `tools/kamus`, bukan halaman).
+6. **Kinerja (permintaan user: jangan lemot)**, mengikuti pola yang sudah ada di app (Master Material R11: `LIMIT` + `total_count`):
+   - Query mengembalikan paling banyak **200 baris**; lebih dari itu tampil `200 of N shown, narrow the search`. Kamus utuh tidak pernah
+     dikirim ke browser.
+   - Saat halaman dibuka hanya tab Material dimuat. Tab lain dimuat saat diklik pertama kali.
+   - Cari jalan saat Enter / tombol Search (sama dengan halaman lain), bukan per huruf.
+   - Jumlah pemakaian varian dihitung hanya untuk baris yang tampil.
+   - Logika kode membaca kamus lewat index unik `(factory_id, code)`; kamus tidak dimuat ke form Register.
+   - Target di PostgreSQL lokal dengan data penuh: tiap query halaman < 50 ms (`EXPLAIN ANALYZE`); simpan sel / Register dan susun
+     otomatis draft besar tidak lebih lambat dari 10% dibanding R20 (diukur sebelum / sesudah).
+7. **Uji**: `sql/R21_kamus.sql` (tabel, index, fungsi, isi kamus) + satu import `build_r21.json` (`tools/build_r21.py`), self-test
+   (kode bertentangan kamus ditolak, teks dengan satu kode kamus tersusun otomatis, teks dengan beberapa kode tetap kuning, Register
+   menambah kamus, decode dari kamus, `NO.1`, Brand ditolak), panduan `steps/R21_uji.md`.
+   - Keputusan detail (Claude, bisa diubah user): letak menu, hak lihat tanpa Brand, batas 200 baris, tanpa export, tab Material dimuat
+     pertama, baris kamus tetap saat varian dihapus.
+8. **Dibuat (30 Okt 2026)**, beda / tambahan dibanding rencana di atas:
+   - [x] `sql/R21_kamus.sql`: tabel + index, `fn_clean_thickness` (NO.1), `fn_variant_code_problems`, `fn_variant_code_hint`,
+     `fn_variant_code_decode`, `fn_variant_compose`, `fn_variant_code_suggest`, `fn_variant_autofill` (material tanpa varian ikut
+     dicoba bila awalannya tersambung di kamus; tanpa ini 4 material ERP tanpa varian tidak pernah tersusun), `fn_code_dict_learn` +
+     trigger `trg_r21_dict_learn` (U3; varian pindah material lewat skrip gabung = sambungan awalan ikut pindah), `fn_r21_import_factory`.
+     Kamus tidak masuk Audit Log.
+   - [x] Isi kamus dipecah **6 file** `sql/R21_kamus_isi_<n>.sql` (25-150 KB; file terbesar yang pernah dijalankan lewat DB Tools ~160 KB),
+     dibuat `tools/kamus/gen_sql.py`, aman diulang, kebal akhir baris CRLF, tiap file < 1 detik di PostgreSQL lokal (sempat 9-19 detik:
+     penyambung nama material dihitung per baris, diganti satu join).
+   - Teks untuk kode yang sudah dipakai varian app = **teks varian app** saat impor (aturan "kamus mengikuti app": KAMUS / TANYA / A2
+     terpenuhi otomatis), jadi impor tidak pernah bertentangan dengan varian. Guard "berhenti bila bertentangan" diganti query cek K2.
+   - Data: Dimension `B28` tidak masuk (TANYA); 17 Dimension `#...` (`#200`, `#3T-8=100 MM`) yang di review jadi `.200` dikembalikan
+     ke `#`; sel Excel dua baris (`39B`) baris keduanya dibuang. A1: 938L, 938N, 960I, 20CZ, 504A ditambah dari daftar TIDAK.
+     Jumlah akhir: material 7.001, Dimension 1.298, warna 13.070.
+   - Halaman: **pilihan jenis (select)**, bukan tab, mengikuti Master Options (hanya jenis yang dipilih dimuat). Filter Source + Usage.
+     Kolom: Code, Meaning, App material, Source, App variants, Added, Added by. Jumlah varian dari **satu kali baca varian pabrik**
+     (versi pertama menghitung per baris kamus: 200-600 ms, filter Usage 6-8 detik). Hasil: 25-50 ms semua filter.
+   - Kinerja logika kode (844 varian ERP, PostgreSQL lokal): cek aturan semua varian 350 ms (R20: 830-950 ms, index baru per bagian kode),
+     susun 6.000 kombinasi 2,16-2,22 detik (R20: 2,00-2,24 detik).
+   - JS `canonThickness` (`cwBomGrid`, `cwVariantForm`) = `fn_clean_thickness` untuk 10 contoh (diuji di Edge headless).
+   - **Perbaikan setelah uji user 30 Okt 2026:** self-test gagal di `R16 kutip pintar ...`. Versi pertama `R21_kamus.sql` berisi
+     karakter kutip miring asli (bukan kode `\uXXXX` seperti R16), yang berubah jadi kutip biasa saat ditempel ke DB Tools. Semua
+     file R21 sekarang **hanya ASCII di bagian kode**: kutip miring = baris R16, `·` = `chr(183)`, `±` di isi kamus ditulis `~PM~`
+     lalu `chr(177)` di SQL (`gen_sql.py` menolak non-ASCII lain). Panduan: jalankan ulang `R21_kamus.sql` + cek K4.
+   - **Revisi user 30 Okt 2026:** filter Source / Usage dihapus; Code Dictionary jadi **sub menu Master Material** (page
+     tersembunyi dari menu samping seperti Material Detail, tombol **Code Dictionary** di Master Material untuk view_drafts, tombol
+     **<- Master Material** kembali dengan filter Master Material tetap lewat `Util.goDetail`); kartu Home dihapus. Cari `none` di
+     Dimension menemukan `(None)`. Hanya build (tanpa SQL baru).
+
 ### R19: Catatan uji user (26 Okt 2026)
 Base: `exports/export_r18.json` (export user 26 Okt 2026 = build R18, hanya format ulang Appsmith). SQL: `sql/R19_catatan_uji.sql`.
 Keputusan user 26 Okt 2026 (setelah diskusi 3 putaran):
@@ -1648,6 +1742,8 @@ ORDER BY 1, 2;
 | `cwBomGrid` (`rendering`, `replacedIds`, simpan saat pilih Dimension, daftar dibuka lagi / `placeSuggest`) | `Specsheet` | R20 bagian 6 | ✅ | ⏳ |
 | `q_bom_options` (+ `used_dims`) · `BomCtrl` (`usedDims`) · `cwBomGrid` (dropdown Dimension 3 kelompok) | `Specsheet` | R20 bagian 7 | ✅ | ⏳ |
 | `cwBomGrid` (`(None)`, default Dimension, `pendingDim` dihapus) · `cwVariantForm` (`(None)`, default, Dimension wajib, saran kode kosong) · `MaterialDetailCtrl` (Save & add another membawa Dimension, `q_dimensions` dimuat ulang) · `q_bom_options` (+ `first_at`) · `q_dimensions` (+ `n_own`, baris kosong) · `q_code_suggest` (2, + `thickness_free`) | `Specsheet`, `Material Detail` | R20 bagian 3 | ✅ | ⏳ |
+| `code_dict_material`, `code_dict_dimension`, `code_dict_color` (baru, + index), index `idx_variant_code_prefix` / `idx_variant_code_last`, `fn_clean_thickness` (NO.1), `fn_variant_code_problems` / `fn_variant_code_hint` / `fn_variant_code_decode` (kode -> arti dari kamus dulu), `fn_variant_compose` / `fn_variant_code_suggest` (bagian kamus dengan satu kode), `fn_variant_autofill` (+ material tersambung kamus), `fn_code_dict_learn` + trigger `trg_r21_dict_learn`, `fn_r21_import_factory` (baru) | tabel / function / trigger | R21 | ✅ | ✅ lolos uji user 30 Okt 2026 |
+| page **Code Dictionary** (baru, tersembunyi: `DictCtrl`, `Auth` view_drafts, `q_dict`, `btnKamusKembali` / `selKamusJenis` / `inpKamusCari` / `btnKamusCari`, `txtKamusInfo` / `txtKamusLimit`, `tblKamus`) · `Master Material` (`btnMaterialKamus`) · `cwBomGrid` / `cwVariantForm` (`canonThickness` NO.1) | `Code Dictionary`, `Master Material`, `Specsheet`, `Material Detail` | R21 | ✅ | ✅ lolos uji user 30 Okt 2026 |
 
 ---
 

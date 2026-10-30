@@ -100,7 +100,7 @@ function canonThickness(s) {
   t = t.replace(/[“”„‟″〃＂]/g, '"')
     .replace(/['’‘′`´]{2}/g, '"')
     .replace(/(\d),(\d)/g, '$1.$2')
-    .replace(/(^|[^0-9.])\.(\d)/g, (m, a, b) => `${a}0.${b}`)
+    .replace(/(^|[^0-9A-Z.])\.(\d)/g, (m, a, b) => `${a}0.${b}`)   // R21: bukan sesudah huruf (NO.1)
     .replace(/(\d)\.(\d*[1-9])0+(?![0-9])/g, '$1.$2')
     .replace(/(\d)\.0+(?![0-9])/g, '$1')
     .replace(/(\d)\s*(INCHES|INCH|IN)(?=$|\s*X|\s*\(|\s*-|[^A-Z0-9\s])/g, '$1"')
