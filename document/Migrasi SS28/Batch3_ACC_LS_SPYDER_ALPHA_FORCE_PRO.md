@@ -80,3 +80,16 @@ Perlu Anda cek (usulan saya di tiap nomor; jawab "setuju" atau koreksi):
 16. **Hulex Nappa Grip Effect, Single Mesh JZ 9036, Poly Flat Tubular BYL C028 (115 CM).** Tidak ada di M1 (JZ 9036 dan C028 hanya mirip). Usul material baru seperti tabel. Setuju?
 17. **Nama komponen (dari M3).** Semua nama Excel sudah ada atau teralias: "VAMP LINNING" jadi VAMP LINING, UPPER LOOP dan VAMP + QUARTER REINF IN sudah ada, Spray Outsole lihat no. 9. Cukup konfirmasi.
 18. **Penulisan warna.** Metalic jadi Metallic, Shinny jadi Shiny, warna kosong NONE seperti Batch 2. Setuju?
+
+## Hasil impor (2 Nov 2026)
+
+Jawaban user atas 18 pertanyaan: semua setuju, dengan koreksi: no. 7 link TOPRO baru; no. 8 dan 10 material baru dengan nama baku; no. 11 NEGATIVE FILM material Process baru; no. 12 nama dan Process ditulis lengkap (Base Front 95 A, Base Heel 64 D, Stud Tip 90 A); no. 13 material baru sesuai Excel; no. 15 material baru 6 MM FOAM 50 KG +5 SHL (Batch 2 tidak diubah); supplier 1.2 MM NON WOVEN NW 260 = HWASUNG INTERNATIONAL,PT.
+
+SQL: `SQL_Batch3/cek.sql`, `impor_spyder.sql` (6 model), `impor_alpha.sql` (2 model). Generator: `appsmith/tools/ss28/gen_import.py` (batch3).
+
+UJI SAJA: SPYDER 6 model, 179 baris utama, 78 sub; ALPHA 2 model, 61 baris utama, 24 sub (sama dengan generator). Setelah disimpan, 3.3 sesuai. Recheck 3.4 (8 model) dibaca manual terhadap keluaran generator: header, material, Dimension, supplier, Process, dan warna sama.
+
+Catatan dari Excel (disimpan apa adanya, belum dikoreksi):
+- ACC LS SPYDER FG JR: kolom Process berisi warna, Strobel Thread "BLACK / NEON VOLT" dan Heel Counter "BROWN/BLACK".
+- ALPHA FORCE PRO IN: warna Tissue Paper dan Wrapping Paper tertulis "NATIRAL" (maksud NATURAL); Silica Gel article 2 kosong.
+- ALPHA FORCE PRO IN: Shoe Lace dan beberapa baris memakai warna dari Excel apa adanya ("Flourecent", "Mixtuer" di SPYDER IN).
