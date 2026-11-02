@@ -438,6 +438,8 @@ BATCHES["batch4"] = {
         (r"^FLAT LACE 6 MM TIP 15MM BYL G 211", ("FLAT LACE TIP 15 MM BYL G 211", "PRS", "6 MM X 115 CM", None)),
         (r"^6 MM FLAT TUBULAR BSL 0040\(115 CM\)", ("POLY FLAT TUBULAR (BSL-0040)", "PRS", "6 MM X 115 CM", "SUN-TEX INDONESIA, PT")),
         (r"^OVAL PUNCH HOLE", ("PUNCH HOLE", "PRS", None, None)),
+        # sub-baris Decoration Pounch Hole: supplier kosong di Excel diisi dari link material (UNIMITRA), bukan supplier baris induk
+        (r"^DECORATION POUNCH HOLE", ("PUNCH HOLE", "PRS", None, "UNIMITRA KHARISMA, PT")),
         (r"^DECORATION PRESH WELDING", ("PRESS WELDING", "PRS", None, None)),
         (r"^DECORATION PRESH HF WELDING", ("HF WELDING", "PRS", None, None)),
         (r"^DECORATION SINGLE STITCHING ROW", ("DECO SINGLE STITCH ROW", "ME", None, None)),

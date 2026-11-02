@@ -95,7 +95,7 @@ WITH d AS (SELECT $j${"user":"Migrasi data","season":"SS28","stage":"PREV","opti
 {"name":"STICKER INNER BOX LIGHT SPEED REBORN META XR TF","category":"PACKAGING","uom":"PCS","is_process":false}],"models":[{"file":"ESSORER  II FG  SS 28.xls","name":"ESSORER 2 FG","category":"FOOTBALL","construction":"STROBLE + TOE LASTING","gender":"MEN","last":"PRL-023 MID","outsole_mold":"PRM-112","sizes":[37,38,39,40,41,42,43,44],"sample":41,"lines":[{"k":"MAIN","c":"UPPER","m":"PU SYNTHETIC KD MANILA BACKING NON WOVEN","u":"ME","p":"KINDO MAKMUR JAYA,PT"},
 {"k":"SUB","m":"PRESS WELDING","u":"PRS","p":"MASTERINA GRAFIKA ESPRINTA,PT"},
 {"k":"MAIN","c":"TONGUE","m":"PU SYNTHETIC KD MANILA BACKING NON WOVEN","u":"ME","p":"KINDO MAKMUR JAYA,PT"},
-{"k":"SUB","m":"PUNCH HOLE","u":"PRS","p":"KINDO MAKMUR JAYA,PT"},
+{"k":"SUB","m":"PUNCH HOLE","u":"PRS","p":"UNIMITRA KHARISMA, PT"},
 {"k":"MAIN","c":"HEEL CAP","m":"PU SYNTHETIC KD MANILA BACKING NON WOVEN","u":"ME","p":"KINDO MAKMUR JAYA,PT"},
 {"k":"SUB","m":"DECO SINGLE STITCH ROW","u":"ME","p":"UNIMITRA KHARISMA, PT"},
 {"k":"MAIN","c":"COLLAR LINING","m":"MERISKIN KD DE-7 BACKING KNITWEAR","u":"ME","p":"KINDO MAKMUR JAYA,PT"},
