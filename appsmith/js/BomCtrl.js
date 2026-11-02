@@ -151,8 +151,21 @@ export default {
 			canAddSupplier: Auth.can('manage_master'),
 			canAddMaterial: Auth.can('manage_master'),   // R16: tombol + New material
 			matAdded: this.matAdded,
+			dict: this.dictRes,                        // R22: hasil pencarian kamus ERP terakhir { seq, kind, q, items }
 			emptyText: SpecCtrl.navBusy ? 'Loading…' : (SpecCtrl.revision() ? 'No BOM lines yet.' : ''),
 		};
+	},
+
+	// R22: saran dari kamus ERP (material / Dimension / warna yang belum ada di app). Dicari ke server saat mengetik, maksimal 8
+	// baris; hasil tambahan saja, gagal = diam. Event sendiri (onSearch) supaya tidak mengganggu antrean simpan (onAction).
+	dictRes: null,
+	async onSearch() {
+		const s = (cwBomGrid.model || {}).search;   // baca dulu - model di-reset saat Default model berubah
+		if (!s || !s.q) return;
+		try {
+			const rows = await q_dict_search.run({ kind: s.kind, q: s.q });
+			this.dictRes = { seq: s.seq, kind: s.kind, q: s.q, items: (rows || []).map(r => ({ label: r.label, code: r.code })) };
+		} catch (e) { /* saran kamus hanya tambahan */ }
 	},
 
 	// ---- aksi dari grid (event onAction) ----

@@ -1080,6 +1080,39 @@ sebelum R21: `sql/R_kamus_tulisan.sql` (70 varian) + `sql/R_kamus_tulisan_2.sql`
      **<- Master Material** kembali dengan filter Master Material tetap lewat `Util.goDetail`); kartu Home dihapus. Cari `none` di
      Dimension menemukan `(None)`. Hanya build (tanpa SQL baru).
 
+### R22: Kamus ERP jadi sumber pilihan material / Dimension + kode terbentuk otomatis (keputusan user 31 Okt 2026, dibuat 31 Okt 2026, belum diuji user)
+Koreksi atas R21: maksud user, data ERP adalah **referensi pilihan dan pembentuk kode**, bukan hanya penjaga kode. Base build: export user
+terbaru setelah R21 (bila belum ada, `exports/build_r21.json`), disalin lalu diedit.
+1. **Satu teks = satu kode** (material, Dimension, warna). Kode yang dipakai = baris pertama di Excel ERP. Bila app sudah memakai kode
+   lain untuk teks itu, kode app menang dan varian lama tidak diubah. Kode kedua dst dibuang dari kamus. Tidak ada material kembar.
+   Tidak ada Excel cek untuk user; hanya dilaporkan bila ada yang bertentangan dengan varian app.
+2. **Material**: dropdown material di Specsheet berisi material kamus ERP (pencarian ke server, maksimal 200 baris, bukan seluruh
+   daftar). Material kamus dibuat di app saat pertama kali dipilih. Awalan 4 digit langsung terisi.
+3. **Dimension**: pilihan Dimension dari kamus (satu baris per teks); memilih teks = kode 3 digit tengah terpilih.
+4. **Warna**: dropdown dengan aturan yang sama seperti Dimension (revisi user 31 Okt 2026): pilihan dari kamus warna, satu baris per
+   teks; memilih teks = kode 3 digit akhir terpilih. Aturan dropdown warna R20 yang lama diganti.
+5. Material + Dimension + warna semuanya ada di kamus = kode 10 digit terbentuk tanpa Register. Salah satu belum ada = sel kuning,
+   Register seperti sekarang (bagian baru masuk kamus otomatis, U3). Tidak ada material dummy; tabel kamus dibaca langsung di database.
+6. Halaman Code Dictionary + tombolnya dihapus dari UI; tabel kamus tetap di database. Cek Register terhadap kamus tetap jalan.
+7a. **Kamus = satu-satunya sumber** (usul user 31 Okt 2026): Dimension / warna dari varian app yang belum ada di kamus ikut masuk kamus
+   (`source` = `APP`), jadi dropdown dan pembentukan kode hanya membaca kamus, tanpa aturan kedua dari varian. Dropdown Dimension /
+   warna / material tidak menampilkan seluruh daftar: pencarian ke server, maksimal 200 baris. Teks warna baru boleh diketik seperti
+   Dimension (masuk kamus saat Register). Bila varian app memakai dua kode berbeda untuk teks yang sama: kode yang sudah dipakai
+   varian terbanyak menang, varian lainnya tidak diubah dan dilaporkan.
+7b. **Dimension kosong `(None)`** (user 31 Okt 2026): aturan R20 bagian 3 tetap. Kode tengah `(None)` = satu per material (varian
+   material itu yang menentukan); bila material belum punya, dipakai kode pertama di kamus. Satu teks satu kode berlaku untuk Dimension
+   yang terisi.
+7. Konsekuensi diketahui user: kode ERP kedua (mis. `20CK`) ditolak dengan saran kode pertama (`200H`).
+8. Langkah: SQL bersih-isi ulang kamus -> `build_r22.json` (`tools/build_r22.py`) -> self-test baru -> `steps/R22_uji.md`.
+9. **Dibuat (31 Okt 2026)**: `sql/R22_kamus.sql` (dibuat `tools/kamus/gen_r22.py` dari fungsi R21, ASCII saja; hapus kode kembar,
+   index unik teks, `fn_variant_code_problems` + arah teks -> kode, `fn_variant_compose` dari kamus tanpa syarat "tepat satu",
+   `fn_code_dict_learn`, `fn_material_add` menyambung awalan kamus, `fn_dict_search`), `sql/CEK_R22_kode_tidak_sesuai.sql`,
+   `cwBomGrid` (saran ERP dictionary lewat event `onSearch`, query `q_dict_search`, material kamus -> + New material terbuka sendiri),
+   `BomCtrl` (`onSearch`, `dictRes`), `build_r22.json` (Code Dictionary dihapus), `R_selftest.sql` (+9 cek R22; tes R20/R21 lama
+   yang mengandaikan dua kode untuk satu teks diganti), `steps/R22_uji.md`. Di PostgreSQL lokal (data R21 penuh): 163 awalan material,
+   87 Dimension, 629 warna dibuang; self-test lolos dengan kamus penuh. Belum: saran kamus di form Register / Material Detail
+   (`cwVariantForm`), uji di Appsmith asli (hanya harness Edge).
+
 ### R19: Catatan uji user (26 Okt 2026)
 Base: `exports/export_r18.json` (export user 26 Okt 2026 = build R18, hanya format ulang Appsmith). SQL: `sql/R19_catatan_uji.sql`.
 Keputusan user 26 Okt 2026 (setelah diskusi 3 putaran):

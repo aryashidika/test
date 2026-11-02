@@ -1,0 +1,428 @@
+[
+ {
+  "number": 10,
+  "name": "TOE CAP",
+  "group_code": "a",
+  "status": "ACTIVE"
+ },
+ {
+  "number": 20,
+  "name": "UPPER",
+  "group_code": "a",
+  "status": "ACTIVE"
+ },
+ {
+  "number": 30,
+  "name": "UPPER OVERLAY",
+  "group_code": "a",
+  "status": "ACTIVE"
+ },
+ {
+  "number": 40,
+  "name": "UPPER UNDERLAY",
+  "group_code": "a",
+  "status": "ACTIVE"
+ },
+ {
+  "number": 50,
+  "name": "UPPER LINING",
+  "group_code": "a",
+  "status": "ACTIVE"
+ },
+ {
+  "number": 60,
+  "name": "UPPER FOAM",
+  "group_code": "a",
+  "status": "ACTIVE"
+ },
+ {
+  "number": 70,
+  "name": "VAMP OVERLAY",
+  "group_code": "a",
+  "status": "ACTIVE"
+ },
+ {
+  "number": 80,
+  "name": "VAMP OVERLAY REINF",
+  "group_code": "a",
+  "status": "ACTIVE"
+ },
+ {
+  "number": 90,
+  "name": "VAMP",
+  "group_code": "a",
+  "status": "ACTIVE"
+ },
+ {
+  "number": 100,
+  "name": "VAMP PADDING",
+  "group_code": "a",
+  "status": "ACTIVE"
+ },
+ {
+  "number": 110,
+  "name": "VAMP LINING",
+  "group_code": "a",
+  "status": "ACTIVE"
+ },
+ {
+  "number": 120,
+  "name": "MUDGUARD IN / OUT",
+  "group_code": "a",
+  "status": "ACTIVE"
+ },
+ {
+  "number": 130,
+  "name": "MUDGUARD IN / OUT REINF",
+  "group_code": "a",
+  "status": "ACTIVE"
+ },
+ {
+  "number": 140,
+  "name": "QUARTER OVERLAY",
+  "group_code": "a",
+  "status": "ACTIVE"
+ },
+ {
+  "number": 150,
+  "name": "QUARTER",
+  "group_code": "a",
+  "status": "ACTIVE"
+ },
+ {
+  "number": 160,
+  "name": "TONGUE LACE LOOP",
+  "group_code": "a",
+  "status": "ACTIVE"
+ },
+ {
+  "number": 170,
+  "name": "TONGUE",
+  "group_code": "a",
+  "status": "ACTIVE"
+ },
+ {
+  "number": 180,
+  "name": "TONGUE LINING",
+  "group_code": "a",
+  "status": "ACTIVE"
+ },
+ {
+  "number": 190,
+  "name": "TONGUE BACKER",
+  "group_code": "a",
+  "status": "ACTIVE"
+ },
+ {
+  "number": 200,
+  "name": "TONGUE COLLAR",
+  "group_code": "a",
+  "status": "ACTIVE"
+ },
+ {
+  "number": 210,
+  "name": "TONGUE LOGO",
+  "group_code": "a",
+  "status": "ACTIVE"
+ },
+ {
+  "number": 220,
+  "name": "COLLAR LINING",
+  "group_code": "a",
+  "status": "ACTIVE"
+ },
+ {
+  "number": 230,
+  "name": "HEEL CAP",
+  "group_code": "a",
+  "status": "ACTIVE"
+ },
+ {
+  "number": 240,
+  "name": "HEEL CAP REINF",
+  "group_code": "a",
+  "status": "ACTIVE"
+ },
+ {
+  "number": 250,
+  "name": "COLLAR FOAM",
+  "group_code": "a",
+  "status": "ACTIVE"
+ },
+ {
+  "number": 260,
+  "name": "COLLAR FOAM BACKER",
+  "group_code": "a",
+  "status": "ACTIVE"
+ },
+ {
+  "number": 270,
+  "name": "COLLAR REINF IN",
+  "group_code": "a",
+  "status": "ACTIVE"
+ },
+ {
+  "number": 280,
+  "name": "COLLAR REINF OUT",
+  "group_code": "a",
+  "status": "ACTIVE"
+ },
+ {
+  "number": 290,
+  "name": "COLLAR REINF IN / OUT",
+  "group_code": "a",
+  "status": "ACTIVE"
+ },
+ {
+  "number": 300,
+  "name": "EYESTAY REINF",
+  "group_code": "a",
+  "status": "ACTIVE"
+ },
+ {
+  "number": 310,
+  "name": "EYESTAY IN / OUT",
+  "group_code": "a",
+  "status": "ACTIVE"
+ },
+ {
+  "number": 320,
+  "name": "EYESTAY REINF IN",
+  "group_code": "a",
+  "status": "ACTIVE"
+ },
+ {
+  "number": 330,
+  "name": "EYESTAY REINF OUT",
+  "group_code": "a",
+  "status": "ACTIVE"
+ },
+ {
+  "number": 340,
+  "name": "EYESTAY WEBBING",
+  "group_code": "a",
+  "status": "ACTIVE"
+ },
+ {
+  "number": 350,
+  "name": "HEEL PATCH",
+  "group_code": "a",
+  "status": "ACTIVE"
+ },
+ {
+  "number": 360,
+  "name": "HEEL SEAM SEALING",
+  "group_code": "a",
+  "status": "ACTIVE"
+ },
+ {
+  "number": 370,
+  "name": "TOE BOX",
+  "group_code": "a",
+  "status": "ACTIVE"
+ },
+ {
+  "number": 380,
+  "name": "NOSEW",
+  "group_code": "a",
+  "status": "ACTIVE"
+ },
+ {
+  "number": 390,
+  "name": "PLASTIC PADDING",
+  "group_code": "a",
+  "status": "ACTIVE"
+ },
+ {
+  "number": 400,
+  "name": "PUNCH HOLE",
+  "group_code": "a",
+  "status": "ACTIVE"
+ },
+ {
+  "number": 410,
+  "name": "HEEL SRTAP BACKING",
+  "group_code": "a",
+  "status": "ACTIVE"
+ },
+ {
+  "number": 420,
+  "name": "UPPER BACKER",
+  "group_code": "a",
+  "status": "ACTIVE"
+ },
+ {
+  "number": 4000,
+  "name": "SOCKLINER COVER",
+  "group_code": "b",
+  "status": "ACTIVE"
+ },
+ {
+  "number": 4010,
+  "name": "SOCKLINER DIE CUT",
+  "group_code": "b",
+  "status": "ACTIVE"
+ },
+ {
+  "number": 4030,
+  "name": "SOCKLINER LOGO",
+  "group_code": "b",
+  "status": "ACTIVE"
+ },
+ {
+  "number": 4040,
+  "name": "CUP INSOLE",
+  "group_code": "b",
+  "status": "ACTIVE"
+ },
+ {
+  "number": 4050,
+  "name": "INSOLE",
+  "group_code": "b",
+  "status": "ACTIVE"
+ },
+ {
+  "number": 4060,
+  "name": "HEEL COUNTER",
+  "group_code": "b",
+  "status": "ACTIVE"
+ },
+ {
+  "number": 4080,
+  "name": "MIDSOLE",
+  "group_code": "b",
+  "status": "ACTIVE"
+ },
+ {
+  "number": 4090,
+  "name": "MIDSOLE INSERT",
+  "group_code": "b",
+  "status": "ACTIVE"
+ },
+ {
+  "number": 4100,
+  "name": "SANK INSOLE FORE FOOT",
+  "group_code": "b",
+  "status": "ACTIVE"
+ },
+ {
+  "number": 4110,
+  "name": "OUTSOLE",
+  "group_code": "b",
+  "status": "ACTIVE"
+ },
+ {
+  "number": 4120,
+  "name": "OUTSOLE DAM CENTER PRM 096",
+  "group_code": "b",
+  "status": "ACTIVE"
+ },
+ {
+  "number": 4130,
+  "name": "HEEL WEBBING",
+  "group_code": "b",
+  "status": "ACTIVE"
+ },
+ {
+  "number": 6000,
+  "name": "INNER BOX",
+  "group_code": "c",
+  "status": "ACTIVE"
+ },
+ {
+  "number": 6010,
+  "name": "CARTON BOX",
+  "group_code": "c",
+  "status": "ACTIVE"
+ },
+ {
+  "number": 6020,
+  "name": "STICKER INNER BOX",
+  "group_code": "c",
+  "status": "ACTIVE"
+ },
+ {
+  "number": 6030,
+  "name": "ISOLATAPE",
+  "group_code": "c",
+  "status": "ACTIVE"
+ },
+ {
+  "number": 6040,
+  "name": "WRAPPING PAPER",
+  "group_code": "c",
+  "status": "ACTIVE"
+ },
+ {
+  "number": 6050,
+  "name": "TISSUE PAPER",
+  "group_code": "c",
+  "status": "ACTIVE"
+ },
+ {
+  "number": 6060,
+  "name": "SILICA GEL",
+  "group_code": "c",
+  "status": "ACTIVE"
+ },
+ {
+  "number": 6070,
+  "name": "STRING PIN",
+  "group_code": "c",
+  "status": "ACTIVE"
+ },
+ {
+  "number": 6080,
+  "name": "HANG TAG PRICE",
+  "group_code": "c",
+  "status": "ACTIVE"
+ },
+ {
+  "number": 8000,
+  "name": "CEMENT UPPER",
+  "group_code": "d",
+  "status": "ACTIVE"
+ },
+ {
+  "number": 8010,
+  "name": "CEMENT ASSEMBLING",
+  "group_code": "d",
+  "status": "ACTIVE"
+ },
+ {
+  "number": 8020,
+  "name": "CEMENT STOCKFIT",
+  "group_code": "d",
+  "status": "ACTIVE"
+ },
+ {
+  "number": 8030,
+  "name": "SHOE LACE",
+  "group_code": "d",
+  "status": "ACTIVE"
+ },
+ {
+  "number": 8040,
+  "name": "SEWING THREAD",
+  "group_code": "d",
+  "status": "ACTIVE"
+ },
+ {
+  "number": 8050,
+  "name": "STROBEL THREAD",
+  "group_code": "d",
+  "status": "ACTIVE"
+ },
+ {
+  "number": 8060,
+  "name": "THREAD VARIANCE",
+  "group_code": "d",
+  "status": "ACTIVE"
+ },
+ {
+  "number": 8070,
+  "name": "SIZE LABEL",
+  "group_code": "d",
+  "status": "ACTIVE"
+ }
+]

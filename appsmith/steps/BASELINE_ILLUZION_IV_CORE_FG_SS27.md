@@ -1,0 +1,91 @@
+# Baseline sebelum uji mandiri: ILLUZION IV CORE FG SS27
+
+Diambil dengan `sql/CEK_specsheet_ILLUZION_IV_CORE_FG_SS27.sql`.
+Waktu snapshot (blok 0): **2026-10-28 03:36:18 UTC**.
+
+## Model dan revisi
+
+| Item | Nilai |
+|---|---|
+| model_id | dcc0653f-38f4-4407-b93a-373f8d7dcd30 |
+| specsheet_id (SS27) | 7bf57648-e8b9-42b3-8f3c-e4a3ebc0b913 |
+| Revisi | PROD rev 0, DRAFT, id e9a655b7-8dfe-4e7d-8806-744d7e865eaf |
+| Dibuat | 2026-10-26 08:07 oleh firman@piero.co.id (draft bersama user) |
+| Baris BOM aktif | 41 |
+| Sel (komponen x article) | 82 |
+
+## Article (keduanya ACTIVE)
+
+| Article | Colorway | article_id |
+|---|---|---|
+| SPE1010699 | BLACK / RICH GOLD | 787646ea-28c4-4f84-b35d-d2c4c3b09480 |
+| SPE1010700 | WHITE / RICH GOLD | 4c010a63-223e-40be-affe-3b31d4be9d7e |
+
+## Baris BOM (no, komponen, material, bom_line_id)
+
+Baris yang sudah punya kode varian: 290, 220 (4018312B01/W01), 230 (204731FB01/FW01),
+4060 (604M99QB01), 4050 (2015321W01), 8040 x2 (502A704B01/W01, 5024701B01/W01), 6060 (6019C00W01).
+
+| No | Komponen | Material | bom_line_id |
+|---|---|---|---|
+| 20 | UPPER | PU SHYNTETIC KD TECHNO | 3e952b17-a465-417c-8f92-137914a254b6 |
+| 20-1 | DECORATION PRESS WELDING FLASH TO AREA LATERAL | PRESS WELDING | 842c4098-4681-4b4d-b461-759ce3433d67 |
+| 20-2 | DECORATION DEBOSS BLOCK MOTIF | DEBOSS | c33f0a37-a307-44b5-8881-c614c08f7041 |
+| 120 | TONGUE | PU SHYNTETIC KD TECHNO | e7944cf2-8549-4620-901c-ffca7442205f |
+| 170 | COLLAR LINING | MERRY KD DE 07 / BACKING KNITWEAR | 3bdde6e0-f74e-4818-89b0-d8361bd8e63f |
+| 50 | UPPER LINING | COCOTEX | 53e6420c-1b3c-4cd2-8239-d9dd193b8c75 |
+| 50-1 | SINGLE STIKER | SINGLE STICKER | 5cebf4ba-8b50-40bc-8e2f-f773a5ce33a8 |
+| 60 | UPPER FOAM | 2 MM FOAM 50 KG +5 SHL | f10d79cd-bcc4-40d1-9919-db21df56f5d5 |
+| 60-1 | COATING | COATING FA7300/50 MICRON | ae22bc55-a77c-4241-9857-61f7bed8f6bd |
+| 60-2 | SINGLE STICKER | SINGLE STICKER | 2a30e4d8-4a21-4a07-af3f-02e6cc9e9a97 |
+| 100 | VAMP + QUARTER BACKER | CANVAS 6 OZ | 1f189c47-45e8-4f3e-94d4-67b2688dde85 |
+| 180 | COLLAR FOAM | FOAM 50KG 6 MM X 44" | 0b4a4a84-6159-454b-97d7-19c3578ae66d |
+| 290 | TOE BOX | EVA HARDNESS 40-45 ASKER C | 318e3731-b6ff-4087-a9bd-4b399e6e9c05 |
+| 220 | COLLAR REINF IN / OUT | EVA HARDNESS 40-45 ASKER C | 76823fe1-6255-45bf-ab38-10fd2be98b4f |
+| 230 | EYESTAY REINF | SUPERLIGHT SL 560 | b5552bf4-6f86-4e7f-952d-c08f31e076a8 |
+| 230-1 | SINGLE STIKER | SINGLE STICKER | bd6f2016-8640-475c-b617-9068e84aa3b5 |
+| 330 | HEEL SRTAP BACKING | PU SHYNTETIC KD T FLAT / BACKING NON WOVEN | 5e84d4e8-eca7-4b72-add0-190052b223de |
+| 320 | PUNCH HOLE | PUNCH HOLE | c6d5769d-7912-4818-b573-3d5bb487fe7f |
+| 8030 | SHOE LACE | FLAT TUBULAR( BSL-0040 ) . 6MM 110 - 115 | acfdfc07-81ff-4bbd-ab62-1bd656d1adc6 |
+| 4060 | HEEL COUNTER | TR COUNTER SC-02 (HARDNESS 99) | 6ea4c27c-6733-4010-b2b5-de2af56fd481 |
+| 4050 | INSOLE | HY SOCK 16N | 24d3814d-553f-4f2c-b8c1-6a12af56b294 |
+| 4000 | SOCKLINER COVER | MERRY MESH GRAMASI 100 | b503b871-8e87-4f08-b786-51d166d0adba |
+| 4010 | SOCKLINER DIE CUT | EVA HARDNESS 40-45 ASKER C | 175d8f90-16a7-460d-9957-72bdcc21e95e |
+| 4030 | SOCKLINER LOGO | TRANSFER PAPER | fb856c27-3ae9-4a34-9d42-9cba4a72308e |
+| 8040 | SEWING THREAD | BONDED THREAD(210D/3P) | a46f3d4c-2d16-45c8-8a91-26fe89dc1f13 |
+| 8040 | SEWING THREAD | BONDED THREAD(N280D/3P) | 28890688-9de9-4045-b01d-d3d9ebe986de |
+| 4110 | OUTSOLE | OUTSOLE TPU INJECTION HARDNESS 98 A PRM-091 | 829cc786-7f0b-4907-b094-39de45458ef4 |
+| 6080 | HANG TAG PRICE | HANGTAG ILLUZION IV CORE FG | 01d86f87-f3cb-47c0-b8bd-4f72475f5642 |
+| 8070 | SIZE LABEL | HEATSEAL SIZE LABEL ILLUZION IV CORE FG | f4505f31-55b6-444d-96e6-fab1be90132d |
+| 6050 | TISSUE PAPER | TISSUE PAPER | 4159bbeb-125f-4ae3-98f2-294e6905d654 |
+| 6040 | WRAPPING PAPER | TISSUE PAPER | d9fe2a4b-4208-4ebe-a827-0df943dcc02c |
+| 6000 | INNER BOX | INNER BOX SPECS NEW (FSC RECYCLED) | 33fc25cf-f686-4a94-8b1c-c5d2072bcbf2 |
+| 6000-1 | INNER BOX | INNER BOX SPECS NEW (FSC RECYCLED) | 6479278e-79e3-4a2e-ab3f-30cad8b34c91 |
+| 6000-2 | INNER BOX | INNER BOX SPECS NEW (FSC RECYCLED) | e832c9f4-4bce-43c1-a515-78ecea2f8eb6 |
+| 6010 | CARTON BOX | CARTON BOX SPECS | 75f58db5-f8c8-40e6-964b-b695a3f7254f |
+| 6010-1 | CARTON BOX | CARTON BOX SPECS | 208aca99-f5bf-48dc-9713-48e82fd7f48a |
+| 6010-2 | CARTON BOX | CARTON BOX SPECS | 2778867f-d0c8-4adf-b4c7-1cbd7869e214 |
+| 6020 | STICKER INNER BOX | STANDARD STICKER INER BOX SPECS | 58927b24-0e4e-4d28-a4a1-660adbdb4233 |
+| 6030 | ISOLATAPE | STANDARD ISOLATAPE SPECS | 8234bb7e-62c7-45a5-ac3f-3676fbfa2210 |
+| 6070 | STRING PIN | STRING PIN | 2d1d646f-d6a4-45e6-8e4f-0b0c19126d8e |
+| 6060 | SILICA GEL | SILICAGEL | 3985f934-0605-4d6c-a5e9-c32fb9191836 |
+
+## Jumlah master (blok 5)
+
+| Tabel | Jumlah | Terakhir dibuat (UTC) |
+|---|---|---|
+| material | 300 | 2026-10-28 03:33:32 |
+| material_variant | 662 | 2026-10-21 08:00:32 |
+| material_supplier | 302 | 2026-10-28 03:37:03 |
+| material_price | 0 | - |
+| supplier | 316 | 2026-10-14 03:59:27 |
+| component | 62 | 2026-10-28 03:29:56 |
+| product_model | 7 | 2026-10-28 02:50:39 |
+| specsheet | 7 | 2026-10-28 03:23:54 |
+| specsheet_revision | 11 | 2026-10-28 03:26:35 |
+| article | 15 | 2026-10-28 03:25:58 |
+| bom_line | 82 | 2026-10-28 03:37:03 |
+| cbd_revision | 0 | - |
+
+Catatan: bom_line dan material_supplier terakhir dibuat 03:37:03, sesudah waktu blok 0
+(03:36:18). Batas aman "data uji" = sesudah **03:37:04 UTC**, kecuali user konfirmasi lain.

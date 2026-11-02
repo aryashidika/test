@@ -71,6 +71,10 @@ let MAT_BY_ID = {};
 let MATS_SRC = null;
 let USED_BY_ID = {};        // R20 bagian 7: material_id -> [{ thickness, lines }] dipakai di specsheet, belum ada varian ACTIVE
 let USED_SRC = null;
+let DICT = { kind: '', q: '', items: [] };   // R22: hasil pencarian kamus ERP terakhir (model.dict), hanya saran tambahan
+let dictSeq = 0;
+let lastDictSeq = 0;
+let dictTimer = null;
 let rendering = false;      // R20 bagian 6: render() sedang berjalan -> blur / focus dari render tidak menyimpan / membuka daftar
 
 function applyTheme(t) {
@@ -567,7 +571,8 @@ function cellInput(key, value, opts) {
   if (opts.placeholder) i.placeholder = opts.placeholder;
   if (opts.title) i.title = opts.title;
   if (opts.label) i.setAttribute('aria-label', opts.label);
-  i.addEventListener('input', () => i.classList.remove('invalid'));
+  i.addEventListener('input', () => { i.classList.remove('invalid'); i._erp = false; });
+  if (opts.dict) i._dictKind = opts.dict;      // R22: MATERIAL / DIMENSION / COLOR
   if (opts.onCommit) {
     // change + blur: nilai yang dipulihkan setelah render ulang tidak memicu change, jadi blur ikut menyimpan
     const commit = () => {
@@ -655,6 +660,28 @@ function placeSuggest() {
 // R19: item = teks (warna) atau { value, detail } (material / dimension: detail tampil kecil di bawah, teks membungkus)
 const sugValue = c => (typeof c === 'string' ? c : c.value);
 
+// R22: tanya kamus ERP ke server (tunda 250 ms, sekali per teks); jawabannya datang lewat model.dict
+function dictQuery(kind, text) {
+  const q = String(text || '').trim();
+  if (!q || (DICT.kind === kind && DICT.q === q)) return;
+  clearTimeout(dictTimer);
+  dictTimer = setTimeout(() => {
+    dictSeq = Math.max(Date.now(), dictSeq + 1);
+    appsmith.updateModel({ search: { kind, q, seq: dictSeq } });
+    appsmith.triggerEvent('onSearch');
+  }, 250);
+}
+
+// R22: saran kamus yang belum ada di daftar app, sesuai ketikan sekarang (stale: yang cocok dengan ketikan saja)
+function dictHits(input, all, kf) {
+  const kind = input._dictKind;
+  const typed = tightKey(input.value);
+  if (!kind || !typed || DICT.kind !== kind) return [];
+  const seen = new Set(all.map(c => kf(sugValue(c))));
+  return DICT.items.filter(x => tightKey(x.label).includes(typed) && !seen.has(kf(x.label)))
+    .map(x => ({ value: x.label, erp: true, detail: `ERP dictionary · code ${x.code}${kind === 'MATERIAL' ? ' · not in app yet' : ''}` }));
+}
+
 // R20: input._sugFull (Dimension) = klik / fokus menampilkan seluruh dimension material itu seperti dropdown (yang terisi
 // ditandai, juga saat mengetik); saat mengetik daftar disaring dan dimension material lain (item.other) ikut di bawah judul
 // "Other materials".
@@ -663,6 +690,8 @@ function showSuggest(input, source, focus) {
   const kf = input._sugKey || norm;
   const key = kf(input.value);
   const all = typeof source === 'function' ? source() : (source || []);
+  if (input._dictKind) dictQuery(input._dictKind, input.value);
+  const erp = dictHits(input, all, kf);
   const full = !!(focus && input._sugFull);
   let hits;
   const fk = c => (c.none ? 'none' : kf(sugValue(c)));   // R20 bagian 3: (None) dicari dengan "none"
@@ -674,7 +703,7 @@ function showSuggest(input, source, focus) {
     hits = all.filter(c => (input._sugFull || kf(sugValue(c)) !== key) && (!key || fk(c).includes(key)));
     hits.sort((a, b) => rank(a) - rank(b));
   }
-  sugItems = hits.slice(0, showAll ? 200 : 12);
+  sugItems = showAll ? hits.concat(erp).slice(0, 200) : hits.slice(0, 8).concat(erp.slice(0, 4));
   sugTarget = input;
   sugIndex = -1;
   sugWasFull = full;
@@ -686,6 +715,7 @@ function showSuggest(input, source, focus) {
   }
   sugItems.forEach((c, n) => {
     if (c.other && (n === 0 || !sugItems[n - 1].other)) box.appendChild(el('div', 'opt-head', 'Other materials'));
+    if (c.erp && (n === 0 || !sugItems[n - 1].erp)) box.appendChild(el('div', 'opt-head', 'ERP dictionary'));
     const o = el('div', 'opt' + (input._sugFull && (key || c.none) && kf(sugValue(c)) === key ? ' cur' : '')
       + (c.none ? ' none' : ''), sugValue(c));
     if (typeof c !== 'string' && c.detail) o.appendChild(el('span', 'opt-detail', c.detail));
@@ -707,6 +737,7 @@ function pickSuggest(n) {
   const input = sugTarget;
   if (!input || !sugItems[n]) return;
   input.value = sugValue(sugItems[n]);
+  input._erp = !!sugItems[n].erp;              // R22: material dari kamus belum ada di app -> + New material terbuka sendiri
   autosize(input);
   hideSuggest();
   input.classList.remove('invalid');
@@ -767,6 +798,10 @@ function materialMissing(key, input, r) {
   const old = cell.querySelector('.newmat');
   if (old) old.remove();
   cell.appendChild(newMaterialBox(key));
+  if (input._erp) {                          // R22: dipilih dari kamus ERP -> langsung ke form material baru
+    input._erp = false;
+    openNewFor(key);
+  }
 }
 
 function newMaterialBox(key) {
@@ -1000,9 +1035,9 @@ function formInputs(prefix, state, isSub) {
   }
   // R19: Material = nama, Dimension di kolom sendiri
   const curMat = () => { const r = resolveName(tidy(f.mat.value)); return r && r.m ? r.m.material_id : null; };
-  mk('mat', { multiline: true, suggest: materialSuggest, onPick: () => syncMaterial(), placeholder: 'Material name…', label: 'Material' });
+  mk('mat', { multiline: true, dict: 'MATERIAL', suggest: materialSuggest, onPick: () => syncMaterial(), placeholder: 'Material name…', label: 'Material' });
   f.mat.addEventListener('input', () => clearMissing(`${prefix}:mat`, f.mat));
-  mk('thk', { multiline: true, dropdown: true, suggest: dimensionSuggest(curMat), onPick: () => syncDim(), placeholder: 'Dimension…',
+  mk('thk', { multiline: true, dropdown: true, dict: 'DIMENSION', suggest: dimensionSuggest(curMat), onPick: () => syncDim(), placeholder: 'Dimension…',
     label: 'Dimension',
     title: 'Click to pick a dimension of this material, or type: dimensions of other materials are suggested too (a new dimension is allowed)' });
   mk('sup', { list: supplierListId(null), placeholder: 'Supplier…', label: 'Supplier' });
@@ -1154,7 +1189,7 @@ function materialCell(line, editable) {
   const title = [line.uom, line.material_code].filter(x => x).join(' · ');
   if (editable) {
     const mi = cellInput(`mat:${line.id}`, label, {
-      col: 'mat', multiline: true, suggest: materialSuggest, label: 'Material',
+      col: 'mat', multiline: true, dict: 'MATERIAL', suggest: materialSuggest, label: 'Material',
       title: `${title}. Type another material name to Replace Material. The dimension is set in the Dimension column.`,
       onCommit: i => commitMaterial(line, i),
     });
@@ -1192,7 +1227,7 @@ function dimensionCell(line, editable) {
     return c;
   }
   const di = cellInput(`thk:${line.id}`, dimText(line.thickness), {
-    col: 'thk', multiline: true, dropdown: true, label: 'Dimension',
+    col: 'thk', multiline: true, dropdown: true, dict: 'DIMENSION', label: 'Dimension',
     suggest: dimensionSuggest(() => line.material_id),
     title: 'Click to pick or type the dimension; (None) = no dimension (dimensions of other materials are suggested while typing). Changing it = Replace Material (same material, new dimension).',
     onCommit: i => commitDimension(line, i),
@@ -1297,7 +1332,7 @@ function lineRow(line, arts, editable, hasSubs) {
     const c = el('td', 'c-art' + (yellow ? ' yellow' : ''));
     if (editable) {
       c.appendChild(cellInput(`cell:${line.id}:${a.id}`, v, {
-        col: `art:${a.id}`, multiline: true, suggest: colorSource(line), label: `Warna ${a.code}`,
+        col: `art:${a.id}`, multiline: true, dict: 'COLOR', suggest: colorSource(line), label: `Warna ${a.code}`,
         title: 'Type a color. Empty = not used in this article. Material Codes are entered with Register.',
         onCommit: i => commitCell(line, a, i),
       }));
@@ -1589,8 +1624,15 @@ appsmith.onReady(() => {
   lastMatAdded = (M.matAdded || {}).key;
   appsmith.onModelChange(m => {
     onAck(m);
+    const dictNew = !!(m && m.dict && m.dict.seq !== lastDictSeq);
+    if (dictNew) {                               // R22: jawaban kamus ERP
+      lastDictSeq = m.dict.seq;
+      DICT = { kind: m.dict.kind, q: m.dict.q, items: m.dict.items || [] };
+    }
     render(m);
     resumeAfterNewMaterial();
+    const ai = document.activeElement;           // render menaruh fokus kembali: daftar saran dibuka lagi dengan hasil kamus
+    if (dictNew && ai && ai._dictKind === DICT.kind && ai._sugSrc) showSuggest(ai, ai._sugSrc, false);
   });
   if (typeof appsmith.onThemeChange === 'function') appsmith.onThemeChange(applyTheme);
 });

@@ -1,0 +1,2837 @@
+[
+ {
+  "name": "10 MM FOAM SHL",
+  "uom": "ME",
+  "category": "FOAM",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": null,
+  "suppliers": "ASSEMS INDO, PT | HWASUNG INTERNATIONAL,PT"
+ },
+ {
+  "name": "10 MM FOAM SHL + COATING FA7300/50 MICRON + STICKER",
+  "uom": "ME",
+  "category": "FOAM",
+  "is_process": false,
+  "status": "INACTIVE",
+  "dimensions": "44\"",
+  "suppliers": "ASSEMS INDO, PT | HWASUNG INTERNATIONAL,PT"
+ },
+ {
+  "name": "10MM WEBBING TAPE BSW 0032",
+  "uom": "ME",
+  "category": "ACCESSORY",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": null,
+  "suppliers": "SUNTEX, PT"
+ },
+ {
+  "name": "1.2 MM NON WOVEN NW 260",
+  "uom": "ME",
+  "category": "FABRIC",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "44\"",
+  "suppliers": "ASSEMS INDO, PT | HWASUNG INTERNATIONAL,PT"
+ },
+ {
+  "name": "1.2 MM NW260",
+  "uom": "ME",
+  "category": "FABRIC",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": null,
+  "suppliers": "ASSEMS INDO, PT"
+ },
+ {
+  "name": "2 MM FOAM 50 KG",
+  "uom": "ME",
+  "category": "FOAM",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": null,
+  "suppliers": "ASSEMS INDO, PT | MULTI KARYA USAHA, PT | SERIM INDONESIA,PT"
+ },
+ {
+  "name": "2 MM FOAM 50 KG +5 SHL",
+  "uom": "ME",
+  "category": "FOAM",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": null,
+  "suppliers": "ASSEMS INDO, PT | SERIM INDONESIA,PT"
+ },
+ {
+  "name": "2 MM FOAM SHL",
+  "uom": "ME",
+  "category": "FOAM",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": null,
+  "suppliers": "ASSEMS INDO, PT"
+ },
+ {
+  "name": "4 MM FOAM SHL",
+  "uom": "ME",
+  "category": "FOAM",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": null,
+  "suppliers": "ASSEMS INDO, PT"
+ },
+ {
+  "name": "6.0MM FOAM 50KG",
+  "uom": "ME",
+  "category": "FOAM",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": null,
+  "suppliers": null
+ },
+ {
+  "name": "6OZ CANVAS",
+  "uom": "ME",
+  "category": "FABRIC",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": null,
+  "suppliers": null
+ },
+ {
+  "name": "8 MM FOAM 50+5 SHL",
+  "uom": "ME",
+  "category": "FOAM",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": null,
+  "suppliers": "SERIM INDONESIA,PT"
+ },
+ {
+  "name": "BE HOLE MESH",
+  "uom": "ME",
+  "category": "FABRIC",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "60\"",
+  "suppliers": "HWASUNG INTERNATIONAL,PT"
+ },
+ {
+  "name": "BELLA LUNA DE-107 BACKING MICRO FIBER",
+  "uom": "ME",
+  "category": "SYNTHETIC LEATHER",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "1.1 MM X 54\"",
+  "suppliers": "JOIL INNI INDONESIA, PT"
+ },
+ {
+  "name": "BELLA LUNA R-8 BACKING MICRO FIBER",
+  "uom": "ME",
+  "category": "SYNTHETIC LEATHER",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "1.1 MM X 54\"",
+  "suppliers": "JOIL INNI INDONESIA, PT"
+ },
+ {
+  "name": "BONDED THREAD(1050D/3P)",
+  "uom": "CON",
+  "category": "THREAD",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "400 ME",
+  "suppliers": "IDAMAN ERA MANDIRI, PT"
+ },
+ {
+  "name": "BONDED THREAD(210D/3P)",
+  "uom": "CON",
+  "category": "THREAD",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "2000 ME",
+  "suppliers": "IDAMAN ERA MANDIRI, PT"
+ },
+ {
+  "name": "BONDED THREAD(N280D/3P)",
+  "uom": "CON",
+  "category": "THREAD",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "1500 ME",
+  "suppliers": "IDAMAN ERA MANDIRI, PT"
+ },
+ {
+  "name": "CAMELEON KD UM-13 BACKING MICRO FIBER",
+  "uom": "ME",
+  "category": "SYNTHETIC LEATHER",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "1.2 MM X 54\"",
+  "suppliers": "KINDO MAKMUR JAYA,PT"
+ },
+ {
+  "name": "CAMELEON KD UMT BACKING MICRO FIBER",
+  "uom": "ME",
+  "category": "SYNTHETIC LEATHER",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "0.9 MM X 54\" | 1.2 MM X 54\"",
+  "suppliers": "KINDO MAKMUR JAYA,PT"
+ },
+ {
+  "name": "CANVAS 10 OZ (HWS)",
+  "uom": "ME",
+  "category": "FABRIC",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "LEBAR=135 CM",
+  "suppliers": "HWASUNG INTERNATIONAL,PT"
+ },
+ {
+  "name": "CANVAS 6 OZ",
+  "uom": "ME",
+  "category": "FABRIC",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "44\"",
+  "suppliers": "ASSEMS INDO, PT | HWASEUNG CHEMICAL INDONESIA,PT | HWASUNG INTERNATIONAL,PT"
+ },
+ {
+  "name": "CARIL MESH SWS 80358-0 (278GSM)",
+  "uom": "ME",
+  "category": "FABRIC",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "43\"",
+  "suppliers": "SHINTA WOO SUNG,PT"
+ },
+ {
+  "name": "CARTON BOX ISI 3 (POLOS)",
+  "uom": "BOX",
+  "category": "PACKAGING",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "40.3 X 23.7 X 35.5",
+  "suppliers": "KARYA INDAH MULTIGUNA,PT"
+ },
+ {
+  "name": "CARTON BOX ISI 6 (POLOS)",
+  "uom": "BOX",
+  "category": "PACKAGING",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "46.6 X 40.3 X 35.5",
+  "suppliers": "KARYA INDAH MULTIGUNA,PT"
+ },
+ {
+  "name": "CARTON BOX SPECS",
+  "uom": "BOX",
+  "category": "PACKAGING",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "B3 (640 X 455 X 315 MM) | B6 (685 X 465 X 325 MM) | B7 (700 X 520 X 330 MM) | B8 (695 X 540 X 345 MM) | MB1A (550 X 420 X 285 MM)",
+  "suppliers": "KARYA INDAH MULTIGUNA,PT"
+ },
+ {
+  "name": "CHEMI SHEET",
+  "uom": "ME",
+  "category": "FABRIC",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "1.8 MM X 36\"",
+  "suppliers": "SUMBER KREASI MANDIRI, PT"
+ },
+ {
+  "name": "CLEANER - M",
+  "uom": "KG",
+  "category": "CHEMICAL",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "(none)",
+  "suppliers": "GRAND CHEMICAL INDONESIA"
+ },
+ {
+  "name": "CLEANER - S",
+  "uom": "LT",
+  "category": "CHEMICAL",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "(none)",
+  "suppliers": "GRAND CHEMICAL INDONESIA"
+ },
+ {
+  "name": "CLEANER - T",
+  "uom": "KG",
+  "category": "CHEMICAL",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "(none)",
+  "suppliers": "GRAND CHEMICAL INDONESIA"
+ },
+ {
+  "name": "COATING",
+  "uom": "ME",
+  "category": "PROCESS",
+  "is_process": true,
+  "status": "ACTIVE",
+  "dimensions": null,
+  "suppliers": null
+ },
+ {
+  "name": "COATING FA7300/100 MICRON",
+  "uom": "ME",
+  "category": "PROCESS",
+  "is_process": true,
+  "status": "ACTIVE",
+  "dimensions": null,
+  "suppliers": null
+ },
+ {
+  "name": "COATING FA7300/50 MICRON",
+  "uom": "ME",
+  "category": "PROCESS",
+  "is_process": true,
+  "status": "ACTIVE",
+  "dimensions": null,
+  "suppliers": null
+ },
+ {
+  "name": "COCOTEX",
+  "uom": "ME",
+  "category": "FABRIC",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "2 MM X 44\"",
+  "suppliers": "SU INDONESIA,PT"
+ },
+ {
+  "name": "COMPOUND HARDNESS 57 ± 2",
+  "uom": "KG",
+  "category": "RUBBER",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "(none)",
+  "suppliers": "KUMKANG TECH INDONESIA,PT"
+ },
+ {
+  "name": "COMPOUND NBR HARDNESS 90",
+  "uom": "KG",
+  "category": "RUBBER",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "(none)",
+  "suppliers": "KUMKANG TECH INDONESIA,PT"
+ },
+ {
+  "name": "COMPOUND SHEET (HARDNESS 60±3)",
+  "uom": "KG",
+  "category": "RUBBER",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "(none)",
+  "suppliers": "KUMKANG TECH INDONESIA,PT"
+ },
+ {
+  "name": "COMPOUND SHEET HARDNESS 60±3 ANTISLIP",
+  "uom": "KG",
+  "category": "RUBBER",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "(none)",
+  "suppliers": "MULTI KARYA USAHA, PT"
+ },
+ {
+  "name": "COMPOUND SHEET HARDNESS 80 (SOCCER)",
+  "uom": "KG",
+  "category": "RUBBER",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "(none)",
+  "suppliers": "KUMKANG TECH INDONESIA,PT"
+ },
+ {
+  "name": "COMPOUND SHEET ORS-001 HARDNESS 60±3",
+  "uom": "KG",
+  "category": "RUBBER",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "(none)",
+  "suppliers": "KUMKANG TECH INDONESIA,PT"
+ },
+ {
+  "name": "CRYSTAL RUBBER HARDNESS 65 A",
+  "uom": "KG",
+  "category": "RUBBER",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "(none)",
+  "suppliers": "SHINHO SOJAE INDONESIA, PT"
+ },
+ {
+  "name": "DANACESS T-FLAT",
+  "uom": "ME",
+  "category": "SYNTHETIC LEATHER",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "0.3 MM X 54\"",
+  "suppliers": "JOIL INNI INDONESIA, PT"
+ },
+ {
+  "name": "DARMI MESH",
+  "uom": "ME",
+  "category": "FABRIC",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "44\"",
+  "suppliers": "DAE YOUNG TEXTILE,PT"
+ },
+ {
+  "name": "DEBOSS",
+  "uom": "PCS",
+  "category": "ACCESSORY",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": null,
+  "suppliers": "MASTERINA GRAFIKA ESPRINTA,PT"
+ },
+ {
+  "name": "DECO SINGLE STITCH ROW",
+  "uom": "ME",
+  "category": "PROCESS",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": null,
+  "suppliers": "UNIMITRA KHARISMA, PT"
+ },
+ {
+  "name": "DH LEGAL SUEDE",
+  "uom": "S/F",
+  "category": "LEATHER",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "1.4-1.6 MM",
+  "suppliers": "DAEHWA LEATHER LESTARI,PT"
+ },
+ {
+  "name": "DOUBLE TEX 20",
+  "uom": "ME",
+  "category": "FABRIC",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "0.7 MM X 44\"",
+  "suppliers": "HAN YOUNG INDONESIA,PT | HWASUNG INTERNATIONAL,PT"
+ },
+ {
+  "name": "DYI MEG TERRY EPM",
+  "uom": "ME",
+  "category": "FABRIC",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "44\"",
+  "suppliers": "DAE YOUNG TEXTILE,PT"
+ },
+ {
+  "name": "ELASTIC KNIT",
+  "uom": "PRS",
+  "category": "KNIT",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": null,
+  "suppliers": "FUJIAN HEHE INTERNATIONAL TRAD"
+ },
+ {
+  "name": "EVA HARDNESS 40-45 ASKER C",
+  "uom": "ME",
+  "category": "FOAM",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "2 MM X 44\" | 4 MM X 44\"",
+  "suppliers": "MULTI KARYA USAHA, PT"
+ },
+ {
+  "name": "EVA HARDNESS 45± 2 ASKER C",
+  "uom": "ME",
+  "category": "MIDSOLE",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": null,
+  "suppliers": "MULTI KARYA USAHA, PT"
+ },
+ {
+  "name": "EVA HARDNESS 50-55 ASKER C",
+  "uom": "SHT",
+  "category": "FOAM",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "1 MM (44\" X 190 CM)",
+  "suppliers": "MULTI KARYA USAHA, PT"
+ },
+ {
+  "name": "EVA MIDSOLE 104B HARDNESS 55 ASKER C",
+  "uom": "PRS",
+  "category": "MIDSOLE",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "(none)",
+  "suppliers": "MULTI KARYA USAHA, PT"
+ },
+ {
+  "name": "EVA MIDSOLE 104T HARDNESS 55 ASKER C",
+  "uom": "PRS",
+  "category": "MIDSOLE",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "(none)",
+  "suppliers": "MULTI KARYA USAHA, PT"
+ },
+ {
+  "name": "EVA MIDSOLE IN HARDNESS 55 ASKER C PRM-081",
+  "uom": "SHT",
+  "category": "MIDSOLE",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "6 MM (145 CM X 80 CM)",
+  "suppliers": "MULTI KARYA USAHA, PT"
+ },
+ {
+  "name": "FANA MESH (TWO TONE)",
+  "uom": "ME",
+  "category": "FABRIC",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "44\"",
+  "suppliers": "SHINTA WOO SUNG,PT"
+ },
+ {
+  "name": "FARUN SW MESH (370 GRAM)",
+  "uom": "ME",
+  "category": "FABRIC",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "52\"",
+  "suppliers": "HWASUNG INTERNATIONAL,PT"
+ },
+ {
+  "name": "FIORTA SW MESH",
+  "uom": "ME",
+  "category": "FABRIC",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "60\"",
+  "suppliers": "HWASUNG INTERNATIONAL,PT"
+ },
+ {
+  "name": "FLATLACE TIP 15 MM BYL E 005",
+  "uom": "PRS",
+  "category": "LACE",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "5 MM X 105 CM | 5 MM X 110 CM | 5 MM X 115 CM",
+  "suppliers": "BOO YOUNG INDONESIA,PT"
+ },
+ {
+  "name": "FLATLACE TIP 15 MM BYL G 212",
+  "uom": "PRS",
+  "category": "LACE",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "4 MM X 110 CM | 4 MM X 115 CM | 6 MM X 110 CM | 6 MM X 115 CM",
+  "suppliers": "BOO YOUNG INDONESIA,PT"
+ },
+ {
+  "name": "FLATLACE TIP 15 MM BYL G 213",
+  "uom": "PRS",
+  "category": "LACE",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "4 MM X 110 CM | 4 MM X 115 CM",
+  "suppliers": "BOO YOUNG INDONESIA,PT"
+ },
+ {
+  "name": "FLAT LACE TIP 15 MM BYL G 253",
+  "uom": "PRS",
+  "category": "LACE",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "6 MM X 110 CM | 6 MM X 115 CM",
+  "suppliers": "BOO YOUNG INDONESIA,PT"
+ },
+ {
+  "name": "FLAT MONOMESH 54 GSM",
+  "uom": "ME",
+  "category": "FABRIC",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "53\"",
+  "suppliers": "SHINTA WOO SUNG,PT"
+ },
+ {
+  "name": "FLAT TUBULAR( BSL-0040 ) . 6MM 110 - 115",
+  "uom": "PRS",
+  "category": "LACE",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": null,
+  "suppliers": "SUNTEX, PT"
+ },
+ {
+  "name": "FLAT TUBULAR( NSL-0208 ) . 6MM 110",
+  "uom": "PRS",
+  "category": "LACE",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": null,
+  "suppliers": "SUNTEX, PT"
+ },
+ {
+  "name": "FOAM 30 KG (SS-14)",
+  "uom": "ME",
+  "category": "FOAM",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "10 MM X 44\" | 4 MM X 44\"",
+  "suppliers": "SERIM INDONESIA,PT"
+ },
+ {
+  "name": "FOAM 50KG 6 MM X 44\"",
+  "uom": "ME",
+  "category": "FOAM",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": null,
+  "suppliers": "ASSEMS INDO, PT | SERIM INDONESIA,PT"
+ },
+ {
+  "name": "FOAM 50 KG (SH-18)",
+  "uom": "ME",
+  "category": "FOAM",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "2 MM X 44\" | 4 MM X 44\" | 6 MM X 44\" | 8 MM X 44\"",
+  "suppliers": "SERIM INDONESIA,PT"
+ },
+ {
+  "name": "FOAM 50 KG (SHL)",
+  "uom": "ME",
+  "category": "FOAM",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": null,
+  "suppliers": "ASSEMS INDO, PT"
+ },
+ {
+  "name": "FOAM SHL-2",
+  "uom": "ME",
+  "category": "FOAM",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "10 MM X 44\" | 2 MM X 44\" | 4 MM X 44\" | 5 MM X 44\" | 6 MM X 44\" | 8 MM X 44\"",
+  "suppliers": "SERIM INDONESIA,PT"
+ },
+ {
+  "name": "GATHERING TAPE",
+  "uom": "ME",
+  "category": "WEBBING TAPE",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "4 MM",
+  "suppliers": "SUN-TEX INDONESIA, PT"
+ },
+ {
+  "name": "HANGTAG 104B",
+  "uom": "PCS",
+  "category": "PACKAGING",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "60 MM X 40 MM",
+  "suppliers": "EMRAN GHANIM ASAHI,PT"
+ },
+ {
+  "name": "HANGTAG 104 NX",
+  "uom": "PCS",
+  "category": "PACKAGING",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "60 MM X 40 MM",
+  "suppliers": "EMRAN GHANIM ASAHI,PT"
+ },
+ {
+  "name": "HANGTAG 104T",
+  "uom": "PCS",
+  "category": "PACKAGING",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "60 MM X 40 MM",
+  "suppliers": "EMRAN GHANIM ASAHI,PT"
+ },
+ {
+  "name": "HANGTAG ACCESSORIES LS 5 RK ELITE FG",
+  "uom": "PCS",
+  "category": "PACKAGING",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "60 MM X 40 MM",
+  "suppliers": "EMRAN GHANIM ASAHI,PT"
+ },
+ {
+  "name": "HANGTAG ACCESSORIES LS 5 RK PRO FG",
+  "uom": "PCS",
+  "category": "PACKAGING",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "60 MM X 40 MM",
+  "suppliers": "EMRAN GHANIM ASAHI,PT"
+ },
+ {
+  "name": "HANGTAG COANDA SV SUBS1",
+  "uom": "PCS",
+  "category": "PACKAGING",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "60 MM X 40 MM",
+  "suppliers": "EMRAN GHANIM ASAHI,PT"
+ },
+ {
+  "name": "HANGTAG DBR MADEIRA",
+  "uom": "PCS",
+  "category": "PACKAGING",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "60 X 40 MM",
+  "suppliers": "EMRAN GHANIM ASAHI,PT"
+ },
+ {
+  "name": "HANGTAG ELEVATION TWO FG",
+  "uom": "PCS",
+  "category": "PACKAGING",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "60 MM X 40 MM",
+  "suppliers": "EMRAN GHANIM ASAHI,PT"
+ },
+ {
+  "name": "HANGTAG ELEVATION TWO IN",
+  "uom": "PCS",
+  "category": "PACKAGING",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "60 MM X 40 MM",
+  "suppliers": "EMRAN GHANIM ASAHI,PT"
+ },
+ {
+  "name": "HANGTAG ELEVATION TWO JR FG",
+  "uom": "PCS",
+  "category": "PACKAGING",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "60 MM X 40 MM",
+  "suppliers": "EMRAN GHANIM ASAHI,PT"
+ },
+ {
+  "name": "HANGTAG ELEVATION TWO JR IN",
+  "uom": "PCS",
+  "category": "PACKAGING",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "60 MM X 40 MM",
+  "suppliers": "EMRAN GHANIM ASAHI,PT"
+ },
+ {
+  "name": "HANGTAG ESSORER FG",
+  "uom": "PCS",
+  "category": "PACKAGING",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "60 MM X 40 MM",
+  "suppliers": "EMRAN GHANIM ASAHI,PT"
+ },
+ {
+  "name": "HANGTAG ESSORER TF",
+  "uom": "PCS",
+  "category": "PACKAGING",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "60 MM X 40 MM",
+  "suppliers": "EMRAN GHANIM ASAHI,PT"
+ },
+ {
+  "name": "HANGTAG GALACTICA MORPH NV FG",
+  "uom": "PCS",
+  "category": "PACKAGING",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "60 MM X 40 MM",
+  "suppliers": "EMRAN GHANIM ASAHI,PT"
+ },
+ {
+  "name": "HANGTAG GALACTICA MORPH NV IN",
+  "uom": "PCS",
+  "category": "PACKAGING",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "60 MM X 40 MM",
+  "suppliers": "EMRAN GHANIM ASAHI,PT"
+ },
+ {
+  "name": "HANGTAG GALACTICA MORPH NV JR FG",
+  "uom": "PCS",
+  "category": "PACKAGING",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "60 MM X 40 MM",
+  "suppliers": "EMRAN GHANIM ASAHI,PT"
+ },
+ {
+  "name": "HANGTAG GALACTICA MORPH NV JR IN",
+  "uom": "PCS",
+  "category": "PACKAGING",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "60 MM X 40 MM",
+  "suppliers": "EMRAN GHANIM ASAHI,PT"
+ },
+ {
+  "name": "HANGTAG ILLUZION IV CORE FG",
+  "uom": "EA",
+  "category": "PACKAGING",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": null,
+  "suppliers": "EMRAN GHANIM ASAHI,PT"
+ },
+ {
+  "name": "HANGTAG JOGGER 24",
+  "uom": "PCS",
+  "category": "PACKAGING",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "60 X 40 MM",
+  "suppliers": "EMRAN GHANIM ASAHI,PT"
+ },
+ {
+  "name": "HANGTAG LIGHTSPEED REBORN FG",
+  "uom": "PCS",
+  "category": "PACKAGING",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "60 MM X 40 MM",
+  "suppliers": "EMRAN GHANIM ASAHI,PT"
+ },
+ {
+  "name": "HANGTAG LIGHTSPEED REBORN IN",
+  "uom": "PCS",
+  "category": "PACKAGING",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "60 MM X 40 MM",
+  "suppliers": "EMRAN GHANIM ASAHI,PT"
+ },
+ {
+  "name": "HANGTAG LIGHTSPEED REBORN JR FG",
+  "uom": "PCS",
+  "category": "PACKAGING",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "60 MM X 40 MM",
+  "suppliers": "EMRAN GHANIM ASAHI,PT"
+ },
+ {
+  "name": "HANGTAG LIGHTSPEED REBORN JR IN",
+  "uom": "PCS",
+  "category": "PACKAGING",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "60 MM X 40 MM",
+  "suppliers": "EMRAN GHANIM ASAHI,PT"
+ },
+ {
+  "name": "HANGTAG LS FLUX FG",
+  "uom": "PCS",
+  "category": "PACKAGING",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "60 MM X 40 MM",
+  "suppliers": "EMRAN GHANIM ASAHI,PT"
+ },
+ {
+  "name": "HANGTAG LS FLUX IN",
+  "uom": "PCS",
+  "category": "PACKAGING",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "60 MM X 40 MM",
+  "suppliers": "EMRAN GHANIM ASAHI,PT"
+ },
+ {
+  "name": "HANGTAG LS REBORN META SL FG",
+  "uom": "PCS",
+  "category": "PACKAGING",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "60 MM X 40 MM",
+  "suppliers": "EMRAN GHANIM ASAHI,PT"
+ },
+ {
+  "name": "HANGTAG LS REBORN META XR FG",
+  "uom": "PCS",
+  "category": "PACKAGING",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "60 MM X 40 MM",
+  "suppliers": "EMRAN GHANIM ASAHI,PT"
+ },
+ {
+  "name": "HANGTAG LS REBORN META XR IN",
+  "uom": "PCS",
+  "category": "PACKAGING",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "60 MM X 40 MM",
+  "suppliers": "EMRAN GHANIM ASAHI,PT"
+ },
+ {
+  "name": "HANGTAG LS REBORN META XR JR FG",
+  "uom": "PCS",
+  "category": "PACKAGING",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "60 MM X 40 MM",
+  "suppliers": "EMRAN GHANIM ASAHI,PT"
+ },
+ {
+  "name": "HANGTAG LS REBORN META XR JR IN",
+  "uom": "PCS",
+  "category": "PACKAGING",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "60 MM X 40 MM",
+  "suppliers": "EMRAN GHANIM ASAHI,PT"
+ },
+ {
+  "name": "HANGTAG LS REBORN META XR TF",
+  "uom": "PCS",
+  "category": "PACKAGING",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "60 MM X 40 MM",
+  "suppliers": "EMRAN GHANIM ASAHI,PT"
+ },
+ {
+  "name": "HANGTAG METASALA NATIVE RE",
+  "uom": "PCS",
+  "category": "PACKAGING",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "60 MM X 40 MM",
+  "suppliers": "EMRAN GHANIM ASAHI,PT"
+ },
+ {
+  "name": "HANGTAG NOVASPEED SUBSX",
+  "uom": "PCS",
+  "category": "PACKAGING",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "60 MM X 40 MM",
+  "suppliers": "EMRAN GHANIM ASAHI,PT"
+ },
+ {
+  "name": "HANGTAG NOVASPEED WMN SUBSX",
+  "uom": "PCS",
+  "category": "PACKAGING",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "60 MM X 40 MM",
+  "suppliers": "EMRAN GHANIM ASAHI,PT"
+ },
+ {
+  "name": "HANGTAG SPEEDBLAZE 5 FG",
+  "uom": "PCS",
+  "category": "PACKAGING",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "60 MM X 40 MM",
+  "suppliers": "EMRAN GHANIM ASAHI,PT"
+ },
+ {
+  "name": "HANGTAG SPEEDBLAZE 5 IN",
+  "uom": "PCS",
+  "category": "PACKAGING",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "60 MM X 40 MM",
+  "suppliers": "EMRAN GHANIM ASAHI,PT"
+ },
+ {
+  "name": "HANGTAG XCELLS FG",
+  "uom": "PCS",
+  "category": "PACKAGING",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "60 MM X 40 MM",
+  "suppliers": "EMRAN GHANIM ASAHI,PT"
+ },
+ {
+  "name": "HANGTAG XCELLS IN",
+  "uom": "PCS",
+  "category": "PACKAGING",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "60 MM X 40 MM",
+  "suppliers": "EMRAN GHANIM ASAHI,PT"
+ },
+ {
+  "name": "HANGTAG XLR 4 FG",
+  "uom": "PCS",
+  "category": "PACKAGING",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "60 MM X 40 MM",
+  "suppliers": "EMRAN GHANIM ASAHI,PT"
+ },
+ {
+  "name": "HANTEX-700",
+  "uom": "SHT",
+  "category": "FABRIC",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "2 MM (95 X 152 CM)",
+  "suppliers": "HAN YOUNG INDONESIA,PT"
+ },
+ {
+  "name": "HANTEX-900",
+  "uom": "SHT",
+  "category": "FABRIC",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "2 MM (95 X 152 CM)",
+  "suppliers": "HAN YOUNG INDONESIA,PT"
+ },
+ {
+  "name": "HEATSEAL SIZE LABEL 104B",
+  "uom": "EA",
+  "category": "LABEL",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "(none)",
+  "suppliers": "EMRAN GHANIM ASAHI,PT"
+ },
+ {
+  "name": "HEATSEAL SIZE LABEL 104T",
+  "uom": "EA",
+  "category": "LABEL",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "(none)",
+  "suppliers": "EMRAN GHANIM ASAHI,PT"
+ },
+ {
+  "name": "HEATSEAL SIZE LABEL ILLUZION IV CORE FG",
+  "uom": "EA",
+  "category": "PACKAGING",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": null,
+  "suppliers": "EMRAN GHANIM ASAHI,PT"
+ },
+ {
+  "name": "HEAT SEAL SIZE LABEL SPECS",
+  "uom": "EA",
+  "category": "LABEL",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": null,
+  "suppliers": "EMRAN GHANIM ASAHI,PT"
+ },
+ {
+  "name": "HF WELDING",
+  "uom": "PRS",
+  "category": "PROCESS",
+  "is_process": true,
+  "status": "ACTIVE",
+  "dimensions": null,
+  "suppliers": null
+ },
+ {
+  "name": "HI GET",
+  "uom": "ME",
+  "category": "FABRIC",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "44\"",
+  "suppliers": "BUKIT HIJAU SENTOSA,PD"
+ },
+ {
+  "name": "HI LEX R-231",
+  "uom": "ME",
+  "category": "SYNTHETIC LEATHER",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "1 MM X 54\"",
+  "suppliers": "HWASUNG INTERNATIONAL,PT"
+ },
+ {
+  "name": "HI LEX T-FLAT",
+  "uom": "ME",
+  "category": "SYNTHETIC LEATHER",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "1 MM X 54\"",
+  "suppliers": "HWASUNG INTERNATIONAL,PT"
+ },
+ {
+  "name": "HI SPENCO",
+  "uom": "ME",
+  "category": "FABRIC",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "44\"",
+  "suppliers": "ASSEMS INDO, PT | SU INDONESIA,PT"
+ },
+ {
+  "name": "HONEYLON MESH",
+  "uom": "ME",
+  "category": "FABRIC",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "44\"",
+  "suppliers": "BUKIT HIJAU SENTOSA,PD"
+ },
+ {
+  "name": "HOT MELT ADHESIVE 7750",
+  "uom": "KG",
+  "category": "CHEMICAL",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "(none)",
+  "suppliers": "PT.CHERNG TAY INDONESIA"
+ },
+ {
+  "name": "HOT MELT ADHESIVE 7901",
+  "uom": "KG",
+  "category": "CHEMICAL",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "(none)",
+  "suppliers": "PT.CHERNG TAY INDONESIA"
+ },
+ {
+  "name": "HOT MELT CABLE L-110W",
+  "uom": "KG",
+  "category": "CHEMICAL",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "(none)",
+  "suppliers": "MITRA SEMESTA LEMINDO,PT"
+ },
+ {
+  "name": "HOTMELT E-3015",
+  "uom": "KG",
+  "category": "CHEMICAL",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "(none)",
+  "suppliers": "MITRA SEMESTA LEMINDO,PT"
+ },
+ {
+  "name": "HOT MELT FA7100 PAPER",
+  "uom": "ME",
+  "category": "CHEMICAL",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "100 UM X 54\"",
+  "suppliers": "ASSEMS INDO, PT"
+ },
+ {
+  "name": "HS ALPHA DE-107",
+  "uom": "ME",
+  "category": "SYNTHETIC LEATHER",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "0.3 MM X 54\"",
+  "suppliers": "HWASUNG INTERNATIONAL,PT"
+ },
+ {
+  "name": "HS ALPHA T-FLAT",
+  "uom": "ME",
+  "category": "SYNTHETIC LEATHER",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "0.3 MM X 54\"",
+  "suppliers": "HWASUNG INTERNATIONAL,PT"
+ },
+ {
+  "name": "HS SUEDE",
+  "uom": "ME",
+  "category": "FABRIC",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "0.9 MM X 44\"",
+  "suppliers": "HWASUNG INTERNATIONAL,PT"
+ },
+ {
+  "name": "HULEX DIVE AR-181 BACKING MICRO FIBER",
+  "uom": "ME",
+  "category": "SYNTHETIC LEATHER",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "1.3 MM X 54\"",
+  "suppliers": "HWASUNG INTERNATIONAL,PT"
+ },
+ {
+  "name": "HULEX DIVE AR-83M BACKING MICRO FIBER",
+  "uom": "ME",
+  "category": "SYNTHETIC LEATHER",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "1.3 MM X 54\"",
+  "suppliers": "HWASUNG INTERNATIONAL,PT"
+ },
+ {
+  "name": "HULEX DIVE BENGAL BACKING MICRO FIBER",
+  "uom": "ME",
+  "category": "SYNTHETIC LEATHER",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "1.3 MM X 54\"",
+  "suppliers": "HWASUNG INTERNATIONAL,PT"
+ },
+ {
+  "name": "HULEX DIVE KD KL-177 WL BACKING MICRO FIBER",
+  "uom": "ME",
+  "category": "SYNTHETIC LEATHER",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "0.9 MM X 54\" | 1.2 MM X 54\"",
+  "suppliers": "KINDO MAKMUR JAYA,PT"
+ },
+ {
+  "name": "HULEX DIVE KD KL R-054 BACKING MICRO FIBER",
+  "uom": "ME",
+  "category": "SYNTHETIC LEATHER",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "0.9 MM X 54\" | 1.2 MM X 54\"",
+  "suppliers": "KINDO MAKMUR JAYA,PT"
+ },
+ {
+  "name": "HULEX DIVE KD KL-R070 BACKING MICRO FIBER",
+  "uom": "ME",
+  "category": "SYNTHETIC LEATHER",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "0.9 MM X 54\"",
+  "suppliers": "KINDO MAKMUR JAYA,PT"
+ },
+ {
+  "name": "HULEX DIVE KD KL-R3012 BACKING MICRO FIBER",
+  "uom": "ME",
+  "category": "SYNTHETIC LEATHER",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "1.2 MM X 54\"",
+  "suppliers": "KINDO MAKMUR JAYA,PT"
+ },
+ {
+  "name": "HULEX DIVE KD NANOTEX BACKING MICRO FIBER",
+  "uom": "ME",
+  "category": "SYNTHETIC LEATHER",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "1.2 MM X 54\"",
+  "suppliers": "KINDO MAKMUR JAYA,PT"
+ },
+ {
+  "name": "HULEX DIVE KD TECHNO BACKING MICRO FIBER",
+  "uom": "ME",
+  "category": "SYNTHETIC LEATHER",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "0.9 MM X 54\"",
+  "suppliers": "KINDO MAKMUR JAYA,PT"
+ },
+ {
+  "name": "HULEX DIVE R-53 BACKING MICRO FIBER",
+  "uom": "ME",
+  "category": "SYNTHETIC LEATHER",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "1.3 MM X 54\"",
+  "suppliers": "HWASUNG INTERNATIONAL,PT"
+ },
+ {
+  "name": "HULEX DIVE SERGE BACKING MICRO FIBER",
+  "uom": "ME",
+  "category": "SYNTHETIC LEATHER",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "1.3 MM X 54\"",
+  "suppliers": "HWASUNG INTERNATIONAL,PT"
+ },
+ {
+  "name": "HULEX DIVE TECHNO BACKING MICRO FIBER",
+  "uom": "ME",
+  "category": "SYNTHETIC LEATHER",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "1.3 MM X 54\"",
+  "suppliers": "HWASUNG INTERNATIONAL,PT"
+ },
+ {
+  "name": "HULEX MONO AR-143",
+  "uom": "ME",
+  "category": "SYNTHETIC LEATHER",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "0.3 MM X 51\"",
+  "suppliers": "HWASUNG INTERNATIONAL,PT"
+ },
+ {
+  "name": "HULEX MONO EC RIPSTOP",
+  "uom": "ME",
+  "category": "SYNTHETIC LEATHER",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "0.4 MM X 54\"",
+  "suppliers": "HWASUNG INTERNATIONAL,PT"
+ },
+ {
+  "name": "HULEX MONO EC T-FLAT",
+  "uom": "ME",
+  "category": "SYNTHETIC LEATHER",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "0.4 MM X 51\"",
+  "suppliers": "HWASUNG INTERNATIONAL,PT"
+ },
+ {
+  "name": "HULEX MONO KD AR-181",
+  "uom": "ME",
+  "category": "SYNTHETIC LEATHER",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "0.3 MM X 51\"",
+  "suppliers": "KINDO MAKMUR JAYA,PT"
+ },
+ {
+  "name": "HULEX MONO MOONLAKE",
+  "uom": "ME",
+  "category": "SYNTHETIC LEATHER",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "0.3 MM X 54\"",
+  "suppliers": "HWASUNG INTERNATIONAL,PT"
+ },
+ {
+  "name": "HULEX MONO ROXANE",
+  "uom": "ME",
+  "category": "SYNTHETIC LEATHER",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "0.3 MM X 51\"",
+  "suppliers": "HWASUNG INTERNATIONAL,PT"
+ },
+ {
+  "name": "HULEX MONO T-FLAT",
+  "uom": "ME",
+  "category": "SYNTHETIC LEATHER",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "0.3 MM X 51\"",
+  "suppliers": "HWASUNG INTERNATIONAL,PT"
+ },
+ {
+  "name": "HULEX NAPA ANTI (STICKY SURFACE)",
+  "uom": "YD",
+  "category": "SYNTHETIC LEATHER",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "0.3 MM X 51\"",
+  "suppliers": "FUJIAN HEHE INTERNATIONAL TRAD"
+ },
+ {
+  "name": "HYDLON SUEDE",
+  "uom": "ME",
+  "category": "SYNTHETIC LEATHER",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "0.8 MM X 44\"",
+  "suppliers": "DAEWON ECO INDONESIA,PT"
+ },
+ {
+  "name": "HY SOCK 16N",
+  "uom": "ME",
+  "category": "FABRIC",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "1.6 MM X 44\"",
+  "suppliers": "HAN YOUNG INDONESIA,PT"
+ },
+ {
+  "name": "INJECTION PHYLON HARDNESS 40-45 ASKER C PRM-100",
+  "uom": "PRS",
+  "category": "MIDSOLE",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "(none)",
+  "suppliers": "DWI MITRA MANDIRI,PT"
+ },
+ {
+  "name": "INJECTION PHYLON HARDNESS 48+2 ASKER C PAOS-048",
+  "uom": "PRS",
+  "category": "MIDSOLE",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "(none)",
+  "suppliers": "DWI MITRA MANDIRI,PT"
+ },
+ {
+  "name": "INJECTION PHYLON HARDNESS 50-55 ASKER C PRM-062",
+  "uom": "PRS",
+  "category": "MIDSOLE",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "(none)",
+  "suppliers": "DWI MITRA MANDIRI,PT"
+ },
+ {
+  "name": "INJECTION PHYLON HARDNESS 50-55 ASKER C PRM-102",
+  "uom": "PRS",
+  "category": "MIDSOLE",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "(none)",
+  "suppliers": "DWI MITRA MANDIRI,PT"
+ },
+ {
+  "name": "INJECTION PHYLON HARDNESS 50-55 ASKER C PRM-106",
+  "uom": "PRS",
+  "category": "MIDSOLE",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "(none)",
+  "suppliers": "DWI MITRA MANDIRI,PT"
+ },
+ {
+  "name": "INJECTION PHYLON HARDNESS 60±2 ASKER C PRM-072",
+  "uom": "PRS",
+  "category": "MIDSOLE",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "(none)",
+  "suppliers": "DWI MITRA MANDIRI,PT"
+ },
+ {
+  "name": "INJECTION PHYLON HARDNESS 60±2 ASKER C PRM-109",
+  "uom": "PRS",
+  "category": "MIDSOLE",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "(none)",
+  "suppliers": "DWI MITRA MANDIRI,PT"
+ },
+ {
+  "name": "INNER BOX SPECS",
+  "uom": "SET",
+  "category": "PACKAGING",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "A1A (275 X 170 X 100 MM) | A3 (300 X 200 X 110 MM) | A6 (310 X 215 X 110 MM) | A7 (320 X 220 X 125 MM) | A8 (335 X 220 X 130 MM)",
+  "suppliers": "KARYA INDAH MULTIGUNA,PT"
+ },
+ {
+  "name": "INNER BOX SPECS NEW (FSC RECYCLED)",
+  "uom": "EA",
+  "category": "PACKAGING",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": null,
+  "suppliers": "KARYA INDAH MULTIGUNA,PT"
+ },
+ {
+  "name": "IP PRM 096",
+  "uom": "PRS",
+  "category": "MIDSOLE",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": null,
+  "suppliers": "DWI MITRA MANDIRI,PT"
+ },
+ {
+  "name": "LAMINATING",
+  "uom": "PRS",
+  "category": "PROCESS",
+  "is_process": true,
+  "status": "ACTIVE",
+  "dimensions": null,
+  "suppliers": null
+ },
+ {
+  "name": "LAMINATING ASSEMINDO",
+  "uom": "PRS",
+  "category": "PROCESS",
+  "is_process": true,
+  "status": "ACTIVE",
+  "dimensions": null,
+  "suppliers": null
+ },
+ {
+  "name": "LATEX 60%",
+  "uom": "KG",
+  "category": "CHEMICAL",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "(none)",
+  "suppliers": "MYOSI INTERNATIONAL, PT"
+ },
+ {
+  "name": "LIVE SKIN DE-7 BACKING KNITWEAR",
+  "uom": "ME",
+  "category": "SYNTHETIC LEATHER",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "0.7 MM X 54\"",
+  "suppliers": "JOIL INNI INDONESIA, PT"
+ },
+ {
+  "name": "LIVE SKIN UM-T BACKING KNITWEAR",
+  "uom": "ME",
+  "category": "SYNTHETIC LEATHER",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "0.7 MM X 54\"",
+  "suppliers": "JOIL INNI INDONESIA, PT"
+ },
+ {
+  "name": "LOCTITE BOND ACE 1401",
+  "uom": "KG",
+  "category": "CHEMICAL",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "(none)",
+  "suppliers": "GARUDA TWIN JAYA,PT"
+ },
+ {
+  "name": "LOCTITE BOND ACE 232F-2",
+  "uom": "KG",
+  "category": "CHEMICAL",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "(none)",
+  "suppliers": "GARUDA TWIN JAYA,PT"
+ },
+ {
+  "name": "LOCTITE BOND ACE 232 HF-2D",
+  "uom": "KG",
+  "category": "CHEMICAL",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "(none)",
+  "suppliers": "GARUDA TWIN JAYA,PT"
+ },
+ {
+  "name": "LOCTITE BOND ACE 5100 AB-2",
+  "uom": "KG",
+  "category": "CHEMICAL",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "(none)",
+  "suppliers": "GARUDA TWIN JAYA,PT"
+ },
+ {
+  "name": "LOCTITE BONDACE 5100 AU-2",
+  "uom": "KG",
+  "category": "CHEMICAL",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "(none)",
+  "suppliers": "GARUDA TWIN JAYA,PT"
+ },
+ {
+  "name": "LOCTITE BONDACE PC-3",
+  "uom": "KG",
+  "category": "CHEMICAL",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "(none)",
+  "suppliers": "GARUDA TWIN JAYA,PT"
+ },
+ {
+  "name": "MAGIC TAPE HOOK",
+  "uom": "ME",
+  "category": "WEBBING TAPE",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "10 CM",
+  "suppliers": "FAJARINDO FALIMAN ZIPPER,PT"
+ },
+ {
+  "name": "MAGIC TAPE LOOP",
+  "uom": "ME",
+  "category": "WEBBING TAPE",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "10 CM",
+  "suppliers": "FAJARINDO FALIMAN ZIPPER,PT"
+ },
+ {
+  "name": "MAKANTO 2 (75/1)",
+  "uom": "ME",
+  "category": "FABRIC",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "45\"",
+  "suppliers": "DAE YOUNG TEXTILE,PT"
+ },
+ {
+  "name": "MERISKIN KD AR-181 BACKING KNITWEAR",
+  "uom": "ME",
+  "category": "SYNTHETIC LEATHER",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "0.7 MM X 54\"",
+  "suppliers": "KINDO MAKMUR JAYA,PT"
+ },
+ {
+  "name": "MERISKIN KD DE-7 BACKING KNITWEAR",
+  "uom": "ME",
+  "category": "SYNTHETIC LEATHER",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "0.7 MM X 54\"",
+  "suppliers": "KINDO MAKMUR JAYA,PT"
+ },
+ {
+  "name": "MERISKIN KD UMT BACKING KNITWEAR",
+  "uom": "ME",
+  "category": "SYNTHETIC LEATHER",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "0.7 MM X 54\"",
+  "suppliers": "KINDO MAKMUR JAYA,PT"
+ },
+ {
+  "name": "MERRY KD DE 07 / BACKING KNITWEAR",
+  "uom": "ME",
+  "category": "SYNTHETIC LEATHER",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": null,
+  "suppliers": "KINDO MAKMUR JAYA,PT"
+ },
+ {
+  "name": "MERRY KD KL-050 BACKING KNITWEAR",
+  "uom": "ME",
+  "category": "SYNTHETIC LEATHER",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "0.7 MM X 54\"",
+  "suppliers": "KINDO MAKMUR JAYA,PT"
+ },
+ {
+  "name": "MERRY KD KL R-054 BACKING KNITWEAR",
+  "uom": "ME",
+  "category": "SYNTHETIC LEATHER",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "0.7 MM X 54\"",
+  "suppliers": "KINDO MAKMUR JAYA,PT"
+ },
+ {
+  "name": "MERRY KD KL-R3161 A BACKING KNITWEAR",
+  "uom": "ME",
+  "category": "SYNTHETIC LEATHER",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "0.7 MM X 54\"",
+  "suppliers": "KINDO MAKMUR JAYA,PT"
+ },
+ {
+  "name": "MERRY MESH",
+  "uom": "ME",
+  "category": "FABRIC",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": null,
+  "suppliers": "HWASEUNG CHEMICAL INDONESIA,PT | MULTI KARYA USAHA, PT"
+ },
+ {
+  "name": "MERRY MESH GRAMASI 100",
+  "uom": "ME",
+  "category": "MESH",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": null,
+  "suppliers": "BUKIT HIJAU SENTOSA,PD"
+ },
+ {
+  "name": "MERRY MESH GRAMASI 180-200GR",
+  "uom": "ME",
+  "category": "FABRIC",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "44\"",
+  "suppliers": "BUKIT HIJAU SENTOSA,PD"
+ },
+ {
+  "name": "MERRY MESH GRAMASI 180 (SWS)",
+  "uom": "ME",
+  "category": "FABRIC",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "44\"",
+  "suppliers": "SHINTA WOO SUNG,PT"
+ },
+ {
+  "name": "MERRY MESH (HASI 052)",
+  "uom": "ME",
+  "category": "FABRIC",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "44\"",
+  "suppliers": "HWASUNG INTERNATIONAL,PT"
+ },
+ {
+  "name": "MERRY MESH NON GRAMASI HASI",
+  "uom": "ME",
+  "category": "FABRIC",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "44\"",
+  "suppliers": "HWASUNG INTERNATIONAL,PT"
+ },
+ {
+  "name": "MERRY MESH (SWS)",
+  "uom": "ME",
+  "category": "FABRIC",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "44\"",
+  "suppliers": "SHINTA WOO SUNG,PT"
+ },
+ {
+  "name": "MESH SW 776",
+  "uom": "ME",
+  "category": "FABRIC",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "44\"",
+  "suppliers": "BUKIT HIJAU SENTOSA,PD"
+ },
+ {
+  "name": "MESH TN 371 GRAMASI 246 GSM",
+  "uom": "ME",
+  "category": "FABRIC",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "44\"",
+  "suppliers": "HEKSATEX INDAH. PT"
+ },
+ {
+  "name": "MESH TN 378B (WIGHT 28 GR ) .54\"",
+  "uom": "ME",
+  "category": "MESH",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": null,
+  "suppliers": "FUJIAN HEHE INTERNATIONAL TRAD | HEKSATEX INDAH. PT"
+ },
+ {
+  "name": "MESH TN 397 B (166 GSM)",
+  "uom": "ME",
+  "category": "FABRIC",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "44\"",
+  "suppliers": "HEKSATEX INDAH. PT"
+ },
+ {
+  "name": "MESH TN 400 B (166 GSM)",
+  "uom": "ME",
+  "category": "MESH",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": null,
+  "suppliers": "HEKSATEX INDAH. PT"
+ },
+ {
+  "name": "MIGHTY SW MESH (435 GRAM)",
+  "uom": "ME",
+  "category": "FABRIC",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "55\"",
+  "suppliers": "HWASUNG INTERNATIONAL,PT"
+ },
+ {
+  "name": "MIRAN SW MESH (350 GRAM)",
+  "uom": "ME",
+  "category": "FABRIC",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "52\"",
+  "suppliers": "HWASUNG INTERNATIONAL,PT"
+ },
+ {
+  "name": "NEWRO SPACER",
+  "uom": "ME",
+  "category": "FABRIC",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "58\"",
+  "suppliers": "HWASUNG INTERNATIONAL,PT"
+ },
+ {
+  "name": "NONE",
+  "uom": "PRS",
+  "category": "DECORATION",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": null,
+  "suppliers": "MASTERINA GRAFIKA ESPRINTA,PT"
+ },
+ {
+  "name": "NON WOVEN HARDNESS 76-80 SH-000",
+  "uom": "ME",
+  "category": "FABRIC",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "1 MM X 44\"",
+  "suppliers": "HAN YOUNG INDONESIA,PT"
+ },
+ {
+  "name": "OPENCELL FOAM DENSITY",
+  "uom": "SHT",
+  "category": "FOAM",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "4 MM (110 X 200 CM)",
+  "suppliers": "JONES & VINING INDONESIA,PT"
+ },
+ {
+  "name": "OUTSOLE PRM-097 (STUD 95 A, INLAY 98 A, BASE 98 A)",
+  "uom": "PRS",
+  "category": "OUTSOLE",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "(none)",
+  "suppliers": "WINFAITH,PT"
+ },
+ {
+  "name": "OUTSOLE TPU INJECTION BASE 64 D STUD 64 A PRM-080",
+  "uom": "PRS",
+  "category": "OUTSOLE",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "(none)",
+  "suppliers": "GUNFESAS TECHNOLOGY,PT"
+ },
+ {
+  "name": "OUTSOLE TPU INJECTION BASE 98 A TPU 95 A PRM-101",
+  "uom": "PRS",
+  "category": "OUTSOLE",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "(none)",
+  "suppliers": "SINAR MASANDA INDUSTRI,PT"
+ },
+ {
+  "name": "OUTSOLE TPU INJECTION BASE 98 A TPU 95 A PRM-105",
+  "uom": "PRS",
+  "category": "OUTSOLE",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "(none)",
+  "suppliers": "JING XING INDONESIA, PT"
+ },
+ {
+  "name": "OUTSOLE TPU INJECTION HARDNESS 98 A PRM-091",
+  "uom": "PRS",
+  "category": "OUTSOLE",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "(none)",
+  "suppliers": "WINFAITH,PT"
+ },
+ {
+  "name": "OUTSOLE TPU INJECTION HARDNESS 98 A PRM-091 JR",
+  "uom": "PRS",
+  "category": "OUTSOLE",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "(none)",
+  "suppliers": "WINFAITH,PT"
+ },
+ {
+  "name": "OUTSOLE TPU INJECTION HARDNESS 98 D PRM-091",
+  "uom": "PRS",
+  "category": "OUTSOLE",
+  "is_process": false,
+  "status": "INACTIVE",
+  "dimensions": null,
+  "suppliers": "WINFAITH,PT"
+ },
+ {
+  "name": "P-333",
+  "uom": "EA",
+  "category": "COUNTER",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": null,
+  "suppliers": "JING XING INDONESIA, PT"
+ },
+ {
+  "name": "PAPER TUBE",
+  "uom": "PCS",
+  "category": "PACKAGING",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "44\" X 3 MM X 34 MM",
+  "suppliers": "MANDIRI DHARMA LESTARI, PT"
+ },
+ {
+  "name": "POLY 3M WEBBING TAPE (NSW-0166) 3M=6 MM",
+  "uom": "ME",
+  "category": "WEBBING TAPE",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "12 MM",
+  "suppliers": "SUN-TEX INDONESIA, PT"
+ },
+ {
+  "name": "POLY CANVAS PE20/2 X PE20/2 (HWS)",
+  "uom": "ME",
+  "category": "FABRIC",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "LEBAR=140 CM",
+  "suppliers": "HWASUNG INTERNATIONAL,PT"
+ },
+ {
+  "name": "POLY FLAT LACE 33265 TIP 16 MM",
+  "uom": "PRS",
+  "category": "LACE",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "5 MM X 110 CM | 5 MM X 115 CM",
+  "suppliers": "BOO YOUNG INDONESIA,PT"
+ },
+ {
+  "name": "POLY FLAT LACE (NON STRETCH)",
+  "uom": "PRS",
+  "category": "LACE",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "8 MM X 105 CM | 8 MM X 110 CM | 8 MM X 115 CM | 8 MM X 120 CM | 8 MM X 125 CM | 8 MM X 130 CM",
+  "suppliers": "SUN-TEX INDONESIA, PT"
+ },
+ {
+  "name": "POLY FLAT TUBULAR (BSL-0040)",
+  "uom": "PRS",
+  "category": "LACE",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "5 MM X 105 CM | 5 MM X 110 CM | 6 MM X 105 CM | 6 MM X 110 CM | 6 MM X 115 CM",
+  "suppliers": "SUN-TEX INDONESIA, PT"
+ },
+ {
+  "name": "POLY FLAT TUBULAR (NSL 0185)",
+  "uom": "PRS",
+  "category": "LACE",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "6 MM X 115 CM",
+  "suppliers": "SUN-TEX INDONESIA, PT"
+ },
+ {
+  "name": "POLYFLAT TUBULAR (NSL 0207)",
+  "uom": "PRS",
+  "category": "LACE",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "6 MM X 115 CM",
+  "suppliers": "SUN-TEX INDONESIA, PT"
+ },
+ {
+  "name": "POLYPAG 2",
+  "uom": "ME",
+  "category": "FABRIC",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": null,
+  "suppliers": "ASSEMS INDO, PT"
+ },
+ {
+  "name": "POLYPAG 2 (HASI 028)",
+  "uom": "ME",
+  "category": "FABRIC",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "44\"",
+  "suppliers": "HWASUNG INTERNATIONAL,PT"
+ },
+ {
+  "name": "POLY WEBBING TAPE (BSW-0025)",
+  "uom": "ME",
+  "category": "WEBBING TAPE",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "10 MM",
+  "suppliers": "SUN-TEX INDONESIA, PT"
+ },
+ {
+  "name": "POLY WEBBING TAPE (BSW-0032)",
+  "uom": "ME",
+  "category": "WEBBING TAPE",
+  "is_process": false,
+  "status": "INACTIVE",
+  "dimensions": null,
+  "suppliers": "SUN-TEX INDONESIA, PT"
+ },
+ {
+  "name": "POLY WEBBING TAPE (BSW-032)",
+  "uom": "ME",
+  "category": "WEBBING TAPE",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "10 MM | 12 MM",
+  "suppliers": "SUN-TEX INDONESIA, PT"
+ },
+ {
+  "name": "POLY WOVEN 3030 PU (HWS)",
+  "uom": "ME",
+  "category": "FABRIC",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "60\"",
+  "suppliers": "SHINTA WOO SUNG,PT"
+ },
+ {
+  "name": "POLY WOVEN (PE16X16)",
+  "uom": "ME",
+  "category": "FABRIC",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": null,
+  "suppliers": "HWASUNG INTERNATIONAL,PT"
+ },
+ {
+  "name": "PRESS WELDING",
+  "uom": "PRS",
+  "category": "PROCESS",
+  "is_process": true,
+  "status": "ACTIVE",
+  "dimensions": null,
+  "suppliers": "MASTERINA GRAFIKA ESPRINTA,PT"
+ },
+ {
+  "name": "PRINTING",
+  "uom": "PRS",
+  "category": "DECORATION",
+  "is_process": true,
+  "status": "ACTIVE",
+  "dimensions": null,
+  "suppliers": "FUJIAN HEHE INTERNATIONAL TRAD | HWASUNG INTERNATIONAL,PT"
+ },
+ {
+  "name": "PRINTING BLOCK",
+  "uom": "PRS",
+  "category": "PROCESS",
+  "is_process": true,
+  "status": "ACTIVE",
+  "dimensions": null,
+  "suppliers": "FUJIAN HEHE INTERNATIONAL TRAD | HWASUNG INTERNATIONAL,PT"
+ },
+ {
+  "name": "PRINTING LOGO",
+  "uom": "PRS",
+  "category": "PROCESS",
+  "is_process": true,
+  "status": "ACTIVE",
+  "dimensions": null,
+  "suppliers": "CITRA BINA MAJU JAYA,PT"
+ },
+ {
+  "name": "PRINTING OUTSOLE PRM-105 (CLEAR)",
+  "uom": "PRS",
+  "category": "OUTSOLE",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "(none)",
+  "suppliers": "INDOKU HESA MAJU JAYA, PT"
+ },
+ {
+  "name": "PRINTING SCREEN",
+  "uom": "PRS",
+  "category": "PROCESS",
+  "is_process": true,
+  "status": "ACTIVE",
+  "dimensions": null,
+  "suppliers": "MASTERINA GRAFIKA ESPRINTA,PT"
+ },
+ {
+  "name": "PUFF PRINTING",
+  "uom": "PRS",
+  "category": "PROCESS",
+  "is_process": true,
+  "status": "ACTIVE",
+  "dimensions": null,
+  "suppliers": "MASTER GRAFIKA"
+ },
+ {
+  "name": "PU MERISKIN EMBO AR-100 M",
+  "uom": "ME",
+  "category": "SYNTHETIC LEATHER",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "0.7-0.8 MM X 54\"",
+  "suppliers": "KINDO MAKMUR JAYA,PT"
+ },
+ {
+  "name": "PUNCH HOLE",
+  "uom": "PRS",
+  "category": "PROCESS",
+  "is_process": true,
+  "status": "ACTIVE",
+  "dimensions": null,
+  "suppliers": "UNIMITRA KHARISMA, PT"
+ },
+ {
+  "name": "PU SHYNTETIC KD AR 194 / BACKING NON WOVEN",
+  "uom": "ME",
+  "category": "SYNTHETIC LEATHER",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": null,
+  "suppliers": "KINDO MAKMUR JAYA,PT"
+ },
+ {
+  "name": "PU SHYNTETIC KD TECHNO",
+  "uom": "ME",
+  "category": "SYNTHETIC LEATHER",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": null,
+  "suppliers": "KINDO MAKMUR JAYA,PT"
+ },
+ {
+  "name": "PU SHYNTETIC KD TECHNO ).1.2X54\"",
+  "uom": "ME",
+  "category": "SYNTHETIC LEATHER",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": null,
+  "suppliers": "KINDO MAKMUR JAYA,PT"
+ },
+ {
+  "name": "PU SHYNTETIC KD T FLAT . 1.2 X 54\"",
+  "uom": "ME",
+  "category": "SYNTHETIC LEATHER",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": null,
+  "suppliers": null
+ },
+ {
+  "name": "PU SHYNTETIC KD T FLAT / BACKING NON WOVEN",
+  "uom": "ME",
+  "category": "SYNTHETIC LEATHER",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": null,
+  "suppliers": "KINDO MAKMUR JAYA,PT"
+ },
+ {
+  "name": "PU SHYNTEYIC KD KL 051 / BACKING NON WOVEN",
+  "uom": "ME",
+  "category": "SYNTHETIC LEATHER",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": null,
+  "suppliers": "KINDO MAKMUR JAYA,PT"
+ },
+ {
+  "name": "PU SYNTHETIC KD AR-100 M BACKING NON WOVEN",
+  "uom": "ME",
+  "category": "SYNTHETIC LEATHER",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "1.3 MM X 54\"",
+  "suppliers": "KINDO MAKMUR JAYA,PT"
+ },
+ {
+  "name": "PU SYNTHETIC KD AR194 DM BACKING NON WOVEN",
+  "uom": "ME",
+  "category": "SYNTHETIC LEATHER",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "1.2 MM X 54\"",
+  "suppliers": "KINDO MAKMUR JAYA,PT"
+ },
+ {
+  "name": "PU SYNTHETIC KD DE-7 BACKING NON WOVEN",
+  "uom": "ME",
+  "category": "SYNTHETIC LEATHER",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "1.3 MM X 54\"",
+  "suppliers": "KINDO MAKMUR JAYA,PT"
+ },
+ {
+  "name": "PU SYNTHETIC KD KL-428 BACKING NON WOVEN",
+  "uom": "ME",
+  "category": "SYNTHETIC LEATHER",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "1.2 MM X 54\"",
+  "suppliers": "KINDO MAKMUR JAYA,PT"
+ },
+ {
+  "name": "PU SYNTHETIC KD KL-R027 BACKING NON WOVEN",
+  "uom": "ME",
+  "category": "SYNTHETIC LEATHER",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "1.2 MM X 54\"",
+  "suppliers": "KINDO MAKMUR JAYA,PT"
+ },
+ {
+  "name": "PU SYNTHETIC KD KL-R054 BACKING NON WOVEN",
+  "uom": "ME",
+  "category": "SYNTHETIC LEATHER",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "1.2 MM X 54\"",
+  "suppliers": "KINDO MAKMUR JAYA,PT"
+ },
+ {
+  "name": "PU SYNTHETIC KD KL-R3161A BACKING NON WOVEN",
+  "uom": "ME",
+  "category": "SYNTHETIC LEATHER",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "1.2 MM X 54\"",
+  "suppliers": "KINDO MAKMUR JAYA,PT"
+ },
+ {
+  "name": "PU SYNTHETIC KD R231 BACKING NON WOVEN",
+  "uom": "ME",
+  "category": "SYNTHETIC LEATHER",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "1.2 MM X 54\" | 1.3 MM X 54\"",
+  "suppliers": "KINDO MAKMUR JAYA,PT"
+ },
+ {
+  "name": "PU SYNTHETIC KD R 8 BACKING NON WOVEN",
+  "uom": "ME",
+  "category": "SYNTHETIC LEATHER",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "1.2 MM X 54\" | 1.3 MM X 54\"",
+  "suppliers": "KINDO MAKMUR JAYA,PT"
+ },
+ {
+  "name": "PU SYNTHETIC KD R-8 TPD BACKING NON WOVEN",
+  "uom": "ME",
+  "category": "SYNTHETIC LEATHER",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "1.2 MM X 54\"",
+  "suppliers": "KINDO MAKMUR JAYA,PT"
+ },
+ {
+  "name": "PU SYNTHETIC KD TECHNO BACKING NON WOVEN",
+  "uom": "ME",
+  "category": "SYNTHETIC LEATHER",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "1.2 MM X 54\"",
+  "suppliers": "KINDO MAKMUR JAYA,PT"
+ },
+ {
+  "name": "QUENTEX HY-60 (COSMOPOLYTAN)",
+  "uom": "ME",
+  "category": "FABRIC",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "44\"",
+  "suppliers": "HAN YOUNG INDONESIA,PT"
+ },
+ {
+  "name": "RIPSTOP MONO",
+  "uom": "ME",
+  "category": "FABRIC",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "44\"",
+  "suppliers": "HWASUNG INTERNATIONAL,PT"
+ },
+ {
+  "name": "ROUND LACE",
+  "uom": "PRS",
+  "category": "LACE",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "2 MM X 65 CM | 2 MM X 70 CM",
+  "suppliers": "SUN-TEX INDONESIA, PT"
+ },
+ {
+  "name": "RUBBER SOLE HARDNESS 55 SHORE A",
+  "uom": "PRS",
+  "category": "OUTSOLE",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": null,
+  "suppliers": "UNIMITRA KHARISMA, PT"
+ },
+ {
+  "name": "SEWING THREAD(P30S/3P)",
+  "uom": "CON",
+  "category": "THREAD",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "2500 ME",
+  "suppliers": "IDAMAN ERA MANDIRI, PT"
+ },
+ {
+  "name": "SHOELACE SPUN TUBULAR (NSL0208)",
+  "uom": "PRS",
+  "category": "LACE",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "5 MM X 110 CM | 5 MM X 115 CM",
+  "suppliers": "SUN-TEX INDONESIA, PT"
+ },
+ {
+  "name": "SILICAGEL",
+  "uom": "PCS",
+  "category": "PACKAGING",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "(none)",
+  "suppliers": "IMCO SILICA"
+ },
+ {
+  "name": "SIMAN MESH",
+  "uom": "ME",
+  "category": "FABRIC",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "44\"",
+  "suppliers": "HWASUNG INTERNATIONAL,PT"
+ },
+ {
+  "name": "SIMAN MESH 2",
+  "uom": "ME",
+  "category": "FABRIC",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "44\"",
+  "suppliers": "HWASUNG INTERNATIONAL,PT"
+ },
+ {
+  "name": "SINGLE MESH PILAREN",
+  "uom": "ME",
+  "category": "FABRIC",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "44\"",
+  "suppliers": "HWASUNG INTERNATIONAL,PT"
+ },
+ {
+  "name": "SINGLE STICKER",
+  "uom": "PRS",
+  "category": "PROCESS",
+  "is_process": true,
+  "status": "ACTIVE",
+  "dimensions": null,
+  "suppliers": "MULTI KARYA USAHA, PT"
+ },
+ {
+  "name": "SIZE LABEL AERODYNE FG",
+  "uom": "PRS",
+  "category": "LABEL",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "(none)",
+  "suppliers": "EMRAN GHANIM ASAHI,PT"
+ },
+ {
+  "name": "SIZE LABEL ESSORER FG",
+  "uom": "PRS",
+  "category": "LABEL",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "(none)",
+  "suppliers": "EMRAN GHANIM ASAHI,PT"
+ },
+ {
+  "name": "SIZE LABEL ESSORER TF",
+  "uom": "PRS",
+  "category": "LABEL",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "(none)",
+  "suppliers": "EMRAN GHANIM ASAHI,PT"
+ },
+ {
+  "name": "SIZE LABEL GALACTICA MORPH NV FG",
+  "uom": "PRS",
+  "category": "LABEL",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "(none)",
+  "suppliers": "EMRAN GHANIM ASAHI,PT"
+ },
+ {
+  "name": "SIZE LABEL GALACTICA MORPH NV IN",
+  "uom": "PRS",
+  "category": "LABEL",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "(none)",
+  "suppliers": "EMRAN GHANIM ASAHI,PT"
+ },
+ {
+  "name": "SIZE LABEL GALACTICA MORPH NV JR FG",
+  "uom": "PRS",
+  "category": "LABEL",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "(none)",
+  "suppliers": "EMRAN GHANIM ASAHI,PT"
+ },
+ {
+  "name": "SIZE LABEL GALACTICA MORPH NV JR IN",
+  "uom": "PRS",
+  "category": "LABEL",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "(none)",
+  "suppliers": "EMRAN GHANIM ASAHI,PT"
+ },
+ {
+  "name": "SIZE LABEL LS REBORN META SL FG",
+  "uom": "PRS",
+  "category": "LABEL",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "(none)",
+  "suppliers": "EMRAN GHANIM ASAHI,PT"
+ },
+ {
+  "name": "SIZE LABEL LS REBORN META XR FG",
+  "uom": "PRS",
+  "category": "LABEL",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "(none)",
+  "suppliers": "EMRAN GHANIM ASAHI,PT"
+ },
+ {
+  "name": "SIZE LABEL LS REBORN META XR IN",
+  "uom": "PRS",
+  "category": "LABEL",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "(none)",
+  "suppliers": "EMRAN GHANIM ASAHI,PT"
+ },
+ {
+  "name": "SIZE LABEL LSREBORN META XR JR FG",
+  "uom": "PRS",
+  "category": "LABEL",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "(none)",
+  "suppliers": "EMRAN GHANIM ASAHI,PT"
+ },
+ {
+  "name": "SIZE LABEL LSREBORN META XR JR IN",
+  "uom": "PRS",
+  "category": "LABEL",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "(none)",
+  "suppliers": "EMRAN GHANIM ASAHI,PT"
+ },
+ {
+  "name": "SIZE LABEL LS REBORN META XR TF",
+  "uom": "PRS",
+  "category": "LABEL",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "(none)",
+  "suppliers": "EMRAN GHANIM ASAHI,PT"
+ },
+ {
+  "name": "SIZE LABEL METASALA NATIVE RE",
+  "uom": "PRS",
+  "category": "LABEL",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "(none)",
+  "suppliers": "EMRAN GHANIM ASAHI,PT"
+ },
+ {
+  "name": "SIZE LABEL NOVASPEED SUBSX",
+  "uom": "PRS",
+  "category": "LABEL",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "(none)",
+  "suppliers": "EMRAN GHANIM ASAHI,PT"
+ },
+ {
+  "name": "SIZE LABEL NOVASPEED WMN SUBSX",
+  "uom": "PRS",
+  "category": "LABEL",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "(none)",
+  "suppliers": "EMRAN GHANIM ASAHI,PT"
+ },
+ {
+  "name": "SIZE LABEL SPEEDBLAZE 5 FG",
+  "uom": "PRS",
+  "category": "LABEL",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "(none)",
+  "suppliers": "EMRAN GHANIM ASAHI,PT"
+ },
+ {
+  "name": "SIZE LABEL SPEEDBLAZE 5 IN",
+  "uom": "PRS",
+  "category": "LABEL",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "(none)",
+  "suppliers": "EMRAN GHANIM ASAHI,PT"
+ },
+ {
+  "name": "SIZE LABEL XLR 4 FG",
+  "uom": "PRS",
+  "category": "LABEL",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "(none)",
+  "suppliers": "EMRAN GHANIM ASAHI,PT"
+ },
+ {
+  "name": "SM-300 (COOL MELT)",
+  "uom": "KG",
+  "category": "CHEMICAL",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "(none)",
+  "suppliers": "GRAND CHEMICAL INDONESIA"
+ },
+ {
+  "name": "STANDARD CARTON BOX NEW",
+  "uom": "EA",
+  "category": "PACKAGING",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": null,
+  "suppliers": "KARYA INDAH MULTIGUNA,PT"
+ },
+ {
+  "name": "STANDARD HANGTAG PRICE SPECS",
+  "uom": "EA",
+  "category": "ACCESSORY",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": null,
+  "suppliers": "EMRAN GHANIM ASAHI,PT"
+ },
+ {
+  "name": "STANDARD ISOLATAPE SPECS",
+  "uom": "ME",
+  "category": "PACKAGING",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": null,
+  "suppliers": "RUNGKUT CAHAYA,PT"
+ },
+ {
+  "name": "STANDARD STICKER INER BOX SPECS",
+  "uom": "EA",
+  "category": "PACKAGING",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": null,
+  "suppliers": "EMRAN GHANIM ASAHI,PT"
+ },
+ {
+  "name": "ST-MOON MESH",
+  "uom": "ME",
+  "category": "FABRIC",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "44\"",
+  "suppliers": "HWASUNG INTERNATIONAL,PT"
+ },
+ {
+  "name": "STOPER PIG NOSE SMALL",
+  "uom": "EA",
+  "category": "ACCESSORY",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "(none)",
+  "suppliers": "KEINTECH,PT"
+ },
+ {
+  "name": "STRING PIN",
+  "uom": "PCS",
+  "category": "PACKAGING",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "3\"",
+  "suppliers": "DARMA SUKSES MANDIRI,CV"
+ },
+ {
+  "name": "ST RIPSTOP + WPN",
+  "uom": "ME",
+  "category": "FABRIC",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "44\"",
+  "suppliers": "HWASUNG INTERNATIONAL,PT"
+ },
+ {
+  "name": "ST TRIGGER MESH (GRAMASI 210)",
+  "uom": "ME",
+  "category": "FABRIC",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "44\"",
+  "suppliers": "HWASUNG INTERNATIONAL,PT"
+ },
+ {
+  "name": "ST-WINTER MESH",
+  "uom": "ME",
+  "category": "FABRIC",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "44\" | 52\"",
+  "suppliers": "HWASUNG INTERNATIONAL,PT"
+ },
+ {
+  "name": "ST WRANGLER MESH",
+  "uom": "ME",
+  "category": "FABRIC",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "44\"",
+  "suppliers": "HWASUNG INTERNATIONAL,PT"
+ },
+ {
+  "name": "SUPER LIGHT SL 3571",
+  "uom": "ME",
+  "category": "FABRIC",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "0.55 MM X 44\"",
+  "suppliers": "HAN YOUNG INDONESIA,PT"
+ },
+ {
+  "name": "SUPERLIGHT SL 560",
+  "uom": "ME",
+  "category": "FABRIC",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "0.6 MM X 44\"",
+  "suppliers": "HAN YOUNG INDONESIA,PT | MULTI KARYA USAHA, PT"
+ },
+ {
+  "name": "SW DAMBORO MESH (HWS)",
+  "uom": "ME",
+  "category": "FABRIC",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "2.5 MM X 54\"",
+  "suppliers": "HWASUNG INTERNATIONAL,PT"
+ },
+ {
+  "name": "T-160",
+  "uom": "ME",
+  "category": "FABRIC",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": null,
+  "suppliers": "ASSEMS INDO, PT"
+ },
+ {
+  "name": "T-160 GRAMASI 160 GSM (BHS)",
+  "uom": "ME",
+  "category": "FABRIC",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "44\"",
+  "suppliers": "BUKIT HIJAU SENTOSA,PD"
+ },
+ {
+  "name": "T-160 (HASI-022 GRAMASI 160GSM)",
+  "uom": "ME",
+  "category": "FABRIC",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "44\"",
+  "suppliers": "HWASUNG INTERNATIONAL,PT"
+ },
+ {
+  "name": "TISSUE PAPER",
+  "uom": "RIM",
+  "category": "PACKAGING",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "44 X 69 CM",
+  "suppliers": "ROYAL QUICK INDO,CV"
+ },
+ {
+  "name": "TPR CM-02 HARDNESS 98A",
+  "uom": "PRS",
+  "category": "COUNTER",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "SIZE 37-39 | SIZE 40-42 | SIZE 43-46",
+  "suppliers": "JING XING INDONESIA, PT"
+ },
+ {
+  "name": "TPR CM-03 HARDNESS 92-95 ASKER A",
+  "uom": "PRS",
+  "category": "COUNTER",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "SIZE 37-39 | SIZE 40-42 | SIZE 43-46",
+  "suppliers": "JING XING INDONESIA, PT"
+ },
+ {
+  "name": "TPU CM-04 HARDNESS 55 ASKER D",
+  "uom": "PRS",
+  "category": "COUNTER",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "SIZE 37-39 | SIZE 40-42 | SIZE 43-46",
+  "suppliers": "WINFAITH,PT"
+ },
+ {
+  "name": "TRANSFER PAPER",
+  "uom": "PRS",
+  "category": "PROCESS",
+  "is_process": true,
+  "status": "ACTIVE",
+  "dimensions": null,
+  "suppliers": "MULTI KARYA USAHA, PT"
+ },
+ {
+  "name": "TR COUNTER K-10 JR POTONG KAKI",
+  "uom": "PRS",
+  "category": "COUNTER",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "SIZE 10-11T",
+  "suppliers": "TOPRO INDONESIA,PT"
+ },
+ {
+  "name": "TR COUNTER SC-02 (HARDNESS 99)",
+  "uom": "PRS",
+  "category": "COUNTER",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "SIZE 35-39 (3-4) | SIZE 37-40 (4-6T) | SIZE 41-44 (7-9T)",
+  "suppliers": "TOPRO INDONESIA,PT"
+ },
+ {
+  "name": "TRICOT 28 GR",
+  "uom": "ME",
+  "category": "FABRIC",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "44\"",
+  "suppliers": "BUKIT HIJAU SENTOSA,PD"
+ },
+ {
+  "name": "TS GRACIAS SW MESH",
+  "uom": "ME",
+  "category": "FABRIC",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "60\"",
+  "suppliers": "HWASUNG INTERNATIONAL,PT"
+ },
+ {
+  "name": "T-SHELL MESH (232 GRAM)",
+  "uom": "ME",
+  "category": "FABRIC",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "44\"",
+  "suppliers": "HWASUNG INTERNATIONAL,PT"
+ },
+ {
+  "name": "TWIN PRIMER - M",
+  "uom": "KG",
+  "category": "CHEMICAL",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "(none)",
+  "suppliers": "GARUDA TWIN JAYA,PT"
+ },
+ {
+  "name": "VISATERRY N",
+  "uom": "ME",
+  "category": "FABRIC",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": null,
+  "suppliers": "ASSEMS INDO, PT"
+ },
+ {
+  "name": "W/COATING FA 7300",
+  "uom": "PRS",
+  "category": "CHEMICAL",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": null,
+  "suppliers": "ASSEMS INDO, PT"
+ },
+ {
+  "name": "WEBBING ELASTIC",
+  "uom": "ME",
+  "category": "WEBBING TAPE",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "25 MM",
+  "suppliers": "SUN-TEX INDONESIA, PT"
+ },
+ {
+  "name": "WORDING",
+  "uom": "PRS",
+  "category": "PROCESS",
+  "is_process": true,
+  "status": "ACTIVE",
+  "dimensions": null,
+  "suppliers": null
+ },
+ {
+  "name": "WOVEN LABEL",
+  "uom": "PRS",
+  "category": "ACCESSORY",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": null,
+  "suppliers": "DINASIRA SEMBADA,PT"
+ },
+ {
+  "name": "WOVEN LABEL 104B+104T",
+  "uom": "PRS",
+  "category": "LABEL",
+  "is_process": false,
+  "status": "ACTIVE",
+  "dimensions": "68 X 40 MM",
+  "suppliers": "DINASIRA SEMBADA,PT"
+ }
+]

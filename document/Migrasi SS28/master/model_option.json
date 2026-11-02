@@ -1,0 +1,357 @@
+[
+ {
+  "kind": "CONSTRUCTION",
+  "value": "STROBLE + TOE LASTING",
+  "status": "ACTIVE"
+ },
+ {
+  "kind": "CONSTRUCTION",
+  "value": "FULL TOE LAST",
+  "status": "ACTIVE"
+ },
+ {
+  "kind": "CONSTRUCTION",
+  "value": "FULL STROBLE",
+  "status": "ACTIVE"
+ },
+ {
+  "kind": "GENDER",
+  "value": "MEN",
+  "status": "ACTIVE"
+ },
+ {
+  "kind": "GENDER",
+  "value": "WOMEN",
+  "status": "ACTIVE"
+ },
+ {
+  "kind": "GENDER",
+  "value": "UNISEX",
+  "status": "ACTIVE"
+ },
+ {
+  "kind": "GENDER",
+  "value": "JR",
+  "status": "ACTIVE"
+ },
+ {
+  "kind": "KATEGORI",
+  "value": "FOOTBALL",
+  "status": "ACTIVE"
+ },
+ {
+  "kind": "KATEGORI",
+  "value": "FUTSAL",
+  "status": "ACTIVE"
+ },
+ {
+  "kind": "KATEGORI",
+  "value": "RUNNING",
+  "status": "ACTIVE"
+ },
+ {
+  "kind": "KATEGORI",
+  "value": "LIFESTYLE",
+  "status": "ACTIVE"
+ },
+ {
+  "kind": "KATEGORI",
+  "value": "STREET SOCCER",
+  "status": "ACTIVE"
+ },
+ {
+  "kind": "KATEGORI",
+  "value": "CLASSIC",
+  "status": "ACTIVE"
+ },
+ {
+  "kind": "KATEGORI",
+  "value": "FUTSAL TF",
+  "status": "ACTIVE"
+ },
+ {
+  "kind": "LAST",
+  "value": "PRL-014",
+  "status": "ACTIVE"
+ },
+ {
+  "kind": "LAST",
+  "value": "PRL-014 JR",
+  "status": "ACTIVE"
+ },
+ {
+  "kind": "LAST",
+  "value": "PRL-015",
+  "status": "ACTIVE"
+ },
+ {
+  "kind": "LAST",
+  "value": "PRL-024",
+  "status": "ACTIVE"
+ },
+ {
+  "kind": "LAST",
+  "value": "PRL-024 JR",
+  "status": "ACTIVE"
+ },
+ {
+  "kind": "LAST",
+  "value": "PRL-024R",
+  "status": "ACTIVE"
+ },
+ {
+  "kind": "LAST",
+  "value": "PRL-025",
+  "status": "ACTIVE"
+ },
+ {
+  "kind": "LAST",
+  "value": "PRL-035",
+  "status": "ACTIVE"
+ },
+ {
+  "kind": "LAST",
+  "value": "PRL-035N",
+  "status": "ACTIVE"
+ },
+ {
+  "kind": "LAST",
+  "value": "PRL-023",
+  "status": "ACTIVE"
+ },
+ {
+  "kind": "LAST",
+  "value": "PRL-037",
+  "status": "ACTIVE"
+ },
+ {
+  "kind": "LAST",
+  "value": "PRL 023H",
+  "status": "ACTIVE"
+ },
+ {
+  "kind": "LAST",
+  "value": "PRL-036",
+  "status": "ACTIVE"
+ },
+ {
+  "kind": "OUTSOLE_MOLD",
+  "value": "PRM-072",
+  "status": "ACTIVE"
+ },
+ {
+  "kind": "OUTSOLE_MOLD",
+  "value": "PRM-074",
+  "status": "ACTIVE"
+ },
+ {
+  "kind": "OUTSOLE_MOLD",
+  "value": "PRM-080",
+  "status": "ACTIVE"
+ },
+ {
+  "kind": "OUTSOLE_MOLD",
+  "value": "PRM-081",
+  "status": "ACTIVE"
+ },
+ {
+  "kind": "OUTSOLE_MOLD",
+  "value": "PRM-081 JR",
+  "status": "ACTIVE"
+ },
+ {
+  "kind": "OUTSOLE_MOLD",
+  "value": "PRM-091",
+  "status": "ACTIVE"
+ },
+ {
+  "kind": "OUTSOLE_MOLD",
+  "value": "PRM-091 JR",
+  "status": "ACTIVE"
+ },
+ {
+  "kind": "OUTSOLE_MOLD",
+  "value": "PRM-092",
+  "status": "ACTIVE"
+ },
+ {
+  "kind": "OUTSOLE_MOLD",
+  "value": "PRM-093",
+  "status": "ACTIVE"
+ },
+ {
+  "kind": "OUTSOLE_MOLD",
+  "value": "PRM-097",
+  "status": "ACTIVE"
+ },
+ {
+  "kind": "OUTSOLE_MOLD",
+  "value": "PRM-099",
+  "status": "ACTIVE"
+ },
+ {
+  "kind": "OUTSOLE_MOLD",
+  "value": "PRM-099 JR",
+  "status": "ACTIVE"
+ },
+ {
+  "kind": "OUTSOLE_MOLD",
+  "value": "PRM-100",
+  "status": "ACTIVE"
+ },
+ {
+  "kind": "OUTSOLE_MOLD",
+  "value": "PRM-100 TR",
+  "status": "ACTIVE"
+ },
+ {
+  "kind": "OUTSOLE_MOLD",
+  "value": "PRM-101",
+  "status": "ACTIVE"
+ },
+ {
+  "kind": "OUTSOLE_MOLD",
+  "value": "PRM-102",
+  "status": "ACTIVE"
+ },
+ {
+  "kind": "OUTSOLE_MOLD",
+  "value": "PRM-104",
+  "status": "ACTIVE"
+ },
+ {
+  "kind": "OUTSOLE_MOLD",
+  "value": "PRM-105",
+  "status": "ACTIVE"
+ },
+ {
+  "kind": "OUTSOLE_MOLD",
+  "value": "PRM-096",
+  "status": "ACTIVE"
+ },
+ {
+  "kind": "OUTSOLE_MOLD",
+  "value": "PRM-106",
+  "status": "ACTIVE"
+ },
+ {
+  "kind": "OUTSOLE_MOLD",
+  "value": "PRM-106 TF",
+  "status": "ACTIVE"
+ },
+ {
+  "kind": "OUTSOLE_MOLD",
+  "value": "PRM-107",
+  "status": "ACTIVE"
+ },
+ {
+  "kind": "OUTSOLE_MOLD",
+  "value": "PRM-108",
+  "status": "ACTIVE"
+ },
+ {
+  "kind": "OUTSOLE_MOLD",
+  "value": "PRM-109",
+  "status": "ACTIVE"
+ },
+ {
+  "kind": "OUTSOLE_MOLD",
+  "value": "PRM-110",
+  "status": "ACTIVE"
+ },
+ {
+  "kind": "OUTSOLE_MOLD",
+  "value": "PRM-111",
+  "status": "ACTIVE"
+ },
+ {
+  "kind": "OUTSOLE_MOLD",
+  "value": "PRM-112",
+  "status": "ACTIVE"
+ },
+ {
+  "kind": "OUTSOLE_MOLD",
+  "value": "PRM -096",
+  "status": "ACTIVE"
+ },
+ {
+  "kind": "UKURAN",
+  "value": "32",
+  "status": "ACTIVE"
+ },
+ {
+  "kind": "UKURAN",
+  "value": "33",
+  "status": "ACTIVE"
+ },
+ {
+  "kind": "UKURAN",
+  "value": "34",
+  "status": "ACTIVE"
+ },
+ {
+  "kind": "UKURAN",
+  "value": "35",
+  "status": "ACTIVE"
+ },
+ {
+  "kind": "UKURAN",
+  "value": "36",
+  "status": "ACTIVE"
+ },
+ {
+  "kind": "UKURAN",
+  "value": "37",
+  "status": "ACTIVE"
+ },
+ {
+  "kind": "UKURAN",
+  "value": "38",
+  "status": "ACTIVE"
+ },
+ {
+  "kind": "UKURAN",
+  "value": "39",
+  "status": "ACTIVE"
+ },
+ {
+  "kind": "UKURAN",
+  "value": "40",
+  "status": "ACTIVE"
+ },
+ {
+  "kind": "UKURAN",
+  "value": "41",
+  "status": "ACTIVE"
+ },
+ {
+  "kind": "UKURAN",
+  "value": "42",
+  "status": "ACTIVE"
+ },
+ {
+  "kind": "UKURAN",
+  "value": "43",
+  "status": "ACTIVE"
+ },
+ {
+  "kind": "UKURAN",
+  "value": "44",
+  "status": "ACTIVE"
+ },
+ {
+  "kind": "UKURAN",
+  "value": "45",
+  "status": "ACTIVE"
+ },
+ {
+  "kind": "UKURAN",
+  "value": "46",
+  "status": "ACTIVE"
+ },
+ {
+  "kind": "UKURAN",
+  "value": "47",
+  "status": "ACTIVE"
+ }
+]
