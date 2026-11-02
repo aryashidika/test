@@ -230,6 +230,58 @@ BATCHES = {
         "process_set": {("GALACTICA MORPH NV FG JR", "OUTSOLE"): "BASE / STUD / LOGO", ("XCELLS FATALE FG JR", "OUTSOLE"): "BASE / STUD / LOGO"},
         "process": {("GALACTICA MORPH NV IN", "MIDSOLE"): "PRM-072"},
     },
+    # Batch 3 (2 Nov 2026): ACC LS SPYDER (6) + ALPHA FORCE PRO (2). Draf: pemetaan material menunggu hasil cek.
+    "batch3": {
+        "models": {
+            "ACC LS  SPYDER   FG SS 28.xlsx": {
+                "name": "ACC LS SPYDER FG", "category": "FOOTBALL", "construction": "STROBLE + TOE LASTING", "gender": "MEN",
+                "last": "PRL-023", "outsole_mold": "PRM-105", "sizes": list(range(37, 45)), "sample": 41,
+                "mat": _permodel("ACC LS SPYDER FG", False),
+            },
+            "ACC LS  SPYDER  IN SS 28.xlsx": {
+                "name": "ACC LS SPYDER IN", "category": "FUTSAL", "construction": "STROBLE + TOE LASTING", "gender": "MEN",
+                "last": "PRL-014", "outsole_mold": "PRM-106", "sizes": list(range(37, 45)), "sample": 41,
+                "mat": _permodel("ACC LS SPYDER IN", False),
+            },
+            "ACC LS  SPYDER CORE FG SS 28.xlsx": {
+                "name": "ACC LIGHTSPEED SPYDER CORE FG", "category": "FOOTBALL", "construction": "STROBLE + TOE LASTING", "gender": "MEN",
+                "last": "PRL-023 MID", "outsole_mold": "PRM-112", "sizes": list(range(37, 45)), "sample": 41,
+                "mat": _permodel("ACC LIGHTSPEED SPYDER CORE FG", False),
+            },
+            "ACC LS  SPYDER CORE IN  SS 28.xlsx": {
+                "name": "ACC LIGHTSPEED SPYDER CORE IN", "category": "FUTSAL", "construction": "STROBLE + TOE LASTING", "gender": "MEN",
+                "last": "PRL-023 MID", "outsole_mold": "PRM-099", "sizes": list(range(37, 47)), "sample": 41,
+                "mat": _permodel("ACC LIGHTSPEED SPYDER CORE IN", False),
+            },
+            "ACC LS  SPYDER FG JR  SS 28.xls": {
+                "name": "ACC LS SPYDER FG JR", "category": "FOOTBALL", "construction": "STROBLE + TOE LASTING", "gender": "JR",
+                "last": "PRL-024 JR", "outsole_mold": "PRM-091 JR", "sizes": list(range(32, 37)), "sample": 34,
+                "mat": _permodel("ACC LS SPYDER FG JR", True),
+            },
+            "ACC LS  SPYDER IN JR  SS 28.xls": {
+                "name": "ACC LS SPYDER IN JR", "category": "FUTSAL", "construction": "STROBLE + TOE LASTING", "gender": "JR",
+                "last": "PRL-014 JR MID", "outsole_mold": "PRM-099 JR", "sizes": list(range(32, 37)), "sample": 34,
+                "mat": _permodel("ACC LS SPYDER IN JR", True),
+            },
+            "ALPHA FORCE PRO FG SS 28.xlsx": {
+                "name": "ALPHA FORCE PRO FG", "category": "FOOTBALL", "construction": "STROBLE + TOE LASTING", "gender": "MEN",
+                "last": "PRL-023 MID", "outsole_mold": "PRM-110", "sizes": list(range(37, 45)), "sample": 41,
+                "mat": _permodel("ALPHA FORCE PRO FG", False),
+            },
+            "ALPHA FORCE PRO IN SS 28.xlsx": {
+                "name": "ALPHA FORCE PRO IN", "category": "FUTSAL", "construction": "STROBLE + TOE LASTING", "gender": "MEN",
+                "last": "PRL-014", "outsole_mold": "PRM-109", "sizes": list(range(37, 47)), "sample": 41,
+                "mat": _permodel("ALPHA FORCE PRO IN", False),
+            },
+        },
+        "comp_alias": {},
+        "components": [],
+        "options": [],
+        "materials": [],
+        "mat": [],
+        "mat_comp": {},
+        "process": {},
+    },
 }
 
 # material yang sudah ada tapi bukan dari master JSON 28 Okt (dipakai untuk mendaftarkan bila ternyata belum ada)
