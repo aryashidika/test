@@ -310,7 +310,7 @@ BATCHES = {
             (r"^MESH TN 378 B", ("MESH TN 378B (WIGHT 28 GR ) .54\"", "ME", None, "FUJIAN HEHE INTERNATIONAL TRAD")),
             (r"^HASI 022T 160$", ("T-160 (HASI-022 GRAMASI 160GSM)", "ME", '44"', "FUJIAN HEHE INTERNATIONAL TRAD")),
             (r"^HASI POLY PAGE II$", ("POLYPAG 2 (HASI 028)", "ME", '44"', "FUJIAN HEHE INTERNATIONAL TRAD")),
-            (r"^1\.2 MM \u00b1 0\.1MM NW 260", ("1.2 MM NON WOVEN NW 260", "ME", '44"', None)),
+            (r"^1\.2 MM \u00b1 0\.1MM NW 260", ("1.2 MM NON WOVEN NW 260", "ME", '44"', "HWASUNG INTERNATIONAL,PT")),
             (r"^0,7 MM MERRY KD KL (R)?054", ("MERRY KD KL R-054 BACKING KNITWEAR", "ME", '0.7 MM X 54"', None)),
             (r"^0\.7 MM MERRY KD DE 07", ("MERISKIN KD DE-7 BACKING KNITWEAR", "ME", '0.7 MM X 54"', None)),
             (r"^1,2 MM PU SHYNTETIC KD AR 100 M", ("PU SYNTHETIC KD AR-100 M BACKING NON WOVEN", "ME", '1.2 MM X 54"', None)),
