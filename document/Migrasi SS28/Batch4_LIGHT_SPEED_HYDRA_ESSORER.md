@@ -59,3 +59,9 @@ LIGHT SPEED REBORN META XR FG/IN/TF sudah punya Hangtag, Size Label, dan Sticker
 17. **Carton Box NEW REBORN FG** menulis B3 (620 X 465 X 320), B6 (665 X 475 X 340), B7 (680 X 485 X 350). M1: CARTON BOX SPECS B3 (640 X 455 X 315), B6 (685 X 465 X 325), B7 (700 X 520 X 330). Usul pakai STANDARD CARTON BOX NEW tanpa Dimension seperti model lain, ukuran tidak disimpan. Atau Dimension baru mengikuti Excel?
 18. **Stud/Base outsole FG (NEW REBORN FG, META XR FG).** Kolom supplier bagian outsole (GUNFESAS, JING XING, SMI) tidak disimpan, supplier tetap supplier baris utama. Setuju?
 19. **Penulisan warna.** Metalic jadi Metallic, Shinny jadi Shiny, warna "none" tetap NONE, kosong tetap kosong. Setuju?
+
+## Jawaban user dan hasil generator (2 Nov 2026)
+
+Jawaban: 1 setuju; 2 META XR TF = FOOTBALL; 3 setuju; 4 dan 5 sesuai teks Excel (1,2mm Backing Non Woven; 0.7 mm Backing Knitwear); 6 PRINTING 3D (Process baru), 0.8 MM di Process; 8 pakai EVA HARDNESS 50-55 ASKER C (SHT); 9 Dimension sama seperti Excel; 10 info tambahan di Process; 11 samakan Batch 3; 12 nama material tanpa nama supplier, supplier di kolom supplier; 13 Outsole HYDRA IN dikosongkan dulu (diisi manual); 15 link baru sesuai Excel; 16 pakai M1 (A7 320 X 220 X 125 MM); 17 Dimension hanya yang ada di M1.
+
+SQL: `SQL_Batch4/cek.sql`, `impor_lightspeed.sql` (4 model), `impor_hydra.sql` (2 model), `impor_essorer.sql` (2 model). Generator: `gen_import.py` (batch4).

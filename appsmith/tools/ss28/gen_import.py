@@ -355,6 +355,119 @@ BATCHES = {
 # aturan Batch 2 (material, Dimension, Process) berlaku juga untuk Batch 3; aturan Batch 3 dicek dulu
 BATCHES["batch3"]["mat"] = BATCHES["batch3"]["mat"] + BATCHES["batch2"]["mat"]
 
+BATCHES["batch4"] = {
+    # Batch 4 (2 Nov 2026): LIGHT SPEED (4), GALACTICA HYDRA ENERGA (2), ESSORER II (2). Jawaban user atas 19 pertanyaan di doc.
+    "models": {
+            "LIGHT SPEED NEW REBORN FG SS 28.xls": {
+                "name": "LIGHT SPEED NEW REBORN FG", "category": "FOOTBALL", "construction": "STROBLE + TOE LASTING", "gender": "MEN",
+                "last": "PRL-023 MID", "outsole_mold": "PRM-074", "sizes": list(range(37, 45)), "sample": 41,
+                "mat": _permodel("LIGHT SPEED NEW REBORN FG", False),
+            },
+            "LIGHT SPEED REBORN META XR  FG SS 28.xls": {
+                "name": "LIGHT SPEED REBORN META XR FG", "category": "FOOTBALL", "construction": "STROBLE + TOE LASTING", "gender": "MEN",
+                "last": "PRL-023 MID", "outsole_mold": "PRM-105", "sizes": list(range(37, 45)), "sample": 41,
+                "mat": _permodel("LIGHT SPEED REBORN META XR FG", False),
+            },
+            "LIGHT SPEED REBORN META XR  IN SS 28.xls": {
+                "name": "LIGHT SPEED REBORN META XR IN", "category": "FUTSAL", "construction": "STROBLE + TOE LASTING", "gender": "MEN",
+                "last": "PRL-014", "outsole_mold": "PRM-106", "sizes": list(range(37, 45)), "sample": 41,
+                "mat": _permodel("LIGHT SPEED REBORN META XR IN", False),
+            },
+            "LIGHT SPEED REBORN META XR  TF SS 28.xls": {
+                "name": "LIGHT SPEED REBORN META XR TF", "category": "FOOTBALL", "construction": "STROBLE + TOE LASTING", "gender": "MEN",
+                "last": "PRL-014", "outsole_mold": "PRM-106 TF", "sizes": list(range(37, 45)), "sample": 41,
+                "mat": _permodel("LIGHT SPEED REBORN META XR TF", False),
+            },
+            "GALACTICA HYDRA ENERGA FG SS 28.xlsx": {
+                "name": "GALACTICA HYDRA ENERGA FG", "category": "FOOTBALL", "construction": "STROBLE + TOE LASTING", "gender": "MEN",
+                "last": "PRL-015", "outsole_mold": "PRM-101", "sizes": list(range(37, 45)), "sample": 41,
+                "mat": _permodel("GALACTICA HYDRA ENERGA FG", False),
+            },
+            "GALACTICA HYDRA ENERGA IN SS 28.xlsx": {
+                "name": "GALACTICA HYDRA ENERGA IN", "category": "FUTSAL", "construction": "STROBLE + TOE LASTING", "gender": "MEN",
+                "last": "PRL-014", "outsole_mold": "PRM-102", "sizes": list(range(37, 47)), "sample": 41,
+                "mat": _permodel("GALACTICA HYDRA ENERGA IN", False),
+            },
+            "ESSORER  II FG  SS 28.xls": {
+                "name": "ESSORER 2 FG", "category": "FOOTBALL", "construction": "STROBLE + TOE LASTING", "gender": "MEN",
+                "last": "PRL-023 MID", "outsole_mold": "PRM-112", "sizes": list(range(37, 45)), "sample": 41,
+                "mat": _permodel("ESSORER 2 FG", False),
+            },
+            "ESSORER II IN SS 28.xls": {
+                "name": "ESSORER 2 IN", "category": "FUTSAL", "construction": "STROBLE + TOE LASTING", "gender": "MEN",
+                "last": "PRL-014", "outsole_mold": "PRM-099", "sizes": list(range(37, 45)), "sample": 41,
+                "mat": _permodel("ESSORER 2 IN", False),
+            },
+    },
+    "comp_alias": dict(BATCHES["batch3"]["comp_alias"]),
+    "components": [],
+    "sub_of": {},
+    "process_from_text": [r"^PUNCH HOLE\s*(.+)$", r"^(OVAL) PUNCH HOLE\s*(.+)$", r"^PUNCH (OVAL) HOLE\s*(.+)$", r"^TRANSPAPER\s+(.+)$", r"^PERPORATED\s+(.+)$",
+                          r"^DECORATION (0\.8 MM) PRINTING 3D MOTIF"],
+    "color_sub": [("METALIC", "METALLIC"), ("SHINNY", "SHINY")],
+    "outsole_parts": True,
+    "options": [],
+    "skip": {("GALACTICA HYDRA ENERGA IN", "OUTSOLE PRM-102")},      # Outsole HYDRA IN dikosongkan dulu, diisi manual
+    "materials": (
+        [(f"{k} {t}", c, u, False)
+         for t in ("LIGHT SPEED NEW REBORN FG", "GALACTICA HYDRA ENERGA FG", "GALACTICA HYDRA ENERGA IN", "ESSORER 2 FG", "ESSORER 2 IN")
+         for k, c, u in (("SIZE LABEL", "LABEL", "PRS"), ("HANGTAG", "PACKAGING", "PCS"), ("STICKER INNER BOX", "PACKAGING", "PCS"))]
+        + [
+            ("PU SYNTHETIC KD MANILA BACKING NON WOVEN", "SYNTHETIC LEATHER", "ME", False),
+            ("MERRY KD KL-R534 BACKING KNITWEAR", "SYNTHETIC LEATHER", "ME", False),
+            ("PRINTING 3D", "PROCESS", "PRS", True),
+            ("FLAT LACE TIP 15 MM BYL G 235", "LACE", "PRS", False),
+            ("FLAT LACE TIP 15 MM BYL G 211", "LACE", "PRS", False),
+            ("TPU INJECTION PBM 01", "OUTSOLE", "PRS", False),
+            ("OUTSOLE TPU INJECTION BASE SOLE PLATE SOLID TPU STUD TIPS SOLID TPU 90 A PRM-074", "OUTSOLE", "PRS", False),
+            ("OUTSOLE TPU INJECTION BASE 98 D STUD 98 A PRM-101", "OUTSOLE", "PRS", False),
+            ("OUTSOLE RUBBER CUP SOLE HARDNESS 60 SHORE A PRM-106 TF", "OUTSOLE", "PRS", False),
+        ]),
+    "mat": [
+        (r"^1,2MM PU SHYNTETIC KD MANILA", ("PU SYNTHETIC KD MANILA BACKING NON WOVEN", "ME", '1.2 MM X 54"', None)),
+        (r"^0\.7 MM MERRY KD KL_R534", ("MERRY KD KL-R534 BACKING KNITWEAR", "ME", '0.7 MM X 54"', None)),
+        (r"^1\.2 MM HULEX DIVE KD KL-R070", ("HULEX DIVE KD KL-R070 BACKING MICRO FIBER", "ME", '1.2 MM X 54"', None)),
+        (r"^0\.9 MM HULEX DIVE KD KL-R070", ("HULEX DIVE KD KL-R070 BACKING MICRO FIBER", "ME", '0.9 MM X 54"', None)),
+        (r"^1\.3 MM HULEX DIVE TECHNO", ("HULEX DIVE TECHNO BACKING MICRO FIBER", "ME", '1.3 MM X 54"', "HWASUNG INTERNATIONAL,PT")),
+        (r"^1\.2MM CAMELEON KD UM-13", ("CAMELEON KD UM-13 BACKING MICRO FIBER", "ME", '1.2 MM X 54"', None)),
+        (r"^6 MM FOAM 50 KG$", ('FOAM 50KG 6 MM X 44"', "ME", '6 MM X 44"', None)),
+        (r"^POLLY PAGE II$", ("POLYPAG 2 (HASI 028)", "ME", '44"', "HWASUNG INTERNATIONAL,PT")),
+        (r"^POLY FLAT LACE TIP 15MM WIDTH 5MM BYL E 005", ("FLATLACE TIP 15 MM BYL E 005", "PRS", "5 MM X 115 CM", None)),
+        (r"^FLAT LACE 6 MM TIP 15MM BYL G 253", ("FLAT LACE TIP 15 MM BYL G 253", "PRS", "6 MM X 115 CM", None)),
+        (r"^FLAT LACE 6 MM TIP 15MM BYL G 235", ("FLAT LACE TIP 15 MM BYL G 235", "PRS", "6 MM X 115 CM", None)),
+        (r"^FLAT LACE 6 MM TIP 15MM BYL G 211", ("FLAT LACE TIP 15 MM BYL G 211", "PRS", "6 MM X 115 CM", None)),
+        (r"^6 MM FLAT TUBULAR BSL 0040\(115 CM\)", ("POLY FLAT TUBULAR (BSL-0040)", "PRS", "6 MM X 115 CM", "SUN-TEX INDONESIA, PT")),
+        (r"^OVAL PUNCH HOLE", ("PUNCH HOLE", "PRS", None, None)),
+        (r"^DECORATION PRESH WELDING", ("PRESS WELDING", "PRS", None, None)),
+        (r"^DECORATION PRESH HF WELDING", ("HF WELDING", "PRS", None, None)),
+        (r"^DECORATION SINGLE STITCHING ROW", ("DECO SINGLE STITCH ROW", "ME", None, None)),
+        (r"^DECORATION PEPORATED", ("PERFORATED", "PRS", None, None)),
+        (r"^PERPORATED DIECUTT EVA", ("PERFORATED", "PRS", None, None)),
+        (r"^DECORATION 0\.8 MM PRINTING 3D MOTIF", ("PRINTING 3D", "PRS", None, None)),
+        (r"^ELASTIC KNIT$", ("ELASTIC KNIT", "PRS", None, "FUJIAN HEHE INTERNATIONAL TRAD")),
+        (r"^1\.0 MM EVA HARDNESS 50-55 ASKER C", ("EVA HARDNESS 50-55 ASKER C", "SHT", '1 MM (44" X 190 CM)', None)),
+        (r"^LAMINATING$", ("LAMINATING", "PRS", None, None)),
+        (r"^TPU INJECTION\(PBM 01\)$", ("TPU INJECTION PBM 01", "PRS", None, "WINFAITH,PT")),
+        (r"^A7\(330 X 220 X 125 MM\)", ("INNER BOX SPECS", "SET", "A7 (320 X 220 X 125 MM)", None)),
+        (r"^B[67]\(", ("STANDARD CARTON BOX NEW", "EA", None, "KARYA INDAH MULTIGUNA,PT")),
+    ],
+    "mat_comp": {
+        ("LIGHT SPEED NEW REBORN FG", "OUTSOLE"): ("OUTSOLE TPU INJECTION BASE SOLE PLATE SOLID TPU STUD TIPS SOLID TPU 90 A PRM-074", "PRS", None, "GUNFESAS TECHNOLOGY,PT"),
+        ("LIGHT SPEED REBORN META XR FG", "OUTSOLE"): ("OUTSOLE TPU INJECTION BASE 98 A TPU 95 A PRM-105", "PRS", None, "JING XING INDONESIA, PT"),
+        ("LIGHT SPEED REBORN META XR IN", "OUTSOLE"): ("OUTSOLE RUBBER CUP SOLE HARDNESS 60 SHORE A PRM-106", "PRS", None, None),
+        ("LIGHT SPEED REBORN META XR TF", "OUTSOLE"): ("OUTSOLE RUBBER CUP SOLE HARDNESS 60 SHORE A PRM-106 TF", "PRS", None, None),
+        ("GALACTICA HYDRA ENERGA FG", "OUTSOLE"): ("OUTSOLE TPU INJECTION BASE 98 D STUD 98 A PRM-101", "PRS", None, "SINAR MASANDA INDUSTRI,PT"),
+        ("ESSORER 2 FG", "OUTSOLE"): ("OUTSOLE TPU INJECTION HARDNESS 98 D PRM-112", "PRS", None, "TOPRO INDONESIA,PT"),
+        ("ESSORER 2 IN", "OUTSOLE"): ("OUTSOLE RUBBER CUP SOLE HARDNESS 60 SHORE A PRM-099", "PRS", None, None),
+        ("GALACTICA HYDRA ENERGA IN", "MIDSOLE"): ("INJECTION PHYLON HARDNESS 50-55 ASKER C PRM-102", "PRS", None, "KUMKANG TECH INDONESIA,PT"),
+        ("LIGHT SPEED REBORN META XR IN", "MIDSOLE"): ("INJECTION PHYLON HARDNESS 60\u00b12 ASKER C PRM-106", "PRS", None, "EVALIA JAYA ABADI, PT"),
+        ("LIGHT SPEED REBORN META XR TF", "MIDSOLE"): ("INJECTION PHYLON HARDNESS 60\u00b12 ASKER C PRM-106", "PRS", None, "EVALIA JAYA ABADI, PT"),
+    },
+    "process_set": {("ESSORER 2 FG", "OUTSOLE"): "BASE / STUD / LOGO"},
+    "process": {},
+}
+BATCHES["batch4"]["mat"] = BATCHES["batch4"]["mat"] + BATCHES["batch3"]["mat"]
+
 # material yang sudah ada tapi bukan dari master JSON 28 Okt (dipakai untuk mendaftarkan bila ternyata belum ada)
 KNOWN_EXTRA = {                 # dari M1 2 Nov 2026 (category, UoM, Process)
     "HANGTAG GALACTICA MORPH NV FG JR": ("PACKAGING", "PCS", False), "HANGTAG GALACTICA MORPH NV IN JR": ("PACKAGING", "PCS", False),
@@ -363,6 +476,13 @@ KNOWN_EXTRA = {                 # dari M1 2 Nov 2026 (category, UoM, Process)
     "STICKER INNER BOX GALACTICA MORPH NV FG JR": ("PACKAGING", "PCS", False), "STICKER INNER BOX GALACTICA MORPH NV IN JR": ("PACKAGING", "PCS", False),
     "STICKER INNER BOX XCELLS FG": ("PACKAGING", "PCS", False), "STICKER INNER BOX XCELLS IN": ("PACKAGING", "PCS", False),
     "CM 02": ("COUNTER", "EA", False),
+    # M1 2 Nov 2026: sudah ada di database (Batch 4)
+    "HANGTAG LIGHT SPEED REBORN META XR FG": ("PACKAGING", "PCS", False), "SIZE LABEL LIGHT SPEED REBORN META XR FG": ("LABEL", "PRS", False),
+    "STICKER INNER BOX LIGHT SPEED REBORN META XR FG": ("PACKAGING", "PCS", False),
+    "HANGTAG LIGHT SPEED REBORN META XR IN": ("PACKAGING", "PCS", False), "SIZE LABEL LIGHT SPEED REBORN META XR IN": ("LABEL", "PRS", False),
+    "STICKER INNER BOX LIGHT SPEED REBORN META XR IN": ("PACKAGING", "PCS", False),
+    "HANGTAG LIGHT SPEED REBORN META XR TF": ("PACKAGING", "PCS", False), "SIZE LABEL LIGHT SPEED REBORN META XR TF": ("LABEL", "PRS", False),
+    "STICKER INNER BOX LIGHT SPEED REBORN META XR TF": ("PACKAGING", "PCS", False),
 }
 
 # teks material Excel (pola regex pada extract.key) -> (material, UoM, Dimension, supplier pengganti / None)
@@ -443,7 +563,12 @@ def build_model(d, comps, sups, batch):
     out = []                # baris hasil, urut Excel
     main_of = {}            # seq Excel -> index baris utama di out
     seen = {}               # (komponen, material, dimension) baris utama -> index
+    skipping = False        # komponen yang dikosongkan dulu (diisi manual): baris utama + sub-barisnya dilewati
     for l in d["lines"]:
+        if l["kind"] == "MAIN":
+            skipping = (model, extract.clean(l["component"]).upper()) in batch.get("skip", set())
+        if skipping:
+            continue
         parent = by_seq.get(l["parent_seq"])
         treat = "" if l["kind"] == "MAIN" else bm.classify_sub(l, parent)
         pc = extract.clean(parent["component"]).upper() if parent else ""
@@ -478,7 +603,8 @@ def build_model(d, comps, sups, batch):
         for pat in batch.get("process_from_text", []):          # ukuran dari teks material jadi remark Process
             mm = re.match(pat, extract.clean(l["material"]).upper())
             if mm:
-                row["process"] = (row["process"] + " / " if row["process"] else "") + mm.group(1).strip()
+                txt = " ".join(g.strip() for g in mm.groups() if g)
+                row["process"] = (row["process"] + " / " if row["process"] else "") + txt
         if sub_of:
             idx = max(i for i, r in enumerate(out) if r["kind"] == "MAIN" and r["component"] == sub_of[0])
             row.update(kind="SUB", parent=idx, sub_name=sub_of[1])
