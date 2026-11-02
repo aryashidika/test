@@ -256,12 +256,12 @@ BATCHES = {
             "ACC LS  SPYDER FG JR  SS 28.xls": {
                 "name": "ACC LS SPYDER FG JR", "category": "FOOTBALL", "construction": "STROBLE + TOE LASTING", "gender": "JR",
                 "last": "PRL-024 JR", "outsole_mold": "PRM-091 JR", "sizes": list(range(32, 37)), "sample": 34,
-                "mat": _permodel("ACC LS SPYDER FG JR", True),
+                "mat": _permodel("ACC LS SPYDER FG JR", True) + [(r"^5 ?MM SHOE LACE SPUN TUBULAR NSL 0208$", ("SHOELACE SPUN TUBULAR (NSL0208)", "PRS", "5 MM X 110 CM", "SUN-TEX INDONESIA, PT"))],
             },
             "ACC LS  SPYDER IN JR  SS 28.xls": {
                 "name": "ACC LS SPYDER IN JR", "category": "FUTSAL", "construction": "STROBLE + TOE LASTING", "gender": "JR",
-                "last": "PRL-014 JR MID", "outsole_mold": "PRM-099 JR", "sizes": list(range(32, 37)), "sample": 34,
-                "mat": _permodel("ACC LS SPYDER IN JR", True),
+                "last": "PRL-014 JR", "outsole_mold": "PRM-099 JR", "sizes": list(range(32, 37)), "sample": 34,
+                "mat": _permodel("ACC LS SPYDER IN JR", True) + [(r"^5 ?MM SHOE LACE SPUN TUBULAR NSL 0208$", ("SHOELACE SPUN TUBULAR (NSL0208)", "PRS", "5 MM X 110 CM", "SUN-TEX INDONESIA, PT"))],
             },
             "ALPHA FORCE PRO FG SS 28.xlsx": {
                 "name": "ALPHA FORCE PRO FG", "category": "FOOTBALL", "construction": "STROBLE + TOE LASTING", "gender": "MEN",
@@ -274,15 +274,86 @@ BATCHES = {
                 "mat": _permodel("ALPHA FORCE PRO IN", False),
             },
         },
-        "comp_alias": {},
+        # sama seperti Batch 2 (komponen UPPER LOOP dan VAMP + QUARTER REINF IN sudah ada di database)
+        "comp_alias": {"VAMP / UPPER": "UPPER", "VAMP FOAM": "UPPER FOAM", "VAMP BACKER": "UPPER BACKER",
+                       "O/S THREAD ARRIANCE": "THREAD ARIANCE", "MIDSOLE IN SERT": "MIDSOLE INSERT",
+                       "VAMP LINNING": "VAMP LINING"},
         "components": [],
+        "sub_of": {("ACC LS SPYDER FG", "SPRAY OUTSOLE"): ("OUTSOLE", "SPRAY OUTSOLE")},
+        "process_from_text": [r"^PUNCH HOLE\s*(.+)$", r"^TRANSPAPER\s+(.+)$"],
+        "color_sub": [("METALIC", "METALLIC"), ("SHINNY", "SHINY")],
+        "outsole_parts": True,
         "options": [],
-        "materials": [],
-        "mat": [],
-        "mat_comp": {},
+        "materials": (
+            [(f"{k} {t}", c, u, False) for t in ("ACC LS SPYDER FG", "ACC LS SPYDER IN", "ACC LIGHTSPEED SPYDER CORE FG",
+                                                   "ACC LIGHTSPEED SPYDER CORE IN", "ACC LS SPYDER FG JR", "ACC LS SPYDER IN JR",
+                                                   "ALPHA FORCE PRO FG", "ALPHA FORCE PRO IN")
+             for k, c, u in (("SIZE LABEL", "LABEL", "PRS"), ("HANGTAG", "PACKAGING", "PCS"), ("STICKER INNER BOX", "PACKAGING", "PCS"))]
+            + [
+                ("OUTSOLE TPU INJECTION BASE 98 A STUD 90 A PRM-105", "OUTSOLE", "PRS", False),
+                ("OUTSOLE RUBBER CUP SOLE HARDNESS 60 SHORE A PRM-106", "OUTSOLE", "PRS", False),
+                ("OUTSOLE RUBBER CUP SOLE HARDNESS 60 SHORE A PRM-099", "OUTSOLE", "PRS", False),
+                ("OUTSOLE RUBBER CUP SOLE HARDNESS 60 SHORE A PRM-109", "OUTSOLE", "PRS", False),
+                ("OUTSOLE TPU INJECTION BASE 90-92 A STUD 90-92 A PRM-091 JR", "OUTSOLE", "PRS", False),
+                ("OUTSOLE TPU INJECTION BASE FRONT 95 A BASE HEEL 64 D STUD TIP 90 A PRM-110", "OUTSOLE", "PRS", False),
+                ("INJECTION PHYLON HARDNESS 60\u00b12 ASKER C PRM-106", "MIDSOLE", "PRS", False),
+                ("INJECTION PHYLON HARDNESS 50-55 ASKER C PRM-109", "MIDSOLE", "PRS", False),
+                ("HULEX NAPPA GRIP EFFECT", "SYNTHETIC LEATHER", "ME", False),
+                ("SINGLE MESH JZ 9036", "FABRIC", "ME", False),
+                ("POLY FLAT TUBULAR BYL C028", "LACE", "PRS", False),
+                ("NEGATIVE FILM", "PROCESS", "PRS", True),
+                ("6 MM FOAM 50 KG +5 SHL", "FOAM", "ME", False),
+            ]),
+        "mat": [
+            (r"^0,3 MM HULEX NAPA ANTI XHGC 025", ("HULEX NAPA ANTI (STICKY SURFACE)", "YD", '0.3 MM X 51"', None)),
+            (r"^0\.3 MM HULEX NAPPA\(GRIP EFFECT\)", ("HULEX NAPPA GRIP EFFECT", "ME", '0.3 MM X 54"', None)),
+            (r"^MESH TN 378 B", ("MESH TN 378B (WIGHT 28 GR ) .54\"", "ME", None, "FUJIAN HEHE INTERNATIONAL TRAD")),
+            (r"^HASI 022T 160$", ("T-160 (HASI-022 GRAMASI 160GSM)", "ME", '44"', "FUJIAN HEHE INTERNATIONAL TRAD")),
+            (r"^HASI POLY PAGE II$", ("POLYPAG 2 (HASI 028)", "ME", '44"', "FUJIAN HEHE INTERNATIONAL TRAD")),
+            (r"^1\.2 MM \u00b1 0\.1MM NW 260", ("1.2 MM NON WOVEN NW 260", "ME", '44"', None)),
+            (r"^0,7 MM MERRY KD KL (R)?054", ("MERRY KD KL R-054 BACKING KNITWEAR", "ME", '0.7 MM X 54"', None)),
+            (r"^0\.7 MM MERRY KD DE 07", ("MERISKIN KD DE-7 BACKING KNITWEAR", "ME", '0.7 MM X 54"', None)),
+            (r"^1,2 MM PU SHYNTETIC KD AR 100 M", ("PU SYNTHETIC KD AR-100 M BACKING NON WOVEN", "ME", '1.2 MM X 54"', None)),
+            (r"^0\.9MM PU SHYNTETIC KD KL-R054", ("PU SYNTHETIC KD KL-R054 BACKING NON WOVEN", "ME", '0.9 MM X 54"', None)),
+            (r"^6 MM FOAM 50\+5KG\(SHL\)$", ("6 MM FOAM 50 KG +5 SHL", "ME", '6 MM X 44"', None)),
+            (r"^2\.0MM EVA HARDNESS 40 ASKER C$", ("EVA HARDNESS 40 ASKER C", "ME", '2 MM X 44"', None)),
+            (r"^2\.0 MM FOAM 50 KG$", ("2 MM FOAM 50 KG", "ME", '2 MM X 44"', None)),
+            (r"^MERRY MESH$", ("MERRY MESH", "ME", '44"', None)),
+            (r"^MERY MESH\(GRAMASI 100\)\+$", ("MERRY MESH GRAMASI 100", "ME", '44"', None)),
+            (r"^1\.6 HYSOCK 16 N$", ("HY SOCK 16N", "ME", '1.6 MM X 44"', None)),
+            (r"^SINGLE MESH JZ 9036$", ("SINGLE MESH JZ 9036", "ME", '54"', None)),
+            (r"^6 MM POLY FLAT TUBULAR BYL C028", ("POLY FLAT TUBULAR BYL C028", "PRS", "6 MM X 115 CM", None)),
+            (r"^5 ?MM SHOE LACE SPUN TUBULAR NSL 0208$", ("SHOELACE SPUN TUBULAR (NSL0208)", "PRS", "5 MM X 115 CM", "SUN-TEX INDONESIA, PT")),
+            (r"^DECORATION POUNCH HOLE", ("PUNCH HOLE", "PRS", None, None)),
+            (r"^DECORATION NEGATIVE FILM", ("NEGATIVE FILM", "PRS", None, None)),
+            (r"^DECORATION BLOCK\+FLASH", ("PRINTING SCREEN", "PRS", None, None)),
+            # ALPHA FORCE PRO IN: kolom material String Pin kosong di Excel (warna Clear); dianggap PVC Clear seperti model lain
+            (r"^$", ("STRING PIN", "PCS", '3"', "DARMA SUKSES MANDIRI,CV")),
+        ],
+        "mat_comp": {
+            ("ACC LS SPYDER FG", "OUTSOLE"): ("OUTSOLE TPU INJECTION BASE 98 A STUD 90 A PRM-105", "PRS", None, "JING XING INDONESIA, PT"),
+            ("ACC LS SPYDER IN", "OUTSOLE"): ("OUTSOLE RUBBER CUP SOLE HARDNESS 60 SHORE A PRM-106", "PRS", None, None),
+            ("ACC LIGHTSPEED SPYDER CORE FG", "OUTSOLE"): ("OUTSOLE TPU INJECTION HARDNESS 98 D PRM-112", "PRS", None, "TOPRO INDONESIA,PT"),
+            ("ACC LIGHTSPEED SPYDER CORE IN", "OUTSOLE"): ("OUTSOLE RUBBER CUP SOLE HARDNESS 60 SHORE A PRM-099", "PRS", None, None),
+            ("ACC LS SPYDER FG JR", "OUTSOLE"): ("OUTSOLE TPU INJECTION BASE 90-92 A STUD 90-92 A PRM-091 JR", "PRS", None, "WINFAITH,PT"),
+            ("ACC LS SPYDER IN JR", "OUTSOLE"): ("OUTSOLE RUBBER CUP SOLE HARDNESS 60 SHORE A PRM-099 JR", "PRS", None, None),
+            ("ALPHA FORCE PRO FG", "OUTSOLE"): ("OUTSOLE TPU INJECTION BASE FRONT 95 A BASE HEEL 64 D STUD TIP 90 A PRM-110", "PRS", None, "WINFAITH,PT"),
+            ("ALPHA FORCE PRO IN", "OUTSOLE"): ("OUTSOLE RUBBER CUP SOLE HARDNESS 60 SHORE A PRM-109", "PRS", None, None),
+            ("ACC LS SPYDER FG", "SPRAY OUTSOLE"): ("SPRAY OUTSOLE", "PRS", None, "INDOKU HESA MAJU JAYA, PT"),
+            ("ACC LS SPYDER IN", "MIDSOLE"): ("INJECTION PHYLON HARDNESS 60\u00b12 ASKER C PRM-106", "PRS", None, "DWI MITRA MANDIRI,PT"),
+            ("ALPHA FORCE PRO IN", "MIDSOLE"): ("INJECTION PHYLON HARDNESS 50-55 ASKER C PRM-109", "PRS", None, "DWI MITRA MANDIRI,PT"),
+        },
+        # FG JR: Process Punch Hole di Excel berisi warna (Neon Volt / Black), diganti ukuran dari teks material;
+        # Base / Stud FG JR sudah ada di nama material (90-92 A), Process cukup nama bagian
+        "process_set": {("ACC LIGHTSPEED SPYDER CORE FG", "OUTSOLE"): "BASE / STUD / LOGO",
+                        ("ACC LS SPYDER FG JR", "OUTSOLE"): "BASE / STUD",
+                        ("ACC LS SPYDER FG JR", "PUNCH HOLE"): "OVAL 2.0 X 5 MM (6X2)",
+                        ("ACC LS SPYDER IN JR", "PUNCH HOLE"): "OVAL 2.0 X 5 MM (6X2)"},
         "process": {},
     },
 }
+# aturan Batch 2 (material, Dimension, Process) berlaku juga untuk Batch 3; aturan Batch 3 dicek dulu
+BATCHES["batch3"]["mat"] = BATCHES["batch3"]["mat"] + BATCHES["batch2"]["mat"]
 
 # material yang sudah ada tapi bukan dari master JSON 28 Okt (dipakai untuk mendaftarkan bila ternyata belum ada)
 KNOWN_EXTRA = {                 # dari M1 2 Nov 2026 (category, UoM, Process)
